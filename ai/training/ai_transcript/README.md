@@ -445,16 +445,6 @@ Typical workflow:
 6 Deploy to AI worker
 ```
 
-Commands:
-
-```
-python data_capture/capture_static.py
-python train.py
-python evaluate.py
-python export.py
-```
-
----
 
 # Best Practices
 
