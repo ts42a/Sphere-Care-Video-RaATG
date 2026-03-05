@@ -203,7 +203,7 @@ sphere-care/
 │     │  └─ ws_client.js
 │     └─ assets/
 │
-├─ shared/                      # single source of shared contracts
+├─ shared/                      # single source of shared contract
 │  ├─ openapi/
 │  │  └─ openapi.yaml
 │  └─ types/
