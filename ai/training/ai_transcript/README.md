@@ -17,27 +17,17 @@ The trained models are exported and later used by the **AI runtime worker** to d
 
 ```
 ai/
-│
 ├── app/
-│
 ├── model/
-│
 └── training/
-    │
     ├── ai_flags/
-    │
     └── ai_transcript/
-        │
         ├── dataset/
-        │   │
         │   ├── raw/
         │   │   ├── motion/
         │   │   └── static/
-        │   │
         │   └── metadata.jsonl
-        │
         ├── models/
-        │
         ├── dataset_builder.py
         ├── train.py
         └── README.md
