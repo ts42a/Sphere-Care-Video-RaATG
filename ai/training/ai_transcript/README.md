@@ -1,468 +1,343 @@
-# ASL Gesture Training Pipeline
+# AI Gesture Training Module
 
-This module contains the **training pipeline for the Sphere Care Gesture AI system**.
+This module contains the **dataset creation and training pipeline** for the Sphere Care AI gesture recognition system.
 
-The goal of this module is to train machine learning models capable of recognizing **American Sign Language (ASL) gestures** using hand landmark data extracted from video frames.
+It supports two gesture types:
 
-The system supports two recognition modes:
+* **Static ASL Alphabet (A–Z)**
+* **Motion Gestures (words or dynamic signs such as J and Z)**
 
-1. **ASL Alphabet Recognition (A–Z)**
-2. **Word-Level Gesture Recognition**
+The system uses **MediaPipe Hand Landmarks** to convert hand poses into **63-feature vectors**, which are then used to train machine learning models.
 
-The trained models are exported to the **AI worker service**, where they are used for **real-time gesture inference**.
-
-This allows the Sphere Care platform to detect **non-verbal communication signals** from residents and convert them into structured events for monitoring and reporting.
+The trained models are exported and later used by the **AI runtime worker** to detect gestures in real time.
 
 ---
 
-# Folder Structure
+# Project Structure
 
 ```
-training/ai_transcript/
-├─ datasets/
-│  ├─ motion/
-│  └─ static/
+ai/
 │
-├─ train.py
-├─ dataset_builder.py
-├─ evaluate.py
-├─ export.py
-└─ README.md
+├── app/
+│
+├── model/
+│
+└── training/
+    │
+    ├── ai_flags/
+    │
+    └── ai_transcript/
+        │
+        ├── dataset/
+        │   │
+        │   ├── raw/
+        │   │   ├── motion/
+        │   │   └── static/
+        │   │
+        │   └── metadata.jsonl
+        │
+        ├── models/
+        │
+        ├── dataset_builder.py
+        ├── train.py
+        └── README.md
 ```
 
 ---
 
-# System Overview
+# Dataset Overview
 
-The training pipeline follows the workflow below:
+The dataset is generated using **dataset_builder.py**, which captures hand gestures using a webcam and extracts **MediaPipe hand landmarks**.
+
+Each detected hand produces:
 
 ```
-Data Capture
-      ↓
-Dataset Preparation
-      ↓
-Model Training
-      ↓
-Model Evaluation
-      ↓
-Model Export
-      ↓
-Runtime Inference
+21 landmarks × (x, y, z) = 63 features
 ```
 
-This modular design ensures:
+These features are:
 
-* reproducible training
-* clean deployment
-* easy dataset expansion
+* wrist-centered
+* scale-normalized
+
+This improves model stability and generalization.
 
 ---
 
-# ASL Alphabet Dataset (A–Z)
+# Dataset Types
 
-The system supports recognition of **26 ASL alphabet gestures**.
+The system supports **two dataset types**.
 
-Each gesture represents a **static hand pose**.
+## 1. Static Gestures
 
-```
-A B C D E F G H I J
-K L M N O P Q R S T
-U V W X Y Z
-```
-
-These letters can be used to **spell words dynamically**.
+Used for **ASL alphabet letters A–Z**.
 
 Example:
 
 ```
-H → E → L → P
-```
-
-Result:
-
-```
-HELP
-```
-
----
-
-# Feature Representation
-
-Hand landmarks are extracted using **MediaPipe Hands**.
-
-Each frame produces **21 hand landmarks**.
-
-Each landmark contains:
-
-```
-(x, y, z)
-```
-
-Total features per frame:
-
-```
-21 landmarks × 3 coordinates = 63 features
-```
-
-Example feature vector:
-
-```
-[x1,y1,z1,
- x2,y2,z2,
- ...
- x21,y21,z21]
-```
-
----
-
-# Static vs Motion Gestures
-
-Some ASL gestures are **static**, while others involve **motion**.
-
-Static letters:
-
-```
-A B C D E F G H I K L M N O P Q R S T U V W X Y
-```
-
-Motion letters:
-
-```
-J
+A
+B
+C
+...
 Z
 ```
 
-The dataset supports both formats.
-
-Static gestures:
+Each sample is saved as:
 
 ```
-(63,)
+(63,) vector
 ```
 
-Motion gestures:
+Stored as:
 
 ```
-(T,63)
-```
-
-Example motion sequence:
-
-```
-(10,63)
-```
-
----
-
-# Word-Level Gesture Dataset
-
-In addition to letters, the system supports **word-level gestures**.
-
-These gestures represent **complete signs corresponding to common words or commands**.
-
-Example gesture words:
-
-```
-HELP
-WATER
-PAIN
-MEDICINE
-CALL
-STOP
-YES
-NO
-TOILET
-THANK YOU
-```
-
-For the initial prototype, the dataset may contain approximately:
-
-```
-200 gesture words
-```
-
-Recommended samples per word:
-
-```
-20–50 samples
-```
-
-Example dataset size:
-
-| Words | Samples per Word | Total Samples |
-| ----- | ---------------- | ------------- |
-| 200   | 30               | ~6000         |
-
----
-
-# Dataset Structure
-
-The dataset is organized by **gesture label**.
-
-```
-datasets/
-
-static/
-   A/
-      sample1.npy
-      sample2.npy
-
-   B/
-      sample1.npy
-
-   C/
-      sample1.npy
-
-   ...
-
-   Z/
-      sample1.npy
-
-motion/
-   HELP/
-      sample1.npz
-      sample2.npz
-
-   WATER/
-      sample1.npz
-
-   PAIN/
-      sample1.npz
-```
-
-Static samples store **single frames**.
-
-Motion samples store **frame sequences**.
-
----
-
-# Data Capture
-
-## Static Gesture Capture
-
-```
-data_capture/capture_static.py
-```
-
-Captures a single hand pose and saves it as `.npy`.
-
-Example output:
-
-```
-A/sample1.npy
-```
-
-Feature shape:
-
-```
-(63,)
-```
-
----
-
-## Motion Gesture Capture
-
-```
-data_capture/capture_seq.py
-```
-
-Captures gesture motion sequences.
-
-Frames are stored as:
-
-```
-(T,63)
+dataset/raw/static/<LETTER>/*.npy
 ```
 
 Example:
 
 ```
-HELP/sample1.npz
+dataset/raw/static/A/A_20260305_0001.npy
+dataset/raw/static/B/B_20260305_0002.npy
+```
+
+---
+
+## 2. Motion Gestures
+
+Used for:
+
+* dynamic letters (**J**, **Z**)
+* gesture words (**HELP**, **WATER**, **MEDICINE**, etc.)
+
+Each sample is a sequence:
+
+```
+(T, 63)
+```
+
+Example:
+
+```
+(10 frames × 63 features)
+```
+
+Stored as:
+
+```
+dataset/raw/motion/<LABEL>/*.npz
+```
+
+Example:
+
+```
+dataset/raw/motion/HELP/HELP_20260305_0001.npz
+dataset/raw/motion/J/J_20260305_0002.npz
+```
+
+---
+
+# Metadata File
+
+Each capture session writes metadata to:
+
+```
+dataset/metadata.jsonl
+```
+
+Example entry:
+
+```json
+{
+ "session_id": "20260305_231200",
+ "type": "static",
+ "label": "A",
+ "saved_count": 5,
+ "notes": "wrist+scale normalized (63D) from MediaPipe"
+}
+```
+
+This metadata helps with:
+
+* dataset auditing
+* experiment tracking
+* research reporting
+
+---
+
+# Dataset Builder
+
+The dataset builder launches an interactive capture system.
+
+Run:
+
+```
+python dataset_builder.py
+```
+
+Menu:
+
+```
+=== DATASET BUILDER (ASL) ===
+
+1) Capture STATIC letter A–Z (save best 5)
+2) Capture MOTION label (words / J / Z)
+3) Exit
+```
+
+---
+
+## Static Capture
+
+Captures **stable hand poses** and saves the **best 5 samples**.
+
+Process:
+
+1. Webcam opens
+2. Countdown begins
+3. User holds gesture steady
+4. Stability filter selects clean frames
+5. Best 5 samples saved
+
+Output:
+
+```
+dataset/raw/static/<LETTER>/*.npy
+```
+
+---
+
+## Motion Capture
+
+Captures gesture sequences for motion gestures.
+
+Process:
+
+1. Webcam opens
+2. User performs motion gesture
+3. Frames converted to landmark sequences
+4. Sequences saved when buffer reaches target length
+
+Output:
+
+```
+dataset/raw/motion/<LABEL>/*.npz
 ```
 
 ---
 
 # Model Training
 
-Training is performed using:
+Training is performed using **train.py**.
+
+The training pipeline loads the dataset and trains an **SVM classifier using scikit-learn**.
+
+Two training modes are supported:
+
+| Mode   | Description                |
+| ------ | -------------------------- |
+| static | Train ASL alphabet model   |
+| motion | Train motion gesture model |
+| both   | Train both models          |
+
+---
+
+## Train Static Model (A–Z)
 
 ```
-train.py
+python train.py --mode static
 ```
 
-The training script performs:
-
-1. dataset loading
-2. feature normalization
-3. sequence padding
-4. classifier training
-5. model export
-
-Run training:
+Input:
 
 ```
-python train.py
+dataset/raw/static/
 ```
 
-Output artifacts:
+Output:
 
 ```
-gesture_model.joblib
-labels.json
-```
-
-Example label file:
-
-```
-{
- "labels": [
-  "A","B","C","D","E","F","G","H","I","J",
-  "K","L","M","N","O","P","Q","R","S","T",
-  "U","V","W","X","Y","Z"
- ]
-}
+artifacts/gesture/static_model.joblib
+artifacts/gesture/static_labels.json
 ```
 
 ---
 
-# Model Evaluation
-
-Evaluation is performed using:
+## Train Motion Model
 
 ```
-evaluate.py
+python train.py --mode motion
 ```
 
-Metrics include:
-
-* Accuracy
-* Precision
-* Recall
-* Confusion Matrix
-
-Run evaluation:
+Input:
 
 ```
-python evaluate.py
+dataset/raw/motion/
 ```
 
-
-# Model Export
-
-After training, the model is exported to the runtime worker.
+Output:
 
 ```
-export.py
-```
-
-Destination:
-
-```
-worker_ai/app/artifacts/gesture/
-```
-
-Output structure:
-
-```
-gesture_model.joblib
-labels.json
-```
-
-These files are loaded by:
-
-```
-app/runtime/gesture/model_loader.py
+artifacts/gesture/motion_model.joblib
+artifacts/gesture/motion_labels.json
 ```
 
 ---
 
-# Runtime Inference Flow
-
-During runtime, the system processes frames from a camera.
+## Train Both
 
 ```
-Camera Frame
-      ↓
-Hand Landmark Extraction
-      ↓
-63 Feature Vector
-      ↓
-Gesture Model
-      ↓
-Prediction
-      ↓
-Event Emission
-```
-
-Example prediction:
-
-```
-{
- "gesture": "HELP",
- "confidence": 0.96
-}
+python train.py --mode both
 ```
 
 ---
 
-# Hybrid Recognition System
+# Model Architecture
 
-The system combines **letter recognition** and **word recognition**.
+The current implementation uses:
 
-| Mode    | Purpose                     |
-| ------- | --------------------------- |
-| Letters | flexible spelling           |
-| Words   | fast command detection      |
-| Hybrid  | best real-world performance |
+```
+MediaPipe Hand Landmarks
+        ↓
+63-feature vector
+        ↓
+SVM Classifier (scikit-learn)
+        ↓
+Gesture Prediction
+```
+
+For motion gestures:
+
+```
+(T,63) sequence
+        ↓
+flatten
+        ↓
+SVM classifier
+```
 
 ---
 
-# Requirements
+# Dependencies
 
-Install required Python packages:
+Install required packages:
 
 ```
-pip install numpy
-pip install opencv-python
 pip install mediapipe
+pip install opencv-python
+pip install numpy
 pip install scikit-learn
-pip install matplotlib
 pip install joblib
 ```
 
 ---
 
-# Training Workflow
+# Role in Sphere Care Platform
 
-Typical workflow:
+This module provides the **AI training pipeline** for the Sphere Care system.
 
-```
-1 Capture gesture samples
-2 Build dataset
-3 Train model
-4 Evaluate model
-5 Export model
-6 Deploy to AI worker
-```
+The trained models are later used by the **AI inference service** to detect gestures from video streams and convert them into actionable events such as:
 
-Commands:
-
-```
-python data_capture/capture_static.py
-python train.py
-python evaluate.py
-python export.py
-```
-
----
-
-# Best Practices
-
-To improve model performance:
-
-* capture gestures from multiple people
-* vary lighting conditions
-* include different hand sizes
-* balance dataset samples
-* record gestures from different camera angles
-
+* emergency alerts
+* communication assistance
+* behavioral monitoring
