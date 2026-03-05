@@ -1,0 +1,2 @@
+{"session_id": "20260305_234623", "type": "static", "label": "A", "capture_seconds": 3.0, "save_mode": "best5", "stable_candidates": 53, "saved_count": 5, "timestamp": "20260305_234623", "notes": "wrist+scale normalized (63D) from MediaPipe Tasks HandLandmarker"}
+{"session_id": "20260305_234653", "type": "static", "label": "B", "capture_seconds": 3.0, "save_mode": "best5", "stable_candidates": 67, "saved_count": 5, "timestamp": "20260305_234653", "notes": "wrist+scale normalized (63D) from MediaPipe Tasks HandLandmarker"}
