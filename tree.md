@@ -138,7 +138,7 @@ sphere-care/
 │     └─ tests/
 │        ├─ ...
 │
-├─ media_service/               # WebRTC + recording “plumbing”
+├─ media_service/               # WebRTC + recording 
 │  ├─ Dockerfile
 │  ├─ pyproject.toml
 │  └─ app/
@@ -149,9 +149,21 @@ sphere-care/
 │     └─ tests/
 │        └─ test_signaling.py
 │
-├─ worker_ai/                   # background pipeline (transcribe/summary/flags)
+├─ ai/                   # background pipeline (transcribe/summary/flags)
 │  ├─ Dockerfile
 │  ├─ pyproject.toml
+│  ├─ training/
+|  |  ├── ai_flags/
+|  |  ├── ai_transcript/
+|  |  ├── dataset/
+|  |  │  ├── raw/
+|  |  │  │  ├── motion/
+|  |  │  │  └── static/
+|  |  │  └── metadata.jsonl
+|  |  ├── models/
+|  |  ├── dataset_builder.py
+|  |  ├── train.py
+|  |  └── README.md
 │  └─ app/
 │     ├─ worker.py              # Celery/RQ entry
 │     ├─ tasks/
