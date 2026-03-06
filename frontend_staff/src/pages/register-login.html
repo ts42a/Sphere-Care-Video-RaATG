@@ -4,384 +4,20 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Sphere Care – Auth</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    :root {
-      --navy: #0f1b2d;
-      --navy2: #162236;
-      --teal: #2ec4b6;
-      --teal-dark: #25a99e;
-      --white: #ffffff;
-      --gray-100: #f4f6f9;
-      --gray-300: #c8cdd6;
-      --gray-400: #9aa0ac;
-      --gray-600: #5a6170;
-      --dark-text: #1a2535;
-      --card-bg: #ffffff;
-      --input-bg: #f7f9fc;
-      --input-border: #dde1ea;
-      --shadow: 0 20px 60px rgba(0,0,0,0.25);
-    }
-
-    html, body {
-      height: 100%;
-      font-family: 'Manrope', sans-serif;
-      background: var(--navy);
-    }
-
-    /* ───── SHARED SPLIT LAYOUT ───── */
-    .page {
-      display: none;
-      width: 100%;
-      min-height: 100vh;
-    }
-    .page.active { display: flex; }
-
-    .split {
-      display: flex;
-      width: 100%;
-      min-height: 100vh;
-    }
-
-    /* LEFT PANEL */
-    .left-panel {
-      flex: 0 0 42%;
-      background: #ffffff;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 60px 48px;
-      position: relative;
-    }
-
-    .left-panel .brand-illustration {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 28px;
-      text-align: center;
-    }
-
-    .left-panel .brand-illustration svg {
-      width: 260px;
-      height: auto;
-    }
-
-    .left-panel .tagline h2 {
-      font-size: 26px;
-      font-weight: 800;
-      color: var(--dark-text);
-      line-height: 1.3;
-      margin-bottom: 12px;
-    }
-
-    .left-panel .tagline p {
-      font-size: 15px;
-      color: var(--gray-600);
-      line-height: 1.6;
-    }
-
-    .brand-name {
-      font-size: 22px;
-      font-weight: 800;
-      color: var(--dark-text);
-    }
-
-    .brand-sub {
-      font-size: 16px;
-      color: var(--gray-600);
-      margin-top: 4px;
-    }
-
-    /* RIGHT PANEL */
-    .right-panel {
-      flex: 1;
-      background: var(--navy);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 60px 48px;
-    }
-
-    /* ───── FORM CARD ───── */
-    .form-card {
-      width: 100%;
-      max-width: 420px;
-    }
-
-    .form-card.white-card {
-      background: #fff;
-      border-radius: 20px;
-      padding: 48px 40px;
-      box-shadow: var(--shadow);
-    }
-
-    .form-card h1 {
-      font-size: 22px;
-      font-weight: 800;
-      color: var(--white);
-      letter-spacing: 1.5px;
-      text-transform: uppercase;
-      text-align: center;
-      margin-bottom: 6px;
-    }
-
-    .form-card.white-card h1 {
-      color: var(--dark-text);
-      text-transform: none;
-      font-size: 24px;
-      letter-spacing: 0;
-    }
-
-    .form-card .subtitle {
-      text-align: center;
-      font-size: 13px;
-      color: var(--gray-400);
-      margin-bottom: 32px;
-    }
-
-    .form-card.white-card .subtitle {
-      color: var(--gray-600);
-    }
-
-    /* INPUTS */
-    .input-group {
-      position: relative;
-      margin-bottom: 14px;
-    }
-
-    .input-group .icon {
-      position: absolute;
-      left: 16px;
-      top: 50%;
-      transform: translateY(-50%);
-      color: var(--gray-400);
-      display: flex;
-      align-items: center;
-    }
-
-    .input-group .eye-icon {
-      position: absolute;
-      right: 16px;
-      top: 50%;
-      transform: translateY(-50%);
-      color: var(--gray-400);
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-    }
-
-    .input-group input {
-      width: 100%;
-      height: 52px;
-      padding: 0 44px 0 44px;
-      border-radius: 30px;
-      border: 1.5px solid var(--input-border);
-      background: var(--input-bg);
-      font-family: 'Manrope', sans-serif;
-      font-size: 14px;
-      color: var(--dark-text);
-      outline: none;
-      transition: border-color 0.2s, box-shadow 0.2s;
-    }
-
-    .input-group input::placeholder { color: var(--gray-400); }
-
-    .input-group input:focus {
-      border-color: var(--teal);
-      box-shadow: 0 0 0 3px rgba(46,196,182,0.15);
-    }
-
-    /* Dark panel inputs */
-    .right-panel .input-group input {
-      background: rgba(255,255,255,0.06);
-      border-color: rgba(255,255,255,0.12);
-      color: #fff;
-    }
-    .right-panel .input-group input::placeholder { color: rgba(255,255,255,0.4); }
-    .right-panel .input-group .icon { color: rgba(255,255,255,0.4); }
-    .right-panel .input-group .eye-icon { color: rgba(255,255,255,0.4); }
-    .right-panel .input-group input:focus {
-      border-color: var(--teal);
-      box-shadow: 0 0 0 3px rgba(46,196,182,0.2);
-    }
-
-    /* ───── ROLE TOGGLE ───── */
-    .role-toggle {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 22px 0 16px;
-    }
-
-    .toggle-track {
-      display: flex;
-      background: rgba(255,255,255,0.08);
-      border-radius: 30px;
-      padding: 4px;
-      position: relative;
-      width: 200px;
-      border: 1.5px solid rgba(255,255,255,0.12);
-    }
-
-    .toggle-btn {
-      flex: 1;
-      text-align: center;
-      padding: 9px 0;
-      font-size: 14px;
-      font-weight: 600;
-      font-family: 'Manrope', sans-serif;
-      cursor: pointer;
-      border-radius: 26px;
-      border: none;
-      background: transparent;
-      color: rgba(255,255,255,0.55);
-      transition: all 0.25s;
-      z-index: 1;
-    }
-
-    .toggle-btn.active {
-      background: var(--teal);
-      color: #fff;
-      box-shadow: 0 4px 12px rgba(46,196,182,0.4);
-    }
-
-    /* ───── BUTTONS ───── */
-    .btn-primary {
-      width: 100%;
-      height: 52px;
-      border-radius: 30px;
-      border: none;
-      font-family: 'Manrope', sans-serif;
-      font-size: 15px;
-      font-weight: 700;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-
-    .btn-create {
-      background: rgba(255,255,255,0.1);
-      color: #fff;
-      border: 1.5px solid rgba(255,255,255,0.2);
-      margin-top: 4px;
-    }
-    .btn-create:hover {
-      background: rgba(255,255,255,0.18);
-    }
-
-    .btn-login {
-      background: var(--dark-text);
-      color: #fff;
-    }
-    .btn-login:hover {
-      background: #243044;
-      transform: translateY(-1px);
-      box-shadow: 0 6px 20px rgba(0,0,0,0.3);
-    }
-
-    /* DIVIDER */
-    .divider {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin: 20px 0;
-      color: var(--gray-400);
-      font-size: 13px;
-    }
-    .divider::before, .divider::after {
-      content: '';
-      flex: 1;
-      height: 1px;
-      background: var(--gray-300);
-    }
-
-    .right-panel .divider { color: rgba(255,255,255,0.3); }
-    .right-panel .divider::before,
-    .right-panel .divider::after { background: rgba(255,255,255,0.12); }
-
-    /* SOCIAL BUTTONS */
-    .social-row {
-      display: flex;
-      gap: 12px;
-    }
-
-    .btn-social {
-      flex: 1;
-      height: 48px;
-      border-radius: 30px;
-      border: 1.5px solid var(--input-border);
-      background: #fff;
-      font-family: 'Manrope', sans-serif;
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--dark-text);
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      transition: box-shadow 0.2s;
-    }
-    .btn-social:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-
-    /* FORGOT */
-    .forgot {
-      text-align: right;
-      font-size: 13px;
-      color: var(--gray-600);
-      margin-bottom: 20px;
-      cursor: pointer;
-    }
-    .forgot:hover { color: var(--teal); }
-
-    /* FOOTER LINKS */
-    .form-footer {
-      text-align: center;
-      margin-top: 20px;
-      font-size: 13px;
-      color: rgba(255,255,255,0.45);
-    }
-
-    .form-card.white-card .form-footer { color: var(--gray-600); }
-
-    .form-footer a {
-      color: var(--teal);
-      font-weight: 700;
-      text-decoration: none;
-      cursor: pointer;
-    }
-    .form-footer a:hover { text-decoration: underline; }
-
-    /* ───── ILLUSTRATION SVGs ───── */
-    .illustration-register,
-    .illustration-login {
-      margin-bottom: 12px;
-    }
-
-    /* ───── RESPONSIVE ───── */
-    @media (max-width: 768px) {
-      .split { flex-direction: column; }
-      .left-panel { flex: none; min-height: 200px; padding: 40px 24px; }
-      .right-panel { padding: 40px 24px; }
-      .form-card.white-card { padding: 32px 24px; }
-    }
-  </style>
+  <link rel="stylesheet" href="style/css/style.css" />
 </head>
 <body>
 
-  <!-- ══════════════ REGISTER PAGE ══════════════ -->
+  <!-- REGISTER PAGE -->
   <div class="page active" id="page-register">
     <div class="split">
 
-      <!-- LEFT -->
       <div class="left-panel">
         <div class="brand-illustration">
-          <!-- Register illustration: woman + org chart -->
           <svg class="illustration-register" viewBox="0 0 320 300" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <!-- Org Chart -->
             <rect x="140" y="40" width="40" height="22" rx="4" fill="#2ec4b6"/>
             <line x1="160" y1="62" x2="160" y2="82" stroke="#c8cdd6" stroke-width="2"/>
             <line x1="80" y1="82" x2="240" y2="82" stroke="#c8cdd6" stroke-width="2"/>
@@ -394,172 +30,153 @@
             <line x1="160" y1="122" x2="160" y2="142" stroke="#c8cdd6" stroke-width="2"/>
             <rect x="140" y="142" width="40" height="22" rx="4" fill="#1a2535"/>
 
-            <!-- Woman figure -->
-            <!-- Body -->
             <ellipse cx="95" cy="212" rx="18" ry="8" fill="#e8e8e8" opacity="0.3"/>
-            <!-- Legs -->
             <rect x="85" y="248" width="10" height="32" rx="4" fill="#1a2535"/>
             <rect x="99" y="248" width="10" height="32" rx="4" fill="#1a2535"/>
-            <!-- Shoes -->
             <ellipse cx="90" cy="280" rx="8" ry="4" fill="#1a2535"/>
             <ellipse cx="104" cy="280" rx="8" ry="4" fill="#1a2535"/>
-            <!-- Torso -->
             <path d="M76 200 Q78 240 85 248 H109 Q116 240 118 200 Z" fill="#2ec4b6"/>
-            <!-- Neck -->
             <rect x="91" y="190" width="12" height="12" rx="6" fill="#f5c5a3"/>
-            <!-- Head -->
             <ellipse cx="97" cy="180" rx="16" ry="18" fill="#f5c5a3"/>
-            <!-- Hair -->
             <path d="M81 175 Q82 158 97 158 Q112 158 113 175 Q108 165 97 165 Q86 165 81 175Z" fill="#1a2535"/>
-            <!-- Ponytail -->
             <path d="M81 175 Q72 185 75 200 Q80 195 83 183Z" fill="#1a2535"/>
-            <!-- Arms -->
             <path d="M76 205 Q62 220 65 235" stroke="#2ec4b6" stroke-width="10" stroke-linecap="round" fill="none"/>
             <path d="M118 205 Q130 215 128 230" stroke="#2ec4b6" stroke-width="10" stroke-linecap="round" fill="none"/>
-            <!-- Ground line -->
             <line x1="50" y1="282" x2="200" y2="282" stroke="#e0e3ea" stroke-width="2"/>
           </svg>
 
           <div class="tagline">
             <h2>Create your Sphere Care Account</h2>
-            <p>Join our connected care network<br/>record, review, and stay informed in real-time.</p>
+            <p>Join our connected care network<br>record, review, and stay informed in real-time.</p>
           </div>
         </div>
       </div>
 
-      <!-- RIGHT -->
       <div class="right-panel">
         <div class="form-card">
           <h1>Create Account</h1>
-          <p class="subtitle">Enter your email address and password to log in.</p>
+          <p class="subtitle">Enter your email address and password to create your account.</p>
 
           <div class="input-group">
             <span class="icon">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M20 21a8 8 0 0 0-16 0"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+              </svg>
             </span>
             <input type="text" placeholder="Full Name" />
           </div>
 
           <div class="input-group">
             <span class="icon">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+                <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path>
+              </svg>
             </span>
             <input type="email" placeholder="Email" />
           </div>
 
           <div class="input-group">
             <span class="icon">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+                <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path>
+              </svg>
             </span>
             <input type="email" placeholder="Email Confirmation" />
           </div>
 
           <div class="input-group">
             <span class="icon">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="11" width="18" height="11" rx="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+              </svg>
             </span>
             <input type="password" id="reg-pass" placeholder="Password" />
-            <span class="eye-icon" onclick="togglePwd('reg-pass','reg-eye')">
-              <svg id="reg-eye" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            <span class="eye-icon" onclick="togglePwd('reg-pass', this)">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
             </span>
           </div>
 
           <div class="input-group">
             <span class="icon">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="11" width="18" height="11" rx="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+              </svg>
             </span>
             <input type="password" id="reg-pass2" placeholder="Retype Password" />
-            <span class="eye-icon" onclick="togglePwd('reg-pass2','reg-eye2')">
-              <svg id="reg-eye2" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            <span class="eye-icon" onclick="togglePwd('reg-pass2', this)">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
             </span>
           </div>
 
-          <!-- Staff / Admin Toggle -->
           <div class="role-toggle">
             <div class="toggle-track">
-              <button class="toggle-btn active" id="btn-staff" onclick="setRole('staff')">Staff</button>
-              <button class="toggle-btn" id="btn-admin" onclick="setRole('admin')">Admin</button>
+              <button class="toggle-btn active" id="btn-staff" type="button" onclick="setRole('staff')">Staff</button>
+              <button class="toggle-btn" id="btn-admin" type="button" onclick="setRole('admin')">Admin</button>
             </div>
           </div>
 
-          <button class="btn-primary btn-create">Create Now</button>
+          <button class="btn-primary btn-create" type="button">Create Now</button>
 
           <div class="divider">or</div>
 
-          <p class="form-footer">Have an account? <a onclick="showPage('login')">Sign in</a></p>
+          <p class="form-footer">Have an account? <a href="#" onclick="showPage('login'); return false;">Sign in</a></p>
         </div>
       </div>
 
     </div>
   </div>
 
-
-  <!-- ══════════════ LOGIN PAGE ══════════════ -->
+  <!-- LOGIN PAGE -->
   <div class="page" id="page-login">
     <div class="split">
 
-      <!-- LEFT -->
       <div class="left-panel">
         <div class="brand-illustration">
-          <!-- Login illustration: two doctors -->
           <svg class="illustration-login" viewBox="0 0 320 310" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <!-- Ground line -->
             <line x1="30" y1="295" x2="290" y2="295" stroke="#e0e3ea" stroke-width="2"/>
 
-            <!-- Doctor 1 (male, left) -->
-            <!-- Shoes -->
             <ellipse cx="110" cy="292" rx="9" ry="4" fill="#1a2535"/>
             <ellipse cx="126" cy="292" rx="9" ry="4" fill="#1a2535"/>
-            <!-- Legs (dark trousers) -->
             <rect x="101" y="260" width="12" height="33" rx="4" fill="#1a2535"/>
             <rect x="116" y="260" width="12" height="33" rx="4" fill="#1a2535"/>
-            <!-- White coat body -->
             <path d="M95 175 Q93 220 101 260 H128 Q136 220 134 175 Z" fill="#f0f0f0"/>
-            <!-- Shirt/teal collar strip -->
             <rect x="112" y="175" width="10" height="28" rx="2" fill="#2ec4b6"/>
-            <!-- Left arm with clipboard -->
             <path d="M95 185 Q75 210 72 235" stroke="#f0f0f0" stroke-width="14" stroke-linecap="round" fill="none"/>
-            <!-- Clipboard -->
             <rect x="58" y="228" width="26" height="34" rx="3" fill="#2ec4b6"/>
             <rect x="62" y="232" width="18" height="4" rx="1" fill="white" opacity="0.7"/>
             <rect x="62" y="239" width="18" height="3" rx="1" fill="white" opacity="0.5"/>
             <rect x="62" y="245" width="12" height="3" rx="1" fill="white" opacity="0.5"/>
-            <!-- Right arm -->
             <path d="M134 185 Q148 210 145 230" stroke="#f0f0f0" stroke-width="14" stroke-linecap="round" fill="none"/>
-            <!-- Neck -->
             <rect x="110" y="163" width="12" height="14" rx="6" fill="#f5c5a3"/>
-            <!-- Head -->
             <ellipse cx="116" cy="152" rx="17" ry="19" fill="#f5c5a3"/>
-            <!-- Hair -->
             <path d="M99 148 Q101 130 116 130 Q131 130 133 148 Q127 138 116 138 Q105 138 99 148Z" fill="#1a2535"/>
-            <!-- Stethoscope -->
             <path d="M103 185 Q90 200 94 218 Q98 230 110 228" stroke="#8a8a8a" stroke-width="3" stroke-linecap="round" fill="none"/>
             <circle cx="110" cy="229" r="5" fill="#555"/>
 
-            <!-- Doctor 2 (female, right) -->
-            <!-- Shoes -->
             <ellipse cx="190" cy="292" rx="9" ry="4" fill="#1a2535"/>
             <ellipse cx="207" cy="292" rx="9" ry="4" fill="#1a2535"/>
-            <!-- Legs -->
             <rect x="181" y="260" width="12" height="33" rx="4" fill="#1a2535"/>
             <rect x="197" y="260" width="12" height="33" rx="4" fill="#1a2535"/>
-            <!-- White coat -->
             <path d="M174 178 Q172 222 181 260 H209 Q218 222 216 178 Z" fill="#f0f0f0"/>
-            <!-- Teal collar -->
             <rect x="191" y="178" width="10" height="26" rx="2" fill="#2ec4b6"/>
-            <!-- Left arm -->
             <path d="M174 188 Q160 210 162 232" stroke="#f0f0f0" stroke-width="14" stroke-linecap="round" fill="none"/>
-            <!-- Right arm -->
             <path d="M216 188 Q228 208 226 230" stroke="#f0f0f0" stroke-width="14" stroke-linecap="round" fill="none"/>
-            <!-- Neck -->
             <rect x="190" y="165" width="12" height="15" rx="6" fill="#f5c5a3"/>
-            <!-- Head -->
             <ellipse cx="196" cy="154" rx="17" ry="19" fill="#f5c5a3"/>
-            <!-- Hair (curly/wavy) -->
             <path d="M179 150 Q180 130 196 128 Q212 130 213 150 Q208 135 196 136 Q184 136 179 150Z" fill="#1a2535"/>
             <path d="M179 155 Q175 165 178 175" stroke="#1a2535" stroke-width="6" stroke-linecap="round" fill="none"/>
             <path d="M213 155 Q217 165 215 175" stroke="#1a2535" stroke-width="6" stroke-linecap="round" fill="none"/>
-            <!-- Stethoscope -->
             <path d="M183 188 Q171 202 174 220 Q178 233 190 230" stroke="#8a8a8a" stroke-width="3" stroke-linecap="round" fill="none"/>
             <circle cx="190" cy="231" r="5" fill="#555"/>
           </svg>
@@ -571,81 +188,68 @@
         </div>
       </div>
 
-      <!-- RIGHT -->
       <div class="right-panel">
         <div class="form-card white-card">
           <h1>Log in to your account.</h1>
           <p class="subtitle">Enter your email address and password to log in.</p>
 
-          <div class="input-group">
-            <span class="icon" style="color:#9aa0ac">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+          <div class="input-group light-input">
+            <span class="icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+                <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path>
+              </svg>
             </span>
             <input type="email" placeholder="Email Address" />
           </div>
 
-          <div class="input-group">
-            <span class="icon" style="color:#9aa0ac">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
+          <div class="input-group light-input">
+            <span class="icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="11" width="18" height="11" rx="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+              </svg>
             </span>
             <input type="password" id="login-pass" placeholder="Password" />
-            <span class="eye-icon" style="color:#9aa0ac" onclick="togglePwd('login-pass','login-eye')">
-              <svg id="login-eye" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            <span class="eye-icon" onclick="togglePwd('login-pass', this)">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
             </span>
           </div>
 
           <div class="forgot">Forgot password?</div>
 
-          <button class="btn-primary btn-login">Login</button>
+          <button class="btn-primary btn-login" type="button">Login</button>
 
-          <div class="divider">or</div>
+          <div class="divider divider-light">or</div>
 
           <div class="social-row">
-            <button class="btn-social">
-              <!-- Google G logo -->
-              <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.2l6.7-6.7C35.7 2.5 30.2 0 24 0 14.8 0 7 5.4 3.2 13.3l7.8 6C12.8 13 18 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h12.7c-.6 3-2.3 5.5-4.8 7.2l7.5 5.8c4.4-4.1 7.1-10.1 7.1-17z"/><path fill="#FBBC05" d="M11 28.3A14.5 14.5 0 0 1 9.5 24c0-1.5.3-2.9.7-4.2l-7.8-6A24 24 0 0 0 0 24c0 3.9.9 7.5 2.6 10.8l8.4-6.5z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.5-5.8c-2.2 1.5-5 2.4-8.4 2.4-6 0-11.1-4-12.9-9.5l-8.4 6.5C7 43 15 48 24 48z"/></svg>
+            <button class="btn-social" type="button">
+              <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
+                <path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.2l6.7-6.7C35.7 2.5 30.2 0 24 0 14.8 0 7 5.4 3.2 13.3l7.8 6C12.8 13 18 9.5 24 9.5z"/>
+                <path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h12.7c-.6 3-2.3 5.5-4.8 7.2l7.5 5.8c4.4-4.1 7.1-10.1 7.1-17z"/>
+                <path fill="#FBBC05" d="M11 28.3A14.5 14.5 0 0 1 9.5 24c0-1.5.3-2.9.7-4.2l-7.8-6A24 24 0 0 0 0 24c0 3.9.9 7.5 2.6 10.8l8.4-6.5z"/>
+                <path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.5-5.8c-2.2 1.5-5 2.4-8.4 2.4-6 0-11.1-4-12.9-9.5l-8.4 6.5C7 43 15 48 24 48z"/>
+              </svg>
               Google
             </button>
-            <button class="btn-social">
-              <!-- Facebook F -->
-              <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#1877F2" d="M48 24C48 10.7 37.3 0 24 0S0 10.7 0 24c0 12 8.8 21.9 20.2 23.7V30.9h-6.1V24h6.1v-5.3c0-6 3.6-9.3 9-9.3 2.6 0 5.4.5 5.4.5v5.9h-3c-3 0-3.9 1.9-3.9 3.8V24H34l-1 6.9h-5.7v16.8C39.2 45.9 48 36 48 24z"/></svg>
+            <button class="btn-social" type="button">
+              <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
+                <path fill="#1877F2" d="M48 24C48 10.7 37.3 0 24 0S0 10.7 0 24c0 12 8.8 21.9 20.2 23.7V30.9h-6.1V24h6.1v-5.3c0-6 3.6-9.3 9-9.3 2.6 0 5.4.5 5.4.5v5.9h-3c-3 0-3.9 1.9-3.9 3.8V24H34l-1 6.9h-5.7v16.8C39.2 45.9 48 36 48 24z"/>
+              </svg>
               Facebook
             </button>
           </div>
 
-          <p class="form-footer" style="color:#5a6170">Don't you have an account? <a onclick="showPage('register')">Sign Up</a></p>
+          <p class="form-footer light-footer">Don't you have an account? <a href="#" onclick="showPage('register'); return false;">Sign Up</a></p>
         </div>
       </div>
 
     </div>
   </div>
 
-
-  <script>
-    function showPage(name) {
-      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-      document.getElementById('page-' + name).classList.add('active');
-    }
-
-    function setRole(role) {
-      const btnStaff = document.getElementById('btn-staff');
-      const btnAdmin = document.getElementById('btn-admin');
-      if (role === 'staff') {
-        btnStaff.classList.add('active');
-        btnAdmin.classList.remove('active');
-      } else {
-        btnAdmin.classList.add('active');
-        btnStaff.classList.remove('active');
-      }
-    }
-
-    function togglePwd(inputId, eyeId) {
-      const input = document.getElementById(inputId);
-      const isText = input.type === 'text';
-      input.type = isText ? 'password' : 'text';
-      const eye = document.getElementById(eyeId);
-      eye.style.opacity = isText ? '1' : '0.5';
-    }
-  </script>
+  <script src="style/js/auth.js"></script>
 </body>
 </html>
