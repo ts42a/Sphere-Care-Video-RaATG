@@ -30,6 +30,7 @@ ai/
         ├── models/
         ├── dataset_builder.py
         ├── train.py
+        ├── test.py
         └── README.md
 ```
 
