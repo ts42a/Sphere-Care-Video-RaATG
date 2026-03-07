@@ -13,3 +13,8 @@ ALLOWED_ORIGINS = os.getenv(
     "*"
 )
 
+SECRET_KEY = os.getenv("SECRET_KEY", "spherecare-secret-key")
+JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "60"))
+
+
