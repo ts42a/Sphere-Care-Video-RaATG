@@ -1,14 +1,3 @@
-"""
-notifications.py — Notifications & Appointments router
-
-界面对应：
-  左侧列表  → GET /notifications/          (All | Appointments tab)
-  右侧面板  → GET /notifications/priority   (Priority Alerts)
-  标记已读  → PATCH /notifications/{id}/read
-  全部已读  → PATCH /notifications/read-all
-  新建通知  → POST /notifications/
-  删除      → DELETE /notifications/{id}
-"""
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from typing import Optional
