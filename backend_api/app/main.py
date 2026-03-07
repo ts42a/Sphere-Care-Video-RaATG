@@ -21,10 +21,8 @@ from app.api.routers import (
 
 app = FastAPI(title="Sphere Care API")
 
-# Create tables
 Base.metadata.create_all(bind=engine)
 
-# CORS
 origins = (
     [origin.strip() for origin in ALLOWED_ORIGINS.split(",")]
     if ALLOWED_ORIGINS != "*"
@@ -39,7 +37,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Routers
 app.include_router(auth.router)
 app.include_router(residents.router)
 app.include_router(bookings.router)
