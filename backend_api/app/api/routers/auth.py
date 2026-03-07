@@ -1,8 +1,9 @@
+import re
+import bcrypt
 from datetime import datetime, timedelta
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from passlib.context import CryptContext
 from jose import jwt
 
 from app.api.deps import get_db
@@ -11,77 +12,90 @@ from app.core.config import SECRET_KEY, JWT_ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUT
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
+def validate_password(password: str) -> None:
+    errors = []
 
-#helpers
+    if len(password.encode("utf-8")) > 72:
+        errors.append("Password must be 72 characters or fewer.")
+    if len(password) < 8:
+        errors.append("Password must be at least 8 characters long.")
+    if not re.search(r"[A-Z]", password):
+        errors.append("Password must contain at least one uppercase letter.")
+    if not re.search(r"[a-z]", password):
+        errors.append("Password must contain at least one lowercase letter.")
+    if not re.search(r"\d", password):
+        errors.append("Password must contain at least one digit.")
+    if not re.search(r"[!@#$%^&*()_+\-=\[\]{};':\"\\|,.<>\/?`~]", password):
+        errors.append("Password must contain at least one special symbol (e.g. !@#$%).")
+
+    if errors:
+        raise HTTPException(status_code=400, detail=errors)
+
 
 def hash_password(password: str) -> str:
-    return pwd_context.hash(password)
+    pw_bytes = password.encode("utf-8")
+    salt = bcrypt.gensalt()
+    return bcrypt.hashpw(pw_bytes, salt).decode("utf-8")
 
 
-def verify_password(plain: str, hashed: str) -> bool:
-    return pwd_context.verify(plain, hashed)
+def verify_password(password: str, password_hash: str) -> bool:
+    return bcrypt.checkpw(password.encode("utf-8"), password_hash.encode("utf-8"))
 
 
 def create_access_token(data: dict) -> str:
-    payload = data.copy()
+    to_encode = data.copy()
     expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    payload.update({"exp": expire})
-    return jwt.encode(payload, SECRET_KEY, algorithm=JWT_ALGORITHM)
+    to_encode.update({"exp": expire})
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=JWT_ALGORITHM)
 
 
-#routes
+@router.post("/register", response_model=schemas.TokenResponse)
+def register(user: schemas.UserCreate, db: Session = Depends(get_db)):
+    validate_password(user.password)
 
-@router.post("/register", response_model=schemas.TokenResponse, status_code=status.HTTP_201_CREATED)
-def register(user_in: schemas.UserCreate, db: Session = Depends(get_db)):
-    """
-    Register a new user.
-    Validates:
-      - email == email_confirmation
-      - password == retype_password
-      - email not already taken
-      - role is 'staff' or 'admin'
-    """
-    existing = db.query(models.User).filter(models.User.email == user_in.email).first()
-    if existing:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="An account with this email already exists."
-        )
+    existing_user = db.query(models.User).filter(models.User.email == user.email).first()
+    if existing_user:
+        raise HTTPException(status_code=400, detail="Email already registered")
 
     new_user = models.User(
-        full_name=user_in.full_name,
-        email=user_in.email,
-        password_hash=hash_password(user_in.password),
-        role=user_in.role,
+        full_name=user.full_name,
+        email=user.email,
+        password_hash=hash_password(user.password),
+        role=user.role
     )
+
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
 
-    token = create_access_token({"sub": str(new_user.id), "role": new_user.role})
-    return schemas.TokenResponse(
-        access_token=token,
-        user=schemas.UserResponse.model_validate(new_user),
-    )
+    access_token = create_access_token({
+        "sub": new_user.email,
+        "role": new_user.role
+    })
+
+    return {
+        "access_token": access_token,
+        "user": new_user
+    }
 
 
 @router.post("/login", response_model=schemas.TokenResponse)
-def login(credentials: schemas.LoginRequest, db: Session = Depends(get_db)):
-    """
-    Login with email + password. Returns a JWT access token.
-    """
-    user = db.query(models.User).filter(models.User.email == credentials.email).first()
-    if not user or not verify_password(credentials.password, user.password_hash):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email or password.",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+def login(payload: schemas.LoginRequest, db: Session = Depends(get_db)):
+    user = db.query(models.User).filter(models.User.email == payload.email).first()
 
-    token = create_access_token({"sub": str(user.id), "role": user.role})
-    return schemas.TokenResponse(
-        access_token=token,
-        user=schemas.UserResponse.model_validate(user),
-    )
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+
+    if not verify_password(payload.password, user.password_hash):
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+
+    access_token = create_access_token({
+        "sub": user.email,
+        "role": user.role
+    })
+
+    return {
+        "access_token": access_token,
+        "user": user
+    }
