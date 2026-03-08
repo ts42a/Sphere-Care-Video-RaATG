@@ -1,6 +1,3 @@
-# evaluate.py
-# Evaluate trained gesture models on the dataset
-
 import json
 import joblib
 import numpy as np
@@ -13,7 +10,6 @@ DATASET_DIR = ROOT / "dataset" / "raw"
 STATIC_DIR = DATASET_DIR / "static"
 
 ARTIFACT_DIR = ROOT / "artifacts" / "gesture"
-
 MODEL_PATH = ARTIFACT_DIR / "static_model.joblib"
 LABELS_PATH = ARTIFACT_DIR / "static_labels.json"
 

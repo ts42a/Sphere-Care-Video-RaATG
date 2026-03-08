@@ -1,16 +1,10 @@
-# dataset_builder.py
-# ASL dataset builder using MediaPipe Tasks HandLandmarker.
-# - STATIC letters (A–Z) -> save BEST 5 stable frames -> .npy (63,)
-# - MOTION words / letters (e.g., J, Z, HELP...) -> .npz (T,63)
-
-
+# dataset_builder.py - ASL dataset builder using MediaPipe Tasks HandLandmarker.
 import os
 import json
 import time
 import urllib.request
 import numpy as np
 import cv2
-
 from pathlib import Path
 from datetime import datetime
 

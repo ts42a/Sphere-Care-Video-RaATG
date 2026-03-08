@@ -1,13 +1,10 @@
-# test_motion.py
-# Webcam test for motion-word ASL model
-# Example labels: YES, NO, HELLO
+# test_motion.py - Webcam test for motion-word ASL model . Example labels: YES, NO, HELLO
 
 import json
 import time
 import urllib.request
 from pathlib import Path
 from collections import deque, Counter
-
 import cv2
 import joblib
 import numpy as np
@@ -23,10 +20,8 @@ except ImportError:
 ROOT = Path(__file__).resolve().parent
 ARTIFACTS_DIR = ROOT / "artifacts" / "gesture"
 MODEL_DIR = ROOT / "models"
-
 MODEL_PATH = ARTIFACTS_DIR / "motion_model.joblib"
 LABELS_PATH = ARTIFACTS_DIR / "motion_labels.json"
-
 MODEL_URL = (
     "https://storage.googleapis.com/mediapipe-models/hand_landmarker/"
     "hand_landmarker/float16/1/hand_landmarker.task"
@@ -37,7 +32,6 @@ PRED_HISTORY_SIZE = 6
 CONFIDENCE_THRESHOLD = 0.60
 APPEND_COOLDOWN = 1.2
 
-
 def get_hand_model_path() -> str:
     MODEL_DIR.mkdir(parents=True, exist_ok=True)
     path = MODEL_DIR / "hand_landmarker.task"
@@ -46,7 +40,6 @@ def get_hand_model_path() -> str:
         urllib.request.urlretrieve(MODEL_URL, str(path))
         print("Done.")
     return str(path)
-
 
 def create_detector(num_hands=1):
     model_path = get_hand_model_path()
@@ -58,7 +51,6 @@ def create_detector(num_hands=1):
         min_tracking_confidence=0.6,
     )
     return vision.HandLandmarker.create_from_options(options)
-
 
 def extract_hand_features(hand_landmarks) -> np.ndarray:
     pts = np.array([[lm.x, lm.y, lm.z] for lm in hand_landmarks], dtype=np.float32)
@@ -73,7 +65,6 @@ def extract_hand_features(hand_landmarks) -> np.ndarray:
 
     return pts.reshape(-1).astype(np.float32)  # (63,)
 
-
 def draw_text(img, lines, x=10, y=30, gap=30):
     for i, line in enumerate(lines):
         cv2.putText(
@@ -86,7 +77,6 @@ def draw_text(img, lines, x=10, y=30, gap=30):
             2,
             cv2.LINE_AA,
         )
-
 
 def majority_vote(items):
     if not items:
@@ -123,9 +113,7 @@ def main():
     text_buffer = ""
     last_append_time = 0.0
 
-    print("Press Q or ESC to quit.")
-    print("Press C to clear text buffer.")
-    print("Press SPACE to add current stable prediction manually.")
+    print("Press Q or ESC to quit. \nPress C to clear text buffer. \nPress SPACE to add current stable prediction manually.")
 
     try:
         while True:
@@ -139,7 +127,6 @@ def main():
 
             mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
             res = detector.detect(mp_image)
-
             current_pred = "NO_HAND"
             current_conf = 0.0
 
@@ -205,13 +192,11 @@ def main():
                         text_buffer += " "
                     text_buffer += smoothed_pred
                     last_append_time = time.time()
-
     finally:
         cap.release()
         cv2.destroyAllWindows()
         if hasattr(detector, "close"):
             detector.close()
-
 
 if __name__ == "__main__":
     main()
