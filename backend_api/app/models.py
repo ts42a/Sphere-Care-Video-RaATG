@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, Text
 from sqlalchemy.orm import relationship
 
 from app.db.base import Base
@@ -74,11 +74,11 @@ class Notification(Base):
     __tablename__ = "notifications"
 
     id = Column(Integer, primary_key=True, index=True)
-    category = Column(String, nullable=False, default="alert")   # appointment / alert / reminder
+    category = Column(String, nullable=False, default="alert")
     title = Column(String, nullable=False)
     body = Column(Text, nullable=False)
-    is_read = Column(String, default="false")                    # "true" / "false"
-    is_priority = Column(String, default="false")                # "true" / "false"
+    is_read = Column(String, default="false")
+    is_priority = Column(String, default="false")
     created_at = Column(DateTime, default=datetime.utcnow)
 
 
@@ -87,7 +87,7 @@ class Conversation(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
-    category = Column(String, nullable=False, default="team")    # team / resident / alerts
+    category = Column(String, nullable=False, default="team")
     last_message = Column(Text, nullable=True)
     last_message_at = Column(DateTime, nullable=True)
     unread_count = Column(Integer, default=0)
@@ -108,7 +108,7 @@ class Message(Base):
     sender_name = Column(String, nullable=False)
     sender_role = Column(String, nullable=False)
     content = Column(Text, nullable=False)
-    is_self = Column(String, default="false")   # "true" / "false"
+    is_self = Column(String, default="false")
     created_at = Column(DateTime, default=datetime.utcnow)
 
     conversation = relationship("Conversation", back_populates="messages")
@@ -125,8 +125,8 @@ class Record(Base):
     thumbnail_url = Column(String, nullable=True)
     duration = Column(String, nullable=True)
     notes = Column(Text, nullable=True)
-    recorded_at = Column(String, nullable=True)      # e.g. 10/22/2025
-    recorded_time = Column(String, nullable=True)    # e.g. 09:15
+    recorded_at = Column(String, nullable=True)
+    recorded_time = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
 
@@ -140,3 +140,38 @@ class AiInsight(Base):
     priority = Column(String, nullable=False)        # high / mid / low
     is_new = Column(String, default="true")          # "true" / "false"
     created_at = Column(DateTime, default=datetime.utcnow)
+
+
+# ─────────────────────────────────────────────
+# CAMERA  (Recording Console)
+# ─────────────────────────────────────────────
+
+class Camera(Base):
+    __tablename__ = "cameras"
+
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String, nullable=False)           # e.g. "Room 101 — Main View"
+    resident_name = Column(String, nullable=True)    # resident associated with this camera
+    floor = Column(String, nullable=True)            # "Floor 1" / "Floor 2" / "Floor 3"
+    status = Column(String, default="live")          # "live" | "offline"
+    alert = Column(String, default="fine")           # "critical" | "fine" | "none"
+    description = Column(Text, nullable=True)        # latest AI detection note
+    stream_url = Column(String, nullable=True)       # HLS .m3u8 URL (when real cameras connected)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    alerts = relationship("CameraAlert", back_populates="camera", cascade="all, delete-orphan")
+
+
+class CameraAlert(Base):
+    __tablename__ = "camera_alerts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    camera_id = Column(Integer, ForeignKey("cameras.id"), nullable=True)
+    alert_type = Column(String, nullable=False)      # "critical" | "warning" | "info"
+    icon = Column(String, default="fall")            # "fall" | "person" | "sound" | "motion"
+    title = Column(String, nullable=False)
+    description = Column(Text, nullable=False)
+    resolved = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    camera = relationship("Camera", back_populates="alerts")
