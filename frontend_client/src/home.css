@@ -55,6 +55,12 @@ body {
   display: block;
 }
 
+.header-page-title {
+  font-size: 22px;
+  color: #425266;
+  font-weight: 700;
+}
+
 .user-avatar-icon {
   width: 32px;
   height: 32px;
@@ -169,10 +175,10 @@ body {
 
 .reminder-title {
   margin: 0 0 24px;
-  font-size: 30px;
+  font-size: 24px;
   line-height: 1.08;
   color: #647485;
-  font-weight: 400;
+  font-weight: 200;
 }
 
 .reminder-title span {
@@ -182,19 +188,22 @@ body {
 }
 
 .reminder-actions {
-  display: flex;
-  align-items: center;
-  gap: 16px;
+  margin-top: 20px;
+}
+
+.reminder-light{
+  color: #8c98a4;
+  font-weight: 700;
 }
 
 .primary-btn {
   border: 0;
-  background: #46576d;
+  background: #384959;
   color: white;
   font-size: 16px;
   font-weight: 500;
   border-radius: 999px;
-  padding: 12px 28px;
+  padding: 6px 28px;
   cursor: pointer;
 }
 
@@ -396,7 +405,7 @@ body {
 }
 
 .task-time.red {
-  color: #ff932d;
+  color: #f15f5f;
 }
 
 .bottom-nav-wrap {
@@ -441,4 +450,18 @@ body {
   border-radius: 999px;
   background: #f6f6f6;
   margin: 14px auto 0;
+}
+
+.back-icon {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+
+.back-icon-img {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  display: block;
 }
