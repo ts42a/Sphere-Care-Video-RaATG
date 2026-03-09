@@ -6,21 +6,22 @@ export default function QuickActionCard({
   bigTitle,
   variant,
   icon,
+  onClick,
 }) {
   const iconSrc = icon === "call" ? callIcon : bookingIcon;
 
   return (
-    <div className={`quick-card ${variant}`}>
+    <div className={`quick-card ${variant}`} onClick={onClick}>
       <div className="quick-card-text">
-        {icon === "call" ? (
+       {icon === "call" ? (
           <>
-            <h3>{bigTitle}</h3>
-            <p>{smallTitle}</p>
+            <h3 className="type-h3">{bigTitle}</h3>
+            <p className="type-body-lg">{smallTitle}</p>
           </>
         ) : (
           <>
-            <p>{smallTitle}</p>
-            <h3>{bigTitle}</h3>
+            <p className="type-body-lg">{smallTitle}</p>
+            <h3 className="type-h3">{bigTitle}</h3>
           </>
         )}
       </div>

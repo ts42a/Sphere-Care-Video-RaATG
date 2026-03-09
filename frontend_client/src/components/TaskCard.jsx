@@ -17,11 +17,11 @@ export default function TaskCard({ category, name, time, type, icon }) {
       </div>
 
       <div className="task-content">
-        <p className="task-category">{category}</p>
-        <h4 className="task-name">{name}</h4>
+        <p className="task-category type-body-md">{category}</p>
+        <h4 className="task-name type-h4">{name}</h4>
       </div>
 
-      <div className={`task-time ${type}`}>{time}</div>
+      <div className={`task-time ${type} type-h4`}>{time}</div>
     </div>
   );
 }

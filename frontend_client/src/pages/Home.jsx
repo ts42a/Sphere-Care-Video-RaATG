@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import HeaderBar from "../components/HeaderBar";
 import ReminderCard from "../components/ReminderCard";
 import QuickActionCard from "../components/QuickActionCard";
@@ -5,6 +6,8 @@ import TaskCard from "../components/TaskCard";
 import BottomNav from "../components/BottomNav";
 
 export default function Home() {
+  const navigate = useNavigate();
+
   const tasks = [
     {
       id: 1,
@@ -35,7 +38,6 @@ export default function Home() {
   return (
     <div className="mobile-shell">
       <div className="home-screen">
-
         <HeaderBar userName="Name" />
 
         <ReminderCard
@@ -48,7 +50,7 @@ export default function Home() {
         <div className="quick-actions-row">
           <QuickActionCard
             bigTitle="CALL"
-            smallTitle="Someone" 
+            smallTitle="Someone"
             variant="purple"
             icon="call"
           />
@@ -57,11 +59,12 @@ export default function Home() {
             bigTitle="BOOKING"
             variant="mint"
             icon="booking"
+            onClick={() => navigate("/booking")}
           />
         </div>
 
         <div className="task-header">
-          <h2>Today’s Task</h2>
+          <h2 className="type-h1">Today’s Task</h2>
           <button className="task-add-btn">+</button>
         </div>
 

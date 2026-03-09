@@ -1,6 +1,144 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@700&family=Open+Sans:wght@400;600&display=swap');
+
+:root {
+  --font-heading: "Montserrat", sans-serif;
+  --font-body: "Open Sans", sans-serif;
+
+  --text-heading-1: 32px;
+  --text-heading-2: 24px;
+  --text-heading-3: 20px;
+  --text-heading-4: 16px;
+
+  --text-body-lg: 18px;
+  --text-body-md: 16px;
+  --text-body-sm: 14px;
+  --text-body-xs: 12px;
+
+  --line-heading-1: 1.15;
+  --line-heading-2: 1.2;
+  --line-heading-3: 1.25;
+  --line-heading-4: 1.3;
+
+  --line-body-lg: 1.4;
+  --line-body-md: 1.45;
+  --line-body-sm: 1.45;
+  --line-body-xs: 1.4;
+
+  --color-text-primary: #1f2b3d;
+  --color-text-secondary: #526273;
+  --color-text-muted: #647485;
+}
+
 html,
 body,
 #root {
   margin: 0;
   min-height: 100%;
+}
+
+body {
+  font-family: var(--font-body);
+  font-size: var(--text-body-md);
+  line-height: var(--line-body-md);
+  color: var(--color-text-secondary);
+  background: #111111;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+p,
+span,
+button,
+input,
+textarea,
+label {
+  font-family: var(--font-body);
+}
+
+button {
+  font: inherit;
+}
+
+.type-h1 {
+  font-family: var(--font-heading);
+  font-size: var(--text-heading-1);
+  line-height: var(--line-heading-1);
+  font-weight: 500;
+  color: var(--color-text-primary);
+  letter-spacing: -0.02em;
+}
+
+.type-h2 {
+  font-family: var(--font-heading);
+  font-size: var(--text-heading-2);
+  line-height: var(--line-heading-2);
+  font-weight: 500;
+  color: var(--color-text-primary);
+  letter-spacing: -0.02em;
+}
+
+.type-h3 {
+  font-family: var(--font-heading);
+  font-size: var(--text-heading-3);
+  line-height: var(--line-heading-3);
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+
+.type-h4 {
+  font-family: var(--font-heading);
+  font-size: var(--text-heading-4);
+  line-height: var(--line-heading-4);
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+
+.type-body-lg {
+  font-family: var(--font-body);
+  font-size: var(--text-body-lg);
+  line-height: var(--line-body-lg);
+  font-weight: 400;
+  color: var(--color-text-secondary);
+}
+
+.type-body-md {
+  font-family: var(--font-body);
+  font-size: var(--text-body-md);
+  line-height: var(--line-body-md);
+  font-weight: 400;
+  color: var(--color-text-secondary);
+}
+
+.type-body-sm {
+  font-family: var(--font-body);
+  font-size: var(--text-body-sm);
+  line-height: var(--line-body-sm);
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+
+.type-body-xs {
+  font-family: var(--font-body);
+  font-size: var(--text-body-xs);
+  line-height: var(--line-body-xs);
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+
+.type-label {
+  font-family: var(--font-body);
+  font-size: var(--text-body-sm);
+  line-height: var(--line-body-sm);
+  font-weight: 600;
+  color: var(--color-text-secondary);
 }

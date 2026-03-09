@@ -17,6 +17,7 @@ from app.api.routers import (
     notifications,
     messages,
     records,
+    cameras
 )
 
 app = FastAPI(title="Sphere Care API")
@@ -47,6 +48,7 @@ app.include_router(analytics.router)
 app.include_router(notifications.router)
 app.include_router(messages.router)
 app.include_router(records.router)
+app.include_router(cameras.router)
 
 @app.get("/health")
 def health():
