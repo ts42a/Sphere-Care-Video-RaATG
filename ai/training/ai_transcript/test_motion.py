@@ -1,5 +1,4 @@
 # test_motion.py - Webcam test for motion-word ASL model . Example labels: YES, NO, HELLO
-
 import json
 import time
 import urllib.request
@@ -54,15 +53,12 @@ def create_detector(num_hands=1):
 
 def extract_hand_features(hand_landmarks) -> np.ndarray:
     pts = np.array([[lm.x, lm.y, lm.z] for lm in hand_landmarks], dtype=np.float32)
-
     # wrist-center
     pts -= pts[0:1, :]
-
     # scale-normalize
     d = np.linalg.norm(pts[:, :2], axis=1)
     s = float(np.max(d)) if np.max(d) > 1e-6 else 1.0
     pts /= s
-
     return pts.reshape(-1).astype(np.float32)  # (63,)
 
 def draw_text(img, lines, x=10, y=30, gap=30):
@@ -83,36 +79,26 @@ def majority_vote(items):
         return None
     return Counter(items).most_common(1)[0][0]
 
-
 def main():
     if not MODEL_PATH.exists():
         raise FileNotFoundError(f"Motion model not found: {MODEL_PATH}")
     if not LABELS_PATH.exists():
         raise FileNotFoundError(f"Motion labels file not found: {LABELS_PATH}")
-
     model = joblib.load(MODEL_PATH)
-
     with open(LABELS_PATH, "r", encoding="utf-8") as f:
         meta = json.load(f)
-
     labels = meta.get("labels", [])
     print("Loaded motion labels:", labels)
-
     detector = create_detector(num_hands=1)
-
     cap = cv2.VideoCapture(0)
     if not cap.isOpened():
         raise RuntimeError("Could not open webcam.")
-
     win = "ASL Motion Word Test"
     cv2.namedWindow(win, cv2.WINDOW_NORMAL)
-
     seq_buffer = deque(maxlen=SEQ_LEN)
     pred_history = deque(maxlen=PRED_HISTORY_SIZE)
-
     text_buffer = ""
     last_append_time = 0.0
-
     print("Press Q or ESC to quit. \nPress C to clear text buffer. \nPress SPACE to add current stable prediction manually.")
 
     try:
@@ -120,11 +106,9 @@ def main():
             ok, frame = cap.read()
             if not ok:
                 break
-
             frame = cv2.flip(frame, 1)
             rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             rgb = np.ascontiguousarray(rgb)
-
             mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
             res = detector.detect(mp_image)
             current_pred = "NO_HAND"
@@ -133,17 +117,13 @@ def main():
             if res.hand_landmarks:
                 vec = extract_hand_features(res.hand_landmarks[0])
                 seq_buffer.append(vec)
-
                 if len(seq_buffer) == SEQ_LEN:
                     seq = np.array(seq_buffer, dtype=np.float32).reshape(1, -1)
-
                     pred = model.predict(seq)[0]
-
                     if hasattr(model, "predict_proba"):
                         probs = model.predict_proba(seq)[0]
                         best_idx = int(np.argmax(probs))
                         current_conf = float(probs[best_idx])
-
                         if current_conf >= CONFIDENCE_THRESHOLD:
                             current_pred = str(pred)
                         else:
@@ -156,7 +136,6 @@ def main():
 
             pred_history.append(current_pred)
             smoothed_pred = majority_vote(list(pred_history)) or "NO_HAND"
-
             now = time.time()
 
             if (
@@ -181,7 +160,6 @@ def main():
 
             cv2.imshow(win, frame)
             key = cv2.waitKey(1) & 0xFF
-
             if key in (27, ord("q")):
                 break
             elif key == ord("c"):

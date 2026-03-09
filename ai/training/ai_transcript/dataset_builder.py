@@ -15,7 +15,6 @@ try:
 except ImportError:
     raise SystemExit("Run: python -m pip install mediapipe opencv-python numpy")
 
-
 # ---------------- PATHS ----------------
 ROOT = Path(__file__).resolve().parent  # folder containing this file
 BASE_DIR = ROOT / "dataset"
@@ -47,10 +46,8 @@ DEFAULT_STATIC_SAVE_MODE = "best5"  # "best5" or "all"
 
 # MOTION (words / J / Z)
 SEQ_LENGTH = 10                 # capture 10 frames per sample
-MOTION_CAPTURE_SECONDS = 8.0    # allow multiple sequences during this window
-MIN_SEQ_VALID_FRAMES = 8        # if fewer than this, discard the sequence
-
-
+MOTION_CAPTURE_SECONDS = 8.0    # allow multiple sequences
+MIN_SEQ_VALID_FRAMES = 8        # if fewer than 
 # ---------- Helpers ----------
 def get_hand_model_path() -> str:
     path = MODEL_DIR / "hand_landmarker.task"
@@ -60,20 +57,17 @@ def get_hand_model_path() -> str:
         print("Done.")
     return str(path)
 
-
 def sanitize_static_label(name: str) -> str:
     name = name.strip().upper()
     if len(name) == 1 and name.isalpha():
         return name
     raise ValueError("STATIC label must be a single letter A–Z.")
 
-
 def sanitize_motion_label(name: str) -> str:
-    # motion labels can be words like HELP, WATER, or letters like J/Z
+    # motion labels can be words or letters like J/Z
     name = name.strip().upper()
     if not name:
         raise ValueError("MOTION label cannot be empty.")
-    # keep it filesystem safe
     allowed = set("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-")
     cleaned = "".join(ch for ch in name if ch in allowed)
     if not cleaned:
@@ -86,11 +80,9 @@ def ensure_label_folder(base: Path, label: str) -> Path:
     folder.mkdir(parents=True, exist_ok=True)
     return folder
 
-
 def write_meta(record: dict):
     with open(META_FILE, "a", encoding="utf-8") as f:
         f.write(json.dumps(record, ensure_ascii=False) + "\n")
-
 
 def draw_text(img, lines, x=10, y=30, gap=28):
     for i, line in enumerate(lines):
@@ -111,7 +103,6 @@ def create_detector(num_hands=1):
     )
     return vision.HandLandmarker.create_from_options(options)
 
-
 def extract_hand_features(hand_landmarks) -> np.ndarray:
     """
     Returns (63,) float32:
@@ -119,17 +110,14 @@ def extract_hand_features(hand_landmarks) -> np.ndarray:
     - scale-normalized using max 2D distance from wrist
     """
     pts = np.array([[lm.x, lm.y, lm.z] for lm in hand_landmarks], dtype=np.float32)
-
     # wrist-center
     pts -= pts[0:1, :]
-
     # scale-normalize (2D)
     d = np.linalg.norm(pts[:, :2], axis=1)
     s = float(np.max(d)) if np.max(d) > 1e-6 else 1.0
     pts /= s
 
     return pts.reshape(-1).astype(np.float32)  # (63,)
-
 
 def pick_best_k_by_centroid(samples: list[np.ndarray], k: int) -> list[np.ndarray]:
     X = np.stack(samples, axis=0)
@@ -149,13 +137,11 @@ def capture_static(label: str, save_mode: str = DEFAULT_STATIC_SAVE_MODE):
     """
     label = sanitize_static_label(label)
     folder = ensure_label_folder(RAW_STATIC_DIR, label)
-
     cap = cv2.VideoCapture(0)
     if not cap.isOpened():
         raise RuntimeError("Webcam not opened. Try VideoCapture(1) if you have multiple cameras.")
 
     detector = create_detector(num_hands=1)
-
     win = f"STATIC CAPTURE: {label}"
     cv2.namedWindow(win, cv2.WINDOW_NORMAL)
 
@@ -180,7 +166,6 @@ def capture_static(label: str, save_mode: str = DEFAULT_STATIC_SAVE_MODE):
     recent = []
     stable_samples = []
     detected_frames = 0
-
     start = time.time()
     end = start + STATIC_CAPTURE_SECONDS
 
@@ -189,7 +174,6 @@ def capture_static(label: str, save_mode: str = DEFAULT_STATIC_SAVE_MODE):
         if not ok:
             break
         frame = cv2.flip(frame, 1)
-
         rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         rgb = np.ascontiguousarray(rgb)
         mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
@@ -228,11 +212,9 @@ def capture_static(label: str, save_mode: str = DEFAULT_STATIC_SAVE_MODE):
     cv2.destroyAllWindows()
     if hasattr(detector, "close"):
         detector.close()
-
     if len(stable_samples) < MIN_STABLE_FRAMES:
         print("[WARN] Too few stable frames. Improve lighting + keep hand steady.")
         return
-
     if save_mode == "best5":
         chosen = pick_best_k_by_centroid(stable_samples, 5)
     else:
@@ -267,13 +249,11 @@ def capture_motion(label: str):
     """
     label = sanitize_motion_label(label)
     folder = ensure_label_folder(RAW_MOTION_DIR, label)
-
     cap = cv2.VideoCapture(0)
     if not cap.isOpened():
         raise RuntimeError("Webcam not opened. Try VideoCapture(1) if you have multiple cameras.")
 
     detector = create_detector(num_hands=1)
-
     win = f"MOTION CAPTURE: {label}"
     cv2.namedWindow(win, cv2.WINDOW_NORMAL)
 
@@ -300,7 +280,6 @@ def capture_motion(label: str):
     sequence = []
     saved = 0
     detected_frames = 0
-
     start = time.time()
     end = start + MOTION_CAPTURE_SECONDS
 
@@ -320,10 +299,10 @@ def capture_motion(label: str):
             vec = extract_hand_features(res.hand_landmarks[0])
             sequence.append(vec)
 
-        # When enough frames collected, save a sequence
+        # enough frames collected, save a sequence
         if len(sequence) >= SEQ_LENGTH:
-            seq = np.stack(sequence[:SEQ_LENGTH], axis=0)  # (T,63)
-            sequence = sequence[SEQ_LENGTH:]               # keep remainder for next sample
+            seq = np.stack(sequence[:SEQ_LENGTH], axis=0) 
+            sequence = sequence[SEQ_LENGTH:]               
 
             if seq.shape[0] >= MIN_SEQ_VALID_FRAMES:
                 out = folder / f"{label}_{session_id}_{sample_id:04d}.npz"
@@ -346,7 +325,6 @@ def capture_motion(label: str):
     cv2.destroyAllWindows()
     if hasattr(detector, "close"):
         detector.close()
-
     if saved == 0:
         print("[WARN] No sequences saved. Keep hand visible + move slower.")
         return
