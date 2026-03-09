@@ -3,7 +3,7 @@ from typing import Optional, List
 from datetime import datetime
 
 
-# ---------- AUTH ----------
+#AUTH
 
 class UserCreate(BaseModel):
     full_name: str
@@ -31,7 +31,7 @@ class TokenResponse(BaseModel):
     user: UserResponse
 
 
-# ---------- RESIDENTS ----------
+#RESIDENTS
 
 class ResidentCreate(BaseModel):
     full_name: str
@@ -52,7 +52,7 @@ class ResidentResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
-# ---------- BOOKINGS ----------
+#BOOKINGS
 
 class BookingCreate(BaseModel):
     resident_id: int
@@ -75,7 +75,7 @@ class BookingResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
-# ---------- STAFF ----------
+#STAFF
 
 class StaffCreate(BaseModel):
     staff_id: str
@@ -105,7 +105,7 @@ class StaffResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
-# ---------- ALERTS ----------
+#ALERTS
 
 class AlertCreate(BaseModel):
     level: str
@@ -122,8 +122,10 @@ class AlertResponse(BaseModel):
     is_read: str
     created_at: datetime
 
+    model_config = {"from_attributes": True}
 
-# ---------- DASHBOARD ----------
+
+#DASHBOARD
 
 class DashboardStats(BaseModel):
     active_staff: int
@@ -132,7 +134,7 @@ class DashboardStats(BaseModel):
     recent_alerts: List[AlertResponse]
 
 
-# ---------- ANALYTICS ----------
+#ANALYTICS
 
 class MonthlyActivityPoint(BaseModel):
     day: str
@@ -155,7 +157,7 @@ class AnalyticsReport(BaseModel):
     department_performance: List[DepartmentPerformance]
 
 
-# ---------- NOTIFICATIONS ----------
+#NOTIFICATIONS
 
 class NotificationCreate(BaseModel):
     category: str
@@ -173,8 +175,10 @@ class NotificationResponse(BaseModel):
     is_priority: str
     created_at: datetime
 
+    model_config = {"from_attributes": True}
 
-# ---------- MESSAGES ----------
+
+# MESSAGES
 
 class ConversationCreate(BaseModel):
     name: str
@@ -188,6 +192,8 @@ class ConversationResponse(BaseModel):
     last_message: Optional[str]
     unread_count: int
     created_at: datetime
+
+    model_config = {"from_attributes": True}
 
 
 class MessageCreate(BaseModel):
@@ -206,15 +212,21 @@ class MessageResponse(BaseModel):
     is_self: str
     created_at: datetime
 
+    model_config = {"from_attributes": True}
 
-# ---------- RECORDS ----------
+
+#RECORDS
 
 class RecordCreate(BaseModel):
     resident_name: str
     category: str
     record_type: str
     file_url: Optional[str] = None
+    thumbnail_url: Optional[str] = None
+    duration: Optional[str] = None
     notes: Optional[str] = None
+    recorded_at: Optional[str] = None
+    recorded_time: Optional[str] = None
 
 
 class RecordResponse(BaseModel):
@@ -223,8 +235,23 @@ class RecordResponse(BaseModel):
     category: str
     record_type: str
     file_url: Optional[str]
+    thumbnail_url: Optional[str]
+    duration: Optional[str]
     notes: Optional[str]
-    created_at: datetime
+    recorded_at: Optional[str]
+    recorded_time: Optional[str]
+    created_at: str
+
+    model_config = {"from_attributes": True}
+
+
+# AI INSIGHTS 
+class AiInsightCreate(BaseModel):
+    resident_name: str
+    title: str
+    body: str
+    priority: str = "low"
+    is_new: str = "true"
 
 
 class AiInsightResponse(BaseModel):
@@ -234,22 +261,75 @@ class AiInsightResponse(BaseModel):
     body: str
     priority: str
     is_new: str
-    created_at: datetime
+    created_at: str
 
-class AiInsightCreate(BaseModel):
-    resident_name: str
-    title: str
-    body: str
-    priority: str = "low"
-    is_new: str = "true"
+    model_config = {"from_attributes": True}
 
+
+# Fixed: was incorrectly a single object, should be a summary wrapper
 class AiInsightSummary(BaseModel):
-    id: int
-    resident_name: str
+    high: int
+    mid: int
+    low: int
+    insights: List[AiInsightResponse]
+
+
+# CAMERAS
+class CameraCreate(BaseModel):
     title: str
-    body: str
-    priority: str
-    is_new: str
-    created_at: datetime
+    resident_name: Optional[str] = None
+    floor: Optional[str] = None
+    status: str = "live"
+    alert: str = "fine"
+    description: Optional[str] = None
+    stream_url: Optional[str] = None
+
+
+class CameraStatusUpdate(BaseModel):
+    status: Optional[str] = None       # "live" | "offline"
+    alert: Optional[str] = None        # "critical" | "fine" | "none"
+    description: Optional[str] = None
+
+
+class CameraResponse(BaseModel):
+    id: int
+    title: str
+    resident_name: Optional[str]
+    floor: Optional[str]
+    status: str
+    alert: str
+    description: Optional[str]
+    stream_url: Optional[str]
+    created_at: str
+
+    model_config = {"from_attributes": True}
+
+
+class CameraStats(BaseModel):
+    total_cameras: int
+    online: int
+    active_alerts: int
+    events_24h: int
+
+
+#CAMERA ALERTS 
+class CameraAlertCreate(BaseModel):
+    camera_id: Optional[int] = None
+    alert_type: str                    # "critical" | "warning" | "info"
+    icon: str = "fall"                 # "fall" | "person" | "sound" | "motion"
+    title: str
+    description: str
+
+
+class CameraAlertResponse(BaseModel):
+    id: int
+    camera_id: Optional[int]
+    camera_title: Optional[str]
+    alert_type: str
+    icon: str
+    title: str
+    description: str
+    resolved: bool
+    created_at: str
 
     model_config = {"from_attributes": True}
