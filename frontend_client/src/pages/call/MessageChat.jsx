@@ -25,7 +25,7 @@ export default function MessageChat() {
     <div className="mobile-shell">
       <div className="message-screen">
         <div className="message-header">
-          <button className="message-back-btn" onClick={() => navigate(-1)}><FaArrowLeft /></button>
+          <button className="message-back-btn" onClick={() => navigate("/messages")}><FaArrowLeft /></button>
 
           <div className={`message-avatar ${contact.color}`}>{contact.initials}</div>
 

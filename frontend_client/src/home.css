@@ -430,6 +430,14 @@ body {
   justify-content: center;
   gap: 6px;
   position: relative;
+  opacity: 0.35;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.nav-item.active {
+  opacity: 1;
+  transform: scale(1.05);
 }
 
 .nav-dot {
@@ -442,6 +450,12 @@ body {
 .nav-icon {
   position: relative;
   opacity: 0.85;
+}
+
+.nav-icon-img {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
 }
 
 .home-indicator {
@@ -464,4 +478,103 @@ body {
   height: 20px;
   object-fit: contain;
   display: block;
+}
+
+.task-page-screen {
+  padding: 32px 24px 0;
+}
+
+.task-ai-card {
+  background: linear-gradient(90deg, #dfe6ff 0%, #f8ecef 100%);
+  border-radius: 22px;
+  padding: 18px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 22px 0 18px;
+}
+
+.task-ai-icon {
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  border: 2px solid #526273;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-heading);
+  font-size: 20px;
+  color: #526273;
+  flex-shrink: 0;
+}
+
+.task-ai-content {
+  flex: 1;
+}
+
+.task-ai-content p {
+  margin: 0 0 10px;
+  color: #526273;
+}
+
+.task-ai-link {
+  border: 0;
+  background: transparent;
+  color: #ff8a2b;
+  padding: 0;
+  cursor: pointer;
+}
+
+.task-filter-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 22px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.task-filter-row::-webkit-scrollbar {
+  display: none;
+}
+
+.task-filter-btn {
+  border: 0;
+  background: #f0f1f4;
+  color: #526273;
+  border-radius: 12px;
+  padding: 10px 18px;
+  white-space: nowrap;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.task-filter-btn.active {
+  background: #46576d;
+  color: white;
+}
+
+.task-page-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-bottom: 20px;
+}
+
+.task-page-icon-symbol {
+  font-size: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.task-page-icon-symbol.green {
+  filter: hue-rotate(40deg) saturate(1.1);
+}
+
+.task-page-icon-symbol.orange {
+  filter: hue-rotate(-20deg) saturate(1.2);
+}
+
+.task-page-icon-symbol.red {
+  filter: hue-rotate(-50deg) saturate(1.1);
 }

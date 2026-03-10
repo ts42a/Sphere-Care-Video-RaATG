@@ -6,10 +6,13 @@ import BookingSchedule from "./pages/booking/BookingSchedule";
 import CallCenter from "./pages/call/CallCenter";
 import AudioCall from "./pages/call/AudioCall";
 import VideoCall from "./pages/call/VideoCall";
+import MessageList from "./pages/call/MessageList";
 import MessageChat from "./pages/call/MessageChat";
+import TaskPage from "./pages/Task";
 import "./home.css";
 import "./booking.css";
 import "./call.css";
+import "./task.css";
 
 function App() {
   return (
@@ -25,7 +28,11 @@ function App() {
         <Route path="/call" element={<CallCenter />} />
         <Route path="/call/audio/:contactId" element={<AudioCall />} />
         <Route path="/call/video/:contactId" element={<VideoCall />} />
+
+        <Route path="/messages" element={<MessageList />} />
         <Route path="/messages/:contactId" element={<MessageChat />} />
+
+        <Route path="/tasks" element={<TaskPage />} />
       </Routes>
     </BrowserRouter>
   );

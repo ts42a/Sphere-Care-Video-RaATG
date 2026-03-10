@@ -53,6 +53,7 @@ export default function Home() {
             smallTitle="Someone"
             variant="purple"
             icon="call"
+            onClick={() => navigate("/call")}
           />
           <QuickActionCard
             smallTitle="Manage"
@@ -65,7 +66,7 @@ export default function Home() {
 
         <div className="task-header">
           <h2 className="type-h1">Today’s Task</h2>
-          <button className="task-add-btn">+</button>
+          <button className="task-add-btn" onClick={() => navigate("/tasks")}>+</button>
         </div>
 
         <div className="task-list">
