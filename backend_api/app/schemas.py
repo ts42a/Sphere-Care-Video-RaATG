@@ -3,7 +3,7 @@ from typing import Optional, List
 from datetime import datetime
 
 
-#AUTH
+# ---------- AUTH ----------
 
 class UserCreate(BaseModel):
     full_name: str
@@ -31,7 +31,7 @@ class TokenResponse(BaseModel):
     user: UserResponse
 
 
-#RESIDENTS
+# ---------- RESIDENTS ----------
 
 class ResidentCreate(BaseModel):
     full_name: str
@@ -52,7 +52,7 @@ class ResidentResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
-#BOOKINGS
+# ---------- BOOKINGS ----------
 
 class BookingCreate(BaseModel):
     resident_id: int
@@ -75,7 +75,7 @@ class BookingResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
-#STAFF
+# ---------- STAFF ----------
 
 class StaffCreate(BaseModel):
     staff_id: str
@@ -105,7 +105,7 @@ class StaffResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
-#ALERTS
+# ---------- ALERTS ----------
 
 class AlertCreate(BaseModel):
     level: str
@@ -125,7 +125,7 @@ class AlertResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
-#DASHBOARD
+# ---------- DASHBOARD ----------
 
 class DashboardStats(BaseModel):
     active_staff: int
@@ -134,7 +134,7 @@ class DashboardStats(BaseModel):
     recent_alerts: List[AlertResponse]
 
 
-#ANALYTICS
+# ---------- ANALYTICS ----------
 
 class MonthlyActivityPoint(BaseModel):
     day: str
@@ -157,7 +157,7 @@ class AnalyticsReport(BaseModel):
     department_performance: List[DepartmentPerformance]
 
 
-#NOTIFICATIONS
+# ---------- NOTIFICATIONS ----------
 
 class NotificationCreate(BaseModel):
     category: str
@@ -178,7 +178,7 @@ class NotificationResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
-# MESSAGES
+# ---------- MESSAGES ----------
 
 class ConversationCreate(BaseModel):
     name: str
@@ -215,7 +215,7 @@ class MessageResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
-#RECORDS
+# ---------- RECORDS ----------
 
 class RecordCreate(BaseModel):
     resident_name: str
@@ -245,7 +245,8 @@ class RecordResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
-# AI INSIGHTS 
+# ---------- AI INSIGHTS ----------
+
 class AiInsightCreate(BaseModel):
     resident_name: str
     title: str
@@ -274,7 +275,8 @@ class AiInsightSummary(BaseModel):
     insights: List[AiInsightResponse]
 
 
-# CAMERAS
+# ---------- CAMERAS ----------
+
 class CameraCreate(BaseModel):
     title: str
     resident_name: Optional[str] = None
@@ -312,7 +314,8 @@ class CameraStats(BaseModel):
     events_24h: int
 
 
-#CAMERA ALERTS 
+# ---------- CAMERA ALERTS ----------
+
 class CameraAlertCreate(BaseModel):
     camera_id: Optional[int] = None
     alert_type: str                    # "critical" | "warning" | "info"
@@ -333,3 +336,67 @@ class CameraAlertResponse(BaseModel):
     created_at: str
 
     model_config = {"from_attributes": True}
+
+
+# ---------- FLAGS ----------
+
+class FlagCreate(BaseModel):
+    resident_name:    str
+    resident_id:      Optional[str] = None
+    event_type:       str                        # Pain | Distress | Agitation | Crying | Fall Risk | Medication | Wandering
+    description:      str
+    severity:         str                        # High | Medium | Low
+    source:           str = "AI"                 # AI | Staff
+    status:           str = "Open"
+    sev_desc:         Optional[str] = None
+    transcript:       Optional[str] = None
+    video_timestamp:  Optional[str] = None
+    ai_confidence:    Optional[int] = None
+    flagged_at:       Optional[str] = None       # ISO datetime string
+
+
+class FlagStatusUpdate(BaseModel):
+    status: str                                  # Open | Pending Review | Resolved | Escalated
+
+
+class FlagCommentCreate(BaseModel):
+    author: str
+    body:   str
+
+
+class FlagCommentResponse(BaseModel):
+    id:         int
+    flag_id:    int
+    author:     str
+    body:       str
+    created_at: str
+
+    model_config = {"from_attributes": True}
+
+
+class FlagResponse(BaseModel):
+    id:               int
+    resident_name:    str
+    resident_id:      Optional[str]
+    event_type:       str
+    description:      str
+    severity:         str
+    source:           str
+    status:           str
+    sev_desc:         Optional[str]
+    transcript:       Optional[str]
+    video_timestamp:  Optional[str]
+    ai_confidence:    Optional[int]
+    flagged_at:       str
+    created_at:       str
+    comments:         List[FlagCommentResponse] = []
+
+    model_config = {"from_attributes": True}
+
+
+class FlagStats(BaseModel):
+    ai_flags_today:   int
+    manual_flags:     int
+    pending_review:   int
+    resolved:         int
+    total:            int
