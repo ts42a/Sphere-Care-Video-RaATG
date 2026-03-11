@@ -3,7 +3,9 @@
 // ──────────────────────────────────────────
 const API_BASE = 'http://localhost:8000';
 
+// ──────────────────────────────────────────
 // REGISTER
+// ──────────────────────────────────────────
 async function handleRegister() {
   const fullName   = document.getElementById('reg-fullname').value.trim();
   const email      = document.getElementById('reg-email').value.trim();
@@ -62,7 +64,9 @@ async function handleRegister() {
   }
 }
 
+// ──────────────────────────────────────────
 // LOGIN
+// ──────────────────────────────────────────
 async function handleLogin() {
   const email    = document.getElementById('login-email').value.trim();
   const password = document.getElementById('login-pass').value;
@@ -100,7 +104,9 @@ async function handleLogin() {
   }
 }
 
+// ──────────────────────────────────────────
 // HELPERS
+// ──────────────────────────────────────────
 function showError(form, msg) {
   const el = document.getElementById(`${form}-error`);
   if (el) { el.textContent = msg; el.style.display = 'block'; }

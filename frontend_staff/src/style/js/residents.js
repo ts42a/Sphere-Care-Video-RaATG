@@ -7,7 +7,9 @@ function updateClock(){
 }
 updateClock(); setInterval(updateClock,1000);
 
+// ════════════════════════════════════════
 // API CONFIG
+// ════════════════════════════════════════
 
 // Color palette for avatar fallbacks
 const COLORS=['#7c3aed','#db2777','#0369a1','#059669','#d97706','#dc2626','#2563eb','#9333ea'];
@@ -30,7 +32,9 @@ let currentView = 'grid';
 
 function ini(n){return n.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);}
 
+// ════════════════════════════════════════
 // API CALLS
+// ════════════════════════════════════════
 
 // Map API response → internal resident object
 function mapResident(r, idx) {
@@ -124,7 +128,9 @@ function showApiStatus(connected) {
   setTimeout(() => el.style.opacity = '0', 3000);
 }
 
+// ════════════════════════════════════════
 // RENDER
+// ════════════════════════════════════════
 function render(){renderGrid();renderList();updateStats();}
 
 function renderGrid(){
