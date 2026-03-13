@@ -26,7 +26,7 @@ export default function HeaderBar({ userName, title, showBack = false }) {
       </div>
 
       <div className="header-actions">
-        <button className="icon-btn" aria-label="Notifications">
+        <button className="icon-btn" aria-label="Notifications" onClick={() => navigate("/notifications")}>
           <img src={bellIcon} alt="Notifications" className="header-icon-img" />
         </button>
         <button className="icon-btn" aria-label="Settings">

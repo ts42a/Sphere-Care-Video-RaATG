@@ -9,16 +9,25 @@ import VideoCall from "./pages/call/VideoCall";
 import MessageList from "./pages/call/MessageList";
 import MessageChat from "./pages/call/MessageChat";
 import TaskPage from "./pages/Task";
+import NotificationsPage from "./pages/Notification";
+import LoginPage from "./pages/auth/LoginPage";
+import RegisterPage from "./pages/auth/RegisterPage";
+import ForgotPasswordPage from "./pages/auth/ForgotPasswordPage";
+import VerifyCodePage from "./pages/auth/VerifyCodePage";
+import SetPasswordPage from "./pages/auth/SetPasswordPage";
+import ResetSuccessPage from "./pages/auth/ResetSuccessPage";
+
 import "./home.css";
 import "./booking.css";
 import "./call.css";
-import "./task.css";
+import "./notification.css";
+import "./auth.css";
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Navigate to="/home" replace />} />
+        <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="/home" element={<Home />} />
 
         <Route path="/booking" element={<BookingHome />} />
@@ -33,6 +42,15 @@ function App() {
         <Route path="/messages/:contactId" element={<MessageChat />} />
 
         <Route path="/tasks" element={<TaskPage />} />
+
+        <Route path="/notifications" element={<NotificationsPage />} />
+
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/forgot-password/verify" element={<VerifyCodePage />} />
+        <Route path="/set-password" element={<SetPasswordPage />} />
+        <Route path="/password-reset-success" element={<ResetSuccessPage />} />
       </Routes>
     </BrowserRouter>
   );
