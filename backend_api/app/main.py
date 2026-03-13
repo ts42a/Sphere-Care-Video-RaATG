@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app.core.config import ALLOWED_ORIGINS
 from app.db.base import Base
@@ -20,7 +21,9 @@ from app.api.routers import (
     cameras,
     Oauth,
     password_reset,
-    flags
+    flags,
+    uploads,
+    call
 )
 
 app = FastAPI(title="Sphere Care API")
@@ -55,6 +58,8 @@ app.include_router(cameras.router)
 app.include_router(Oauth.router)
 app.include_router(password_reset.router)
 app.include_router(flags.router)
+app.include_router(uploads.router)
+app.include_router(call.router)
 
 @app.get("/health")
 def health():
