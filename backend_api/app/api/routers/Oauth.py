@@ -1,9 +1,3 @@
-"""
-oauth.py — Google OAuth 2.0 router
-
-    GET  /auth/google/login       Redirect user to Google consent screen
-    GET  /auth/google/callback    Handle Google callback, return JWT
-"""
 import httpx
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import RedirectResponse
@@ -16,7 +10,7 @@ from datetime import datetime, timedelta
 
 router = APIRouter(prefix="/auth", tags=["OAuth"])
 
-# ── CONFIG ──────────────────────────────────────────
+# CONFIG
 import os
 GOOGLE_CLIENT_ID     = os.getenv("GOOGLE_CLIENT_ID", "")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET", "")
@@ -34,7 +28,7 @@ JWT_ALGORITHM = "HS256"
 JWT_EXPIRE    = 60 * 24  # 24 hours in minutes
 
 
-# ── HELPERS ─────────────────────────────────────────
+# HELPERS
 
 def _create_token(user_id: int, email: str, role: str) -> str:
     expire = datetime.utcnow() + timedelta(minutes=JWT_EXPIRE)
@@ -65,7 +59,7 @@ def _get_or_create_user(email: str, full_name: str) -> models.User:
         db.close()
 
 
-# ── ROUTES ──────────────────────────────────────────
+#ROUTES 
 
 @router.get("/google/login")
 def google_login():
