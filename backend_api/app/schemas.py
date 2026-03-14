@@ -120,7 +120,7 @@ class AlertResponse(BaseModel):
     title: str
     message: str
     is_read: str
-    created_at: datetime
+    created_at: str          # pre-formatted string e.g. "Mar 14, 2026 05:50 AM"
 
     model_config = {"from_attributes": True}
 
@@ -190,8 +190,9 @@ class ConversationResponse(BaseModel):
     name: str
     category: str
     last_message: Optional[str]
+    last_message_at: Optional[str] = None
     unread_count: int
-    created_at: datetime
+    created_at: Optional[str] = None
 
     model_config = {"from_attributes": True}
 
@@ -201,6 +202,7 @@ class MessageCreate(BaseModel):
     sender_name: str
     sender_role: str
     content: str
+    is_self: str = "false"
 
 
 class MessageResponse(BaseModel):
