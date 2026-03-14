@@ -7,35 +7,18 @@ function updateClock(){
 }
 updateClock(); setInterval(updateClock,1000);
 
-// ════════════════════════════════════════
 // API CONFIG
-// ════════════════════════════════════════
-
 // Color palette for avatar fallbacks
 const COLORS=['#7c3aed','#db2777','#0369a1','#059669','#d97706','#dc2626','#2563eb','#9333ea'];
 
 // ── Fallback demo data used when API is unreachable ──
-const DEMO_RESIDENTS=[
-  {id:'RES001',name:'Sarah Johnson',  age:78,room:'105',status:'monitoring',flags:3,admit:'Oct 23, 2024',carer:'Sarah Mitchell',  ai:'Mild back pain after exercise. BP slightly elevated, monitoring closely. Mood stable.',ec:{name:'James Johnson', rel:'Son',     phone:'+61 400 111 222',email:'james@email.com'},   notes:['Oct 23 — Mild discomfort during physio.','Oct 22 — Medication adjusted.'],color:'#7c3aed',img:null},
-  {id:'RES002',name:'Robert Martinez',age:82,room:'203',status:'stable',    flags:1,admit:'Mar 5, 2022', carer:'Michael Chen',    ai:'Skipped lunch today. Appetite lower this week. Vitals normal, mood calm.',            ec:{name:'Elena Martinez',rel:'Daughter',phone:'+61 400 222 333',email:'elena@email.com'},  notes:['Oct 23 — Appetite slightly low.','Oct 21 — Good group activity.'],color:'#db2777',img:null},
-  {id:'RES003',name:'Evelyn Brooks',  age:68,room:'301',status:'stable',    flags:0,admit:'Jan 10, 2024',carer:'Jen Rodriguez',  ai:'All vitals normal. Active in morning exercises. Positive mood throughout the day.',     ec:{name:'Mark Brooks',   rel:'Spouse',  phone:'+61 400 333 444',email:'mark@email.com'},    notes:['Oct 23 — All clear, vitals excellent.'],color:'#059669',img:null},
-  {id:'RES004',name:'George Patel',   age:74,room:'202',status:'monitoring',flags:3,admit:'Jun 20, 2023',carer:'David Thompson', ai:'Frequent pain reports; under review. Sleep patterns irregular. Family notified.',       ec:{name:'Priya Patel',   rel:'Daughter',phone:'+61 400 444 555',email:'priya@email.com'},  notes:['Oct 23 — Pain medication reviewed.','Oct 22 — Difficulty sleeping.'],color:'#d97706',img:null},
-  {id:'RES005',name:'Hannah Li',      age:72,room:'103',status:'monitoring',flags:4,admit:'Nov 3, 2023', carer:'Linda Pham',     ai:'Low mood noted; counselling set for tomorrow. Eating well, less social interaction.',   ec:{name:'David Li',      rel:'Son',     phone:'+61 400 555 666',email:'david.li@email.com'}, notes:['Oct 23 — Low mood, counselling arranged.','Oct 20 — Good family visit.'],color:'#dc2626',img:null},
-  {id:'RES006',name:'Dorothy Clarke', age:82,room:'106',status:'stable',    flags:1,admit:'Aug 14, 2022',carer:'Sarah Mitchell', ai:'Fatigue reported this morning. Resting now. Vitals stable. No urgent concerns.',       ec:{name:'Susan Clarke',  rel:'Daughter',phone:'+61 400 666 777',email:'susan@email.com'},  notes:['Oct 23 — Fatigue, resting.'],color:'#2563eb',img:null},
-  {id:'RES007',name:'Patrick Ellis',  age:85,room:'104',status:'monitoring',flags:2,admit:'Apr 2, 2023', carer:'Michael Chen',  ai:'Raised voice during meal; calm now. Staff monitoring behaviour. No fall risk detected.', ec:{name:'Carol Ellis',   rel:'Spouse',  phone:'+61 400 777 888',email:'carol@email.com'},   notes:['Oct 23 — Agitation during meal, resolved.'],color:'#7c3aed',img:null},
-  {id:'RES008',name:'Lillian Adams',  age:86,room:'201',status:'stable',    flags:1,admit:'Feb 28, 2023',carer:'Jen Rodriguez', ai:'Delayed medication intake this morning. Otherwise stable. Good appetite and engagement.', ec:{name:'Tom Adams',     rel:'Son',     phone:'+61 400 888 999',email:'tom@email.com'},     notes:['Oct 23 — Medication delayed, now taken.'],color:'#059669',img:null},
-];
-
 let residents = [];
 let filtered = [];
 let currentView = 'grid';
 
 function ini(n){return n.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);}
 
-// ════════════════════════════════════════
 // API CALLS
-// ════════════════════════════════════════
-
 // Map API response → internal resident object
 function mapResident(r, idx) {
   return {
@@ -75,8 +58,8 @@ async function loadResidents() {
     residents = data.map(mapResident);
     showApiStatus(true);
   } catch (err) {
-    console.warn('API unavailable, using demo data:', err.message);
-    residents = DEMO_RESIDENTS.map(mapResident);
+    console.warn('API unavailable:', err.message);
+    residents = [];
     showApiStatus(false);
   }
   filtered = [...residents];
@@ -127,10 +110,7 @@ function showApiStatus(connected) {
   el.style.opacity = '1';
   setTimeout(() => el.style.opacity = '0', 3000);
 }
-
-// ════════════════════════════════════════
-// RENDER
-// ════════════════════════════════════════
+// RENDE
 function render(){renderGrid();renderList();updateStats();}
 
 function renderGrid(){
