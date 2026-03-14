@@ -31,10 +31,10 @@ async function loadRecords(){
     const res=await fetch(`${API_BASE}/records/?${p}`,{headers:authHeaders()});
     if(!res.ok) throw new Error();
     const data=await res.json();
-    records=data.length?data:DEMO_RECORDS;
+    records=data;
     showApiStatus(true);
   }catch(e){
-    records=DEMO_RECORDS;
+    records=[];
     showApiStatus(false);
   }
   renderAll();
@@ -175,8 +175,8 @@ async function loadInsights(){
     document.getElementById('ic-high').textContent=data.high??0;
     document.getElementById('ic-mid').textContent=data.mid??0;
     document.getElementById('ic-low').textContent=data.low??0;
-    renderInsights(data.insights?.length?data.insights:DEMO_INSIGHTS);
-  }catch(e){ renderInsights(DEMO_INSIGHTS); }
+    renderInsights(data.insights||[]);
+  }catch(e){ renderInsights([]); }
 }
 async function markInsightSeen(id){
   try{await fetch(`${API_BASE}/records/ai-insights/${id}/seen`,{method:'PATCH',headers:authHeaders()});}catch(e){}
@@ -242,28 +242,6 @@ function showApiStatus(connected){
   el.style.color=connected?'#15803d':'#c2410c';
   el.style.opacity='1';setTimeout(()=>el.style.opacity='0',3000);
 }
-
-// DEMO DATA
-const DEMO_RECORDS=[
-  {id:1,resident_name:'Margaret Chen',  category:'Medication Administration',record_type:'video',   file_url:'#',duration:'09:15',notes:'Medication review and blood pressure recorded successfully.',        recorded_at:'10/22/2025',recorded_time:'09:15',created_at:'2025-10-22 09:15'},
-  {id:2,resident_name:'Alice Tan',      category:'Family Video Call',        record_type:'video',   file_url:'#',duration:'14:00',notes:'Positive interaction recorded. No distress or agitation.',           recorded_at:'10/22/2025',recorded_time:'14:00',created_at:'2025-10-22 14:00'},
-  {id:3,resident_name:'Sharon Lim',     category:'Vital Check',              record_type:'video',   file_url:'#',duration:'09:45',notes:'BP slightly elevated. Nurse notified for observation.',              recorded_at:'10/22/2025',recorded_time:'09:45',created_at:'2025-10-22 09:45'},
-  {id:4,resident_name:'Jason Ong',      category:'Physical Therapy',         record_type:'video',   file_url:'#',duration:'11:10',notes:'Complete stretching exercises with assistance.',                     recorded_at:'10/20/2025',recorded_time:'11:10',created_at:'2025-10-20 11:10'},
-  {id:5,resident_name:'Robert Thompson',category:'Mobility Exercise',        record_type:'video',   file_url:'#',duration:'10:30',notes:'Resident completed hallway walking routine. Detected mild fatigue.', recorded_at:'10/20/2025',recorded_time:'10:30',created_at:'2025-10-20 10:30'},
-  {id:6,resident_name:'Mrs Lee',        category:'Cognitive Therapy Session',record_type:'video',   file_url:'#',duration:'08:50',notes:'Engaged in word association task. Mild memory hesitation noted.',    recorded_at:'10/20/2025',recorded_time:'08:50',created_at:'2025-10-20 08:50'},
-  {id:7,resident_name:'George Patel',   category:'Care Assessment',          record_type:'document',file_url:'#',duration:null,  notes:'Quarterly assessment. Pain medication reviewed.',                   recorded_at:'10/19/2025',recorded_time:'09:30',created_at:'2025-10-19 09:30'},
-  {id:8,resident_name:'Hannah Li',      category:'Wellness Check',           record_type:'audio',   file_url:'#',duration:'05:20',notes:'Low mood noted. Counselling arranged for tomorrow.',                recorded_at:'10/19/2025',recorded_time:'13:00',created_at:'2025-10-19 13:00'},
-];
-const DEMO_INSIGHTS=[
-  {id:1,resident_name:'Robert Thompson',title:'Agitation Pattern Detected',  body:'Robert Thompson has shown increased agitation during morning routines for 3 consecutive days. Consider adjusting care approach or timing.',priority:'high',created_at:'2025-10-22 09:00'},
-  {id:2,resident_name:'',              title:'Medication Reminder Missed',   body:'Routine medication was not marked as completed by 09:00 AM. Notify assigned nurse.',                                                     priority:'high',created_at:'2025-10-22 09:00'},
-  {id:3,resident_name:'Margaret Chen', title:'Heart Rate Spike',             body:'Heart rate reached 108 BPM during morning exercise. Monitor if persistent.',                                                             priority:'mid', created_at:'2025-10-22 08:30'},
-  {id:4,resident_name:'Mrs Lee',       title:'Sleep Disturbance Noted',      body:'Frequent movements detected between 2:00 AM and 4:00 AM. Possible discomfort or pain.',                                                 priority:'mid', created_at:'2025-10-22 02:45'},
-  {id:5,resident_name:'Robert Thompson',title:'Cognitive Pause Observed',    body:'12-second pause in word recall task. May need follow-up cognitive test.',                                                                priority:'mid', created_at:'2025-10-21 10:15'},
-  {id:6,resident_name:'Jason Ong',     title:'Positive Social Interaction',  body:'Resident engaged positively in group activity session. No agitation detected.',                                                         priority:'low', created_at:'2025-10-21 15:00'},
-  {id:7,resident_name:'Alice Tan',     title:'Appetite Improvement',         body:'Finished full meal for 3 consecutive days. Current nutrition plan appears effective.',                                                   priority:'low', created_at:'2025-10-20 12:30'},
-  {id:8,resident_name:'Sharon Lim',    title:'BP Stabilising',               body:'Blood pressure readings trending back to normal range after medication adjustment.',                                                    priority:'low', created_at:'2025-10-20 10:00'},
-];
 
 // INIT
 loadCategories();
