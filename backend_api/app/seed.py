@@ -2,7 +2,8 @@ import sys, os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from datetime import datetime, timedelta
-from app.database import SessionLocal, engine
+from app.db.session import SessionLocal, engine
+from app.db.base import Base
 from app import models
 
 models.Base.metadata.create_all(bind=engine)
