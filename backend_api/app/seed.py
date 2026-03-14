@@ -6,14 +6,14 @@ from app.db.session import SessionLocal, engine
 from app.db.base import Base
 from app import models
 
-models.Base.metadata.create_all(bind=engine)
+Base.metadata.create_all(bind=engine)
 db = SessionLocal()
 
 def exists(model, **kwargs):
     return db.query(model).filter_by(**kwargs).first()
 
-
 # RESIDENTS
+
 RESIDENTS = [
     {"full_name": "Sarah Johnson",   "age": 78, "room": "105", "status": "monitoring", "ai_summary": "Mild back pain after exercise. BP slightly elevated, monitoring closely. Mood stable."},
     {"full_name": "Robert Martinez", "age": 82, "room": "203", "status": "stable",     "ai_summary": "Skipped lunch today. Appetite lower this week. Vitals normal, mood calm."},
@@ -23,6 +23,8 @@ RESIDENTS = [
     {"full_name": "Dorothy Clarke",  "age": 82, "room": "106", "status": "stable",     "ai_summary": "Fatigue reported this morning. Resting now. Vitals stable. No urgent concerns."},
     {"full_name": "Patrick Ellis",   "age": 85, "room": "104", "status": "monitoring", "ai_summary": "Raised voice during meal; calm now. Staff monitoring behaviour. No fall risk detected."},
     {"full_name": "Lillian Adams",   "age": 86, "room": "201", "status": "stable",     "ai_summary": "Delayed medication intake this morning. Otherwise stable. Good appetite and engagement."},
+    {"full_name": "John Lee",        "age": 80, "room": "108", "status": "stable",     "ai_summary": "Brief agitation resolved after family visit. Sleeping patterns improved with medication adjustment. Overall stable emotional state."},
+    {"full_name": "Margaret Thompson","age": 79, "room": "101", "status": "monitoring", "ai_summary": "Unsteady movement near bed detected this morning. Fall risk elevated. Nurse monitoring closely."},
 ]
 
 def seed_residents():
@@ -35,6 +37,7 @@ def seed_residents():
     print(f"  Residents:     {added} added")
 
 # FLAGS
+
 FLAGS = [
     {
         "resident_name": "Hannah Li",      "resident_id": "RES005",
@@ -90,6 +93,24 @@ FLAGS = [
         "transcript": "Staff: Time for your medication, Robert.\nRobert: I don't want it tonight.\n[Nurse notified, medication refusal logged.]",
         "flagged_at": datetime.utcnow() - timedelta(hours=8),
     },
+    {
+        "resident_name": "John Lee",       "resident_id": "RES009",
+        "event_type": "Medication",  "description": "Medication refusal detected",
+        "severity": "Medium", "source": "AI",    "status": "Pending Review",
+        "ai_confidence": 76,  "video_timestamp": "00:02:18",
+        "sev_desc": "Speech cue: 'No, not taking it' — Medication compliance issue.",
+        "transcript": "Staff: John, here's your evening medication.\nJohn: No, not taking it.\n[Refusal detected by AI system.]",
+        "flagged_at": datetime.utcnow() - timedelta(hours=10),
+    },
+    {
+        "resident_name": "Evelyn Brooks",  "resident_id": "RES003",
+        "event_type": "Wandering",   "description": "Resident found outside designated area",
+        "severity": "Low",    "source": "AI",    "status": "Resolved",
+        "ai_confidence": 85,  "video_timestamp": "00:00:20",
+        "sev_desc": "Movement detected outside designated resident zone during rest period.",
+        "transcript": "AI System: Resident detected in corridor zone B.\nStaff notified: 11:17 AM.\n[Resident returned to room safely.]",
+        "flagged_at": datetime.utcnow() - timedelta(hours=24),
+    },
 ]
 
 FLAG_COMMENTS = {
@@ -124,6 +145,7 @@ def seed_flags():
     print(f"  Flags:         {added} added")
 
 # RECORDS & AI INSIGHTS
+
 RECORDS = [
     {"resident_name": "Margaret Chen",  "category": "Medication Administration", "record_type": "video",    "duration": "09:15", "notes": "Medication review and blood pressure recorded successfully.",         "recorded_at": "10/22/2025", "recorded_time": "09:15"},
     {"resident_name": "Alice Tan",       "category": "Family Video Call",         "record_type": "video",    "duration": "14:00", "notes": "Positive interaction recorded. No distress or agitation.",            "recorded_at": "10/22/2025", "recorded_time": "14:00"},
@@ -165,6 +187,7 @@ def seed_insights():
     print(f"  AI Insights:   {added} added")
 
 # CONVERSATIONS & MESSAGES
+
 CONVERSATIONS = [
     {"name": "Care Team \u2013 Floor 2",            "category": "team",     "last_message": "Perfect, I'll check on her in 10 minutes",               "unread_count": 3},
     {"name": "Sarah Chen",                           "category": "team",     "last_message": "Can you help me with Mrs. Johnson's medication schedule?", "unread_count": 1},
@@ -216,8 +239,8 @@ def seed_messages():
     db.commit()
     print(f"  Conversations: {added_c} added,  Messages: {added_m} added")
 
-
 # STAFF
+
 STAFF = [
     {"staff_id": "ST-4829", "full_name": "Sarah Johnson",  "shift_time": "7:00 AM - 3:00 PM",  "assigned_unit": "ICU Ward",    "status": "active",   "role": "Senior Carer"},
     {"staff_id": "ST-3746", "full_name": "Michael Chen",   "shift_time": "3:00 PM - 11:00 PM", "assigned_unit": "Emergency",   "status": "on_leave", "role": "Nurse"},
@@ -237,6 +260,7 @@ def seed_staff():
     print(f"  Staff:         {added} added")
 
 # ALERTS
+
 ALERTS = [
     {"level": "warning",  "title": "Staff Shortage Warning", "message": "ICU Ward requires additional coverage for night shift.", "is_read": "false"},
     {"level": "critical", "title": "Critical Task Overdue",  "message": "Equipment maintenance check pending for 2 days.",        "is_read": "false"},
@@ -252,23 +276,25 @@ def seed_alerts():
     db.commit()
     print(f"  Alerts:        {added} added")
 
-
 # CAMERAS  (Recording Console)
+
 CAMERAS = [
-    {"title": "Room 101 \u2014 Main View", "resident_name": "Sarah Johnson",   "floor": "Floor 1", "status": "live",    "alert": "fine",     "description": "Resident resting. No activity detected."},
-    {"title": "Room 103 \u2014 Main View", "resident_name": "Hannah Li",       "floor": "Floor 1", "status": "live",    "alert": "critical", "description": "Possible distress detected. Crying audio pattern."},
-    {"title": "Room 104 \u2014 Main View", "resident_name": "Patrick Ellis",   "floor": "Floor 1", "status": "live",    "alert": "fine",     "description": "Resident calm after meal. All clear."},
-    {"title": "Room 105 \u2014 Main View", "resident_name": "Evelyn Brooks",   "floor": "Floor 1", "status": "live",    "alert": "fine",     "description": "Resident active. Morning exercises in progress."},
-    {"title": "Room 202 \u2014 Main View", "resident_name": "George Patel",    "floor": "Floor 2", "status": "live",    "alert": "critical", "description": "Pain indicators detected. Nurse alerted."},
-    {"title": "Room 203 \u2014 Main View", "resident_name": "Robert Martinez", "floor": "Floor 2", "status": "live",    "alert": "fine",     "description": "Resident eating lunch. Appetite slightly low."},
-    {"title": "Floor 2 \u2014 Corridor",   "resident_name": None,              "floor": "Floor 2", "status": "live",    "alert": "fine",     "description": "No movement detected. All clear."},
-    {"title": "Room 301 \u2014 Main View", "resident_name": "Dorothy Clarke",  "floor": "Floor 3", "status": "offline", "alert": "none",     "description": "Camera offline. Maintenance scheduled."},
+    {"title": "Room 101 \u2014 Main View",  "resident_name": "Margaret Thompson", "floor": "Floor 1", "status": "live",    "alert": "critical", "description": "Potential fall detected \u2014 resident unsteady near bed."},
+    {"title": "Room 101 \u2014 Side View",  "resident_name": "Margaret Thompson", "floor": "Floor 1", "status": "live",    "alert": "fine",     "description": "Side angle view, no issues detected."},
+    {"title": "Room 202 \u2014 Main View",  "resident_name": "George Patel",      "floor": "Floor 2", "status": "live",    "alert": "critical", "description": "Resident attempting to stand without assistance."},
+    {"title": "Room 103 \u2014 Main View",  "resident_name": "Hannah Li",         "floor": "Floor 1", "status": "live",    "alert": "critical", "description": "Low mood observed, monitoring closely."},
+    {"title": "Corridor A \u2014 Floor 1",  "resident_name": None,                "floor": "Floor 1", "status": "live",    "alert": "fine",     "description": "All clear."},
+    {"title": "Room 301 \u2014 Main View",  "resident_name": "Evelyn Brooks",     "floor": "Floor 3", "status": "live",    "alert": "fine",     "description": "No issues detected."},
+    {"title": "Room 104 \u2014 Main View",  "resident_name": "Patrick Ellis",     "floor": "Floor 1", "status": "live",    "alert": "critical", "description": "Raised voice detected, possible distress."},
+    {"title": "Corridor B \u2014 Floor 2",  "resident_name": None,                "floor": "Floor 2", "status": "offline", "alert": "none",     "description": "Camera offline for maintenance."},
 ]
 
 CAMERA_ALERTS = [
-    (1, {"alert_type": "critical", "icon": "sound",  "title": "Crying Detected",        "description": "Soft crying audio detected for 2 minutes 14 seconds. Staff notified.", "resolved": False}),
-    (4, {"alert_type": "critical", "icon": "person", "title": "Pain Indicator Detected", "description": "Resident verbal pain cue detected. Nurse on duty alerted.",           "resolved": False}),
-    (6, {"alert_type": "warning",  "icon": "motion", "title": "Unusual Motion Pattern",  "description": "Slow irregular movement detected in corridor at 02:15 AM.",           "resolved": True}),
+    (0, {"alert_type": "critical", "icon": "fall",   "title": "Fall Risk Detected",           "description": "Margaret Thompson appears unsteady near bed. Immediate check recommended.", "resolved": False}),
+    (2, {"alert_type": "critical", "icon": "person", "title": "Resident Attempting to Stand", "description": "George Patel attempting to stand without assistance. Fall risk elevated.",  "resolved": False}),
+    (6, {"alert_type": "warning",  "icon": "sound",  "title": "Raised Voice Detected",        "description": "Unusual sound pattern detected. Patrick Ellis may be in distress.",          "resolved": False}),
+    (4, {"alert_type": "info",     "icon": "motion", "title": "Motion Detected After Hours",  "description": "Corridor A \u2014 Motion detected at 02:34 AM. Staff patrol confirmed.",    "resolved": False}),
+    (3, {"alert_type": "critical", "icon": "check",  "title": "Fall Alert \u2014 Resolved",  "description": "Previous fall alert reviewed. Hannah Li confirmed safe by nursing staff.",   "resolved": True}),
 ]
 
 def seed_cameras():
@@ -293,6 +319,7 @@ def seed_cameras():
             added_a += 1
     db.commit()
     print(f"  Cameras:       {added} added,  Camera Alerts: {added_a} added")
+
 # MAIN
 if __name__ == "__main__":
     print("\n Seeding Sphere Care database...\n")
