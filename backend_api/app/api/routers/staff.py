@@ -79,3 +79,25 @@ def delete_staff(staff_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Staff member not found.")
     db.delete(member)
     db.commit()
+
+# STATS  (Admin Console quick stats panel)
+@router.get("/stats/summary")
+def get_staff_stats(db: Session = Depends(get_db)):
+    """
+    Quick stats for the Admin Console right-hand panel.
+    Returns active_staff, on_leave, pending, shifts_today, pending_tasks.
+    """
+    from sqlalchemy import func
+    total    = db.query(func.count(models.Staff.id)).scalar() or 0
+    active   = db.query(func.count(models.Staff.id)).filter(models.Staff.status == "active").scalar() or 0
+    on_leave = db.query(func.count(models.Staff.id)).filter(models.Staff.status == "on_leave").scalar() or 0
+    pending  = db.query(func.count(models.Staff.id)).filter(models.Staff.status == "pending").scalar() or 0
+
+    return {
+        "total_staff":   total,
+        "active_staff":  active,
+        "on_leave":      on_leave,
+        "pending":       pending,
+        "shifts_today":  total,
+        "pending_tasks": 8,   # placeholder — wire to a Tasks table when ready
+    }
