@@ -1,6 +1,4 @@
-// ════════════════════════════════════════
 // CONFIG
-// ════════════════════════════════════════
 let cameras = [], recordings = [], alertsData = [];
 let alertFilterOn = false, filteredCameras = [];
 let isPlaying = false, progressInterval = null;
@@ -13,9 +11,7 @@ function authHeaders(){
   return h;
 }
 
-// ════════════════════════════════════════
 // API — CAMERAS (Live View)
-// ════════════════════════════════════════
 async function loadCameras(){
   try {
     const res = await fetch(`${API_BASE}/cameras/`, {headers: authHeaders()});
@@ -31,20 +27,19 @@ async function loadCameras(){
       desc:      c.description || '',
       streamUrl: c.stream_url || null,
     }));
-    cameras = mapped.length ? mapped : DEMO_CAMERAS;
+    cameras = mapped;
     showApiStatus(true);
   } catch(e){
     console.warn('API unavailable, using demo cameras');
-    cameras = DEMO_CAMERAS;
+    cameras = [];
+    showGridError('camera-grid', 'cameras');
     showApiStatus(false);
   }
   filteredCameras = applyFilters(cameras);
   renderCameras();
 }
 
-// ════════════════════════════════════════
 // API — STATS (Stat Cards)
-// ════════════════════════════════════════
 async function loadStats(){
   try {
     const res = await fetch(`${API_BASE}/cameras/stats`, {headers: authHeaders()});
@@ -58,9 +53,7 @@ async function loadStats(){
   } catch(e){ /* keep existing values */ }
 }
 
-// ════════════════════════════════════════
 // API — PLAYBACK (uses /records/?record_type=video)
-// ════════════════════════════════════════
 async function loadPlayback(){
   try {
     const res = await fetch(`${API_BASE}/records/?record_type=video&limit=20`, {headers: authHeaders()});
@@ -76,16 +69,14 @@ async function loadPlayback(){
       type:     r.category || 'Recording',
       fileUrl:  r.file_url || null,
     }));
-    recordings = recs.length ? recs : DEMO_RECORDINGS;
+    recordings = recs;
   } catch(e){
-    recordings = DEMO_RECORDINGS;
+    recordings = [];
   }
   renderPlayback();
 }
 
-// ════════════════════════════════════════
 // API — ALERTS (AI Alerts tab)
-// ════════════════════════════════════════
 async function loadAlerts(){
   try {
     const res = await fetch(`${API_BASE}/cameras/alerts/?limit=50`, {headers: authHeaders()});
@@ -101,9 +92,10 @@ async function loadAlerts(){
       cam:      a.camera_title || '—',
       resolved: a.resolved,
     }));
-    alertsData = mapped.length ? mapped : DEMO_ALERTS;
+    alertsData = mapped;
   } catch(e){
-    alertsData = DEMO_ALERTS;
+    alertsData = [];
+    showGridError('alerts-list', 'alerts');
   }
   renderAlerts();
 }
@@ -123,9 +115,7 @@ async function resolveAlert(id){
   } catch(e){ console.warn('Resolve API failed (local update kept)'); }
 }
 
-// ════════════════════════════════════════
 // RENDER — CAMERAS
-// ════════════════════════════════════════
 const EMOJI_SETS = [
   ['🚶','👩'],
   ['🧓'],
@@ -195,9 +185,7 @@ function renderCameras(){
   }).join('');
 }
 
-// ════════════════════════════════════════
 // RENDER — PLAYBACK
-// ════════════════════════════════════════
 function renderPlayback(){
   const grid = document.getElementById('playback-grid');
   if(!recordings.length){
@@ -225,9 +213,7 @@ function renderPlayback(){
     </div>`).join('');
 }
 
-// ════════════════════════════════════════
 // RENDER — ALERTS
-// ════════════════════════════════════════
 const alertIcons = {
   fall:   '<svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
   person: '<svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
@@ -268,9 +254,7 @@ function renderAlerts(){
   }).join('');
 }
 
-// ════════════════════════════════════════
 // FILTER / SEARCH
-// ════════════════════════════════════════
 function applyFilters(list){
   const s     = document.getElementById('cam-search').value.toLowerCase();
   const floor = document.getElementById('f-floor').value;
@@ -295,9 +279,7 @@ function toggleAlertFilter(){
   filterCameras();
 }
 
-// ════════════════════════════════════════
 // GRID COLS / TABS
-// ════════════════════════════════════════
 function setGridCols(n){
   const grid = document.getElementById('camera-grid');
   grid.className = 'camera-grid' + (n===2?' two-col':n===1?' one-col':'');
@@ -312,9 +294,7 @@ function switchTab(tab, el){
   el.classList.add('active');
 }
 
-// ════════════════════════════════════════
 // VIDEO MODAL — CAMERA (Live)
-// ════════════════════════════════════════
 function openCamera(id){
   const cam = cameras.find(c => c.id === id);
   if(!cam) return;
@@ -383,9 +363,7 @@ function openCamera(id){
   document.body.style.overflow = 'hidden';
 }
 
-// ════════════════════════════════════════
 // VIDEO MODAL — PLAYBACK (from Records API)
-// ════════════════════════════════════════
 function openPlayback(id){
   const rec = recordings.find(r => r.id === id);
   if(!rec) return;
@@ -506,9 +484,7 @@ function seekVideo(e){
   }
 }
 
-// ════════════════════════════════════════
 // CLOCK
-// ════════════════════════════════════════
 function tick(){
   const d = new Date();
   document.getElementById('tb-date').textContent = d.toLocaleDateString('en-AU',{day:'numeric',month:'long',year:'numeric'});
@@ -516,9 +492,7 @@ function tick(){
 }
 tick(); setInterval(tick, 1000);
 
-// ════════════════════════════════════════
 // STATUS TOAST
-// ════════════════════════════════════════
 function showApiStatus(connected){
   let el = document.getElementById('api-status-toast');
   if(!el){
@@ -534,45 +508,17 @@ function showApiStatus(connected){
   setTimeout(() => el.style.opacity = '0', 3000);
 }
 
-// ════════════════════════════════════════
 // TOP ALERTS BUTTON → switch to Alerts tab
-// ════════════════════════════════════════
 document.getElementById('alerts-topbtn').addEventListener('click', () => {
   switchTab('alerts', document.querySelectorAll('.page-tab')[2]);
 });
 
-// ════════════════════════════════════════
-// DEMO FALLBACK DATA
-// ════════════════════════════════════════
-const DEMO_CAMERAS = [
-  {id:1, title:'Room 101 — Main View',   resident:'Margaret Thompson', floor:'Floor 1', status:'live',    alert:'critical', desc:'Potential fall detected — resident unsteady near bed', streamUrl:null},
-  {id:2, title:'Room 101 — Side View',   resident:'Margaret Thompson', floor:'Floor 1', status:'live',    alert:'fine',     desc:'Side angle view, no issues detected', streamUrl:null},
-  {id:3, title:'Room 202 — Main View',   resident:'George Patel',      floor:'Floor 2', status:'live',    alert:'critical', desc:'Resident attempting to stand without assistance', streamUrl:null},
-  {id:4, title:'Room 103 — Main View',   resident:'Hannah Li',         floor:'Floor 1', status:'live',    alert:'critical', desc:'Low mood observed, monitoring closely', streamUrl:null},
-  {id:5, title:'Corridor A — Floor 1',   resident:'Common Area',       floor:'Floor 1', status:'live',    alert:'fine',     desc:'All clear', streamUrl:null},
-  {id:6, title:'Room 301 — Main View',   resident:'Evelyn Brooks',     floor:'Floor 3', status:'live',    alert:'fine',     desc:'No issues detected', streamUrl:null},
-  {id:7, title:'Room 104 — Main View',   resident:'Patrick Ellis',     floor:'Floor 1', status:'live',    alert:'critical', desc:'Raised voice detected, possible distress', streamUrl:null},
-  {id:8, title:'Corridor B — Floor 2',   resident:'Common Area',       floor:'Floor 2', status:'offline', alert:'none',     desc:'Camera offline for maintenance', streamUrl:null},
-];
-const DEMO_RECORDINGS = [
-  {id:1, title:'Fall Risk Review',          resident:'Margaret Thompson', date:'2024-10-23', duration:'24:32', flag:'critical', type:'AI Flagged',  fileUrl:null},
-  {id:2, title:'Family Meeting Session',    resident:'Robert Martinez',   date:'2024-10-22', duration:'18:47', flag:'none',     type:'Scheduled',   fileUrl:null},
-  {id:3, title:'Physiotherapy Session',     resident:'George Patel',      date:'2024-10-21', duration:'12:08', flag:'warning',  type:'Care Session', fileUrl:null},
-  {id:4, title:'Wellness Check Recording',  resident:'Hannah Li',         date:'2024-10-20', duration:'44:20', flag:'none',     type:'Routine',     fileUrl:null},
-  {id:5, title:'Behavioural Observation',   resident:'Patrick Ellis',     date:'2024-10-19', duration:'09:55', flag:'warning',  type:'AI Flagged',  fileUrl:null},
-  {id:6, title:'Nutrition Review Session',  resident:'Dorothy Clarke',    date:'2024-10-19', duration:'05:30', flag:'none',     type:'Scheduled',   fileUrl:null},
-];
-const DEMO_ALERTS = [
-  {id:1, type:'critical', icon:'fall',   title:'Fall Risk Detected',           desc:'Room 101 — Margaret Thompson appears unsteady near bed. Immediate check recommended.',         time:'2 min ago',  cam:'Room 101 Main', resolved:false},
-  {id:2, type:'critical', icon:'person', title:'Resident Attempting to Stand', desc:'Room 202 — George Patel attempting to stand without assistance. Fall risk elevated.',          time:'8 min ago',  cam:'Room 202 Main', resolved:false},
-  {id:3, type:'warning',  icon:'sound',  title:'Raised Voice Detected',        desc:'Room 104 — Unusual sound pattern detected. Patrick Ellis may be in distress.',                 time:'15 min ago', cam:'Room 104 Main', resolved:false},
-  {id:4, type:'info',     icon:'motion', title:'Motion Detected After Hours',  desc:'Corridor A — Motion detected at 02:34 AM. Staff patrol confirmed.',                           time:'6h ago',     cam:'Corridor A',    resolved:false},
-  {id:5, type:'critical', icon:'check',  title:'Fall Alert — Resolved',        desc:'Room 103 — Previous fall alert reviewed. Hannah Li confirmed safe by nursing staff.',          time:'Yesterday',  cam:'Room 103 Main', resolved:true},
-];
+function showGridError(elId, type){
+  const el = document.getElementById(elId);
+  if(el) el.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--red);font-size:13px;font-weight:600;">⚠ Unable to load ${type}. Please check your connection.</div>`;
+}
 
-// ════════════════════════════════════════
 // INIT
-// ════════════════════════════════════════
 loadStats();
 loadCameras();
 loadPlayback();
