@@ -1,19 +1,34 @@
-# Sphere Care Backend
+# Sphere Care — Quick Start
 
-## Setup
+## Requirements
+- Python 3.11+
+- PostgreSQL (database: `spherecare`, password: `123`)
 
-1. Create a virtual environment
-2. Install dependencies:
+## First Time Setup
 
+```bash
+cd backend_api
+.\venv\Scripts\activate
 pip install -r requirements.txt
+python seed.py
+```
 
-3. Copy `.env.example` to `.env`
-4. Update the PostgreSQL password in `.env`
+## Start Server
 
-## Run
+```bash
+cd backend_api
+.\venv\Scripts\activate
+python app.py
+```
 
-uvicorn app.main:app --reload
+Open browser: **http://localhost:8000**
+
+## Login
+Register a new account or use seeded data.
+To make an admin account, register then run in PostgreSQL:
+```sql
+UPDATE users SET role = 'admin' WHERE email = 'your@email.com';
+```
 
 ## API Docs
-
-http://127.0.0.1:8000/docs
+**http://localhost:8000/docs**
