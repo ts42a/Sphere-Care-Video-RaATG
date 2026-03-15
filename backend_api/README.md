@@ -18,8 +18,10 @@ python seed.py
 ## Start Server
 
 
-cd backend_api
+cd backend_api 
+
 .\venv\Scripts\activate
+
 python app.py
 
 Open browser: **http://localhost:8000**
