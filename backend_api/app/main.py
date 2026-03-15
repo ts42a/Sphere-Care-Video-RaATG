@@ -1,6 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+import os
 
 from app.core.config import ALLOWED_ORIGINS
 from app.db.base import Base
@@ -38,12 +40,13 @@ origins = (
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+# API routers
 app.include_router(auth.router)
 app.include_router(residents.router)
 app.include_router(bookings.router)
@@ -64,3 +67,14 @@ app.include_router(call.router)
 @app.get("/health")
 def health():
     return {"status": "ok", "service": "Sphere Care"}
+
+#Serve frontend
+# Path from backend_api/ to the frontend folder
+FRONTEND_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "frontend_staff", "src")
+FRONTEND_DIR = os.path.abspath(FRONTEND_DIR)
+print(f"Frontend dir: {FRONTEND_DIR}")
+print(f"Exists: {os.path.exists(FRONTEND_DIR)}")
+
+if os.path.exists(FRONTEND_DIR):
+    # Serve static assets (CSS, JS, images)
+    app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=True), name="static")
