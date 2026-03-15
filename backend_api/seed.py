@@ -13,7 +13,6 @@ def exists(model, **kwargs):
     return db.query(model).filter_by(**kwargs).first()
 
 # RESIDENTS
-
 RESIDENTS = [
     {"full_name": "Sarah Johnson",   "age": 78, "room": "105", "status": "monitoring", "ai_summary": "Mild back pain after exercise. BP slightly elevated, monitoring closely. Mood stable."},
     {"full_name": "Robert Martinez", "age": 82, "room": "203", "status": "stable",     "ai_summary": "Skipped lunch today. Appetite lower this week. Vitals normal, mood calm."},
@@ -37,7 +36,6 @@ def seed_residents():
     print(f"  Residents:     {added} added")
 
 # FLAGS
-
 FLAGS = [
     {
         "resident_name": "Hannah Li",      "resident_id": "RES005",
@@ -145,7 +143,6 @@ def seed_flags():
     print(f"  Flags:         {added} added")
 
 # RECORDS & AI INSIGHTS
-
 RECORDS = [
     {"resident_name": "Margaret Chen",  "category": "Medication Administration", "record_type": "video",    "duration": "09:15", "notes": "Medication review and blood pressure recorded successfully.",         "recorded_at": "10/22/2025", "recorded_time": "09:15"},
     {"resident_name": "Alice Tan",       "category": "Family Video Call",         "record_type": "video",    "duration": "14:00", "notes": "Positive interaction recorded. No distress or agitation.",            "recorded_at": "10/22/2025", "recorded_time": "14:00"},
@@ -187,7 +184,6 @@ def seed_insights():
     print(f"  AI Insights:   {added} added")
 
 # CONVERSATIONS & MESSAGES
-
 CONVERSATIONS = [
     {"name": "Care Team \u2013 Floor 2",            "category": "team",     "last_message": "Perfect, I'll check on her in 10 minutes",               "unread_count": 3},
     {"name": "Sarah Chen",                           "category": "team",     "last_message": "Can you help me with Mrs. Johnson's medication schedule?", "unread_count": 1},
@@ -240,7 +236,6 @@ def seed_messages():
     print(f"  Conversations: {added_c} added,  Messages: {added_m} added")
 
 # STAFF
-
 STAFF = [
     {"staff_id": "ST-4829", "full_name": "Sarah Johnson",  "shift_time": "7:00 AM - 3:00 PM",  "assigned_unit": "ICU Ward",    "status": "active",   "role": "Senior Carer"},
     {"staff_id": "ST-3746", "full_name": "Michael Chen",   "shift_time": "3:00 PM - 11:00 PM", "assigned_unit": "Emergency",   "status": "on_leave", "role": "Nurse"},
@@ -260,7 +255,6 @@ def seed_staff():
     print(f"  Staff:         {added} added")
 
 # ALERTS
-
 ALERTS = [
     {"level": "warning",  "title": "Staff Shortage Warning", "message": "ICU Ward requires additional coverage for night shift.", "is_read": "false"},
     {"level": "critical", "title": "Critical Task Overdue",  "message": "Equipment maintenance check pending for 2 days.",        "is_read": "false"},
@@ -276,8 +270,8 @@ def seed_alerts():
     db.commit()
     print(f"  Alerts:        {added} added")
 
-# CAMERAS  (Recording Console)
 
+# CAMERAS  (Recording Console)
 CAMERAS = [
     {"title": "Room 101 \u2014 Main View",  "resident_name": "Margaret Thompson", "floor": "Floor 1", "status": "live",    "alert": "critical", "description": "Potential fall detected \u2014 resident unsteady near bed."},
     {"title": "Room 101 \u2014 Side View",  "resident_name": "Margaret Thompson", "floor": "Floor 1", "status": "live",    "alert": "fine",     "description": "Side angle view, no issues detected."},
