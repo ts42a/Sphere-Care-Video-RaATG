@@ -1,5 +1,6 @@
 import { mockSettings } from "../mock/settingData";
 import type { SettingRow, SettingToggleKey } from "../types/setting";
+import { clearSession } from "../services/sessionService";
 
 let inMemorySettings: SettingRow[] = [...mockSettings];
 
@@ -27,5 +28,6 @@ export async function updateSettingToggle(
 
 export async function signOut(): Promise<{ success: boolean }> {
   await wait(150);
+  await clearSession();
   return { success: true };
 }
