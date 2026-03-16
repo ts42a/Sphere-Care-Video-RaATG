@@ -69,6 +69,22 @@ def register(user: schemas.UserCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(new_user)
 
+    # Auto-create a Staff record linked to this user
+    if not db.query(models.Staff).filter(models.Staff.user_id == new_user.id).first():
+        import random, string
+        suffix = ''.join(random.choices(string.digits, k=4))
+        staff_record = models.Staff(
+            user_id=new_user.id,
+            staff_id=f"ST-{suffix}",
+            full_name=new_user.full_name,
+            shift_time="TBD",
+            assigned_unit="Unassigned",
+            status="pending",
+            role=new_user.role,
+        )
+        db.add(staff_record)
+        db.commit()
+
     access_token = create_access_token({
         "sub": new_user.email,
         "role": new_user.role
@@ -78,6 +94,70 @@ def register(user: schemas.UserCreate, db: Session = Depends(get_db)):
         "access_token": access_token,
         "user": new_user
     }
+
+
+@router.get("/me", response_model=schemas.UserResponse)
+def get_me(
+    authorization: str = None,
+    db: Session = Depends(get_db),
+):
+    """Get current logged-in user info from token."""
+    from fastapi import Header
+    return _get_current_user(authorization, db)
+
+
+@router.patch("/me", response_model=schemas.UserResponse)
+def update_me(
+    updates: schemas.UserUpdate,
+    authorization: str = None,
+    db: Session = Depends(get_db),
+):
+    """Update current user's full_name."""
+    user = _get_current_user(authorization, db)
+    if updates.full_name:
+        user.full_name = updates.full_name
+        # Sync to linked staff record if exists
+        staff = db.query(models.Staff).filter(models.Staff.user_id == user.id).first()
+        if staff:
+            staff.full_name = updates.full_name
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+@router.post("/change-password")
+def change_password(
+    payload: schemas.ChangePasswordRequest,
+    authorization: str = None,
+    db: Session = Depends(get_db),
+):
+    """Change password — requires current password verification."""
+    user = _get_current_user(authorization, db)
+    if not verify_password(payload.current_password, user.password_hash):
+        raise HTTPException(status_code=400, detail="Current password is incorrect.")
+    validate_password(payload.new_password)
+    user.password_hash = hash_password(payload.new_password)
+    db.commit()
+    return {"message": "Password updated successfully."}
+
+
+def _get_current_user(authorization: str, db: Session) -> models.User:
+    """Extract user from Bearer token."""
+    from jose import JWTError
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Not authenticated.")
+    token = authorization.split(" ", 1)[1]
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[JWT_ALGORITHM])
+        email: str = payload.get("sub")
+        if not email:
+            raise HTTPException(status_code=401, detail="Invalid token.")
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid or expired token.")
+    user = db.query(models.User).filter(models.User.email == email).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found.")
+    return user
 
 
 @router.post("/login", response_model=schemas.TokenResponse)
