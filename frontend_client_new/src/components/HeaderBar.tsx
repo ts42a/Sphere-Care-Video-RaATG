@@ -1,5 +1,6 @@
 import { View, Text, StyleSheet, Pressable } from "react-native";
 import { Feather } from "@expo/vector-icons";
+import { router } from "expo-router";
 
 type HeaderBarProps = {
   userName: string;
@@ -17,11 +18,11 @@ export default function HeaderBar({ userName }: HeaderBarProps) {
       </View>
 
       <View style={styles.headerActions}>
-        <Pressable>
+        <Pressable onPress={() => router.push("./notifications")}>
           <Feather name="bell" size={24} color="#4B5B6B" />
         </Pressable>
 
-        <Pressable>
+        <Pressable onPress={() => router.push("./settings")}>
           <Feather name="settings" size={24} color="#4B5B6B" />
         </Pressable>
       </View>
@@ -79,8 +80,5 @@ const styles = StyleSheet.create({
   headerActions: {
     flexDirection: "row",
     gap: 16,
-  },
-  headerActionText: {
-    fontSize: 22,
   },
 });

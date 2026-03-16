@@ -24,7 +24,7 @@ export default function BottomNav({ active = "home" }: BottomNavProps) {
 
         <NavItem
           active={active === "call"}
-          onPress={() => router.push("./call")}
+          onPress={() => router.push("/call")}
           icon={
             <Feather
               name="phone-call"
@@ -36,7 +36,7 @@ export default function BottomNav({ active = "home" }: BottomNavProps) {
 
         <NavItem
           active={active === "booking"}
-          onPress={() => router.push("./booking")}
+          onPress={() => router.push("/booking")}
           icon={
             <Ionicons
               name="calendar-outline"
@@ -48,7 +48,7 @@ export default function BottomNav({ active = "home" }: BottomNavProps) {
 
         <NavItem
           active={active === "task"}
-          onPress={() => router.push("./task")}
+          onPress={() => router.push("/task")}
           icon={
             <Ionicons
               name="document-text-outline"
@@ -60,7 +60,7 @@ export default function BottomNav({ active = "home" }: BottomNavProps) {
 
         <NavItem
           active={active === "message"}
-          onPress={() => router.push("./call")}
+          onPress={() => router.push("./messages")}
           icon={
             <MaterialCommunityIcons
               name="message-text-outline"

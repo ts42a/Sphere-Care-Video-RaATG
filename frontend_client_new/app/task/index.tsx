@@ -1,15 +1,18 @@
 import { SafeAreaView } from "react-native-safe-area-context";
 import { View, Text, StyleSheet, Pressable, ScrollView } from "react-native";
-import { Ionicons, Feather} from "@expo/vector-icons";
-import PageHeader from "../../src/components/PageHeader";
+import { Feather, Ionicons } from "@expo/vector-icons";
+import { useMemo, useState } from "react";
 import { router } from "expo-router";
-import HeaderBar from "../../src/components/HeaderBar";
+import PageHeader from "../../src/components/PageHeader";
 import TaskCard from "../../src/components/TaskCard";
 import BottomNav from "../../src/components/BottomNav";
 
+type FilterType = "All" | "Medication" | "Exercise" | "Meal";
+
 export default function TaskScreen() {
-  const filters = ["All", "Medication", "Exercise", "Meal"];
-  const activeFilter = "All";
+  const [activeFilter, setActiveFilter] = useState<FilterType>("All");
+
+  const filters: FilterType[] = ["All", "Medication", "Exercise", "Meal"];
 
   const tasks = [
     {
@@ -18,9 +21,7 @@ export default function TaskScreen() {
       name: "Vitamin D 1000 IU after breakfast",
       time: "8:00",
       type: "green" as const,
-      icon: (
-        <Ionicons name="medical-outline" size={26} color="#27C27F" />
-      ),
+      icon: <Ionicons name="medical-outline" size={26} color="#27C27F" />,
     },
     {
       id: 2,
@@ -36,9 +37,7 @@ export default function TaskScreen() {
       name: "Prepare low salt lunch",
       time: "12:00",
       type: "red" as const,
-      icon: (
-        <Ionicons name="restaurant-outline" size={26} color="#F15F5F" />
-      ),
+      icon: <Ionicons name="restaurant-outline" size={26} color="#F15F5F" />,
     },
     {
       id: 4,
@@ -46,11 +45,17 @@ export default function TaskScreen() {
       name: "Blood pressure tablet after dinner",
       time: "19:00",
       type: "green" as const,
-      icon: (
-        <Ionicons name="medical-outline" size={26} color="#27C27F" />
-      ),
+      icon: <Ionicons name="medical-outline" size={26} color="#27C27F" />,
     },
   ];
+
+  const filteredTasks = useMemo(() => {
+    if (activeFilter === "All") {
+      return tasks;
+    }
+
+    return tasks.filter((task) => task.category === activeFilter);
+  }, [activeFilter]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -84,6 +89,7 @@ export default function TaskScreen() {
           >
             {filters.map((filter) => {
               const isActive = filter === activeFilter;
+
               return (
                 <Pressable
                   key={filter}
@@ -91,6 +97,7 @@ export default function TaskScreen() {
                     styles.filterBtn,
                     isActive && styles.filterBtnActive,
                   ]}
+                  onPress={() => setActiveFilter(filter)}
                 >
                   <Text
                     style={[
@@ -106,7 +113,7 @@ export default function TaskScreen() {
           </ScrollView>
 
           <View style={styles.taskList}>
-            {tasks.map((task) => (
+            {filteredTasks.map((task) => (
               <TaskCard
                 key={task.id}
                 category={task.category}
@@ -117,6 +124,10 @@ export default function TaskScreen() {
               />
             ))}
           </View>
+
+          {filteredTasks.length === 0 && (
+            <Text style={styles.emptyText}>No tasks in this category.</Text>
+          )}
         </View>
       </ScrollView>
 
@@ -137,27 +148,6 @@ const styles = StyleSheet.create({
     paddingTop: 24,
     paddingHorizontal: 24,
     paddingBottom: 24,
-  },
-  topRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 22,
-  },
-  backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  pageTitle: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: "#425266",
-  },
-  topSpacer: {
-    width: 36,
   },
   aiCard: {
     backgroundColor: "#E9EEFB",
@@ -221,5 +211,11 @@ const styles = StyleSheet.create({
   taskList: {
     gap: 16,
     paddingBottom: 20,
+  },
+  emptyText: {
+    marginTop: 8,
+    fontSize: 15,
+    color: "#7B8794",
+    textAlign: "center",
   },
 });

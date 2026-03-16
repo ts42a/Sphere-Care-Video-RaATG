@@ -12,6 +12,7 @@ import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import BottomNav from "../../src/components/BottomNav";
 import PageHeader from "../../src/components/PageHeader";
+
 import {
   AppointmentType,
   getAppointmentTypes,
@@ -73,7 +74,7 @@ export default function BookingScreen() {
                   style={styles.typeCard}
                   onPress={() =>
                     router.push({
-                      pathname: "./booking/doctor",
+                      pathname: "/booking/doctor",
                       params: {
                         typeId: item.id,
                         typeTitle: item.title,
