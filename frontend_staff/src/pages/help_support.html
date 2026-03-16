@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Help &amp; Support – Sphere Care</title>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --navy:#0f1b2d;--navy2:#162236;
+  --teal:#2ec4b6;--bg:#f0f4f8;--card:#fff;
+  --text:#1a2535;--text2:#5a6170;--text3:#9aa0ac;
+  --border:#e2e8f0;--blue:#3b82f6;--green:#22c55e;
+  --amber:#f59e0b;--red:#ef4444;
+  --active-bg:rgba(46,196,182,0.12);--sidebar-w:230px;
+}
+html,body{height:100%;font-family:'Manrope',sans-serif;background:var(--bg);color:var(--text);}
+*{scrollbar-width:thin;}
+::-webkit-scrollbar{width:5px;}
+::-webkit-scrollbar-thumb{background:#d1d9e0;border-radius:4px;}
+.app{display:flex;height:100vh;overflow:hidden;}
+
+/* SIDEBAR */
+.sidebar{width:var(--sidebar-w);min-width:var(--sidebar-w);background:var(--navy);display:flex;flex-direction:column;height:100vh;overflow-y:auto;flex-shrink:0;}
+.sidebar::-webkit-scrollbar{width:4px;}
+.sidebar::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:4px;}
+.sidebar-logo{padding:24px 20px 20px;border-bottom:1px solid rgba(255,255,255,.07);}
+.logo-name{font-size:17px;font-weight:800;color:#fff;}
+.logo-sub{font-size:11px;color:rgba(255,255,255,.4);margin-top:3px;}
+.sidebar-section-label{padding:20px 20px 8px;font-size:10.5px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:rgba(255,255,255,.35);}
+.nav-item{display:flex;align-items:center;gap:12px;padding:10px 20px;cursor:pointer;font-size:13.5px;font-weight:500;color:rgba(255,255,255,.55);text-decoration:none;transition:all .18s;margin:1px 8px;border-radius:10px;}
+.nav-item:hover{background:rgba(255,255,255,.07);color:rgba(255,255,255,.85);}
+.nav-item.active{background:var(--active-bg);color:var(--teal);font-weight:700;}
+.ni{width:20px;height:20px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.ni svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+.sidebar-divider{height:1px;background:rgba(255,255,255,.07);margin:8px 16px;}
+.sidebar-bottom{margin-top:auto;padding-bottom:12px;border-top:1px solid rgba(255,255,255,.07);padding-top:8px;}
+
+/* MAIN */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+.topbar{display:flex;align-items:center;padding:0 28px;background:#fff;border-bottom:1px solid var(--border);height:56px;flex-shrink:0;}
+.topbar-title{font-size:15px;font-weight:800;color:var(--text);}
+
+/* CONTENT */
+.content{flex:1;overflow-y:auto;padding:28px;}
+
+/* HERO SEARCH */
+.hero{
+  background:linear-gradient(135deg,var(--navy) 0%,#1c3a5e 100%);
+  border-radius:20px;padding:36px 32px;margin-bottom:24px;
+  position:relative;overflow:hidden;
+}
+.hero::before{
+  content:'';position:absolute;top:-60px;right:-60px;
+  width:240px;height:240px;border-radius:50%;
+  background:rgba(46,196,182,.12);
+}
+.hero::after{
+  content:'';position:absolute;bottom:-40px;right:80px;
+  width:140px;height:140px;border-radius:50%;
+  background:rgba(59,130,246,.1);
+}
+.hero-tag{font-size:11px;font-weight:700;color:var(--teal);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;}
+.hero-title{font-size:24px;font-weight:800;color:#fff;margin-bottom:6px;line-height:1.2;}
+.hero-sub{font-size:13.5px;color:rgba(255,255,255,.6);margin-bottom:22px;}
+.search-wrap{display:flex;gap:10px;max-width:520px;position:relative;z-index:1;}
+.search-input{
+  flex:1;height:44px;padding:0 16px 0 42px;
+  border-radius:10px;border:none;
+  font-family:'Manrope',sans-serif;font-size:13.5px;
+  color:var(--text);outline:none;
+  background:rgba(255,255,255,.95);
+}
+.search-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--text3);}
+.search-icon svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;}
+
+/* GRID LAYOUT */
+.grid-2{display:grid;grid-template-columns:1fr 320px;gap:20px;align-items:start;}
+.left-col{display:flex;flex-direction:column;gap:20px;}
+.right-col{display:flex;flex-direction:column;gap:20px;}
+
+/* CARD */
+.card{background:#fff;border-radius:16px;border:1px solid var(--border);overflow:hidden;}
+.card-header{padding:18px 20px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;}
+.card-header-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.chi-teal{background:rgba(46,196,182,.12);}
+.chi-teal svg{stroke:var(--teal);}
+.chi-blue{background:#dbeafe;}
+.chi-blue svg{stroke:var(--blue);}
+.chi-amber{background:#fef3c7;}
+.chi-amber svg{stroke:var(--amber);}
+.chi-green{background:#dcfce7;}
+.chi-green svg{stroke:var(--green);}
+.card-header-icon svg{width:15px;height:15px;fill:none;stroke-width:2.5;}
+.card-title{font-size:14px;font-weight:800;color:var(--text);}
+
+/* QUICK LINKS */
+.quick-grid{display:grid;grid-template-columns:1fr 1fr;gap:0;}
+.quick-item{
+  display:flex;align-items:center;gap:12px;
+  padding:14px 20px;cursor:pointer;
+  border-bottom:1px solid var(--border);
+  transition:background .12s;
+}
+.quick-item:nth-child(odd){border-right:1px solid var(--border);}
+.quick-item:nth-last-child(-n+2){border-bottom:none;}
+.quick-item:hover{background:#f8fafc;}
+.quick-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.quick-icon svg{width:16px;height:16px;fill:none;stroke-width:2;}
+.qi-teal{background:rgba(46,196,182,.1);} .qi-teal svg{stroke:var(--teal);}
+.qi-blue{background:#dbeafe;} .qi-blue svg{stroke:var(--blue);}
+.qi-amber{background:#fef3c7;} .qi-amber svg{stroke:var(--amber);}
+.qi-green{background:#dcfce7;} .qi-green svg{stroke:var(--green);}
+.qi-purple{background:#ede9fe;} .qi-purple svg{stroke:#7c3aed;}
+.qi-red{background:#fee2e2;} .qi-red svg{stroke:var(--red);}
+.quick-label{font-size:13px;font-weight:700;color:var(--text);}
+.quick-sub{font-size:11.5px;color:var(--text3);margin-top:1px;}
+
+/* FAQ */
+.faq-item{border-bottom:1px solid var(--border);}
+.faq-item:last-child{border-bottom:none;}
+.faq-q{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:15px 20px;cursor:pointer;
+  font-size:13.5px;font-weight:700;color:var(--text);
+  transition:background .12s;gap:12px;
+}
+.faq-q:hover{background:#f8fafc;}
+.faq-q.open{color:var(--teal);}
+.faq-chevron{width:18px;height:18px;flex-shrink:0;stroke:var(--text3);fill:none;stroke-width:2.5;transition:transform .2s;}
+.faq-q.open .faq-chevron{transform:rotate(180deg);stroke:var(--teal);}
+.faq-a{
+  max-height:0;overflow:hidden;
+  transition:max-height .3s ease,padding .3s ease;
+  font-size:13px;color:var(--text2);line-height:1.7;
+  padding:0 20px;
+}
+.faq-a.open{max-height:300px;padding:0 20px 16px;}
+
+/* CONTACT */
+.contact-list{padding:4px 0;}
+.contact-item{
+  display:flex;align-items:center;gap:14px;
+  padding:14px 20px;border-bottom:1px solid var(--border);
+  cursor:pointer;transition:background .12s;
+}
+.contact-item:last-child{border-bottom:none;}
+.contact-item:hover{background:#f8fafc;}
+.contact-icon{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.contact-icon svg{width:16px;height:16px;fill:none;stroke-width:2;}
+.contact-label{font-size:13px;font-weight:700;color:var(--text);margin-bottom:2px;}
+.contact-val{font-size:12px;color:var(--text3);}
+.contact-arrow{margin-left:auto;color:var(--text3);}
+.contact-arrow svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2.5;}
+
+/* SYSTEM STATUS */
+.status-list{padding:12px 20px;display:flex;flex-direction:column;gap:10px;}
+.status-row{display:flex;align-items:center;justify-content:space-between;}
+.status-name{font-size:13px;font-weight:600;color:var(--text2);}
+.status-dot{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;}
+.dot{width:8px;height:8px;border-radius:50%;}
+.dot-green{background:var(--green);}
+.dot-amber{background:var(--amber);}
+.dot-red{background:var(--red);}
+
+/* VERSION */
+.version-badge{
+  margin:0 20px 16px;padding:10px 14px;
+  background:#f8fafc;border-radius:10px;border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.version-label{font-size:12px;color:var(--text3);font-weight:600;}
+.version-num{font-size:12px;font-weight:800;color:var(--teal);}
+
+/* TICKET FORM */
+.ticket-body{padding:16px 20px;}
+.flabel{font-size:12px;font-weight:700;color:var(--text2);display:block;margin-bottom:5px;}
+.finput,.fsel,.ftextarea{
+  width:100%;padding:10px 14px;
+  border-radius:10px;border:1.5px solid var(--border);
+  font-family:'Manrope',sans-serif;font-size:13px;color:var(--text);
+  outline:none;background:#fff;transition:border-color .15s;
+  margin-bottom:12px;
+}
+.finput:focus,.fsel:focus,.ftextarea:focus{border-color:var(--teal);}
+.ftextarea{height:90px;resize:none;}
+.btn-submit{
+  width:100%;padding:11px;border-radius:10px;
+  background:var(--navy);color:#fff;border:none;
+  font-family:'Manrope',sans-serif;font-size:13.5px;font-weight:700;
+  cursor:pointer;transition:background .15s;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+}
+.btn-submit:hover{background:var(--navy2);}
+.btn-submit svg{width:15px;height:15px;stroke:#fff;fill:none;stroke-width:2.5;}
+
+/* TOAST */
+.toast{
+  position:fixed;bottom:28px;right:28px;
+  background:#065f46;color:#fff;padding:12px 20px;border-radius:12px;
+  font-size:13px;font-weight:700;border-left:4px solid var(--teal);
+  box-shadow:0 8px 24px rgba(0,0,0,.15);
+  transform:translateY(80px);opacity:0;transition:all .3s ease;z-index:999;
+}
+.toast.show{transform:translateY(0);opacity:1;}
+
+/* SEARCH HIGHLIGHT */
+.highlight{background:#fef08a;border-radius:2px;padding:0 1px;}
+  /* GUIDE MODAL */
+  .modal-overlay{position:fixed;inset:0;background:rgba(15,27,45,.5);backdrop-filter:blur(4px);z-index:300;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity .2s;}
+  .modal-overlay.open{opacity:1;pointer-events:all;}
+  .guide-modal{background:#fff;border-radius:20px;width:100%;max-width:480px;box-shadow:0 24px 60px rgba(0,0,0,.18);transform:translateY(16px);transition:transform .2s;overflow:hidden;}
+  .modal-overlay.open .guide-modal{transform:translateY(0);}
+  .guide-modal-header{padding:20px 22px 16px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;border-bottom:1px solid var(--border);}
+  .guide-modal-icon{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .guide-modal-icon svg{width:18px;height:18px;fill:none;stroke-width:2.5;}
+  .guide-modal-title{font-size:16px;font-weight:800;color:var(--text);margin-bottom:3px;}
+  .guide-modal-sub{font-size:12.5px;color:var(--text3);font-weight:500;}
+  .modal-close-btn{width:28px;height:28px;border-radius:8px;border:none;background:#f0f4f8;cursor:pointer;font-size:15px;color:var(--text2);flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+  .modal-close-btn:hover{background:#e2e8f0;}
+  .guide-modal-body{padding:18px 22px;}
+  .guide-step{display:flex;gap:12px;margin-bottom:14px;}
+  .guide-step:last-child{margin-bottom:0;}
+  .step-num{width:24px;height:24px;border-radius:50%;background:var(--navy);color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;}
+  .step-text{font-size:13px;color:var(--text2);line-height:1.6;font-weight:500;}
+  .step-text strong{color:var(--text);font-weight:700;}
+  .guide-modal-footer{padding:14px 22px 18px;display:flex;justify-content:flex-end;}
+  .btn-got-it{padding:10px 22px;border-radius:10px;background:var(--navy);color:#fff;border:none;font-family:'Manrope',sans-serif;font-size:13.5px;font-weight:700;cursor:pointer;transition:background .15s;}
+  .btn-got-it:hover{background:var(--navy2);}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-name">Sphere Care</div>
+    <div class="logo-sub">AI-Powered Aged Care Platform</div>
+  </div>
+  <div class="sidebar-section-label">Workspace</div>
+  <a class="nav-item" href="dashboard.html"><span class="ni"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span>Dashboard</a>
+  <a class="nav-item" href="recording_console.html"><span class="ni"><svg viewBox="0 0 24 24"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg></span>Recording Console</a>
+  <a class="nav-item" href="records.html"><span class="ni"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span>Records Library</a>
+  <a class="nav-item" href="flags.html"><span class="ni"><svg viewBox="0 0 24 24"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg></span>Flags &amp; Reviews</a>
+  <a class="nav-item" href="residents.html"><span class="ni"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>Residents</a>
+  <div class="sidebar-divider"></div>
+  <div class="sidebar-section-label">Operations</div>
+  <a class="nav-item" href="bookings.html"><span class="ni"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>Bookings</a>
+  <a class="nav-item" href="staff_roles.html"><span class="ni"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="23" y1="11" x2="17" y2="11"/><line x1="20" y1="8" x2="20" y2="14"/></svg></span>Staff &amp; Roles</a>
+  <a class="nav-item" href="admin_console.html"><span class="ni"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg></span>Admin Console</a>
+  <a class="nav-item" href="analytics.html"><span class="ni"><svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span>Reports / Analytics</a>
+  <div class="sidebar-bottom">
+    <a class="nav-item" href="notifications.html"><span class="ni"><svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span>Notifications</a>
+    <a class="nav-item" href="messages.html"><span class="ni"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>Messages</a>
+    <a class="nav-item active" href="help_support.html"><span class="ni"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>Help &amp; Support</a>
+    <a class="nav-item" href="account.html"><span class="ni"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>Account</a>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-title">Help &amp; Support</div>
+  </div>
+
+  <div class="content">
+
+    <!-- HERO -->
+    <div class="hero">
+      <div class="hero-tag">Sphere Care Support Centre</div>
+      <div class="hero-title">How can we help you today?</div>
+      <div class="hero-sub">Search guides, browse FAQs, or submit a support ticket.</div>
+      <div class="search-wrap" style="position:relative;">
+        <span class="search-icon"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
+        <input class="search-input" id="search-input" type="text" placeholder="Search e.g. 'how to add a booking', 'reset password'…" oninput="searchFAQ(this.value)"/>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <!-- LEFT -->
+      <div class="left-col">
+
+        <!-- Quick Start Guides -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-header-icon chi-teal"><svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg></div>
+            <div class="card-title">Quick Start Guides</div>
+          </div>
+          <div class="quick-grid">
+            <div class="quick-item" onclick="openGuide('bookings')">
+              <div class="quick-icon qi-blue"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+              <div><div class="quick-label">Managing Bookings</div><div class="quick-sub">Create &amp; track appointments</div></div>
+            </div>
+            <div class="quick-item" onclick="openGuide('residents')">
+              <div class="quick-icon qi-teal"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div>
+              <div><div class="quick-label">Resident Profiles</div><div class="quick-sub">View &amp; update resident info</div></div>
+            </div>
+            <div class="quick-item" onclick="openGuide('flags')">
+              <div class="quick-icon qi-amber"><svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/></svg></div>
+              <div><div class="quick-label">Flags &amp; Alerts</div><div class="quick-sub">Review &amp; resolve AI flags</div></div>
+            </div>
+            <div class="quick-item" onclick="openGuide('recording')">
+              <div class="quick-icon qi-purple"><svg viewBox="0 0 24 24"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg></div>
+              <div><div class="quick-label">Recording Console</div><div class="quick-sub">Set up &amp; manage cameras</div></div>
+            </div>
+            <div class="quick-item" onclick="openGuide('staff')">
+              <div class="quick-icon qi-green"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="23" y1="11" x2="17" y2="11"/><line x1="20" y1="8" x2="20" y2="14"/></svg></div>
+              <div><div class="quick-label">Staff Management</div><div class="quick-sub">Add roles &amp; shift schedules</div></div>
+            </div>
+            <div class="quick-item" onclick="openGuide('account')">
+              <div class="quick-icon qi-red"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+              <div><div class="quick-label">Account Settings</div><div class="quick-sub">Profile, password &amp; avatar</div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- FAQ -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-header-icon chi-blue"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
+            <div class="card-title">Frequently Asked Questions</div>
+          </div>
+          <div id="faq-list">
+            <!-- FAQs injected by JS -->
+          </div>
+        </div>
+
+        <!-- Submit Ticket -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-header-icon chi-amber"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
+            <div class="card-title">Submit a Support Ticket</div>
+          </div>
+          <div class="ticket-body">
+            <label class="flabel">Category</label>
+            <select class="fsel" id="ticket-cat">
+              <option value="">Select a category…</option>
+              <option>Booking Issue</option>
+              <option>Camera / Recording</option>
+              <option>Staff &amp; Roles</option>
+              <option>Resident Data</option>
+              <option>Login / Access</option>
+              <option>AI Flag / Alert</option>
+              <option>Other</option>
+            </select>
+            <label class="flabel">Subject</label>
+            <input class="finput" id="ticket-subject" type="text" placeholder="Brief description of your issue"/>
+            <label class="flabel">Message</label>
+            <textarea class="ftextarea" id="ticket-msg" placeholder="Describe your issue in detail…"></textarea>
+            <button class="btn-submit" onclick="submitTicket()">
+              <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+              Send Ticket
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- RIGHT -->
+      <div class="right-col">
+
+        <!-- Contact Us -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-header-icon chi-green"><svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.58 3.38 2 2 0 0 1 3.55 1.18h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 8.91a16 16 0 0 0 6 6l.91-.91a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 21.73 16.92z"/></svg></div>
+            <div class="card-title">Contact Us</div>
+          </div>
+          <div class="contact-list">
+            <div class="contact-item" onclick="window.location.href='mailto:support@spherecare.com.au'">
+              <div class="contact-icon" style="background:#dbeafe;"><svg viewBox="0 0 24 24" style="stroke:#2563eb;"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div>
+              <div>
+                <div class="contact-label">Email Support</div>
+                <div class="contact-val">support@spherecare.com.au</div>
+              </div>
+              <div class="contact-arrow"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
+            </div>
+            <div class="contact-item" onclick="window.location.href='tel:1800123456'">
+              <div class="contact-icon" style="background:#dcfce7;"><svg viewBox="0 0 24 24" style="stroke:#16a34a;"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.58 3.38 2 2 0 0 1 3.55 1.18h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 8.91a16 16 0 0 0 6 6l.91-.91a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 21.73 16.92z"/></svg></div>
+              <div>
+                <div class="contact-label">Phone Support</div>
+                <div class="contact-val">1800 123 456 · Mon–Fri 8am–6pm</div>
+              </div>
+              <div class="contact-arrow"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
+            </div>
+            <div class="contact-item" onclick="showToast('Live chat coming soon!')">
+              <div class="contact-icon" style="background:#fef3c7;"><svg viewBox="0 0 24 24" style="stroke:#b45309;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
+              <div>
+                <div class="contact-label">Live Chat</div>
+                <div class="contact-val">Average response: &lt; 2 minutes</div>
+              </div>
+              <div class="contact-arrow"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- System Status -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-header-icon chi-green"><svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+            <div class="card-title">System Status</div>
+          </div>
+          <div class="status-list">
+            <div class="status-row">
+              <span class="status-name">API Server</span>
+              <span class="status-dot" id="status-api"><span class="dot dot-green"></span>Operational</span>
+            </div>
+            <div class="status-row">
+              <span class="status-name">Camera Streams</span>
+              <span class="status-dot"><span class="dot dot-green"></span>Operational</span>
+            </div>
+            <div class="status-row">
+              <span class="status-name">AI Detection</span>
+              <span class="status-dot"><span class="dot dot-green"></span>Operational</span>
+            </div>
+            <div class="status-row">
+              <span class="status-name">Database</span>
+              <span class="status-dot"><span class="dot dot-green"></span>Operational</span>
+            </div>
+            <div class="status-row">
+              <span class="status-name">Notifications</span>
+              <span class="status-dot"><span class="dot dot-green"></span>Operational</span>
+            </div>
+          </div>
+          <div class="version-badge">
+            <span class="version-label">Platform Version</span>
+            <span class="version-num">Sphere Care v1.0.0</span>
+          </div>
+        </div>
+
+        <!-- Keyboard Shortcuts -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-header-icon chi-teal"><svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M8 12h.01M12 12h.01M16 12h.01M6 16h12"/></svg></div>
+            <div class="card-title">Keyboard Shortcuts</div>
+          </div>
+          <div style="padding:12px 20px 16px;display:flex;flex-direction:column;gap:8px;">
+            ${[
+              ['Go to Dashboard','Alt + D'],
+              ['Open Bookings','Alt + B'],
+              ['View Flags','Alt + F'],
+              ['Open Messages','Alt + M'],
+              ['Search','Ctrl + K'],
+            ].map(([action, key]) => `
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:12.5px;color:var(--text2);font-weight:600;">${action}</span>
+                <kbd style="background:#f0f4f8;border:1px solid var(--border);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:700;color:var(--text);font-family:'Manrope',sans-serif;">${key}</kbd>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- GUIDE MODAL -->
+<div class="modal-overlay" id="guide-modal-overlay" onclick="if(event.target===this)closeGuide()">
+  <div class="guide-modal">
+    <div class="guide-modal-header">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div class="guide-modal-icon" id="guide-icon"></div>
+        <div>
+          <div class="guide-modal-title" id="guide-title"></div>
+          <div class="guide-modal-sub" id="guide-sub"></div>
+        </div>
+      </div>
+      <button class="modal-close-btn" onclick="closeGuide()">✕</button>
+    </div>
+    <div class="guide-modal-body" id="guide-body"></div>
+    <div class="guide-modal-footer">
+      <button class="btn-got-it" onclick="closeGuide()">Got it!</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ── FAQ DATA ──
+const FAQS = [
+  {
+    q: 'How do I create a new booking for a resident?',
+    a: 'Go to Bookings in the sidebar, click the calendar date you want, then fill in the doctor, resident, and appointment type. The booking will appear on the calendar immediately.'
+  },
+  {
+    q: 'How do I reset my password?',
+    a: 'Go to Account in the sidebar, scroll to the Change Password section, enter your current password followed by your new password. Make sure it has at least 8 characters, one uppercase letter, one number, and one special character.'
+  },
+  {
+    q: 'What does an AI flag mean and what should I do?',
+    a: 'An AI flag is automatically raised when the system detects a potential concern — such as pain, distress, or a fall risk — based on camera footage or audio. Review the flag in Flags & Reviews, watch the video clip if available, then mark it as Resolved or Escalate to a senior staff member.'
+  },
+  {
+    q: 'Why is a camera showing as offline?',
+    a: 'A camera goes offline when it loses network connectivity or is powered down. Check the physical connection and power supply. If the issue persists, contact your facility IT team or submit a support ticket below.'
+  },
+  {
+    q: 'How do I add or edit a staff member?',
+    a: 'Staff & Roles is accessible to Admin accounts only. Go to Staff & Roles, find the staff member in the table, and click the eye icon to open the edit modal. You can update their shift time, assigned unit, status, and role.'
+  },
+  {
+    q: 'Can staff members see admin-only pages?',
+    a: 'No. Pages like Staff & Roles, Admin Console, and Reports & Analytics are restricted to Admin accounts. Staff accounts will see an Access Denied screen if they try to navigate there.'
+  },
+  {
+    q: 'How do I upload a profile photo?',
+    a: 'Go to Account in the sidebar and click on the avatar circle at the top of your profile card, or click the camera icon. Select an image file under 3MB. Your photo is saved locally in your browser.'
+  },
+  {
+    q: 'How do notifications work?',
+    a: 'Notifications are generated from bookings and AI alerts. The Notifications page shows all activity from the current week, filterable by type. You can mark individual notifications as read or they will automatically clear once actioned.'
+  },
+];
+
+// ── RENDER FAQ ──
+function renderFAQ(filter = '') {
+  const list = document.getElementById('faq-list');
+  const filtered = filter
+    ? FAQS.filter(f => f.q.toLowerCase().includes(filter) || f.a.toLowerCase().includes(filter))
+    : FAQS;
+
+  if (!filtered.length) {
+    list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text3);font-size:13px;">No results found. Try a different search term.</div>';
+    return;
+  }
+
+  list.innerHTML = filtered.map((f, i) => {
+    const qText = filter ? f.q.replace(new RegExp(`(${filter})`, 'gi'), '<span class="highlight">$1</span>') : f.q;
+    const aText = filter ? f.a.replace(new RegExp(`(${filter})`, 'gi'), '<span class="highlight">$1</span>') : f.a;
+    return `
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFAQ(this)" id="faq-q-${i}">
+          <span>${qText}</span>
+          <svg class="faq-chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+        <div class="faq-a" id="faq-a-${i}">${aText}</div>
+      </div>`;
+  }).join('');
+}
+
+function toggleFAQ(el) {
+  const isOpen = el.classList.contains('open');
+  // Close all
+  document.querySelectorAll('.faq-q').forEach(q => q.classList.remove('open'));
+  document.querySelectorAll('.faq-a').forEach(a => a.classList.remove('open'));
+  if (!isOpen) {
+    el.classList.add('open');
+    el.nextElementSibling.classList.add('open');
+  }
+}
+
+function searchFAQ(val) {
+  renderFAQ(val.trim().toLowerCase());
+}
+
+// ── QUICK GUIDES ──
+const GUIDES = {
+  bookings:   'Navigate to Bookings → select Month or Week view → click a date to see existing bookings → use the right panel to view today\'s appointments.',
+  residents:  'Go to Residents → click any resident card to see full profile, AI summary, and care history.',
+  flags:      'Open Flags & Reviews → filter by severity or status → click a flag to watch the video clip and read the AI transcript → mark as Resolved or Escalate.',
+  recording:  'Go to Recording Console → view live camera feeds → click a camera tile to expand → AI alerts appear in the right panel.',
+  staff:      'Admin only: go to Staff & Roles → view the staff table → click the eye icon to edit shift times, units, or status.',
+  account:    'Go to Account → click your avatar to upload a photo → edit your name → use Change Password to update your credentials.',
+};
+
+function openGuide(key) {
+  alert(`📖  ${GUIDES[key]}`);
+}
+
+// ── SUBMIT TICKET ──
+function submitTicket() {
+  const cat     = document.getElementById('ticket-cat').value;
+  const subject = document.getElementById('ticket-subject').value.trim();
+  const msg     = document.getElementById('ticket-msg').value.trim();
+
+  if (!cat)     { showToast('Please select a category', false); return; }
+  if (!subject) { showToast('Please enter a subject', false); return; }
+  if (!msg)     { showToast('Please describe your issue', false); return; }
+
+  // In production: POST to your support API
+  document.getElementById('ticket-cat').value     = '';
+  document.getElementById('ticket-subject').value = '';
+  document.getElementById('ticket-msg').value     = '';
+  showToast('✓  Ticket submitted! We\'ll get back to you within 24 hours.');
+}
+
+// ── CHECK API STATUS ──
+async function checkStatus() {
+  try {
+    const res = await fetch('http://localhost:8000/docs', { method: 'HEAD', signal: AbortSignal.timeout(3000) });
+    // API is up — already showing green
+  } catch {
+    const el = document.getElementById('status-api');
+    el.innerHTML = '<span class="dot dot-amber"></span>Checking…';
+  }
+}
+
+// ── TOAST ──
+function showToast(msg, success = true) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.background = success ? '#065f46' : '#7f1d1d';
+  t.style.borderLeftColor = success ? 'var(--teal)' : 'var(--red)';
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+// ── KEYBOARD SHORTCUTS ──
+document.addEventListener('keydown', e => {
+  if (e.altKey) {
+    const map = { d:'dashboard.html', b:'bookings.html', f:'flags.html', m:'messages.html' };
+    if (map[e.key.toLowerCase()]) { e.preventDefault(); window.location.href = map[e.key.toLowerCase()]; }
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+    e.preventDefault();
+    document.getElementById('search-input').focus();
+  }
+});
+
+// ── INIT ──
+renderFAQ();
+checkStatus();
+</script>
+</body>
+</html>
