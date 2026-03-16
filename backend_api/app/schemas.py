@@ -22,6 +22,7 @@ class UserResponse(BaseModel):
     full_name: str
     email: EmailStr
     role: str
+    created_at: Optional[datetime] = None
 
     model_config = {"from_attributes": True}
 
@@ -29,6 +30,15 @@ class UserResponse(BaseModel):
 class TokenResponse(BaseModel):
     access_token: str
     user: UserResponse
+
+
+class UserUpdate(BaseModel):
+    full_name: Optional[str] = None
+
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
 
 
 # ---------- RESIDENTS ----------
@@ -71,6 +81,7 @@ class BookingResponse(BaseModel):
     date: str
     time: str
     status: str
+    resident: Optional[ResidentResponse] = None
 
     model_config = {"from_attributes": True}
 
@@ -137,21 +148,23 @@ class DashboardStats(BaseModel):
 # ---------- ANALYTICS ----------
 
 class MonthlyActivityPoint(BaseModel):
-    day: str
-    value: int
+    month: str
+    count: int
 
 
 class TaskTypeSlice(BaseModel):
-    label: str
-    value: int
+    task_type: str
+    count: int
+    percentage: float
 
 
 class DepartmentPerformance(BaseModel):
     department: str
-    performance_rate: int
+    score: int
 
 
 class AnalyticsReport(BaseModel):
+    period: Optional[str] = None
     monthly_activity: List[MonthlyActivityPoint]
     task_distribution: List[TaskTypeSlice]
     department_performance: List[DepartmentPerformance]
