@@ -20,12 +20,18 @@ def get_all_staff(
       - unit: filter by assigned_unit (e.g. "ICU Ward")
       - status: filter by status (active | on_leave | pending)
     """
-    query = db.query(models.Staff)
+    from sqlalchemy.orm import joinedload
+    query = db.query(models.Staff).options(joinedload(models.Staff.user))
     if unit:
         query = query.filter(models.Staff.assigned_unit == unit)
     if status:
         query = query.filter(models.Staff.status == status)
-    return query.all()
+    staff_list = query.all()
+    # Sync full_name from linked user if available
+    for s in staff_list:
+        if s.user and s.user.full_name:
+            s.full_name = s.user.full_name
+    return staff_list
 
 
 @router.get("/{staff_id}", response_model=schemas.StaffResponse)

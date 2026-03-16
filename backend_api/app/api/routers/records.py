@@ -94,15 +94,6 @@ def get_categories(db: Session = Depends(get_db)):
     return [r[0] for r in rows]
 
 
-@router.get("/{record_id}", response_model=schemas.RecordResponse)
-def get_record(record_id: int, db: Session = Depends(get_db)):
-    """Get a single record by ID (View button)."""
-    r = db.query(models.Record).filter(models.Record.id == record_id).first()
-    if not r:
-        raise HTTPException(status_code=404, detail="Record not found.")
-    return _fmt_record(r)
-
-
 @router.post("/", response_model=schemas.RecordResponse, status_code=status.HTTP_201_CREATED)
 def upload_record(record_in: schemas.RecordCreate, db: Session = Depends(get_db)):
     """Upload / create a new record (Upload record button)."""
@@ -124,6 +115,15 @@ def delete_record(record_id: int, db: Session = Depends(get_db)):
 
 
 #AI Insights
+
+@router.get("/{record_id}", response_model=schemas.RecordResponse)
+def get_record(record_id: int, db: Session = Depends(get_db)):
+    """Get a single record by ID (View button)."""
+    r = db.query(models.Record).filter(models.Record.id == record_id).first()
+    if not r:
+        raise HTTPException(status_code=404, detail="Record not found.")
+    return _fmt_record(r)
+
 
 @router.get("/ai-insights", response_model=schemas.AiInsightSummary)
 def get_ai_insights(

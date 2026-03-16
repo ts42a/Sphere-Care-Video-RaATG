@@ -50,6 +50,7 @@ class Staff(Base):
     __tablename__ = "staff"
 
     id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True, unique=True)
     staff_id = Column(String, unique=True, nullable=False, index=True)
     full_name = Column(String, nullable=False)
     shift_time = Column(String, nullable=False)
@@ -57,6 +58,8 @@ class Staff(Base):
     status = Column(String, default="active")
     role = Column(String, default="staff")
     created_at = Column(DateTime, default=datetime.utcnow)
+
+    user = relationship("User", backref="staff_profile")
 
 
 class Alert(Base):
