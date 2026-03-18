@@ -2,7 +2,6 @@ from pydantic import BaseModel, EmailStr
 from typing import Optional, List
 from datetime import datetime
 
-
 # ---------- AUTH ----------
 
 class UserCreate(BaseModel):
@@ -39,7 +38,7 @@ class UserUpdate(BaseModel):
 class ChangePasswordRequest(BaseModel):
     current_password: str
     new_password: str
-
+    otp_code: str
 
 # ---------- RESIDENTS ----------
 
