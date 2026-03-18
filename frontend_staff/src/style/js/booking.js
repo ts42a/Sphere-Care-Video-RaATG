@@ -22,6 +22,7 @@ async function loadBookings() {
     bookings = [];
   }
   renderCalendar();
+  if (typeof hideSkeleton === 'function') hideSkeleton();
 }
 
 // ── STATE ──
