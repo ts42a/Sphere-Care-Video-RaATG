@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends
+
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db
@@ -10,6 +11,14 @@ router = APIRouter(prefix="/residents", tags=["Residents"])
 @router.get("/", response_model=list[schemas.ResidentResponse])
 def get_residents(db: Session = Depends(get_db)):
     return db.query(models.Resident).all()
+
+
+@router.get("/{resident_id}", response_model=schemas.ResidentResponse)
+def get_resident(resident_id: int, db: Session = Depends(get_db)):
+    resident = db.query(models.Resident).filter(models.Resident.id == resident_id).first()
+    if not resident:
+        raise HTTPException(status_code=404, detail="Resident not found")
+    return resident
 
 
 @router.post("/", response_model=schemas.ResidentResponse)
