@@ -1,11 +1,7 @@
-// ──────────────────────────────────────────
 // API BASE URL – change this to your server
-// ──────────────────────────────────────────
 const API_BASE = 'http://localhost:8000';
 
-// ──────────────────────────────────────────
 // REGISTER
-// ──────────────────────────────────────────
 async function handleRegister() {
   const fullName   = document.getElementById('reg-fullname').value.trim();
   const email      = document.getElementById('reg-email').value.trim();
@@ -64,9 +60,7 @@ async function handleRegister() {
   }
 }
 
-// ──────────────────────────────────────────
 // LOGIN
-// ──────────────────────────────────────────
 async function handleLogin() {
   const email    = document.getElementById('login-email').value.trim();
   const password = document.getElementById('login-pass').value;
@@ -104,9 +98,7 @@ async function handleLogin() {
   }
 }
 
-// ──────────────────────────────────────────
 // HELPERS
-// ──────────────────────────────────────────
 function showError(form, msg) {
   const el = document.getElementById(`${form}-error`);
   if (el) { el.textContent = msg; el.style.display = 'block'; }
@@ -220,9 +212,31 @@ function loginWithGoogle() {
   window.location.href = 'http://localhost:8000/auth/google/login';
 }
 
-// ── HANDLE ?error=oauth_failed on page load ──
-(function handleOAuthError() {
+// ── HANDLE OAuth callback: ?token= and ?error= ──
+(function handleOAuthCallback() {
   const params = new URLSearchParams(window.location.search);
+
+  // Google login success — token passed back in URL
+  const token = params.get('token');
+  if (token) {
+    localStorage.setItem('access_token', token);
+    // Fetch user info then redirect to dashboard
+    fetch('http://localhost:8000/auth/me', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+    .then(r => r.json())
+    .then(user => {
+      localStorage.setItem('user', JSON.stringify(user));
+      window.location.replace('dashboard.html');
+    })
+    .catch(() => {
+      // Even if /me fails, still redirect with token
+      window.location.replace('dashboard.html');
+    });
+    return;
+  }
+
+  // Google login failed
   if (params.get('error') === 'oauth_failed') {
     const el = document.getElementById('login-error');
     if (el) {
@@ -231,9 +245,8 @@ function loginWithGoogle() {
     }
   }
 })();
-// ──────────────────────────────────────────
+
 // USER AVATAR + LOGOUT DROPDOWN
-// ──────────────────────────────────────────
 
 // Inject avatar dropdown into every page that has a topbar avatar
 function initUserAvatar() {
@@ -308,3 +321,40 @@ function handleLogout() {
 
 // Auto-init on page load
 document.addEventListener('DOMContentLoaded', initUserAvatar);
+
+// BOOTSTRAP SKELETON — AUTO HIDE
+window.hideSkeleton = function () {
+  const sk = document.getElementById('page-skeleton');
+  if (sk) sk.style.display = 'none';
+};
+
+document.addEventListener('DOMContentLoaded', function () {
+  // Fallback: hide skeleton after 1.5s if page JS didn't call hideSkeleton()
+  setTimeout(window.hideSkeleton, 1500);
+});
+
+// KEYBOARD SHORTCUTS
+document.addEventListener('keydown', e => {
+  if (e.altKey) {
+    const map = {
+      d: 'dashboard.html',
+      b: 'booking.html',
+      f: 'flags.html',
+      m: 'message.html',
+      n: 'notifications.html',
+      r: 'residents.html',
+    };
+    if (map[e.key.toLowerCase()]) {
+      e.preventDefault();
+      window.location.href = map[e.key.toLowerCase()];
+    }
+  }
+  // Ctrl+K — focus search if available
+  if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+    const searchInput = document.getElementById('search-input');
+    if (searchInput) {
+      e.preventDefault();
+      searchInput.focus();
+    }
+  }
+});
