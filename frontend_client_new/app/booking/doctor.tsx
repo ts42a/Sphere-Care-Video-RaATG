@@ -64,14 +64,9 @@ export default function DoctorsScreen() {
         <View style={styles.screen}>
           <View style={styles.topRow}>
             <PageHeader title="Booking" />
-            <View style={styles.rightWrap}>
-              <Feather name="bell" size={24} color="#425266" />
-              <Feather name="settings" size={24} color="#425266" />
-            </View>
           </View>
 
           <View style={styles.headerBlock}>
-            <Ionicons name="help-circle-outline" size={26} color="#6D7A88" />
             <View style={styles.headerTextWrap}>
               <Text style={styles.headerTitle}>Select a Doctor</Text>
               <Text style={styles.headerSubtitle}>

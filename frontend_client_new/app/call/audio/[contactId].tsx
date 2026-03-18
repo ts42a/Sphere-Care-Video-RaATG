@@ -11,8 +11,10 @@ import { router, useLocalSearchParams } from "expo-router";
 import { Feather, MaterialIcons, Ionicons } from "@expo/vector-icons";
 
 import { callService } from "../../../src/services/callService";
-
 import type { CallContact } from "../../../src/types/call";
+import { colors } from "../../../src/theme/colors";
+import { spacing } from "../../../src/theme/spacing";
+import { typography } from "../../../src/theme/typography";
 
 export default function AudioCallScreen() {
   const { contactId } = useLocalSearchParams<{ contactId: string }>();
@@ -25,7 +27,6 @@ export default function AudioCallScreen() {
   useEffect(() => {
     if (contactId) {
       loadContact(contactId);
-
       callService.startAudioCall(contactId).catch((error) => {
         console.error("Failed to start audio call", error);
       });
@@ -47,7 +48,7 @@ export default function AudioCallScreen() {
   if (loading || !contact) {
     return (
       <SafeAreaView style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#425266" />
+        <ActivityIndicator size="large" color={colors.primary} />
       </SafeAreaView>
     );
   }
@@ -56,13 +57,13 @@ export default function AudioCallScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.topbar}>
         <Pressable onPress={() => router.back()}>
-          <Feather name="arrow-left" size={30} color="#5B6473" />
+          <Feather name="arrow-left" size={28} color={colors.icon} />
         </Pressable>
 
         <Text style={styles.callTime}>00:04</Text>
 
         <Pressable>
-          <Feather name="more-vertical" size={28} color="#5B6473" />
+          <Feather name="more-vertical" size={26} color={colors.icon} />
         </Pressable>
       </View>
 
@@ -89,18 +90,18 @@ export default function AudioCallScreen() {
         <ControlCard
           label="Mute"
           active={muted}
-          icon={<Feather name="mic-off" size={28} color="#596474" />}
+          icon={<Feather name="mic-off" size={28} color={colors.icon} />}
           onPress={() => setMuted((prev) => !prev)}
         />
         <ControlCard
           label="Speaker"
           active={speakerOn}
-          icon={<Feather name="volume-2" size={28} color="#596474" />}
+          icon={<Feather name="volume-2" size={28} color={colors.icon} />}
           onPress={() => setSpeakerOn((prev) => !prev)}
         />
         <ControlCard
           label="Video"
-          icon={<Feather name="video" size={28} color="#596474" />}
+          icon={<Feather name="video" size={28} color={colors.icon} />}
           onPress={() =>
             router.replace({
               pathname: "/call/video/[contactId]",
@@ -110,23 +111,25 @@ export default function AudioCallScreen() {
         />
         <ControlCard
           label="Add"
-          icon={<Ionicons name="person-add-outline" size={28} color="#596474" />}
+          icon={
+            <Ionicons name="person-add-outline" size={28} color={colors.icon} />
+          }
           onPress={() => {}}
         />
       </View>
 
       <View style={styles.connectionWrap}>
-        <MaterialIcons name="graphic-eq" size={34} color="#20BF63" />
+        <MaterialIcons name="graphic-eq" size={32} color={colors.success} />
         <Text style={styles.connectionText}>Excellent connection</Text>
       </View>
 
       <View style={styles.bottomActions}>
         <Pressable style={styles.smallBtn}>
-          <MaterialIcons name="dialpad" size={28} color="#5C6675" />
+          <MaterialIcons name="dialpad" size={28} color={colors.icon} />
         </Pressable>
 
         <Pressable style={styles.endBtn} onPress={() => router.replace("/call")}>
-          <Feather name="phone-off" size={28} color="#FFFFFF" />
+          <Feather name="phone-off" size={28} color={colors.surface} />
         </Pressable>
       </View>
     </SafeAreaView>
@@ -158,15 +161,15 @@ function ControlCard({
 const styles = StyleSheet.create({
   loadingContainer: {
     flex: 1,
-    backgroundColor: "#F7F7F7",
+    backgroundColor: colors.background,
     justifyContent: "center",
     alignItems: "center",
   },
   container: {
     flex: 1,
-    backgroundColor: "#F7F7F7",
+    backgroundColor: colors.background,
     paddingTop: 10,
-    paddingHorizontal: 28,
+    paddingHorizontal: spacing.xxxl,
   },
   topbar: {
     flexDirection: "row",
@@ -175,14 +178,15 @@ const styles = StyleSheet.create({
     marginBottom: 34,
   },
   callTime: {
-    fontSize: 18,
+    ...typography.body,
     color: "#6C7482",
+    fontSize: 18,
   },
   avatarWrap: {
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 12,
-    marginBottom: 28,
+    marginTop: spacing.md,
+    marginBottom: spacing.xxxl,
   },
   avatarCircle: {
     width: 210,
@@ -194,7 +198,7 @@ const styles = StyleSheet.create({
   avatarText: {
     fontSize: 56,
     fontWeight: "700",
-    color: "#FFFFFF",
+    color: colors.surface,
   },
   onlineDot: {
     position: "absolute",
@@ -205,20 +209,19 @@ const styles = StyleSheet.create({
     borderRadius: 13,
     backgroundColor: "#2BC35A",
     borderWidth: 4,
-    borderColor: "#F7F7F7",
+    borderColor: colors.background,
   },
   name: {
     textAlign: "center",
-    fontSize: 24,
-    fontWeight: "700",
-    color: "#182033",
-    marginBottom: 8,
+    ...typography.pageTitle,
+    color: colors.textPrimary,
+    marginBottom: spacing.sm,
   },
   role: {
     textAlign: "center",
-    fontSize: 17,
+    ...typography.body,
     color: "#6E7685",
-    marginBottom: 16,
+    marginBottom: spacing.lg,
   },
   statusPill: {
     alignSelf: "center",
@@ -237,37 +240,39 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
-    rowGap: 16,
-    marginBottom: 26,
+    rowGap: spacing.lg,
+    marginBottom: spacing.xl,
   },
   controlCard: {
     width: "47%",
     height: 122,
     borderRadius: 22,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: "#E5E7EB",
+    borderColor: colors.borderStrong,
     alignItems: "center",
     justifyContent: "center",
-    gap: 12,
+    gap: spacing.md,
   },
   controlCardActive: {
     backgroundColor: "#F2F8FF",
   },
   controlLabel: {
-    fontSize: 17,
+    ...typography.body,
     color: "#586474",
+    fontSize: 17,
   },
   connectionWrap: {
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    gap: 6,
+    gap: spacing.xs,
     marginBottom: 34,
   },
   connectionText: {
+    ...typography.body,
     fontSize: 18,
-    color: "#20BF63",
+    color: colors.success,
   },
   bottomActions: {
     marginTop: "auto",
@@ -292,6 +297,5 @@ const styles = StyleSheet.create({
     backgroundColor: "#EF2626",
     alignItems: "center",
     justifyContent: "center",
-    elevation: 4,
   },
 });

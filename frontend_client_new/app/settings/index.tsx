@@ -21,6 +21,9 @@ import {
 
 import type { SettingRow } from "../../src/types/setting";
 import { settingService } from "../../src/services/settingService";
+import { colors } from "../../src/theme/colors";
+import { spacing } from "../../src/theme/spacing";
+import { typography } from "../../src/theme/typography";
 
 export default function SettingsScreen() {
   const [settings, setSettings] = useState<SettingRow[]>([]);
@@ -124,7 +127,7 @@ export default function SettingsScreen() {
 
         {loading ? (
           <View style={styles.loaderWrap}>
-            <ActivityIndicator size="large" color="#46576D" />
+            <ActivityIndicator size="large" color={colors.primary} />
           </View>
         ) : (
           <>
@@ -199,9 +202,7 @@ function SettingsCard({
       style={[styles.card, isDanger && styles.dangerCard]}
     >
       <View style={styles.leftRow}>
-        <View style={styles.iconWrap}>
-          {renderIcon(item.icon, isDanger)}
-        </View>
+        <View style={styles.iconWrap}>{renderIcon(item.icon, isDanger)}</View>
 
         <View style={styles.textWrap}>
           <Text style={[styles.cardTitle, isDanger && styles.dangerTitle]}>
@@ -218,18 +219,18 @@ function SettingsCard({
           value={!!item.value}
           onValueChange={(nextValue) => onToggle(item, nextValue)}
           disabled={busy}
-          trackColor={{ false: "#D9DDE3", true: "#C9F2D5" }}
-          thumbColor={item.value ? "#22B24C" : "#FFFFFF"}
+          trackColor={{ false: colors.borderStrong, true: colors.successLight }}
+          thumbColor={item.value ? colors.success : colors.surface}
         />
       ) : isDanger ? null : (
-        <Feather name="chevron-right" size={28} color="#A0A8B4" />
+        <Feather name="chevron-right" size={28} color={colors.textMuted} />
       )}
     </Pressable>
   );
 }
 
 function renderIcon(icon: SettingRow["icon"], isDanger: boolean) {
-  const color = isDanger ? "#CC2A1F" : "#11192D";
+  const color = isDanger ? "#CC2A1F" : colors.textPrimary;
 
   switch (icon) {
     case "moon":
@@ -237,11 +238,19 @@ function renderIcon(icon: SettingRow["icon"], isDanger: boolean) {
     case "lock":
       return <Feather name="lock" size={28} color={color} />;
     case "fingerprint":
-      return <MaterialCommunityIcons name="fingerprint" size={30} color={color} />;
+      return (
+        <MaterialCommunityIcons name="fingerprint" size={30} color={color} />
+      );
     case "shield":
       return <Feather name="shield" size={28} color={color} />;
     case "help":
-      return <Ionicons name="information-circle-outline" size={30} color={color} />;
+      return (
+        <Ionicons
+          name="information-circle-outline"
+          size={30}
+          color={color}
+        />
+      );
     case "document":
       return <Ionicons name="document-text-outline" size={28} color={color} />;
     case "info":
@@ -256,44 +265,40 @@ function renderIcon(icon: SettingRow["icon"], isDanger: boolean) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F2F3F5",
+    backgroundColor: colors.backgroundAlt,
   },
   scrollContent: {
-    paddingTop: 18,
-    paddingHorizontal: 16,
-    paddingBottom: 28,
+    paddingTop: spacing.lg,
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.xxxl,
   },
   pageTitle: {
+    ...typography.pageTitle,
     textAlign: "center",
-    fontSize: 28,
-    fontWeight: "700",
-    color: "#11192D",
-    marginBottom: 26,
+    marginBottom: spacing.xxxl,
   },
   loaderWrap: {
     paddingTop: 40,
     alignItems: "center",
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#1C2435",
-    marginTop: 18,
-    marginBottom: 14,
-    paddingHorizontal: 4,
+    ...typography.sectionTitle,
+    marginTop: spacing.lg,
+    marginBottom: spacing.md,
+    paddingHorizontal: spacing.xs,
   },
   card: {
     minHeight: 92,
     borderRadius: 20,
-    backgroundColor: "#FFFFFF",
-    marginBottom: 14,
-    paddingHorizontal: 20,
-    paddingVertical: 18,
+    backgroundColor: colors.surface,
+    marginBottom: spacing.md,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.lg,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     borderWidth: 1,
-    borderColor: "#E6E8EB",
+    borderColor: colors.border,
   },
   dangerCard: {
     backgroundColor: "#FFF4F3",
@@ -309,24 +314,21 @@ const styles = StyleSheet.create({
     width: 42,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 14,
+    marginRight: spacing.md,
   },
   textWrap: {
     flex: 1,
   },
   cardTitle: {
-    fontSize: 17,
-    fontWeight: "600",
-    color: "#1C2435",
+    ...typography.cardTitle,
   },
   dangerTitle: {
     color: "#CC2A1F",
     textAlign: "center",
   },
   cardSubtitle: {
-    marginTop: 4,
-    fontSize: 14,
-    color: "#9AA3AF",
+    ...typography.subText,
+    marginTop: spacing.xs,
   },
   signOutWrap: {
     marginTop: 34,

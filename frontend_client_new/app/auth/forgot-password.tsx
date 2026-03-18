@@ -12,8 +12,12 @@ import {
   Platform,
 } from "react-native";
 import { router } from "expo-router";
-import { Feather } from "@expo/vector-icons";
+
+import PageHeader from "../../src/components/PageHeader";
 import { authService } from "../../src/services/authService";
+import { colors } from "../../src/theme/colors";
+import { spacing } from "../../src/theme/spacing";
+import { typography } from "../../src/theme/typography";
 
 export default function ForgotPasswordScreen() {
   const [email, setEmail] = useState("contact@dscodetech.com");
@@ -50,11 +54,8 @@ export default function ForgotPasswordScreen() {
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.screen}>
-            <Pressable style={styles.backBtn} onPress={() => router.back()}>
-              <Feather name="arrow-left" size={28} color="#526273" />
-            </Pressable>
+            <PageHeader title="Forgot password" />
 
-            <Text style={styles.pageTitle}>Forgot password</Text>
             <Text style={styles.pageDesc}>
               Please enter your email to reset the password
             </Text>
@@ -64,7 +65,7 @@ export default function ForgotPasswordScreen() {
             <TextInput
               style={styles.input}
               placeholder="contact@dscodetech.com"
-              placeholderTextColor="#6D7587"
+              placeholderTextColor={colors.textMuted}
               keyboardType="email-address"
               autoCapitalize="none"
               autoCorrect={false}
@@ -80,7 +81,7 @@ export default function ForgotPasswordScreen() {
               disabled={loading}
             >
               {loading ? (
-                <ActivityIndicator color="#FFFFFF" />
+                <ActivityIndicator color={colors.surface} />
               ) : (
                 <Text style={styles.primaryBtnText}>Reset Password</Text>
               )}
@@ -93,66 +94,56 @@ export default function ForgotPasswordScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F7F7F7" },
-  scrollContent: { flexGrow: 1 },
-  screen: { flex: 1, paddingHorizontal: 24, paddingTop: 56, paddingBottom: 40 },
-  backBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: "#EFEFEF",
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 24,
-    marginBottom: 28,
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
   },
-  pageTitle: {
-    fontSize: 22,
-    fontWeight: "700",
-    color: "#222222",
-    marginBottom: 10,
+  scrollContent: {
+    flexGrow: 1,
+  },
+  screen: {
+    flex: 1,
+    paddingHorizontal: spacing.xxl,
+    paddingTop: 32,
+    paddingBottom: 40,
   },
   pageDesc: {
-    color: "#A0A0A0",
-    marginBottom: 30,
-    fontSize: 16,
+    ...typography.body,
+    color: colors.textMuted,
+    marginBottom: spacing.xxxl,
     lineHeight: 24,
   },
   label: {
-    color: "#1F2B3D",
-    marginBottom: 10,
-    fontSize: 18,
-    fontWeight: "700",
+    ...typography.cardTitle,
+    marginBottom: spacing.sm,
   },
   input: {
     width: "100%",
-    height: 58,
-    borderWidth: 1.5,
-    borderColor: "#D1D1D1",
+    height: 56,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
     borderRadius: 14,
-    paddingHorizontal: 16,
-    backgroundColor: "transparent",
-    color: "#526273",
-    marginBottom: 18,
+    paddingHorizontal: spacing.lg,
+    backgroundColor: colors.surface,
+    color: colors.textSecondary,
+    marginBottom: spacing.lg,
     fontSize: 16,
   },
   errorText: {
-    color: "#D9534F",
+    color: colors.danger,
     fontSize: 14,
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
   primaryBtn: {
     width: "100%",
-    height: 58,
+    height: 56,
     borderRadius: 14,
-    backgroundColor: "#7C91DB",
+    backgroundColor: colors.primary,
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 8,
+    marginTop: spacing.sm,
   },
   primaryBtnText: {
-    color: "#FFFFFF",
-    fontSize: 18,
-    fontWeight: "700",
+    ...typography.button,
   },
 });

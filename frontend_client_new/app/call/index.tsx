@@ -14,10 +14,11 @@ import { router } from "expo-router";
 
 import BottomNav from "../../src/components/BottomNav";
 import PageHeader from "../../src/components/PageHeader";
-
 import { callService } from "../../src/services/callService";
-
 import type { CallContact, CallSummary } from "../../src/types/call";
+import { colors } from "../../src/theme/colors";
+import { spacing } from "../../src/theme/spacing";
+import { typography } from "../../src/theme/typography";
 
 export default function CallCenterScreen() {
   const [query, setQuery] = useState("");
@@ -42,16 +43,14 @@ export default function CallCenterScreen() {
     try {
       setLoading(true);
       setError("");
-
       const [summaryData, contactData] = await Promise.all([
         callService.getSummary(),
         callService.getContacts(""),
       ]);
-
       setSummary(summaryData);
       setContacts(contactData);
-    } catch (err) {
-      console.error("Failed to load call center data", err);
+    } catch (error) {
+      console.error("Failed to load call center data", error);
       setError("Unable to load call data right now.");
     } finally {
       setLoading(false);
@@ -63,8 +62,8 @@ export default function CallCenterScreen() {
       setError("");
       const data = await callService.getContacts(search);
       setContacts(data);
-    } catch (err) {
-      console.error("Failed to load contacts", err);
+    } catch (error) {
+      console.error("Failed to load contacts", error);
       setError("Unable to search contacts.");
     }
   }
@@ -90,7 +89,7 @@ export default function CallCenterScreen() {
             </View>
 
             <View style={styles.summaryIconWrap}>
-              <Feather name="phone-call" size={36} color="#F1C9D0" />
+              <Feather name="phone-call" size={34} color="#C98E99" />
             </View>
           </View>
 
@@ -112,18 +111,18 @@ export default function CallCenterScreen() {
 
         <View style={styles.searchRow}>
           <View style={styles.searchBox}>
-            <Feather name="search" size={22} color="#9AA3AF" />
+            <Feather name="search" size={22} color={colors.textMuted} />
             <TextInput
               value={query}
               onChangeText={setQuery}
               placeholder="Search by name, ID..."
-              placeholderTextColor="#A8AFBA"
+              placeholderTextColor={colors.textMuted}
               style={styles.searchInput}
             />
           </View>
 
           <Pressable style={styles.addBtn}>
-            <Ionicons name="add" size={24} color="#FFFFFF" />
+            <Ionicons name="add" size={24} color={colors.surface} />
           </Pressable>
         </View>
 
@@ -141,7 +140,7 @@ export default function CallCenterScreen() {
 
         {loading ? (
           <View style={styles.loaderWrap}>
-            <ActivityIndicator size="large" color="#425266" />
+            <ActivityIndicator size="large" color={colors.primary} />
           </View>
         ) : (
           <View style={styles.list}>
@@ -170,7 +169,7 @@ export default function CallCenterScreen() {
                       })
                     }
                   >
-                    <Feather name="phone-call" size={26} color="#74808E" />
+                    <Feather name="phone-call" size={24} color={colors.icon} />
                   </Pressable>
 
                   <Pressable
@@ -181,7 +180,11 @@ export default function CallCenterScreen() {
                       })
                     }
                   >
-                    <MaterialIcons name="message" size={28} color="#74808E" />
+                    <MaterialIcons
+                      name="message"
+                      size={26}
+                      color={colors.icon}
+                    />
                   </Pressable>
 
                   <Pressable
@@ -192,7 +195,7 @@ export default function CallCenterScreen() {
                       })
                     }
                   >
-                    <Feather name="video" size={26} color="#74808E" />
+                    <Feather name="video" size={24} color={colors.icon} />
                   </Pressable>
                 </View>
               </View>
@@ -218,35 +221,34 @@ function StatBox({ label, value }: { label: string; value: string }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F7F7F7",
+    backgroundColor: colors.background,
   },
   content: {
     flex: 1,
   },
   scrollContent: {
-    paddingTop: 20,
-    paddingHorizontal: 24,
-    paddingBottom: 32,
+    paddingTop: spacing.xl,
+    paddingHorizontal: spacing.xxl,
+    paddingBottom: spacing.xxxl,
   },
   summaryCard: {
     borderRadius: 24,
-    padding: 20,
-    marginBottom: 22,
+    padding: spacing.xl,
+    marginBottom: spacing.xl,
     backgroundColor: "#EDEFFF",
   },
   summaryTop: {
     flexDirection: "row",
     alignItems: "flex-start",
-    marginBottom: 18,
+    marginBottom: spacing.lg,
   },
   summaryTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#425266",
-    marginBottom: 6,
+    ...typography.sectionTitle,
+    color: colors.textSecondary,
+    marginBottom: spacing.xs,
   },
   summarySubtitle: {
-    fontSize: 15,
+    ...typography.body,
     color: "#58677A",
   },
   summaryIconWrap: {
@@ -259,54 +261,52 @@ const styles = StyleSheet.create({
   },
   statsRow: {
     flexDirection: "row",
-    gap: 12,
+    gap: spacing.md,
   },
   statBox: {
     flex: 1,
     borderRadius: 18,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.surface,
     paddingVertical: 14,
-    paddingHorizontal: 12,
+    paddingHorizontal: spacing.md,
     alignItems: "center",
   },
   statLabel: {
-    fontSize: 14,
+    ...typography.subText,
     color: "#667487",
-    marginBottom: 4,
+    marginBottom: spacing.xs,
   },
   statValue: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#425266",
+    ...typography.cardTitle,
+    color: colors.textSecondary,
   },
   searchRow: {
     flexDirection: "row",
-    gap: 12,
+    gap: spacing.md,
     alignItems: "center",
-    marginBottom: 20,
+    marginBottom: spacing.lg,
   },
   searchBox: {
     flex: 1,
     minHeight: 48,
     borderRadius: 16,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: "#E0E4EA",
-    paddingHorizontal: 16,
+    borderColor: colors.borderStrong,
+    paddingHorizontal: spacing.lg,
     flexDirection: "row",
     alignItems: "center",
   },
   searchInput: {
     flex: 1,
     marginLeft: 10,
-    color: "#425266",
-    fontSize: 16,
+    ...typography.body,
   },
   addBtn: {
     width: 44,
     height: 44,
     borderRadius: 14,
-    backgroundColor: "#97A0AD",
+    backgroundColor: colors.textMuted,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -314,10 +314,11 @@ const styles = StyleSheet.create({
     backgroundColor: "#F1F2F4",
     borderRadius: 16,
     paddingVertical: 14,
-    paddingHorizontal: 16,
-    marginBottom: 16,
+    paddingHorizontal: spacing.lg,
+    marginBottom: spacing.lg,
   },
   infoText: {
+    ...typography.subText,
     color: "#667487",
     fontSize: 15,
   },
@@ -327,7 +328,7 @@ const styles = StyleSheet.create({
   },
   list: {
     gap: 14,
-    paddingBottom: 16,
+    paddingBottom: spacing.md,
   },
   contactCard: {
     borderRadius: 18,
@@ -343,10 +344,10 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 14,
+    marginRight: spacing.md,
   },
   avatarText: {
-    color: "#FFFFFF",
+    color: colors.surface,
     fontSize: 22,
     fontWeight: "700",
   },
@@ -354,19 +355,17 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   contactName: {
+    ...typography.cardTitle,
     fontSize: 17,
-    fontWeight: "700",
-    color: "#425266",
-    marginBottom: 4,
+    marginBottom: spacing.xs,
   },
   contactSeen: {
-    fontSize: 14,
-    color: "#99A1AC",
+    ...typography.subText,
   },
   actions: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 18,
-    marginLeft: 8,
+    gap: spacing.lg,
+    marginLeft: spacing.sm,
   },
 });

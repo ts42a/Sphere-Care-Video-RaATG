@@ -1,12 +1,14 @@
 import { View, Text, StyleSheet, Pressable } from "react-native";
+import { colors } from "../theme/colors";
+import { spacing } from "../theme/spacing";
 
 type QuickActionCardProps = {
-  bigTitle: string
-  smallTitle: string
-  variant: "purple" | "mint"
-  icon: React.ReactNode
-  onPress?: () => void
-}
+  bigTitle: string;
+  smallTitle: string;
+  variant: "purple" | "mint";
+  icon: React.ReactNode;
+  onPress?: () => void;
+};
 
 export default function QuickActionCard({
   bigTitle,
@@ -27,7 +29,8 @@ export default function QuickActionCard({
         <Text style={styles.quickSmallTitle}>{smallTitle}</Text>
         <Text style={styles.quickBigTitle}>{bigTitle}</Text>
       </View>
-      <Text style={styles.quickCardIcon}>{icon}</Text>
+
+      <View style={styles.quickCardIcon}>{icon}</View>
     </Pressable>
   );
 }
@@ -37,20 +40,22 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 94,
     borderRadius: 22,
-    padding: 16,
+    padding: spacing.lg,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    minWidth: 0,
   },
   quickCardPurple: {
-    backgroundColor: "#e6e4ff",
+    backgroundColor: "#E6E4FF",
   },
   quickCardMint: {
-    backgroundColor: "#d8f2ed",
+    backgroundColor: "#D8F2ED",
   },
   quickCardText: {
     flex: 1,
-    gap: 8,
+    gap: spacing.sm,
+    minWidth: 0,
   },
   quickSmallTitle: {
     fontSize: 16,
@@ -64,8 +69,9 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   quickCardIcon: {
-    fontSize: 28,
-    opacity: 0.45,
     marginLeft: 10,
+    opacity: 0.45,
+    alignItems: "center",
+    justifyContent: "center",
   },
 });

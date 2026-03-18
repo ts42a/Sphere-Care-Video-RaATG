@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState, useCallback } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   View,
@@ -9,11 +9,14 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 
 import { notificationService } from "../../src/services/notificationService";
 import type { NotificationItem } from "../../src/types/notification";
 import type { NotificationFilter } from "../../src/services/notificationService";
+import { colors } from "../../src/theme/colors";
+import { spacing } from "../../src/theme/spacing";
+import { typography } from "../../src/theme/typography";
 
 export default function NotificationScreen() {
   const [activeFilter, setActiveFilter] = useState<NotificationFilter>("all");
@@ -21,9 +24,11 @@ export default function NotificationScreen() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadNotifications(activeFilter);
-  }, [activeFilter]);
+  useFocusEffect(
+    useCallback(() => {
+      loadNotifications(activeFilter);
+    }, [activeFilter])
+  );
 
   async function loadNotifications(filter: NotificationFilter) {
     try {
@@ -61,9 +66,7 @@ export default function NotificationScreen() {
     }
   }
 
-  const unreadLabel = useMemo(() => {
-    return `${unreadCount} unread`;
-  }, [unreadCount]);
+  const unreadLabel = useMemo(() => `${unreadCount} unread`, [unreadCount]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -75,14 +78,18 @@ export default function NotificationScreen() {
         <View style={styles.topRow}>
           <View style={styles.titleRow}>
             <Pressable onPress={() => router.back()} style={styles.backBtn}>
-              <Feather name="arrow-left" size={28} color="#425266" />
+              <Feather name="arrow-left" size={28} color={colors.textSecondary} />
             </Pressable>
 
             <Text style={styles.pageTitle}>Notifications</Text>
           </View>
 
           <Pressable>
-            <Feather name="more-vertical" size={26} color="#425266" />
+            <Feather
+              name="more-vertical"
+              size={26}
+              color={colors.textSecondary}
+            />
           </Pressable>
         </View>
 
@@ -132,7 +139,7 @@ export default function NotificationScreen() {
 
         {loading ? (
           <View style={styles.loaderWrap}>
-            <ActivityIndicator size="large" color="#46576D" />
+            <ActivityIndicator size="large" color={colors.primary} />
           </View>
         ) : notifications.length === 0 ? (
           <View style={styles.emptyWrap}>
@@ -143,12 +150,7 @@ export default function NotificationScreen() {
           <View style={styles.list}>
             {notifications.map((item) => (
               <View key={item.id} style={styles.itemRow}>
-                <View
-                  style={[
-                    styles.dotAvatar,
-                    getAvatarStyle(item.type),
-                  ]}
-                />
+                <View style={[styles.dotAvatar, getAvatarStyle(item.type)]} />
 
                 <View style={styles.itemContent}>
                   <View style={styles.itemTopRow}>
@@ -207,43 +209,43 @@ function getAvatarStyle(type: NotificationItem["type"]) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F7F7F7",
+    backgroundColor: colors.background,
   },
   scroll: {
     flex: 1,
   },
   scrollContent: {
-    paddingTop: 26,
-    paddingHorizontal: 24,
-    paddingBottom: 28,
+    paddingTop: spacing.xxxl,
+    paddingHorizontal: spacing.xxl,
+    paddingBottom: spacing.xxxl,
   },
   topRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 18,
+    marginBottom: spacing.lg,
   },
   titleRow: {
     flexDirection: "row",
     alignItems: "center",
   },
   backBtn: {
-    marginRight: 12,
+    marginRight: spacing.md,
   },
   pageTitle: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: "#1F2A3D",
+    ...typography.pageTitle,
+    color: colors.textPrimary,
   },
   summaryRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 20,
+    marginBottom: spacing.xl,
   },
   summaryText: {
-    fontSize: 15,
+    ...typography.subText,
     color: "#6F7B8A",
+    fontSize: 15,
   },
   markAllText: {
     fontSize: 15,
@@ -252,8 +254,8 @@ const styles = StyleSheet.create({
   },
   filterRow: {
     flexDirection: "row",
-    gap: 12,
-    marginBottom: 28,
+    gap: spacing.md,
+    marginBottom: spacing.xxxl,
   },
   filterPill: {
     paddingHorizontal: 24,
@@ -265,12 +267,12 @@ const styles = StyleSheet.create({
     backgroundColor: "#0A1633",
   },
   filterText: {
-    fontSize: 16,
+    ...typography.body,
     fontWeight: "500",
     color: "#4E5A6A",
   },
   filterTextActive: {
-    color: "#FFFFFF",
+    color: colors.surface,
   },
   loaderWrap: {
     paddingTop: 40,
@@ -281,14 +283,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   emptyTitle: {
-    fontSize: 20,
-    fontWeight: "700",
+    ...typography.sectionTitle,
     color: "#425266",
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
   emptyText: {
-    fontSize: 15,
+    ...typography.subText,
     color: "#6A7A90",
+    fontSize: 15,
   },
   list: {
     gap: 26,
@@ -311,29 +313,30 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
   itemTitle: {
     flex: 1,
     fontSize: 19,
     fontWeight: "700",
     color: "#1F2433",
-    marginRight: 12,
+    marginRight: spacing.md,
   },
   timeText: {
+    ...typography.subText,
     fontSize: 15,
     color: "#6F7B8A",
   },
   itemMessage: {
-    fontSize: 16,
-    lineHeight: 22,
+    ...typography.body,
     color: "#556274",
-    marginBottom: 14,
+    lineHeight: 22,
+    marginBottom: spacing.md,
   },
   actionRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 16,
+    gap: spacing.lg,
   },
   actionBtn: {
     minWidth: 142,
@@ -344,17 +347,18 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   actionBtnRed: {
-    backgroundColor: "#EC2B2B",
+    backgroundColor: colors.badge,
   },
   actionBtnBlue: {
     backgroundColor: "#3566E8",
   },
   actionBtnText: {
-    color: "#FFFFFF",
+    color: colors.surface,
     fontSize: 15,
     fontWeight: "600",
   },
   markReadText: {
+    ...typography.subText,
     fontSize: 15,
     color: "#6F7B8A",
   },

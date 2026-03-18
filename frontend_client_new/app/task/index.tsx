@@ -2,10 +2,13 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { View, Text, StyleSheet, Pressable, ScrollView } from "react-native";
 import { Feather, Ionicons } from "@expo/vector-icons";
 import { useMemo, useState } from "react";
-import { router } from "expo-router";
+
 import PageHeader from "../../src/components/PageHeader";
 import TaskCard from "../../src/components/TaskCard";
 import BottomNav from "../../src/components/BottomNav";
+import { colors } from "../../src/theme/colors";
+import { spacing } from "../../src/theme/spacing";
+import { typography } from "../../src/theme/typography";
 
 type FilterType = "All" | "Medication" | "Exercise" | "Meal";
 
@@ -139,57 +142,58 @@ export default function TaskScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F7F7F7",
+    backgroundColor: colors.background,
   },
   scrollContent: {
     flexGrow: 1,
   },
   screen: {
-    paddingTop: 24,
-    paddingHorizontal: 24,
-    paddingBottom: 24,
+    paddingTop: spacing.xxl,
+    paddingHorizontal: spacing.xxl,
+    paddingBottom: spacing.xxl,
   },
   aiCard: {
     backgroundColor: "#E9EEFB",
     borderRadius: 22,
-    padding: 18,
+    padding: spacing.lg + 2,
     flexDirection: "row",
     alignItems: "center",
-    gap: 16,
-    marginBottom: 18,
+    gap: spacing.lg,
+    marginBottom: spacing.lg,
   },
   aiIconWrap: {
     width: 58,
     height: 58,
     borderRadius: 29,
     borderWidth: 2,
-    borderColor: "#526273",
+    borderColor: colors.icon,
     justifyContent: "center",
     alignItems: "center",
   },
   aiIconText: {
     fontSize: 20,
     fontWeight: "700",
-    color: "#526273",
+    color: colors.icon,
   },
   aiContent: {
     flex: 1,
   },
   aiText: {
-    color: "#526273",
-    fontSize: 15,
+    ...typography.body,
+    color: colors.icon,
     lineHeight: 21,
-    marginBottom: 10,
+    marginBottom: spacing.sm,
+    fontSize: 15,
   },
   aiLink: {
-    color: "#FF8A2B",
     fontSize: 15,
     fontWeight: "600",
+    color: "#FF8A2B",
   },
   filterRow: {
-    gap: 12,
-    paddingBottom: 8,
-    marginBottom: 18,
+    gap: spacing.md,
+    paddingBottom: spacing.sm,
+    marginBottom: spacing.lg,
   },
   filterBtn: {
     backgroundColor: "#F0F1F4",
@@ -201,19 +205,20 @@ const styles = StyleSheet.create({
     backgroundColor: "#46576D",
   },
   filterBtnText: {
+    ...typography.body,
     color: "#526273",
     fontSize: 15,
     fontWeight: "500",
   },
   filterBtnTextActive: {
-    color: "#FFFFFF",
+    color: colors.surface,
   },
   taskList: {
-    gap: 16,
-    paddingBottom: 20,
+    gap: spacing.lg,
+    paddingBottom: spacing.xl,
   },
   emptyText: {
-    marginTop: 8,
+    marginTop: spacing.sm,
     fontSize: 15,
     color: "#7B8794",
     textAlign: "center",

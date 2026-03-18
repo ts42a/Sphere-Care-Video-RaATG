@@ -13,9 +13,10 @@ import { router } from "expo-router";
 import { Feather } from "@expo/vector-icons";
 
 import BottomNav from "../../src/components/BottomNav";
+import PageHeader from "../../src/components/PageHeader";
 import { messageService } from "../../src/services/messageService";
-
 import type { ConversationItem } from "../../src/types/message";
+import { typography } from "../../src/theme/typography";
 
 export default function MessageListScreen() {
   const [query, setQuery] = useState("");
@@ -39,7 +40,6 @@ export default function MessageListScreen() {
       if (!items.length) {
         setLoading(true);
       }
-
       const data = await messageService.getConversations(search);
       setItems(data);
     } catch (error) {
@@ -52,19 +52,9 @@ export default function MessageListScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.inner}>
-        <View style={styles.header}>
-          <Pressable onPress={() => router.replace("/")}>
-            <Feather name="arrow-left" size={28} color="#4D5B6B" />
-          </Pressable>
-
-          <View style={styles.headerText}>
-            <Text style={styles.title}>Messages</Text>
-            <Text style={styles.subtitle}>{items.length} conversations</Text>
-          </View>
-
-          <Pressable>
-            <Feather name="more-vertical" size={26} color="#4D5B6B" />
-          </Pressable>
+        <View style={styles.headerWrap}>
+          <PageHeader title="Messages" />
+          <Text style={styles.subtitle}>{items.length} conversations</Text>
         </View>
 
         <View style={styles.searchWrap}>
@@ -153,24 +143,12 @@ const styles = StyleSheet.create({
     paddingTop: 18,
     paddingHorizontal: 24,
   },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 24,
-  },
-  headerText: {
-    flex: 1,
-    marginLeft: 16,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: "700",
-    color: "#425266",
+  headerWrap: {
+    marginBottom: 20,
   },
   subtitle: {
+    ...typography.subText,
     marginTop: 4,
-    fontSize: 16,
-    color: "#7A8595",
   },
   searchWrap: {
     minHeight: 50,
@@ -186,8 +164,7 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     marginLeft: 10,
-    color: "#425266",
-    fontSize: 16,
+    ...typography.body,
   },
   loaderWrap: {
     flex: 1,
@@ -226,22 +203,19 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   name: {
-    fontSize: 17,
-    fontWeight: "700",
-    color: "#2E3645",
+    ...typography.cardTitle,
   },
   role: {
+    ...typography.subText,
     marginTop: 2,
-    fontSize: 14,
-    color: "#7A8595",
   },
   meta: {
     alignItems: "flex-end",
     marginLeft: 10,
   },
   time: {
+    ...typography.subText,
     fontSize: 13,
-    color: "#98A1AD",
     marginBottom: 6,
   },
   badge: {
@@ -271,7 +245,7 @@ const styles = StyleSheet.create({
   },
   preview: {
     flex: 1,
-    fontSize: 15,
-    color: "#586474",
+    ...typography.subText,
+    lineHeight: 20,
   },
 });

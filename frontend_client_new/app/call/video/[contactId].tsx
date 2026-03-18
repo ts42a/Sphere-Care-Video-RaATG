@@ -12,8 +12,10 @@ import { useLocalSearchParams, router } from "expo-router";
 import { Feather, MaterialIcons, AntDesign } from "@expo/vector-icons";
 
 import { callService } from "../../../src/services/callService";
-
 import type { CallContact } from "../../../src/types/call";
+import { colors } from "../../../src/theme/colors";
+import { spacing } from "../../../src/theme/spacing";
+import { typography } from "../../../src/theme/typography";
 
 export default function VideoCallScreen() {
   const { contactId } = useLocalSearchParams<{ contactId: string }>();
@@ -26,7 +28,6 @@ export default function VideoCallScreen() {
   useEffect(() => {
     if (contactId) {
       loadInitialData(contactId);
-
       callService.startVideoCall(contactId).catch((error) => {
         console.error("Failed to start video call", error);
       });
@@ -46,12 +47,10 @@ export default function VideoCallScreen() {
   async function loadInitialData(id: string) {
     try {
       setLoading(true);
-
       const [contactData, transcriptData] = await Promise.all([
         callService.getContactById(id),
         callService.getTranscript(id),
       ]);
-
       setContact(contactData);
       setTranscriptLines(transcriptData);
     } catch (error) {
@@ -73,7 +72,7 @@ export default function VideoCallScreen() {
   if (loading || !contact) {
     return (
       <SafeAreaView style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#FFFFFF" />
+        <ActivityIndicator size="large" color={colors.surface} />
       </SafeAreaView>
     );
   }
@@ -125,11 +124,9 @@ export default function VideoCallScreen() {
             <Pressable>
               <Feather name="copy" size={20} color="#727B89" />
             </Pressable>
-
             <Pressable>
               <Feather name="download" size={20} color="#727B89" />
             </Pressable>
-
             <Pressable onPress={() => setExpanded((prev) => !prev)}>
               <AntDesign
                 name={expanded ? "down" : "up"}
@@ -155,20 +152,20 @@ export default function VideoCallScreen() {
       <View style={styles.bottomControls}>
         <ControlItem
           label="Mute"
-          icon={<Feather name="mic-off" size={28} color="#FFFFFF" />}
+          icon={<Feather name="mic-off" size={28} color={colors.surface} />}
           onPress={() => {}}
         />
 
         <ControlItem
           label="End"
           center
-          icon={<Feather name="phone-off" size={28} color="#FFFFFF" />}
+          icon={<Feather name="phone-off" size={28} color={colors.surface} />}
           onPress={() => router.replace("/call")}
         />
 
         <ControlItem
           label="Stop"
-          icon={<Feather name="video-off" size={28} color="#FFFFFF" />}
+          icon={<Feather name="video-off" size={28} color={colors.surface} />}
           onPress={() => {}}
         />
       </View>
@@ -217,7 +214,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 24,
+    marginBottom: spacing.xl,
   },
   timerWrap: {
     flexDirection: "row",
@@ -227,12 +224,12 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: "#E53E3E",
+    backgroundColor: colors.danger,
     marginRight: 10,
   },
   timerText: {
+    color: colors.surface,
     fontSize: 17,
-    color: "#FFFFFF",
   },
   aiPill: {
     paddingHorizontal: 18,
@@ -246,18 +243,20 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
   smallName: {
+    ...typography.body,
+    color: colors.surface,
     fontSize: 18,
-    color: "#FFFFFF",
-    marginBottom: 8,
+    marginBottom: spacing.xs,
   },
   quality: {
+    ...typography.body,
     fontSize: 16,
     color: "#00E05A",
     marginBottom: 42,
   },
   mainProfile: {
     alignItems: "center",
-    marginBottom: 28,
+    marginBottom: spacing.xxxl,
   },
   mainAvatar: {
     width: 190,
@@ -265,28 +264,24 @@ const styles = StyleSheet.create({
     borderRadius: 95,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 28,
-    shadowColor: "#4A7CFF",
-    shadowOpacity: 0.4,
-    shadowRadius: 18,
+    marginBottom: spacing.xxxl,
   },
   mainAvatarText: {
-    color: "#FFFFFF",
+    color: colors.surface,
     fontSize: 52,
     fontWeight: "700",
   },
   mainName: {
-    fontSize: 22,
-    fontWeight: "700",
-    color: "#FFFFFF",
-    marginBottom: 8,
+    ...typography.pageTitle,
+    color: colors.surface,
+    marginBottom: spacing.sm,
   },
   mainRole: {
-    fontSize: 17,
+    ...typography.body,
     color: "#C9CED8",
   },
   transcriptPanel: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.surface,
     borderRadius: 24,
     paddingTop: 18,
     paddingBottom: 12,
@@ -303,16 +298,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingBottom: 14,
     borderBottomWidth: 1,
-    borderBottomColor: "#E7E9EE",
+    borderBottomColor: colors.border,
   },
   transcriptTitleRow: {
     flexDirection: "row",
     alignItems: "center",
   },
   transcriptTitle: {
-    fontSize: 18,
-    fontWeight: "700",
+    ...typography.cardTitle,
     color: "#2E3340",
+    fontSize: 18,
     marginLeft: 10,
   },
   liveDot: {
@@ -334,12 +329,12 @@ const styles = StyleSheet.create({
     backgroundColor: "#EEF7F0",
     borderRadius: 18,
     padding: 16,
-    marginBottom: 12,
+    marginBottom: spacing.md,
   },
   transcriptText: {
-    fontSize: 16,
+    ...typography.body,
     color: "#2F3441",
-    lineHeight: 30,
+    lineHeight: 26,
   },
   bottomControls: {
     paddingTop: 18,
@@ -347,7 +342,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-around",
     alignItems: "center",
-    backgroundColor: "transparent",
   },
   controlItem: {
     alignItems: "center",
@@ -371,7 +365,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   controlLabel: {
+    color: colors.surface,
     fontSize: 16,
-    color: "#FFFFFF",
   },
 });

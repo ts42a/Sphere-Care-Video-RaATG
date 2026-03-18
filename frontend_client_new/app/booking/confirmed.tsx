@@ -147,10 +147,6 @@ export default function ConfirmedScreen() {
         <View style={styles.screen}>
           <View style={styles.topRow}>
             <PageHeader title="Booking" />
-            <View style={styles.rightWrap}>
-              <Feather name="bell" size={24} color="#425266" />
-              <Feather name="settings" size={24} color="#425266" />
-            </View>
           </View>
 
           {loading ? (

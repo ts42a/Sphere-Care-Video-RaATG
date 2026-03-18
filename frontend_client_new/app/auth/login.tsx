@@ -12,8 +12,11 @@ import {
   Platform,
 } from "react-native";
 import { router } from "expo-router";
+
 import { authService } from "../../src/services/authService";
-import { Feather } from "@expo/vector-icons";
+import { colors } from "../../src/theme/colors";
+import { spacing } from "../../src/theme/spacing";
+import { typography } from "../../src/theme/typography";
 
 export default function LoginScreen() {
   const [email, setEmail] = useState("johnsmith@gmail.com");
@@ -54,9 +57,8 @@ export default function LoginScreen() {
           <View style={styles.screen}>
             <View style={styles.logoWrap}>
               <View style={styles.logoBox}>
-                <Feather name="image" size={42} color="#596173" />
+                <Text style={styles.logoPlaceholder}>LOGO</Text>
               </View>
-              <Text style={styles.logoText}>LOGO</Text>
             </View>
 
             <Text style={styles.title}>Login</Text>
@@ -68,7 +70,7 @@ export default function LoginScreen() {
               <TextInput
                 style={styles.input}
                 placeholder="johnsmith@gmail.com"
-                placeholderTextColor="#6D7587"
+                placeholderTextColor={colors.textMuted}
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
@@ -79,7 +81,7 @@ export default function LoginScreen() {
               <TextInput
                 style={styles.input}
                 placeholder="XXXXXXXXXXX"
-                placeholderTextColor="#6D7587"
+                placeholderTextColor={colors.textMuted}
                 secureTextEntry
                 value={password}
                 onChangeText={setPassword}
@@ -100,7 +102,7 @@ export default function LoginScreen() {
                 disabled={loading}
               >
                 {loading ? (
-                  <ActivityIndicator color="#FFFFFF" />
+                  <ActivityIndicator color={colors.surface} />
                 ) : (
                   <Text style={styles.primaryBtnText}>Login</Text>
                 )}
@@ -137,107 +139,98 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F7F7F7",
+    backgroundColor: colors.background,
   },
   scrollContent: {
     flexGrow: 1,
   },
   screen: {
     flex: 1,
-    paddingHorizontal: 32,
-    paddingTop: 40,
+    paddingHorizontal: spacing.xxxl,
+    paddingTop: 48,
     paddingBottom: 40,
-    alignItems: "center",
     justifyContent: "center",
+    alignItems: "center",
   },
   logoWrap: {
-    marginTop: 24,
-    marginBottom: 34,
+    marginBottom: spacing.xxxl,
     alignItems: "center",
   },
   logoBox: {
-    width: 88,
-    height: 68,
-    borderWidth: 2,
-    borderColor: "#526273",
-    borderRadius: 8,
+    width: 96,
+    height: 72,
+    borderWidth: 1.5,
+    borderColor: colors.borderStrong,
+    borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 10,
+    backgroundColor: colors.surface,
   },
-  logoText: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#526273",
+  logoPlaceholder: {
+    ...typography.cardTitle,
+    color: colors.icon,
   },
   title: {
-    fontSize: 30,
-    fontWeight: "700",
-    color: "#4E5670",
-    marginBottom: 18,
+    ...typography.pageTitle,
+    marginBottom: spacing.md,
   },
   subtitle: {
+    ...typography.body,
     textAlign: "center",
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#1F2B3D",
-    marginBottom: 38,
     lineHeight: 24,
+    marginBottom: spacing.xxxl,
   },
   form: {
     width: "100%",
   },
   input: {
     width: "100%",
-    height: 58,
-    borderWidth: 1.5,
-    borderColor: "#7B8196",
+    height: 56,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
     borderRadius: 14,
-    paddingHorizontal: 16,
-    backgroundColor: "transparent",
-    color: "#526273",
-    marginBottom: 18,
+    paddingHorizontal: spacing.lg,
+    backgroundColor: colors.surface,
+    color: colors.textSecondary,
+    marginBottom: spacing.lg,
     fontSize: 16,
   },
   errorText: {
-    color: "#D9534F",
+    color: colors.danger,
     fontSize: 14,
-    marginTop: -8,
-    marginBottom: 8,
+    marginTop: -4,
+    marginBottom: spacing.sm,
   },
   forgotWrap: {
     width: "100%",
     alignItems: "flex-end",
-    marginTop: -8,
-    marginBottom: 18,
+    marginTop: -4,
+    marginBottom: spacing.lg,
   },
   forgotText: {
-    color: "#526273",
-    fontSize: 15,
+    ...typography.subText,
+    color: colors.textSecondary,
   },
   primaryBtn: {
     width: "100%",
-    height: 58,
+    height: 56,
     borderRadius: 14,
-    backgroundColor: "#7C91DB",
+    backgroundColor: colors.primary,
     alignItems: "center",
     justifyContent: "center",
   },
   primaryBtnText: {
-    color: "#FFFFFF",
-    fontSize: 18,
-    fontWeight: "700",
+    ...typography.button,
   },
   dividerText: {
-    marginTop: 24,
-    marginBottom: 22,
-    color: "#526273",
+    ...typography.subText,
+    marginTop: spacing.xxl,
+    marginBottom: spacing.xl,
     textAlign: "center",
-    fontSize: 16,
   },
   socialRow: {
     flexDirection: "row",
-    gap: 14,
+    gap: spacing.md,
     width: "100%",
   },
   socialBtn: {
@@ -247,15 +240,15 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 10,
+    gap: spacing.sm,
   },
   googleBtn: {
-    borderWidth: 1.5,
-    borderColor: "#7B8196",
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
   },
   facebookBtn: {
-    backgroundColor: "#7C91DB",
+    backgroundColor: colors.primary,
   },
   googleIcon: {
     fontSize: 22,
@@ -263,33 +256,29 @@ const styles = StyleSheet.create({
     color: "#486146",
   },
   googleText: {
-    color: "#526273",
-    fontSize: 16,
-    fontWeight: "700",
+    ...typography.cardTitle,
   },
   facebookIcon: {
-    fontSize: 26,
+    fontSize: 24,
     fontWeight: "700",
-    color: "#FFFFFF",
-    lineHeight: 26,
+    color: colors.surface,
+    lineHeight: 24,
   },
   facebookText: {
-    color: "#FFFFFF",
+    color: colors.surface,
     fontSize: 16,
     fontWeight: "700",
   },
   bottomTextRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 16,
+    marginTop: spacing.lg,
   },
   bottomText: {
-    color: "#526273",
-    fontSize: 16,
+    ...typography.body,
   },
   inlineLink: {
-    color: "#2D3650",
-    fontSize: 16,
-    fontWeight: "700",
+    ...typography.cardTitle,
+    color: colors.primary,
   },
 });

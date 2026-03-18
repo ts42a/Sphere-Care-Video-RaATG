@@ -1,4 +1,6 @@
 import { View, Text, StyleSheet, Pressable } from "react-native";
+import { colors } from "../theme/colors";
+import { spacing } from "../theme/spacing";
 
 type ReminderCardProps = {
   title: string;
@@ -39,8 +41,8 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     paddingVertical: 24,
     paddingHorizontal: 20,
-    marginBottom: 28,
-    backgroundColor: "#e9eefb",
+    marginBottom: spacing.xxxl,
+    backgroundColor: "#E9EEFB",
   },
   reminderTitle: {
     fontSize: 24,
@@ -51,13 +53,13 @@ const styles = StyleSheet.create({
   },
   reminderHighlight: {
     fontSize: 22,
-    color: "#3f4f63",
+    color: "#3F4F63",
     fontWeight: "700",
   },
   reminderActions: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 16,
+    gap: spacing.lg,
     flexWrap: "wrap",
   },
   primaryBtn: {
@@ -67,7 +69,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 28,
   },
   primaryBtnText: {
-    color: "#ffffff",
+    color: colors.surface,
     fontSize: 16,
     fontWeight: "500",
   },

@@ -7,10 +7,18 @@ import {
   TextInput,
   Pressable,
   ActivityIndicator,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { Feather } from "@expo/vector-icons";
+
+import PageHeader from "../../src/components/PageHeader";
 import { authService } from "../../src/services/authService";
+import { colors } from "../../src/theme/colors";
+import { spacing } from "../../src/theme/spacing";
+import { typography } from "../../src/theme/typography";
 
 export default function SetPasswordScreen() {
   const { email } = useLocalSearchParams<{ email?: string }>();
@@ -27,13 +35,14 @@ export default function SetPasswordScreen() {
 
     try {
       setLoading(true);
+
       await authService.resetPassword({
         email: email || "",
         password,
         confirmPassword,
       });
 
-      router.push("/auth/password-reset");
+      router.push("./auth/password-reset-success");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Update failed");
     } finally {
@@ -43,130 +52,130 @@ export default function SetPasswordScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.screen}>
-        <Pressable style={styles.backBtn} onPress={() => router.back()}>
-          <Feather name="arrow-left" size={28} color="#526273" />
-        </Pressable>
-
-        <Text style={styles.pageTitle}>Set a new password</Text>
-        <Text style={styles.pageDesc}>
-          Create a new password. Ensure it differs from{"\n"}
-          previous ones for security
-        </Text>
-
-        <Text style={styles.label}>Password</Text>
-        <View style={styles.passwordWrap}>
-          <TextInput
-            style={styles.passwordInput}
-            placeholder="•••••••••••"
-            placeholderTextColor="#526273"
-            secureTextEntry={secure1}
-            value={password}
-            onChangeText={setPassword}
-          />
-          <Pressable onPress={() => setSecure1((prev) => !prev)}>
-            <Feather name="eye-off" size={22} color="#C8C8C8" />
-          </Pressable>
-        </View>
-
-        <Text style={styles.label}>Confirm Password</Text>
-        <View style={styles.passwordWrap}>
-          <TextInput
-            style={styles.passwordInput}
-            placeholder="•••••••••••"
-            placeholderTextColor="#526273"
-            secureTextEntry={secure2}
-            value={confirmPassword}
-            onChangeText={setConfirmPassword}
-          />
-          <Pressable onPress={() => setSecure2((prev) => !prev)}>
-            <Feather name="eye-off" size={22} color="#C8C8C8" />
-          </Pressable>
-        </View>
-
-        {!!error && <Text style={styles.errorText}>{error}</Text>}
-
-        <Pressable
-          style={styles.primaryBtn}
-          onPress={handleUpdatePassword}
-          disabled={loading}
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
         >
-          {loading ? (
-            <ActivityIndicator color="#FFFFFF" />
-          ) : (
-            <Text style={styles.primaryBtnText}>Update Password</Text>
-          )}
-        </Pressable>
-      </View>
+          <View style={styles.screen}>
+            <PageHeader title="Set a new password" />
+
+            <Text style={styles.pageDesc}>
+              Create a new password. Ensure it differs from{"\n"}
+              previous ones for security
+            </Text>
+
+            <Text style={styles.label}>Password</Text>
+            <View style={styles.passwordWrap}>
+              <TextInput
+                style={styles.passwordInput}
+                placeholder="•••••••••••"
+                placeholderTextColor={colors.textMuted}
+                secureTextEntry={secure1}
+                value={password}
+                onChangeText={setPassword}
+              />
+              <Pressable onPress={() => setSecure1((prev) => !prev)}>
+                <Feather name="eye-off" size={22} color={colors.textMuted} />
+              </Pressable>
+            </View>
+
+            <Text style={styles.label}>Confirm Password</Text>
+            <View style={styles.passwordWrap}>
+              <TextInput
+                style={styles.passwordInput}
+                placeholder="•••••••••••"
+                placeholderTextColor={colors.textMuted}
+                secureTextEntry={secure2}
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+              />
+              <Pressable onPress={() => setSecure2((prev) => !prev)}>
+                <Feather name="eye-off" size={22} color={colors.textMuted} />
+              </Pressable>
+            </View>
+
+            {!!error && <Text style={styles.errorText}>{error}</Text>}
+
+            <Pressable
+              style={styles.primaryBtn}
+              onPress={handleUpdatePassword}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color={colors.surface} />
+              ) : (
+                <Text style={styles.primaryBtnText}>Update Password</Text>
+              )}
+            </Pressable>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F7F7F7" },
-  screen: { flex: 1, paddingHorizontal: 20, paddingTop: 56 },
-  backBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: "#EFEFEF",
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 24,
-    marginBottom: 28,
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
   },
-  pageTitle: {
-    fontSize: 22,
-    fontWeight: "700",
-    color: "#222222",
-    marginBottom: 10,
+  scrollContent: {
+    flexGrow: 1,
+  },
+  screen: {
+    flex: 1,
+    paddingHorizontal: spacing.xxl,
+    paddingTop: 32,
+    paddingBottom: 40,
   },
   pageDesc: {
-    color: "#989898",
-    marginBottom: 30,
-    fontSize: 16,
-    lineHeight: 30,
+    ...typography.body,
+    color: colors.textMuted,
+    marginBottom: spacing.xxxl,
+    lineHeight: 28,
   },
   label: {
-    color: "#1F2B3D",
-    marginBottom: 10,
-    fontSize: 18,
-    fontWeight: "700",
+    ...typography.cardTitle,
+    marginBottom: spacing.sm,
   },
   passwordWrap: {
     flexDirection: "row",
     alignItems: "center",
     width: "100%",
-    height: 58,
-    borderWidth: 1.5,
-    borderColor: "#D1D1D1",
+    height: 56,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
     borderRadius: 14,
-    paddingHorizontal: 16,
-    marginBottom: 18,
+    paddingHorizontal: spacing.lg,
+    backgroundColor: colors.surface,
+    marginBottom: spacing.lg,
   },
   passwordInput: {
     flex: 1,
-    color: "#526273",
+    color: colors.textSecondary,
     fontSize: 16,
-    paddingRight: 12,
+    paddingRight: spacing.sm,
   },
   errorText: {
-    color: "#D9534F",
+    color: colors.danger,
     fontSize: 14,
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
   primaryBtn: {
     width: "100%",
-    height: 58,
+    height: 56,
     borderRadius: 14,
-    backgroundColor: "#7C91DB",
+    backgroundColor: colors.primary,
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 8,
+    marginTop: spacing.sm,
   },
   primaryBtnText: {
-    color: "#FFFFFF",
-    fontSize: 18,
-    fontWeight: "700",
+    ...typography.button,
   },
 });

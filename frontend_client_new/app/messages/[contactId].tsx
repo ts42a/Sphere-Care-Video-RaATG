@@ -15,11 +15,10 @@ import { Feather, Ionicons, MaterialIcons } from "@expo/vector-icons";
 
 import { callService } from "../../src/services/callService";
 import { messageService } from "../../src/services/messageService";
-
 import type { ChatMessage } from "../../src/types/message";
 import type { CallContact } from "../../src/types/call";
-
 import BottomNav from "../../src/components/BottomNav";
+import { typography } from "../../src/theme/typography";
 
 export default function MessageChatScreen() {
   const { contactId } = useLocalSearchParams<{ contactId: string }>();
@@ -28,19 +27,11 @@ export default function MessageChatScreen() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
 
-  /*
-  Initial load
-  */
-
   useEffect(() => {
     if (contactId) {
       loadInitialData(contactId);
     }
   }, [contactId]);
-
-  /*
-  Polling refresh
-  */
 
   useEffect(() => {
     if (!contactId) return;
@@ -51,10 +42,6 @@ export default function MessageChatScreen() {
 
     return () => clearInterval(interval);
   }, [contactId]);
-
-  /*
-  Load contact + messages
-  */
 
   async function loadInitialData(id: string) {
     try {
@@ -70,10 +57,6 @@ export default function MessageChatScreen() {
     }
   }
 
-  /*
-  Polling refresh messages
-  */
-
   async function refreshMessages(id: string) {
     try {
       const latest = await messageService.getMessages(id);
@@ -83,10 +66,6 @@ export default function MessageChatScreen() {
     }
   }
 
-  /*
-  Send message
-  */
-
   async function handleSend() {
     const trimmed = input.trim();
 
@@ -94,9 +73,7 @@ export default function MessageChatScreen() {
 
     try {
       const newMessage = await messageService.sendMessage(contactId, trimmed);
-
       setMessages((prev) => [...prev, newMessage]);
-
       setInput("");
     } catch (error) {
       console.error("Failed to send message", error);
@@ -111,10 +88,8 @@ export default function MessageChatScreen() {
         style={styles.container}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        {/* Header */}
-
         <View style={styles.header}>
-          <Pressable onPress={() => router.replace("./messages")}>
+          <Pressable onPress={() => router.replace("/messages")}>
             <Feather name="arrow-left" size={28} color="#4D5B6B" />
           </Pressable>
 
@@ -128,10 +103,7 @@ export default function MessageChatScreen() {
           </View>
 
           <View style={styles.contactMeta}>
-            <Text style={styles.contactName}>
-              {contact?.name ?? "Loading..."}
-            </Text>
-
+            <Text style={styles.contactName}>{contact?.name ?? "Loading..."}</Text>
             <View style={styles.onlineRow}>
               <View
                 style={[
@@ -139,7 +111,6 @@ export default function MessageChatScreen() {
                   { opacity: isOnline ? 1 : 0.35 },
                 ]}
               />
-
               <Text style={styles.onlineText}>
                 {isOnline ? "Online" : "Offline"}
               </Text>
@@ -176,8 +147,6 @@ export default function MessageChatScreen() {
             </Pressable>
           </View>
         </View>
-
-        {/* Chat thread */}
 
         <ScrollView
           style={styles.thread}
@@ -216,8 +185,6 @@ export default function MessageChatScreen() {
           ))}
         </ScrollView>
 
-        {/* Input */}
-
         <View style={styles.inputRow}>
           <Pressable style={styles.attachBtn}>
             <MaterialIcons
@@ -251,7 +218,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#F7F7F7",
   },
-
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -259,7 +225,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 14,
   },
-
   avatar: {
     width: 58,
     height: 58,
@@ -269,29 +234,23 @@ const styles = StyleSheet.create({
     marginLeft: 14,
     marginRight: 12,
   },
-
   avatarText: {
     color: "#FFFFFF",
     fontSize: 22,
     fontWeight: "700",
   },
-
   contactMeta: {
     flex: 1,
   },
-
   contactName: {
+    ...typography.cardTitle,
     fontSize: 18,
-    fontWeight: "700",
-    color: "#253041",
     marginBottom: 4,
   },
-
   onlineRow: {
     flexDirection: "row",
     alignItems: "center",
   },
-
   onlineDot: {
     width: 10,
     height: 10,
@@ -299,33 +258,27 @@ const styles = StyleSheet.create({
     backgroundColor: "#21C36A",
     marginRight: 8,
   },
-
   onlineText: {
-    fontSize: 15,
+    ...typography.subText,
     color: "#18B76A",
   },
-
   headerActions: {
     flexDirection: "row",
     alignItems: "center",
     gap: 16,
     marginLeft: 10,
   },
-
   thread: {
     flex: 1,
     paddingHorizontal: 20,
   },
-
   threadContent: {
     paddingTop: 20,
     paddingBottom: 18,
   },
-
   messageBlock: {
     marginBottom: 18,
   },
-
   doctorBubble: {
     maxWidth: "86%",
     backgroundColor: "#ECECEF",
@@ -333,19 +286,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingVertical: 16,
   },
-
   doctorBubbleText: {
-    color: "#2C3442",
-    fontSize: 17,
-    lineHeight: 31,
+    ...typography.body,
+    lineHeight: 24,
   },
-
   doctorMeta: {
-    marginTop: 8,
-    color: "#98A1AD",
+    ...typography.subText,
     fontSize: 13,
+    marginTop: 8,
   },
-
   meBubble: {
     alignSelf: "flex-end",
     maxWidth: "86%",
@@ -354,13 +303,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingVertical: 16,
   },
-
   meBubbleText: {
+    fontSize: 16,
     color: "#FFFFFF",
-    fontSize: 17,
-    lineHeight: 31,
+    lineHeight: 24,
   },
-
   meMetaRow: {
     marginTop: 8,
     alignSelf: "flex-end",
@@ -368,12 +315,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 4,
   },
-
   meMeta: {
-    color: "#98A1AD",
+    ...typography.subText,
     fontSize: 13,
   },
-
   inputRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -382,7 +327,6 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
     gap: 12,
   },
-
   attachBtn: {
     width: 42,
     height: 42,
@@ -390,17 +334,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-
   input: {
     flex: 1,
     height: 52,
     borderRadius: 26,
     backgroundColor: "#ECECEF",
     paddingHorizontal: 18,
-    fontSize: 16,
-    color: "#2E3645",
+    ...typography.body,
   },
-
   sendBtn: {
     width: 56,
     height: 56,

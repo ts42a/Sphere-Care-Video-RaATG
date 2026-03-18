@@ -1,5 +1,8 @@
 import { View, Text, StyleSheet } from "react-native";
 import React from "react";
+import { colors } from "../theme/colors";
+import { spacing } from "../theme/spacing";
+import { typography } from "../theme/typography";
 
 type TaskType = "green" | "orange" | "red";
 
@@ -59,7 +62,7 @@ export default function TaskCard({
 const styles = StyleSheet.create({
   taskCard: {
     position: "relative",
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.surface,
     borderRadius: 22,
     paddingVertical: 14,
     paddingLeft: 18,
@@ -68,7 +71,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     minHeight: 96,
     borderWidth: 1,
-    borderColor: "#EEF0F3",
+    borderColor: colors.border,
   },
   taskCardOrange: {
     backgroundColor: "#FFF8F3",
@@ -102,26 +105,27 @@ const styles = StyleSheet.create({
     backgroundColor: "#F4F4F4",
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 16,
+    marginRight: spacing.lg,
   },
   taskContent: {
     flex: 1,
   },
   taskCategory: {
+    ...typography.body,
     color: "#4D5C6D",
     fontSize: 16,
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
   taskName: {
-    fontSize: 16,
+    ...typography.cardTitle,
     color: "#647485",
-    fontWeight: "700",
+    fontSize: 16,
     lineHeight: 21,
   },
   taskTime: {
     fontSize: 18,
     fontWeight: "700",
-    marginLeft: 12,
+    marginLeft: spacing.md,
   },
   taskTimeGreen: {
     color: "#27C27F",
