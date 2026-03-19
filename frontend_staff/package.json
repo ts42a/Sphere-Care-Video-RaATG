@@ -1,0 +1,8 @@
+{
+  "name": "sphere-care",
+  "version": "1.0.0",
+  "description": "Sphere Care - AI-Powered Aged Care Platform",
+  "scripts": {
+    "start": "echo 'Please run the backend: cd backend_api && python app.py'"
+  }
+}
