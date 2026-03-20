@@ -1,14 +1,38 @@
 let currentUser = {};
 
 // ── INIT ──
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+  const token = localStorage.getItem('access_token');
+  if (!token) { window.location.href = 'register-login.html'; return; }
+
   try {
-    const stored = localStorage.getItem('user');
-    if (!stored) { window.location.href = 'register-login.html'; return; }
-    currentUser = JSON.parse(stored);
+    // Always fetch fresh data from API — covers Google OAuth users
+    const res = await fetch(`${API_BASE}/auth/me`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+
+    if (res.ok) {
+      currentUser = await res.json();
+      // Update localStorage with latest data
+      localStorage.setItem('user', JSON.stringify(currentUser));
+    } else {
+      // Token invalid — fallback to localStorage or redirect
+      const stored = localStorage.getItem('user');
+      if (!stored) { window.location.href = 'register-login.html'; return; }
+      currentUser = JSON.parse(stored);
+    }
+
     populateProfile();
   } catch {
-    window.location.href = 'register-login.html';
+    // Network error — fallback to localStorage
+    try {
+      const stored = localStorage.getItem('user');
+      if (!stored) { window.location.href = 'register-login.html'; return; }
+      currentUser = JSON.parse(stored);
+      populateProfile();
+    } catch {
+      window.location.href = 'register-login.html';
+    }
   }
 });
 

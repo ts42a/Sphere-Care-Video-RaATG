@@ -1,7 +1,10 @@
 // API BASE URL – change this to your server
+// ──────────────────────────────────────────
 const API_BASE = 'http://localhost:8000';
 
+// ──────────────────────────────────────────
 // REGISTER
+// ──────────────────────────────────────────
 async function handleRegister() {
   const fullName   = document.getElementById('reg-fullname').value.trim();
   const email      = document.getElementById('reg-email').value.trim();
@@ -60,7 +63,9 @@ async function handleRegister() {
   }
 }
 
+// ──────────────────────────────────────────
 // LOGIN
+// ──────────────────────────────────────────
 async function handleLogin() {
   const email    = document.getElementById('login-email').value.trim();
   const password = document.getElementById('login-pass').value;
@@ -89,7 +94,7 @@ async function handleLogin() {
 
     localStorage.setItem('access_token', data.access_token);
     localStorage.setItem('user', JSON.stringify(data.user));
-    window.location.href = 'dashboard.html';
+    window.location.href = '/pages/dashboard.html';
 
   } catch (err) {
     showError('login', 'Network error. Please try again.');
@@ -98,7 +103,9 @@ async function handleLogin() {
   }
 }
 
+// ──────────────────────────────────────────
 // HELPERS
+// ──────────────────────────────────────────
 function showError(form, msg) {
   const el = document.getElementById(`${form}-error`);
   if (el) { el.textContent = msg; el.style.display = 'block'; }
@@ -227,17 +234,18 @@ function loginWithGoogle() {
     .then(r => r.json())
     .then(user => {
       localStorage.setItem('user', JSON.stringify(user));
-      window.location.replace('dashboard.html');
+      // Clean URL then redirect
+      window.location.replace('/pages/dashboard.html');
     })
     .catch(() => {
-      // Even if /me fails, still redirect with token
-      window.location.replace('dashboard.html');
+      window.location.replace('/pages/dashboard.html');
     });
     return;
   }
 
   // Google login failed
   if (params.get('error') === 'oauth_failed') {
+    showPage('login');
     const el = document.getElementById('login-error');
     if (el) {
       el.textContent = 'Google login failed. Please try again.';
@@ -245,8 +253,9 @@ function loginWithGoogle() {
     }
   }
 })();
-
+// ──────────────────────────────────────────
 // USER AVATAR + LOGOUT DROPDOWN
+// ──────────────────────────────────────────
 
 // Inject avatar dropdown into every page that has a topbar avatar
 function initUserAvatar() {
@@ -316,13 +325,15 @@ function toggleAvatarDropdown(avatarEl, name, role) {
 function handleLogout() {
   localStorage.removeItem('access_token');
   localStorage.removeItem('user');
-  window.location.href = 'register-login.html';
+  window.location.href = '/pages/register-login.html';
 }
 
 // Auto-init on page load
 document.addEventListener('DOMContentLoaded', initUserAvatar);
 
+// ──────────────────────────────────────────
 // BOOTSTRAP SKELETON — AUTO HIDE
+// ──────────────────────────────────────────
 window.hideSkeleton = function () {
   const sk = document.getElementById('page-skeleton');
   if (sk) sk.style.display = 'none';

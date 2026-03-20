@@ -69,6 +69,7 @@ async function loadFlags(){
   }
   filteredFlags = [...allFlags];
   renderFlags();
+  if(typeof hideSkeleton === 'function') hideSkeleton();
 }
 
 // normalise API flag → same shape as demo flags
