@@ -2,30 +2,81 @@
 flags.py — Flags & Reviews router
 
 Endpoints:
-  GET    /flags/stats              → FlagStats (counts for dashboard)
-  GET    /flags/                   → list[FlagResponse]  (with filters)
-  GET    /flags/{id}               → FlagResponse
-  POST   /flags/                   → FlagResponse  (create flag)
-  PATCH  /flags/{id}/status        → FlagResponse  (update status)
-  DELETE /flags/{id}               → 204
+  GET    /flags/stats              -> FlagStats
+  GET    /flags/                   -> list[FlagResponse]
+  GET    /flags/{id}               -> FlagResponse
+  POST   /flags/                   -> FlagResponse
+  PATCH  /flags/{id}/status        -> FlagResponse
+  DELETE /flags/{id}               -> 204
 
-  GET    /flags/{id}/comments      → list[FlagCommentResponse]
-  POST   /flags/{id}/comments      → FlagCommentResponse
+  GET    /flags/{id}/comments      -> list[FlagCommentResponse]
+  POST   /flags/{id}/comments      -> FlagCommentResponse
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy.orm import Session
-from sqlalchemy import func
+from datetime import datetime
 from typing import Optional
-from datetime import datetime, date
+
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
+from sqlalchemy import func, or_
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session, selectinload
 
 from app.api.deps import get_db
 from app import models, schemas
 
 router = APIRouter(prefix="/flags", tags=["Flags & Reviews"])
 
+VALID_STATUSES = ("Open", "Pending Review", "Resolved", "Escalated")
 
-#helpers
+
+# ---------- helpers ----------
+
+def _format_dt(dt: Optional[datetime]) -> str:
+    return dt.strftime("%b %d, %Y %I:%M %p") if dt else ""
+
+
+def _parse_flagged_at(value: Optional[str]) -> datetime:
+    """
+    Accept ISO datetime strings.
+    Examples:
+      2026-03-19T12:30:00
+      2026-03-19T12:30:00Z
+      2026-03-19 12:30:00
+    Returns naive UTC-like datetime to stay compatible with existing app style.
+    """
+    if not value:
+        return datetime.utcnow()
+
+    cleaned = value.strip()
+
+    # support trailing Z
+    if cleaned.endswith("Z"):
+        cleaned = cleaned[:-1] + "+00:00"
+
+    try:
+        parsed = datetime.fromisoformat(cleaned)
+    except ValueError:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid flagged_at format. Use ISO format, e.g. 2026-03-19T12:30:00",
+        )
+
+    # if timezone-aware, convert to naive UTC
+    if parsed.tzinfo is not None:
+        parsed = parsed.astimezone().replace(tzinfo=None)
+
+    return parsed
+
+
+def _fmt_comment(comment: models.FlagComment) -> schemas.FlagCommentResponse:
+    return schemas.FlagCommentResponse(
+        id=comment.id,
+        flag_id=comment.flag_id,
+        author=comment.author,
+        body=comment.body,
+        created_at=_format_dt(comment.created_at),
+    )
+
 
 def _fmt(flag: models.Flag) -> schemas.FlagResponse:
     return schemas.FlagResponse(
@@ -41,52 +92,75 @@ def _fmt(flag: models.Flag) -> schemas.FlagResponse:
         transcript=flag.transcript,
         video_timestamp=flag.video_timestamp,
         ai_confidence=flag.ai_confidence,
-        flagged_at=flag.flagged_at.strftime("%b %d, %Y %I:%M %p") if flag.flagged_at else "",
-        created_at=flag.created_at.strftime("%b %d, %Y %I:%M %p") if flag.created_at else "",
-        comments=[
-            schemas.FlagCommentResponse(
-                id=c.id,
-                flag_id=c.flag_id,
-                author=c.author,
-                body=c.body,
-                created_at=c.created_at.strftime("%b %d, %Y %I:%M %p"),
-            )
-            for c in (flag.comments or [])
-        ],
+        flagged_at=_format_dt(flag.flagged_at),
+        created_at=_format_dt(flag.created_at),
+        comments=[_fmt_comment(c) for c in (flag.comments or [])],
     )
 
 
-#routes
+def _get_flag_or_404(db: Session, flag_id: int) -> models.Flag:
+    flag = (
+        db.query(models.Flag)
+        .options(selectinload(models.Flag.comments))
+        .filter(models.Flag.id == flag_id)
+        .first()
+    )
+    if not flag:
+        raise HTTPException(status_code=404, detail="Flag not found.")
+    return flag
+
+
+# ---------- routes ----------
 
 @router.get("/stats", response_model=schemas.FlagStats)
 def get_flag_stats(db: Session = Depends(get_db)):
     """
     Dashboard summary counts:
-      - ai_flags_today  : AI-sourced flags created today
+      - ai_flags_today  : AI-sourced flags created today (UTC-based)
       - manual_flags    : Staff-sourced flags (all time)
       - pending_review  : flags with status "Pending Review"
       - resolved        : flags with status "Resolved"
       - total           : all flags
     """
-    today = date.today()
+    today = datetime.utcnow().date()
 
-    ai_today = (
-        db.query(models.Flag)
+    ai_flags_today = (
+        db.query(func.count(models.Flag.id))
         .filter(
             models.Flag.source == "AI",
             func.date(models.Flag.created_at) == today,
         )
-        .count()
+        .scalar()
+        or 0
     )
-    manual = db.query(models.Flag).filter(models.Flag.source == "Staff").count()
-    pending = db.query(models.Flag).filter(models.Flag.status == "Pending Review").count()
-    resolved = db.query(models.Flag).filter(models.Flag.status == "Resolved").count()
-    total = db.query(models.Flag).count()
+
+    manual_flags = (
+        db.query(func.count(models.Flag.id))
+        .filter(models.Flag.source == "Staff")
+        .scalar()
+        or 0
+    )
+
+    pending_review = (
+        db.query(func.count(models.Flag.id))
+        .filter(models.Flag.status == "Pending Review")
+        .scalar()
+        or 0
+    )
+
+    resolved = (
+        db.query(func.count(models.Flag.id))
+        .filter(models.Flag.status == "Resolved")
+        .scalar()
+        or 0
+    )
+
+    total = db.query(func.count(models.Flag.id)).scalar() or 0
 
     return schemas.FlagStats(
-        ai_flags_today=ai_today,
-        manual_flags=manual,
-        pending_review=pending,
+        ai_flags_today=ai_flags_today,
+        manual_flags=manual_flags,
+        pending_review=pending_review,
         resolved=resolved,
         total=total,
     )
@@ -95,21 +169,25 @@ def get_flag_stats(db: Session = Depends(get_db)):
 @router.get("/", response_model=list[schemas.FlagResponse])
 def list_flags(
     resident_name: Optional[str] = Query(None),
-    resident_id:   Optional[str] = Query(None),
-    event_type:    Optional[str] = Query(None),
-    severity:      Optional[str] = Query(None),
-    status:        Optional[str] = Query(None),
-    source:        Optional[str] = Query(None),
-    search:        Optional[str] = Query(None),   # searches resident_name + description
-    limit:  int = Query(50, le=200),
-    offset: int = Query(0),
+    resident_id: Optional[str] = Query(None),
+    event_type: Optional[str] = Query(None),
+    severity: Optional[str] = Query(None),
+    status: Optional[str] = Query(None),
+    source: Optional[str] = Query(None),
+    search: Optional[str] = Query(None),
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
     db: Session = Depends(get_db),
 ):
     """
     List all flags with optional filters.
     Returns newest first.
     """
-    q = db.query(models.Flag).order_by(models.Flag.flagged_at.desc())
+    q = (
+        db.query(models.Flag)
+        .options(selectinload(models.Flag.comments))
+        .order_by(models.Flag.flagged_at.desc(), models.Flag.id.desc())
+    )
 
     if resident_name:
         q = q.filter(models.Flag.resident_name.ilike(f"%{resident_name}%"))
@@ -124,25 +202,23 @@ def list_flags(
     if source:
         q = q.filter(models.Flag.source == source)
     if search:
-        term = f"%{search}%"
+        term = f"%{search.strip()}%"
         q = q.filter(
-            models.Flag.resident_name.ilike(term) |
-            models.Flag.description.ilike(term) |
-            models.Flag.event_type.ilike(term)
+            or_(
+                models.Flag.resident_name.ilike(term),
+                models.Flag.description.ilike(term),
+                models.Flag.event_type.ilike(term),
+            )
         )
 
     flags = q.offset(offset).limit(limit).all()
-
-    # fallback: return empty list (frontend uses demo data when empty)
     return [_fmt(f) for f in flags]
 
 
 @router.get("/{flag_id}", response_model=schemas.FlagResponse)
 def get_flag(flag_id: int, db: Session = Depends(get_db)):
     """Get a single flag by ID (includes comments)."""
-    flag = db.query(models.Flag).filter(models.Flag.id == flag_id).first()
-    if not flag:
-        raise HTTPException(status_code=404, detail="Flag not found.")
+    flag = _get_flag_or_404(db, flag_id)
     return _fmt(flag)
 
 
@@ -152,12 +228,7 @@ def create_flag(flag_in: schemas.FlagCreate, db: Session = Depends(get_db)):
     Create a new flag (AI or Staff).
     flagged_at defaults to now if not provided.
     """
-    flagged_at = datetime.utcnow()
-    if flag_in.flagged_at:
-        try:
-            flagged_at = datetime.fromisoformat(flag_in.flagged_at)
-        except ValueError:
-            pass
+    flagged_at = _parse_flagged_at(flag_in.flagged_at)
 
     flag = models.Flag(
         resident_name=flag_in.resident_name,
@@ -173,10 +244,16 @@ def create_flag(flag_in: schemas.FlagCreate, db: Session = Depends(get_db)):
         ai_confidence=flag_in.ai_confidence,
         flagged_at=flagged_at,
     )
-    db.add(flag)
-    db.commit()
-    db.refresh(flag)
-    return _fmt(flag)
+
+    try:
+        db.add(flag)
+        db.commit()
+        db.refresh(flag)
+        flag = _get_flag_or_404(db, flag.id)
+        return _fmt(flag)
+    except SQLAlchemyError:
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Failed to create flag.")
 
 
 @router.patch("/{flag_id}/status", response_model=schemas.FlagResponse)
@@ -189,48 +266,51 @@ def update_flag_status(
     Update the status of a flag.
     Valid values: Open | Pending Review | Resolved | Escalated
     """
-    valid = {"Open", "Pending Review", "Resolved", "Escalated"}
-    if body.status not in valid:
+    if body.status not in VALID_STATUSES:
         raise HTTPException(
             status_code=400,
-            detail=f"Invalid status. Must be one of: {', '.join(valid)}",
+            detail=f"Invalid status. Must be one of: {', '.join(VALID_STATUSES)}",
         )
-    flag = db.query(models.Flag).filter(models.Flag.id == flag_id).first()
-    if not flag:
-        raise HTTPException(status_code=404, detail="Flag not found.")
+
+    flag = _get_flag_or_404(db, flag_id)
     flag.status = body.status
-    db.commit()
-    db.refresh(flag)
-    return _fmt(flag)
+
+    try:
+        db.commit()
+        db.refresh(flag)
+        flag = _get_flag_or_404(db, flag.id)
+        return _fmt(flag)
+    except SQLAlchemyError:
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Failed to update flag status.")
 
 
 @router.delete("/{flag_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_flag(flag_id: int, db: Session = Depends(get_db)):
-    """Delete a flag and all its comments."""
+    """Delete a flag."""
     flag = db.query(models.Flag).filter(models.Flag.id == flag_id).first()
     if not flag:
         raise HTTPException(status_code=404, detail="Flag not found.")
-    db.delete(flag)
-    db.commit()
+
+    try:
+        db.delete(flag)
+        db.commit()
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
+    except SQLAlchemyError:
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to delete flag. Check comment relationship cascade settings.",
+        )
 
 
-#comments
+# ---------- comments ----------
+
 @router.get("/{flag_id}/comments", response_model=list[schemas.FlagCommentResponse])
 def get_comments(flag_id: int, db: Session = Depends(get_db)):
     """Get all comments for a flag."""
-    flag = db.query(models.Flag).filter(models.Flag.id == flag_id).first()
-    if not flag:
-        raise HTTPException(status_code=404, detail="Flag not found.")
-    return [
-        schemas.FlagCommentResponse(
-            id=c.id,
-            flag_id=c.flag_id,
-            author=c.author,
-            body=c.body,
-            created_at=c.created_at.strftime("%b %d, %Y %I:%M %p"),
-        )
-        for c in flag.comments
-    ]
+    flag = _get_flag_or_404(db, flag_id)
+    return [_fmt_comment(c) for c in flag.comments]
 
 
 @router.post(
@@ -244,17 +324,19 @@ def add_comment(
     db: Session = Depends(get_db),
 ):
     """Add a staff comment to a flag."""
-    flag = db.query(models.Flag).filter(models.Flag.id == flag_id).first()
-    if not flag:
-        raise HTTPException(status_code=404, detail="Flag not found.")
-    comment = models.FlagComment(flag_id=flag_id, author=body.author, body=body.body)
-    db.add(comment)
-    db.commit()
-    db.refresh(comment)
-    return schemas.FlagCommentResponse(
-        id=comment.id,
-        flag_id=comment.flag_id,
-        author=comment.author,
-        body=comment.body,
-        created_at=comment.created_at.strftime("%b %d, %Y %I:%M %p"),
+    _get_flag_or_404(db, flag_id)
+
+    comment = models.FlagComment(
+        flag_id=flag_id,
+        author=body.author,
+        body=body.body,
     )
+
+    try:
+        db.add(comment)
+        db.commit()
+        db.refresh(comment)
+        return _fmt_comment(comment)
+    except SQLAlchemyError:
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Failed to add comment.")
