@@ -46,7 +46,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# API routers
+# ── API routers ────────────────────────────────────────────
 app.include_router(auth.router)
 app.include_router(residents.router)
 app.include_router(bookings.router)
@@ -68,13 +68,28 @@ app.include_router(call.router)
 def health():
     return {"status": "ok", "service": "Sphere Care"}
 
-#Serve frontend
-# Path from backend_api/ to the frontend folder
+# ── Serve frontend ─────────────────────────────────────────
 FRONTEND_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "frontend_staff", "src")
 FRONTEND_DIR = os.path.abspath(FRONTEND_DIR)
 print(f"Frontend dir: {FRONTEND_DIR}")
 print(f"Exists: {os.path.exists(FRONTEND_DIR)}")
 
 if os.path.exists(FRONTEND_DIR):
-    # Serve static assets (CSS, JS, images)
-    app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=True), name="static")
+    pages_dir      = os.path.join(FRONTEND_DIR, "pages")
+    style_dir      = os.path.join(FRONTEND_DIR, "style")
+    assets_dir     = os.path.join(FRONTEND_DIR, "assets")
+    components_dir = os.path.join(FRONTEND_DIR, "components")
+
+    if os.path.exists(pages_dir):
+        app.mount("/pages", StaticFiles(directory=pages_dir, html=True), name="pages")
+    if os.path.exists(style_dir):
+        app.mount("/style", StaticFiles(directory=style_dir), name="style")
+    if os.path.exists(assets_dir):
+        app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
+    if os.path.exists(components_dir):
+        app.mount("/components", StaticFiles(directory=components_dir), name="components")
+
+    # Root redirect → login page
+    @app.get("/")
+    def root():
+        return FileResponse(os.path.join(pages_dir, "register-login.html"))
