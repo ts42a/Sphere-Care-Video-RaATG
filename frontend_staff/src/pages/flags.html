@@ -239,30 +239,7 @@ html,body{height:100%;font-family:'Manrope',sans-serif;background:var(--bg);colo
 <div class="app">
 
 <!-- SIDEBAR -->
-<aside class="sidebar">
-  <div class="sidebar-logo">
-    <div class="logo-name">Sphere Care</div>
-    <div class="logo-sub">AI-Powered Aged Care Platform</div>
-  </div>
-  <div class="sidebar-section-label">Workspace</div>
-  <a class="nav-item" href="dashboard.html"><span class="ni"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span>Dashboard</a>
-  <a class="nav-item" href="recording.html"><span class="ni"><svg viewBox="0 0 24 24"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg></span>Recording Console</a>
-  <a class="nav-item" href="records.html"><span class="ni"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span>Records Library</a>
-  <a class="nav-item active" href="flags.html"><span class="ni"><svg viewBox="0 0 24 24"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg></span>Flags &amp; Reviews</a>
-  <a class="nav-item" href="residents.html"><span class="ni"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>Residents</a>
-  <div class="sidebar-divider"></div>
-  <div class="sidebar-section-label">Operations</div>
-  <a class="nav-item" href="booking.html"><span class="ni"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>Bookings</a>
-  <a class="nav-item" href="staff.html"><span class="ni"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="23" y1="11" x2="17" y2="11"/><line x1="20" y1="8" x2="20" y2="14"/></svg></span>Staff &amp; Roles</a>
-  <a class="nav-item" href="admin_console.html"><span class="ni"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg></span>Admin Console</a>
-  <a class="nav-item" href="analytics.html"><span class="ni"><svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span>Reports / Analytics</a>
-  <div class="sidebar-bottom">
-    <a class="nav-item" href="notifications.html"><span class="ni"><svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span>Notifications</a>
-    <a class="nav-item" href="message.html"><span class="ni"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>Messages</a>
-    <a class="nav-item" href="help_support.html"><span class="ni"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>Help &amp; Support</a>
-    <a class="nav-item" href="account.html"><span class="ni"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>Account</a>
-  </div>
-</aside>
+<div id="sidebar-container"></div>
 
 <!-- MAIN -->
 <div class="main">
@@ -545,67 +522,23 @@ html,body{height:100%;font-family:'Manrope',sans-serif;background:var(--bg);colo
 
 
 
-  <!-- skeleton shown while JS loads flags -->
-  <div id="page-skeleton" class="p-4 placeholder-glow d-flex flex-column gap-3">
-    <div class="card p-3 d-flex flex-row gap-3">
-      <span class="placeholder bg-secondary flex-shrink-0" style="width:8px;height:80px;border-radius:4px;"></span>
-      <div class="flex-grow-1">
-        <span class="placeholder bg-secondary w-25 d-block mb-2" style="height:14px;border-radius:4px;"></span>
-        <span class="placeholder bg-secondary w-50 d-block mb-2" style="height:12px;border-radius:4px;"></span>
-        <span class="placeholder bg-secondary w-75 d-block" style="height:12px;border-radius:4px;"></span>
-      </div>
-      <span class="placeholder bg-secondary flex-shrink-0" style="width:70px;height:24px;border-radius:20px;"></span>
-    </div><div class="card p-3 d-flex flex-row gap-3">
-      <span class="placeholder bg-secondary flex-shrink-0" style="width:8px;height:80px;border-radius:4px;"></span>
-      <div class="flex-grow-1">
-        <span class="placeholder bg-secondary w-25 d-block mb-2" style="height:14px;border-radius:4px;"></span>
-        <span class="placeholder bg-secondary w-50 d-block mb-2" style="height:12px;border-radius:4px;"></span>
-        <span class="placeholder bg-secondary w-75 d-block" style="height:12px;border-radius:4px;"></span>
-      </div>
-      <span class="placeholder bg-secondary flex-shrink-0" style="width:70px;height:24px;border-radius:20px;"></span>
-    </div><div class="card p-3 d-flex flex-row gap-3">
-      <span class="placeholder bg-secondary flex-shrink-0" style="width:8px;height:80px;border-radius:4px;"></span>
-      <div class="flex-grow-1">
-        <span class="placeholder bg-secondary w-25 d-block mb-2" style="height:14px;border-radius:4px;"></span>
-        <span class="placeholder bg-secondary w-50 d-block mb-2" style="height:12px;border-radius:4px;"></span>
-        <span class="placeholder bg-secondary w-75 d-block" style="height:12px;border-radius:4px;"></span>
-      </div>
-      <span class="placeholder bg-secondary flex-shrink-0" style="width:70px;height:24px;border-radius:20px;"></span>
-    </div><div class="card p-3 d-flex flex-row gap-3">
-      <span class="placeholder bg-secondary flex-shrink-0" style="width:8px;height:80px;border-radius:4px;"></span>
-      <div class="flex-grow-1">
-        <span class="placeholder bg-secondary w-25 d-block mb-2" style="height:14px;border-radius:4px;"></span>
-        <span class="placeholder bg-secondary w-50 d-block mb-2" style="height:12px;border-radius:4px;"></span>
-        <span class="placeholder bg-secondary w-75 d-block" style="height:12px;border-radius:4px;"></span>
-      </div>
-      <span class="placeholder bg-secondary flex-shrink-0" style="width:70px;height:24px;border-radius:20px;"></span>
-    </div><div class="card p-3 d-flex flex-row gap-3">
-      <span class="placeholder bg-secondary flex-shrink-0" style="width:8px;height:80px;border-radius:4px;"></span>
-      <div class="flex-grow-1">
-        <span class="placeholder bg-secondary w-25 d-block mb-2" style="height:14px;border-radius:4px;"></span>
-        <span class="placeholder bg-secondary w-50 d-block mb-2" style="height:12px;border-radius:4px;"></span>
-        <span class="placeholder bg-secondary w-75 d-block" style="height:12px;border-radius:4px;"></span>
-      </div>
-      <span class="placeholder bg-secondary flex-shrink-0" style="width:70px;height:24px;border-radius:20px;"></span>
-    </div>
-  </div>
+  
 <script src="../style/js/script.js"></script>
+<script>
+// hideSkeleton MUST be defined before flags.js loads
+window.hideSkeleton = function() {
+  var el = document.getElementById('page-skeleton');
+  if (el) el.style.display = 'none';
+};
+setTimeout(window.hideSkeleton, 5000);
+// Ensure API_BASE exists if script.js did not define it
+if (typeof API_BASE === 'undefined') {
+  window.API_BASE = '';
+  console.warn('API_BASE not defined — flags will show demo data.');
+}
+</script>
 <script src="../style/js/flags.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script>
-// Hide Bootstrap skeleton once page content is ready
-(function() {
-  var sk = document.getElementById('page-skeleton');
-  if (!sk) return;
-  // Hide after JS has had a chance to render real content
-  // Each page's own JS should call hideSkeleton() when data is loaded
-  window.hideSkeleton = function() {
-    var el = document.getElementById('page-skeleton');
-    if (el) el.style.display = 'none';
-  };
-  // Fallback: hide after 3s regardless
-  setTimeout(window.hideSkeleton, 3000);
-})();
-</script>
+<script src="/components/sidebar.js"></script>
 </body>
 </html>
