@@ -5,7 +5,6 @@ from sqlalchemy.orm import relationship
 
 from app.db.base import Base
 
-
 class User(Base):
     __tablename__ = "users"
 
@@ -80,8 +79,8 @@ class Notification(Base):
     category = Column(String, nullable=False, default="alert")
     title = Column(String, nullable=False)
     body = Column(Text, nullable=False)
-    is_read = Column(String, default="false")
-    is_priority = Column(String, default="false")
+    is_read = Column(Boolean, default="false")
+    is_priority = Column(Boolean, default="false")
     created_at = Column(DateTime, default=datetime.utcnow)
 
 
@@ -212,7 +211,7 @@ class FlagComment(Base):
     __tablename__ = "flag_comments"
 
     id      = Column(Integer, primary_key=True, index=True)
-    flag_id = Column(Integer, ForeignKey("flags.id"), nullable=False)
+    flag_id = Column(Integer, ForeignKey("flags.id"), nullable=False,index=True)
     author  = Column(String, nullable=False)
     body    = Column(Text, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
