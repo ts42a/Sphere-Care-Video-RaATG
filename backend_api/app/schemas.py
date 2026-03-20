@@ -2,6 +2,7 @@ from pydantic import BaseModel, EmailStr
 from typing import Optional, List
 from datetime import datetime
 
+
 # ---------- AUTH ----------
 
 class UserCreate(BaseModel):
@@ -39,6 +40,7 @@ class ChangePasswordRequest(BaseModel):
     current_password: str
     new_password: str
     otp_code: str
+
 
 # ---------- RESIDENTS ----------
 
@@ -366,7 +368,7 @@ class FlagCreate(BaseModel):
     transcript:       Optional[str] = None
     video_timestamp:  Optional[str] = None
     ai_confidence:    Optional[int] = None
-    flagged_at:       Optional[str] = None       # ISO datetime string
+    flagged_at:       Optional[datetime] = None       # ISO datetime string
 
 
 class FlagStatusUpdate(BaseModel):
