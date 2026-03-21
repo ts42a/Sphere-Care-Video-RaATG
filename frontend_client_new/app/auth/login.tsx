@@ -10,9 +10,10 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  Image,
 } from "react-native";
 import { router } from "expo-router";
-
+import { Images } from "../../src/constants/images";
 import { authService } from "../../src/services/authService";
 import { colors } from "../../src/theme/colors";
 import { spacing } from "../../src/theme/spacing";
@@ -56,9 +57,10 @@ export default function LoginScreen() {
         >
           <View style={styles.screen}>
             <View style={styles.logoWrap}>
-              <View style={styles.logoBox}>
-                <Text style={styles.logoPlaceholder}>LOGO</Text>
-              </View>
+              <Image
+                source={Images.logo_2}
+                style={{ width: 250, height: 60, resizeMode: "contain" }}
+              />
             </View>
 
             <Text style={styles.title}>Login</Text>
@@ -69,7 +71,7 @@ export default function LoginScreen() {
             <View style={styles.form}>
               <TextInput
                 style={styles.input}
-                placeholder="johnsmith@gmail.com"
+                placeholder="Enter your Email here"
                 placeholderTextColor={colors.textMuted}
                 keyboardType="email-address"
                 autoCapitalize="none"
@@ -80,7 +82,7 @@ export default function LoginScreen() {
 
               <TextInput
                 style={styles.input}
-                placeholder="XXXXXXXXXXX"
+                placeholder="Enter your password here"
                 placeholderTextColor={colors.textMuted}
                 secureTextEntry
                 value={password}

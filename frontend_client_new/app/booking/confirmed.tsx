@@ -14,10 +14,8 @@ import { useEffect, useState } from "react";
 import * as Calendar from "expo-calendar";
 import BottomNav from "../../src/components/BottomNav";
 import PageHeader from "../../src/components/PageHeader";
-import {
-  BookingConfirmation,
-  getBookingConfirmation,
-} from "../../src/api/booking";
+import { bookingService } from "../../src/services/bookingService";
+import type { BookingConfirmation } from "../../src/types/booking";
 
 export default function ConfirmedScreen() {
   const params = useLocalSearchParams<{
@@ -37,7 +35,7 @@ export default function ConfirmedScreen() {
       try {
         setLoading(true);
         setError("");
-        const data = await getBookingConfirmation(bookingId);
+        const data = await bookingService.getBookingConfirmation(bookingId);
         setConfirmation(data);
       } catch (err) {
         setError("Failed to load booking confirmation.");

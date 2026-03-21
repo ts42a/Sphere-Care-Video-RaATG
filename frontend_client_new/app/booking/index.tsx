@@ -13,10 +13,8 @@ import { useEffect, useState } from "react";
 import BottomNav from "../../src/components/BottomNav";
 import PageHeader from "../../src/components/PageHeader";
 
-import {
-  AppointmentType,
-  getAppointmentTypes,
-} from "../../src/api/booking";
+import { bookingService } from "../../src/services/bookingService";
+import type { AppointmentType } from "../../src/types/booking";
 
 export default function BookingScreen() {
   const [appointmentTypes, setAppointmentTypes] = useState<AppointmentType[]>([]);
@@ -28,7 +26,7 @@ export default function BookingScreen() {
       try {
         setLoading(true);
         setError("");
-        const data = await getAppointmentTypes();
+        const data = await bookingService.getAppointmentTypes();
         setAppointmentTypes(data);
       } catch (err) {
         setError("Failed to load appointment types.");

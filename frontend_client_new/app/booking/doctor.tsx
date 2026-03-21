@@ -12,7 +12,8 @@ import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import BottomNav from "../../src/components/BottomNav";
 import PageHeader from "../../src/components/PageHeader";
-import { Doctor, getDoctorsByType } from "../../src/api/booking";
+import { bookingService } from "../../src/services/bookingService";
+import type { Doctor } from "../../src/types/booking";
 
 export default function DoctorsScreen() {
   const params = useLocalSearchParams<{
@@ -35,7 +36,7 @@ export default function DoctorsScreen() {
       try {
         setLoading(true);
         setError("");
-        const data = await getDoctorsByType(typeId);
+        const data = await bookingService.getDoctorsByType(typeId);
         setDoctors(data);
       } catch (err) {
         setError("Failed to load doctors.");

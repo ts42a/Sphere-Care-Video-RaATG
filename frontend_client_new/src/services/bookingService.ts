@@ -1,11 +1,15 @@
 import {
-  fetchDoctors,
-  fetchSchedule,
   createBooking,
+  getAppointmentTypes,
+  getBookingConfirmation,
+  getDoctorsByType,
+  getSchedule,
 } from "../api/booking";
 
 export const bookingService = {
-  getDoctors: fetchDoctors,
-  getSchedule: fetchSchedule,
+  getAppointmentTypes,
+  getDoctorsByType,
+  getSchedule,
   createBooking,
+  getBookingConfirmation,
 };

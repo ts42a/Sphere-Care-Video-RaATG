@@ -1,4 +1,7 @@
+import { USE_MOCK_API } from "../config/api";
+import { request } from "./client";
 import { mockAuthUser, mockResetCode } from "../mock/authData";
+import type { ApiActionResponse, ApiItemResponse } from "../types/api";
 import type {
   ForgotPasswordResponse,
   LoginResponse,
@@ -7,36 +10,20 @@ import type {
   VerifyCodeResponse,
 } from "../types/auth";
 
-const USE_MOCK_AUTH = true;
-const API_BASE_URL = "http://127.0.0.1:8000";
-
 function wait(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-async function request<T>(path: string, options: RequestInit): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`, options);
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data?.detail || data?.message || "Request failed");
-  }
-
-  return data as T;
 }
 
 export async function loginUser(
   email: string,
   password: string
 ): Promise<LoginResponse> {
-  if (!USE_MOCK_AUTH) {
-    return request<LoginResponse>("/auth/login", {
+  if (!USE_MOCK_API) {
+    const response = await request<ApiItemResponse<LoginResponse>>("/auth/login", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ email, password }),
+      body: { email, password },
     });
+    return response.data;
   }
 
   await wait(500);
@@ -55,13 +42,10 @@ export async function loginUser(
 }
 
 export async function registerUser(payload: RegisterPayload): Promise<{ success: boolean }> {
-  if (!USE_MOCK_AUTH) {
-    return request<{ success: boolean }>("/auth/register", {
+  if (!USE_MOCK_API) {
+    return request<ApiActionResponse>("/auth/register", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
+      body: payload,
     });
   }
 
@@ -81,14 +65,12 @@ export async function registerUser(payload: RegisterPayload): Promise<{ success:
 export async function requestPasswordReset(
   email: string
 ): Promise<ForgotPasswordResponse> {
-  if (!USE_MOCK_AUTH) {
-    return request<ForgotPasswordResponse>("/auth/forgot-password", {
+  if (!USE_MOCK_API) {
+    const response = await request<ApiItemResponse<ForgotPasswordResponse>>("/auth/forgot-password", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ email }),
+      body: { email },
     });
+    return response.data;
   }
 
   await wait(400);
@@ -107,14 +89,12 @@ export async function verifyResetCode(
   email: string,
   code: string
 ): Promise<VerifyCodeResponse> {
-  if (!USE_MOCK_AUTH) {
-    return request<VerifyCodeResponse>("/auth/verify-reset-code", {
+  if (!USE_MOCK_API) {
+    const response = await request<ApiItemResponse<VerifyCodeResponse>>("/auth/verify-reset-code", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ email, code }),
+      body: { email, code },
     });
+    return response.data;
   }
 
   await wait(350);
@@ -136,13 +116,10 @@ export async function verifyResetCode(
 export async function resetPassword(
   payload: ResetPasswordPayload
 ): Promise<{ success: boolean }> {
-  if (!USE_MOCK_AUTH) {
-    return request<{ success: boolean }>("/auth/reset-password", {
+  if (!USE_MOCK_API) {
+    return request<ApiActionResponse>("/auth/reset-password", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
+      body: payload,
     });
   }
 

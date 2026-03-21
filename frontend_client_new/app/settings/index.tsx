@@ -254,7 +254,7 @@ function renderIcon(icon: SettingRow["icon"], isDanger: boolean) {
     case "document":
       return <Ionicons name="document-text-outline" size={28} color={color} />;
     case "info":
-      return <AntDesign name="questioncircleo" size={26} color={color} />;
+      return <AntDesign name="question-circle" size={26} color={color} />;
     case "logout":
       return <MaterialIcons name="logout" size={28} color={color} />;
     default:

@@ -13,12 +13,8 @@ import { useEffect, useMemo, useState } from "react";
 import BottomNav from "../../src/components/BottomNav";
 import PageHeader from "../../src/components/PageHeader";
 import BookingCalendar from "../../src/components/BookingCalendar";
-import {
-  ScheduleResponse,
-  TimeSlot,
-  createBooking,
-  getSchedule,
-} from "../../src/api/booking";
+import { bookingService } from "../../src/services/bookingService";
+import type { ScheduleResponse, TimeSlot } from "../../src/types/booking";
 
 function toDateKey(date: Date) {
   const year = date.getFullYear();
@@ -69,7 +65,7 @@ export default function ScheduleScreen() {
       try {
         setLoading(true);
         setError("");
-        const data = await getSchedule(doctorId, typeId);
+        const data = await bookingService.getSchedule(doctorId, typeId);
         setScheduleData(data);
 
         const firstValidDate =
@@ -128,7 +124,7 @@ export default function ScheduleScreen() {
     try {
       setSubmitting(true);
 
-      const result = await createBooking({
+      const result = await bookingService.createBooking({
         doctorId,
         typeId,
         typeTitle,

@@ -22,7 +22,7 @@ import { typography } from "../../src/theme/typography";
 export default function VerifyCodeScreen() {
   const { email } = useLocalSearchParams<{ email?: string }>();
 
-  const [digits, setDigits] = useState(["8", "6", "3", "", ""]);
+  const [digits, setDigits] = useState(["", "", "", "", ""]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 

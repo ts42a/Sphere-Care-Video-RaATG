@@ -64,7 +64,7 @@ export default function ForgotPasswordScreen() {
 
             <TextInput
               style={styles.input}
-              placeholder="contact@dscodetech.com"
+              placeholder="Enter your Email here"
               placeholderTextColor={colors.textMuted}
               keyboardType="email-address"
               autoCapitalize="none"

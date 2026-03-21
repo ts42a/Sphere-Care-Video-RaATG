@@ -4,7 +4,7 @@
     "slug": "frontend_client_new",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/M.png",
     "scheme": "frontendclientnew",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -23,7 +23,7 @@
     },
     "web": {
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/M.png"
     },
     "plugins": [
       "expo-router",

@@ -1,53 +1,21 @@
-export type AppointmentType = {
-  id: string;
-  title: string;
-  duration: string;
-};
-
-export type Doctor = {
-  id: string;
-  name: string;
-  role: string;
-  available: boolean;
-  rating: number;
-  experience: string;
-  price: string;
-  specialty?: string;
-};
-
-export type TimeSlot = {
-  id: string;
-  label: string;
-};
-
-export type ScheduleResponse = {
-  doctor: Doctor;
-  availableDates: string[];
-  timeSlots: TimeSlot[];
-};
-
-export type BookingConfirmation = {
-  bookingId: string;
-  doctor: {
-    id: string;
-    name: string;
-    role: string;
-  };
-  appointmentType: {
-    id: string;
-    title: string;
-  };
-  date: string;
-  time: string;
-  room: string;
-  status: string;
-};
+import { USE_MOCK_API } from "../config/api";
+import { request } from "./client";
+import type { ApiItemResponse, ApiListResponse } from "../types/api";
+import type {
+  AppointmentType,
+  BookingConfirmation,
+  CreateBookingPayload,
+  CreateBookingResponse,
+  Doctor,
+  ScheduleResponse,
+} from "../types/booking";
 
 let latestBooking: BookingConfirmation | null = null;
 
 function wait(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
+
 function toDateKey(date: Date) {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -76,7 +44,7 @@ function generateAvailableDates(weeksAhead = 4): string[] {
   return results;
 }
 
-export async function getAppointmentTypes(): Promise<AppointmentType[]> {
+async function getMockAppointmentTypes(): Promise<AppointmentType[]> {
   await wait(200);
 
   return [
@@ -89,7 +57,7 @@ export async function getAppointmentTypes(): Promise<AppointmentType[]> {
   ];
 }
 
-export async function getDoctorsByType(typeId: string): Promise<Doctor[]> {
+async function getMockDoctorsByType(_typeId: string): Promise<Doctor[]> {
   await wait(200);
 
   return [
@@ -146,13 +114,13 @@ export async function getDoctorsByType(typeId: string): Promise<Doctor[]> {
   ];
 }
 
-export async function getSchedule(
+async function getMockSchedule(
   doctorId: string,
   typeId: string
 ): Promise<ScheduleResponse> {
   await wait(200);
 
-  const doctors = await getDoctorsByType(typeId);
+  const doctors = await getMockDoctorsByType(typeId);
   const doctor = doctors.find((item) => item.id === doctorId) ?? doctors[0];
 
   return {
@@ -167,15 +135,51 @@ export async function getSchedule(
   };
 }
 
-export async function createBooking(payload: {
-  doctorId: string;
-  typeId: string;
-  typeTitle: string;
-  doctorName: string;
-  doctorRole: string;
-  date: string;
-  time: string;
-}) {
+export async function getAppointmentTypes(): Promise<AppointmentType[]> {
+  if (USE_MOCK_API) {
+    return getMockAppointmentTypes();
+  }
+
+  const response = await request<ApiListResponse<AppointmentType>>("/appointments/types");
+  return response.data;
+}
+
+export async function getDoctorsByType(typeId: string): Promise<Doctor[]> {
+  if (USE_MOCK_API) {
+    return getMockDoctorsByType(typeId);
+  }
+
+  const query = typeId ? `?typeId=${encodeURIComponent(typeId)}` : "";
+  const response = await request<ApiListResponse<Doctor>>(`/appointments/doctors${query}`);
+  return response.data;
+}
+
+export async function getSchedule(
+  doctorId: string,
+  typeId: string
+): Promise<ScheduleResponse> {
+  if (USE_MOCK_API) {
+    return getMockSchedule(doctorId, typeId);
+  }
+
+  const query = new URLSearchParams({ doctorId, typeId }).toString();
+  const response = await request<ApiItemResponse<ScheduleResponse>>(
+    `/appointments/schedule?${query}`
+  );
+  return response.data;
+}
+
+export async function createBooking(
+  payload: CreateBookingPayload
+): Promise<CreateBookingResponse> {
+  if (!USE_MOCK_API) {
+    const response = await request<ApiItemResponse<CreateBookingResponse>>("/appointments/book", {
+      method: "POST",
+      body: payload,
+    });
+    return response.data;
+  }
+
   await wait(200);
 
   const bookingId = `booking-${Date.now()}`;
@@ -197,14 +201,19 @@ export async function createBooking(payload: {
     status: "Confirmed",
   };
 
-  return {
-    bookingId,
-  };
+  return { bookingId };
 }
 
 export async function getBookingConfirmation(
   bookingId: string
 ): Promise<BookingConfirmation> {
+  if (!USE_MOCK_API) {
+    const response = await request<ApiItemResponse<BookingConfirmation>>(
+      `/appointments/${bookingId}`
+    );
+    return response.data;
+  }
+
   await wait(200);
 
   if (!latestBooking || latestBooking.bookingId !== bookingId) {

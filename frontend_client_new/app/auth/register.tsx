@@ -76,7 +76,7 @@ export default function RegisterScreen() {
             <View style={styles.form}>
               <TextInput
                 style={styles.input}
-                placeholder="johnsmith@gmail.com"
+                placeholder="Enter your Email here"
                 placeholderTextColor={colors.textMuted}
                 autoCapitalize="none"
                 autoCorrect={false}
@@ -89,7 +89,7 @@ export default function RegisterScreen() {
                 <Text style={styles.countryCode}>🇦🇺 ▾</Text>
                 <TextInput
                   style={styles.phoneInput}
-                  placeholder="04123456789"
+                  placeholder="Enter your phone number here"
                   placeholderTextColor={colors.textMuted}
                   keyboardType="phone-pad"
                   value={phone}
@@ -99,7 +99,7 @@ export default function RegisterScreen() {
 
               <TextInput
                 style={styles.input}
-                placeholder="XXXXXXXX"
+                placeholder="Enter your password here"
                 placeholderTextColor={colors.textMuted}
                 secureTextEntry
                 value={password}
@@ -108,7 +108,7 @@ export default function RegisterScreen() {
 
               <TextInput
                 style={styles.input}
-                placeholder="XXXXXXXX"
+                placeholder="Confirm your password here"
                 placeholderTextColor={colors.textMuted}
                 secureTextEntry
                 value={confirmPassword}
@@ -132,7 +132,7 @@ export default function RegisterScreen() {
 
             <View style={styles.loginPromptWrap}>
               <Text style={styles.loginPromptText}>
-                already have account continue{"\n"}with log in
+                already have account continue with log in
               </Text>
             </View>
 
