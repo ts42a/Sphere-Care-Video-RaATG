@@ -201,3 +201,122 @@ function showToast(msg, type = 'success') {
   toast.className   = `toast ${type} show`;
   setTimeout(() => toast.classList.remove('show'), 3000);
 }
+
+// ── OTP FLOW ──────────────────────────────────────────────
+const OTP_API_BASE = API_BASE;
+let otpResendTimer = null;
+
+async function sendOtp() {
+  const current = document.getElementById('input-current-pwd').value.trim();
+  const newPwd  = document.getElementById('input-new-pwd').value.trim();
+  const confirm = document.getElementById('input-confirm-pwd').value.trim();
+  const btn     = document.getElementById('btn-send-otp');
+
+  if (!current)           return showToast('Please enter your current password.', 'error');
+  if (newPwd.length < 8)  return showToast('New password must be at least 8 characters.', 'error');
+  if (newPwd !== confirm) return showToast('Passwords do not match.', 'error');
+
+  btn.disabled = true; btn.textContent = 'Sending…';
+  try {
+    const token = localStorage.getItem('access_token');
+    const res = await fetch(`${OTP_API_BASE}/auth/request-otp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      body: JSON.stringify({ purpose: 'change_password' }),
+    });
+    if (!res.ok) { const err = await res.json().catch(()=>({})); throw new Error(err.detail || 'Failed to send code'); }
+    const data = await res.json();
+    if (data.email_hint || data.destination) document.getElementById('otp-dest').textContent = data.email_hint || data.destination;
+    document.getElementById('otp-step').classList.add('visible');
+    document.querySelectorAll('.otp-box')[0].focus();
+    startResendTimer();
+    showToast('Verification code sent!', 'success');
+  } catch (err) {
+    showToast(err.message, 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Send Verification Code';
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const boxes = document.querySelectorAll('.otp-box');
+  boxes.forEach((box, i) => {
+    box.addEventListener('input', e => {
+      const val = e.target.value.replace(/\D/g, '');
+      e.target.value = val.slice(-1);
+      e.target.classList.toggle('filled', !!val);
+      if (val && i < boxes.length - 1) boxes[i+1].focus();
+      checkOtpComplete();
+    });
+    box.addEventListener('keydown', e => {
+      if (e.key === 'Backspace' && !box.value && i > 0) {
+        boxes[i-1].value = ''; boxes[i-1].classList.remove('filled'); boxes[i-1].focus(); checkOtpComplete();
+      }
+    });
+    box.addEventListener('paste', e => {
+      e.preventDefault();
+      const pasted = (e.clipboardData||window.clipboardData).getData('text').replace(/\D/g,'').slice(0,6);
+      [...pasted].forEach((ch,j) => { if(boxes[j]){boxes[j].value=ch;boxes[j].classList.add('filled');} });
+      boxes[Math.min(pasted.length, boxes.length-1)].focus();
+      checkOtpComplete();
+    });
+  });
+});
+
+function checkOtpComplete() {
+  const complete = [...document.querySelectorAll('.otp-box')].every(b => b.value.length === 1);
+  document.getElementById('btn-otp-confirm').disabled = !complete;
+}
+
+async function verifyOtp() {
+  const otp     = [...document.querySelectorAll('.otp-box')].map(b=>b.value).join('');
+  const current = document.getElementById('input-current-pwd').value.trim();
+  const newPwd  = document.getElementById('input-new-pwd').value.trim();
+  const btn     = document.getElementById('btn-otp-confirm');
+  btn.disabled = true; btn.textContent = 'Verifying…';
+  try {
+    const token = localStorage.getItem('access_token');
+    const res = await fetch(`${OTP_API_BASE}/auth/change-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      body: JSON.stringify({ current_password: current, new_password: newPwd, otp_code: otp }),
+    });
+    if (!res.ok) { const err = await res.json().catch(()=>({})); throw new Error(err.detail || 'Invalid or expired code'); }
+    showToast('Password changed successfully!', 'success');
+    cancelOtp();
+  } catch (err) {
+    document.querySelectorAll('.otp-box').forEach(b => { b.classList.add('error'); b.value=''; b.classList.remove('filled'); setTimeout(()=>b.classList.remove('error'),400); });
+    document.querySelectorAll('.otp-box')[0].focus();
+    document.getElementById('btn-otp-confirm').disabled = true;
+    showToast(err.message, 'error');
+  } finally { btn.textContent = 'Confirm Change'; }
+}
+
+async function resendOtp() {
+  if (document.getElementById('resend-link').classList.contains('disabled')) return;
+  await sendOtp();
+}
+
+function startResendTimer(seconds=60) {
+  clearInterval(otpResendTimer);
+  const link=document.getElementById('resend-link'), timerEl=document.getElementById('resend-timer'), countEl=document.getElementById('resend-countdown');
+  link.classList.add('disabled'); timerEl.style.display='inline'; countEl.textContent=seconds;
+  let remaining=seconds;
+  otpResendTimer=setInterval(()=>{
+    countEl.textContent=--remaining;
+    if(remaining<=0){clearInterval(otpResendTimer);link.classList.remove('disabled');timerEl.style.display='none';}
+  },1000);
+}
+
+function cancelOtp() {
+  clearInterval(otpResendTimer);
+  document.getElementById('otp-step').classList.remove('visible');
+  document.querySelectorAll('.otp-box').forEach(b=>{b.value='';b.classList.remove('filled','error');});
+  document.getElementById('btn-otp-confirm').disabled=true;
+  document.getElementById('input-current-pwd').value='';
+  document.getElementById('input-new-pwd').value='';
+  document.getElementById('input-confirm-pwd').value='';
+  document.getElementById('pwd-bar').style.width='0%';
+  document.getElementById('resend-link').classList.remove('disabled');
+  document.getElementById('resend-timer').style.display='none';
+}

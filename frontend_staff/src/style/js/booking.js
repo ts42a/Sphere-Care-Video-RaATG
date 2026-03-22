@@ -270,13 +270,60 @@ function goToday() {
 }
 
 function openModal(b) {
-  document.getElementById('modal-title').textContent = b.type;
+  const sc = {
+    pending:   { bg:'#dbeafe', color:'#1d4ed8' },
+    ongoing:   { bg:'#fef3c7', color:'#b45309' },
+    completed: { bg:'#d1fae5', color:'#065f46' },
+    cancelled: { bg:'#fee2e2', color:'#b91c1c' },
+    requested: { bg:'#fee2e2', color:'#b91c1c' },
+  }[b.status] || { bg:'#f1f5f9', color:'#5a6170' };
+
+  let niceDate = b.date;
+  try { niceDate = new Date(b.date).toLocaleDateString('en-AU',{weekday:'long',day:'numeric',month:'long',year:'numeric'}); } catch(e){}
+
+  const docInitials = b.doctor.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  const resInitials = b.resident.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+
+  document.getElementById('modal-title').textContent = b.type || 'Appointment';
   document.getElementById('modal-body').innerHTML = `
-    <div class="modal-row"><span>Doctor</span><span>${b.doctor}</span></div>
-    <div class="modal-row"><span>Resident</span><span>${b.resident}</span></div>
-    <div class="modal-row"><span>Date</span><span>${b.date}</span></div>
-    <div class="modal-row"><span>Time</span><span>${b.time}</span></div>
-    <div class="modal-row"><span>Status</span><span class="appt-badge legend-tag ${b.status}">${b.status.charAt(0).toUpperCase()+b.status.slice(1)}</span></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <span style="background:${sc.bg};color:${sc.color};font-size:11px;font-weight:800;padding:4px 12px;border-radius:20px;">${b.status.toUpperCase()}</span>
+      <span style="font-size:11px;color:#9aa0ac;font-weight:600;">#APT-${String(b.id||'').padStart(4,'0')}</span>
+    </div>
+    <div style="background:#f8fafc;border-radius:12px;padding:14px;margin-bottom:12px;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+        <div style="width:36px;height:36px;border-radius:50%;background:#0f1b2d;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff;flex-shrink:0;">${docInitials}</div>
+        <div>
+          <div style="font-size:13.5px;font-weight:800;color:#1a2535;">${b.doctor}</div>
+          <div style="font-size:11px;color:#9aa0ac;">Attending Physician</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="width:36px;height:36px;border-radius:50%;background:#2ec4b6;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff;flex-shrink:0;">${resInitials}</div>
+        <div>
+          <div style="font-size:13.5px;font-weight:800;color:#1a2535;">${b.resident}</div>
+          <div style="font-size:11px;color:#9aa0ac;">Resident / Patient</div>
+        </div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+      <div style="background:#f8fafc;border-radius:10px;padding:12px;">
+        <div style="font-size:10px;font-weight:700;color:#9aa0ac;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Date</div>
+        <div style="font-size:12.5px;font-weight:700;color:#1a2535;">${niceDate}</div>
+      </div>
+      <div style="background:#f8fafc;border-radius:10px;padding:12px;">
+        <div style="font-size:10px;font-weight:700;color:#9aa0ac;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Time</div>
+        <div style="font-size:13px;font-weight:800;color:#1a2535;">${b.time}</div>
+      </div>
+    </div>
+    <div style="background:#f8fafc;border-radius:10px;padding:12px;margin-bottom:12px;">
+      <div style="font-size:10px;font-weight:700;color:#9aa0ac;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Appointment Type</div>
+      <div style="font-size:13px;font-weight:700;color:#1a2535;">${b.type||'—'}</div>
+    </div>
+    <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:12px;">
+      <div style="font-size:10px;font-weight:700;color:#b45309;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">📋 Clinical Notes</div>
+      <div style="font-size:12px;color:#6b7280;line-height:1.5;">No notes recorded for this appointment yet.</div>
+    </div>
   `;
   document.getElementById('modal-overlay').classList.add('open');
 }

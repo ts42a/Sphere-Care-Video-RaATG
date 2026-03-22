@@ -9,7 +9,9 @@ function tick(){
   document.getElementById('tb-date').textContent = d.toLocaleDateString('en-AU',{day:'numeric',month:'long',year:'numeric'});
   document.getElementById('tb-time').textContent = d.toLocaleTimeString('en-AU',{hour:'2-digit',minute:'2-digit'});
 }
-tick(); setInterval(tick,1000);
+document.addEventListener('DOMContentLoaded', function() {
+  tick(); setInterval(tick, 1000);
+});
 
 function authHeaders(){
   const h={'Content-Type':'application/json'};
@@ -232,7 +234,9 @@ function openUploadModal(){
 }
 function openModal(id){document.getElementById(id).classList.add('open');document.body.style.overflow='hidden';}
 function closeModal(id){document.getElementById(id).classList.remove('open');document.body.style.overflow='';}
-document.querySelectorAll('.overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)closeModal(o.id);}));
+document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('.overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)closeModal(o.id);}));
+});
 
 function showApiStatus(connected){
   let el=document.getElementById('api-status');
@@ -243,7 +247,11 @@ function showApiStatus(connected){
   el.style.opacity='1';setTimeout(()=>el.style.opacity='0',3000);
 }
 
+// DEMO DATA
+
 // INIT
-loadCategories();
-loadRecords();
-loadInsights();
+document.addEventListener('DOMContentLoaded', function() {
+  loadCategories();
+  loadRecords();
+  loadInsights();
+});
