@@ -8,7 +8,10 @@ from datetime import datetime
 class UserCreate(BaseModel):
     full_name: str
     email: EmailStr
+    email_confirmation: Optional[EmailStr] = None  # used by HTML web frontend
     password: str
+    retype_password: Optional[str] = None          # used by HTML web frontend
+    phone: Optional[str] = None                    # used by React Native mobile frontend
     role: str = "staff"
 
 
@@ -22,6 +25,7 @@ class UserResponse(BaseModel):
     full_name: str
     email: EmailStr
     role: str
+    phone: Optional[str] = None  # added
     created_at: Optional[datetime] = None
 
     model_config = {"from_attributes": True}
@@ -132,7 +136,7 @@ class AlertResponse(BaseModel):
     title: str
     message: str
     is_read: str
-    created_at: str          # pre-formatted string e.g. "Mar 14, 2026 05:50 AM"
+    created_at: str
 
     model_config = {"from_attributes": True}
 
@@ -283,7 +287,6 @@ class AiInsightResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
-# Fixed: was incorrectly a single object, should be a summary wrapper
 class AiInsightSummary(BaseModel):
     high: int
     mid: int
@@ -304,8 +307,8 @@ class CameraCreate(BaseModel):
 
 
 class CameraStatusUpdate(BaseModel):
-    status: Optional[str] = None       # "live" | "offline"
-    alert: Optional[str] = None        # "critical" | "fine" | "none"
+    status: Optional[str] = None
+    alert: Optional[str] = None
     description: Optional[str] = None
 
 
@@ -334,8 +337,8 @@ class CameraStats(BaseModel):
 
 class CameraAlertCreate(BaseModel):
     camera_id: Optional[int] = None
-    alert_type: str                    # "critical" | "warning" | "info"
-    icon: str = "fall"                 # "fall" | "person" | "sound" | "motion"
+    alert_type: str
+    icon: str = "fall"
     title: str
     description: str
 
@@ -359,20 +362,20 @@ class CameraAlertResponse(BaseModel):
 class FlagCreate(BaseModel):
     resident_name:    str
     resident_id:      Optional[str] = None
-    event_type:       str                        # Pain | Distress | Agitation | Crying | Fall Risk | Medication | Wandering
+    event_type:       str
     description:      str
-    severity:         str                        # High | Medium | Low
-    source:           str = "AI"                 # AI | Staff
+    severity:         str
+    source:           str = "AI"
     status:           str = "Open"
     sev_desc:         Optional[str] = None
     transcript:       Optional[str] = None
     video_timestamp:  Optional[str] = None
     ai_confidence:    Optional[int] = None
-    flagged_at:       Optional[datetime] = None       # ISO datetime string
+    flagged_at:       Optional[datetime] = None
 
 
 class FlagStatusUpdate(BaseModel):
-    status: str                                  # Open | Pending Review | Resolved | Escalated
+    status: str
 
 
 class FlagCommentCreate(BaseModel):
