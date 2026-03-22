@@ -1,22 +1,49 @@
+import { Platform } from "react-native";
 import * as SecureStore from "expo-secure-store";
 
 const ACCESS_TOKEN_KEY = "spherecare_access_token";
 const USER_KEY = "spherecare_user";
 
+async function setItem(key: string, value: string) {
+  if (Platform.OS === "web") {
+    localStorage.setItem(key, value);
+    return;
+  }
+
+  await SecureStore.setItemAsync(key, value);
+}
+
+async function getItem(key: string) {
+  if (Platform.OS === "web") {
+    return localStorage.getItem(key);
+  }
+
+  return SecureStore.getItemAsync(key);
+}
+
+async function deleteItem(key: string) {
+  if (Platform.OS === "web") {
+    localStorage.removeItem(key);
+    return;
+  }
+
+  await SecureStore.deleteItemAsync(key);
+}
+
 export async function saveSession(token: string, user?: unknown) {
-  await SecureStore.setItemAsync(ACCESS_TOKEN_KEY, token);
+  await setItem(ACCESS_TOKEN_KEY, token);
 
   if (user) {
-    await SecureStore.setItemAsync(USER_KEY, JSON.stringify(user));
+    await setItem(USER_KEY, JSON.stringify(user));
   }
 }
 
 export async function getAccessToken() {
-  return SecureStore.getItemAsync(ACCESS_TOKEN_KEY);
+  return getItem(ACCESS_TOKEN_KEY);
 }
 
 export async function getStoredUser<T>() {
-  const raw = await SecureStore.getItemAsync(USER_KEY);
+  const raw = await getItem(USER_KEY);
 
   if (!raw) return null;
 
@@ -28,6 +55,6 @@ export async function getStoredUser<T>() {
 }
 
 export async function clearSession() {
-  await SecureStore.deleteItemAsync(ACCESS_TOKEN_KEY);
-  await SecureStore.deleteItemAsync(USER_KEY);
+  await deleteItem(ACCESS_TOKEN_KEY);
+  await deleteItem(USER_KEY);
 }

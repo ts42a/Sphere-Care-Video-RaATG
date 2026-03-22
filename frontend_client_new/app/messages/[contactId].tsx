@@ -17,7 +17,6 @@ import { callService } from "../../src/services/callService";
 import { messageService } from "../../src/services/messageService";
 import type { ChatMessage } from "../../src/types/message";
 import type { CallContact } from "../../src/types/call";
-import BottomNav from "../../src/components/BottomNav";
 import { typography } from "../../src/theme/typography";
 
 export default function MessageChatScreen() {
@@ -206,8 +205,6 @@ export default function MessageChatScreen() {
             <Ionicons name="send" size={22} color="#FFFFFF" />
           </Pressable>
         </View>
-
-        <BottomNav active="message" />
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
