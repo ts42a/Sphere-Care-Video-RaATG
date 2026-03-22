@@ -20,8 +20,8 @@ GOOGLE_AUTH_URL  = "https://accounts.google.com/o/oauth2/v2/auth"
 GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
 GOOGLE_USERINFO  = "https://www.googleapis.com/oauth2/v3/userinfo"
 
-FRONTEND_SUCCESS = "http://localhost:5500/src/pages/dashboard.html"
-FRONTEND_FAIL    = "http://localhost:5500/src/pages/register-login.html?error=oauth_failed"
+FRONTEND_SUCCESS = "http://localhost:8000/pages/register-login.html"
+FRONTEND_FAIL    = "http://localhost:8000/pages/register-login.html?error=oauth_failed"
 
 JWT_SECRET    = JWT_SECRET_KEY
 JWT_ALGORITHM = "HS256"

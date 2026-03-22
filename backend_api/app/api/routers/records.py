@@ -1,15 +1,3 @@
-"""
-records.py — Records Library + AI Insight router
-
-    GET  /records/                   
-    GET  /records/{id}              
-    POST /records/                 
-    DELETE /records/{id}           
-
-    GET  /records/ai-insights       
-    POST /records/ai-insights        
-    PATCH /records/ai-insights/{id}/seen   
-"""
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from sqlalchemy import func, or_
@@ -94,15 +82,6 @@ def get_categories(db: Session = Depends(get_db)):
     return [r[0] for r in rows]
 
 
-@router.get("/{record_id}", response_model=schemas.RecordResponse)
-def get_record(record_id: int, db: Session = Depends(get_db)):
-    """Get a single record by ID (View button)."""
-    r = db.query(models.Record).filter(models.Record.id == record_id).first()
-    if not r:
-        raise HTTPException(status_code=404, detail="Record not found.")
-    return _fmt_record(r)
-
-
 @router.post("/", response_model=schemas.RecordResponse, status_code=status.HTTP_201_CREATED)
 def upload_record(record_in: schemas.RecordCreate, db: Session = Depends(get_db)):
     """Upload / create a new record (Upload record button)."""
@@ -168,4 +147,10 @@ def mark_insight_seen(insight_id: int, db: Session = Depends(get_db)):
     insight.is_new = "false"
     db.commit()
     db.refresh(insight)
-    return _fmt_insight(insight)
+    return _fmt_insight(insight)@router.get("/{record_id}", response_model=schemas.RecordResponse)
+def get_record(record_id: int, db: Session = Depends(get_db)):
+    """Get a single record by ID (View button)."""
+    r = db.query(models.Record).filter(models.Record.id == record_id).first()
+    if not r:
+        raise HTTPException(status_code=404, detail="Record not found.")
+    return _fmt_record(r)

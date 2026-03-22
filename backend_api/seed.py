@@ -13,7 +13,6 @@ def exists(model, **kwargs):
     return db.query(model).filter_by(**kwargs).first()
 
 # RESIDENTS
-
 RESIDENTS = [
     {"full_name": "Sarah Johnson",   "age": 78, "room": "105", "status": "monitoring", "ai_summary": "Mild back pain after exercise. BP slightly elevated, monitoring closely. Mood stable."},
     {"full_name": "Robert Martinez", "age": 82, "room": "203", "status": "stable",     "ai_summary": "Skipped lunch today. Appetite lower this week. Vitals normal, mood calm."},
@@ -37,7 +36,6 @@ def seed_residents():
     print(f"  Residents:     {added} added")
 
 # FLAGS
-
 FLAGS = [
     {
         "resident_name": "Hannah Li",      "resident_id": "RES005",
@@ -145,7 +143,6 @@ def seed_flags():
     print(f"  Flags:         {added} added")
 
 # RECORDS & AI INSIGHTS
-
 RECORDS = [
     {"resident_name": "Margaret Chen",  "category": "Medication Administration", "record_type": "video",    "duration": "09:15", "notes": "Medication review and blood pressure recorded successfully.",         "recorded_at": "10/22/2025", "recorded_time": "09:15"},
     {"resident_name": "Alice Tan",       "category": "Family Video Call",         "record_type": "video",    "duration": "14:00", "notes": "Positive interaction recorded. No distress or agitation.",            "recorded_at": "10/22/2025", "recorded_time": "14:00"},
@@ -187,7 +184,6 @@ def seed_insights():
     print(f"  AI Insights:   {added} added")
 
 # CONVERSATIONS & MESSAGES
-
 CONVERSATIONS = [
     {"name": "Care Team \u2013 Floor 2",            "category": "team",     "last_message": "Perfect, I'll check on her in 10 minutes",               "unread_count": 3},
     {"name": "Sarah Chen",                           "category": "team",     "last_message": "Can you help me with Mrs. Johnson's medication schedule?", "unread_count": 1},
@@ -240,7 +236,6 @@ def seed_messages():
     print(f"  Conversations: {added_c} added,  Messages: {added_m} added")
 
 # STAFF
-
 STAFF = [
     {"staff_id": "ST-4829", "full_name": "Sarah Johnson",  "shift_time": "7:00 AM - 3:00 PM",  "assigned_unit": "ICU Ward",    "status": "active",   "role": "Senior Carer"},
     {"staff_id": "ST-3746", "full_name": "Michael Chen",   "shift_time": "3:00 PM - 11:00 PM", "assigned_unit": "Emergency",   "status": "on_leave", "role": "Nurse"},
@@ -260,7 +255,6 @@ def seed_staff():
     print(f"  Staff:         {added} added")
 
 # ALERTS
-
 ALERTS = [
     {"level": "warning",  "title": "Staff Shortage Warning", "message": "ICU Ward requires additional coverage for night shift.", "is_read": "false"},
     {"level": "critical", "title": "Critical Task Overdue",  "message": "Equipment maintenance check pending for 2 days.",        "is_read": "false"},
@@ -276,8 +270,8 @@ def seed_alerts():
     db.commit()
     print(f"  Alerts:        {added} added")
 
-# CAMERAS  (Recording Console)
 
+# CAMERAS  (Recording Console)
 CAMERAS = [
     {"title": "Room 101 \u2014 Main View",  "resident_name": "Margaret Thompson", "floor": "Floor 1", "status": "live",    "alert": "critical", "description": "Potential fall detected \u2014 resident unsteady near bed."},
     {"title": "Room 101 \u2014 Side View",  "resident_name": "Margaret Thompson", "floor": "Floor 1", "status": "live",    "alert": "fine",     "description": "Side angle view, no issues detected."},
@@ -320,6 +314,57 @@ def seed_cameras():
     db.commit()
     print(f"  Cameras:       {added} added,  Camera Alerts: {added_a} added")
 
+# BOOKINGS
+# model fields: resident_id, doctor_name, booking_type, date, time, status
+BOOKINGS = [
+    # March 2026
+    {"resident_id": 1,  "doctor_name": "Dr. Sarah Wilson", "booking_type": "Consultation",           "date": "2026-03-16", "time": "10:00 AM", "status": "pending"},
+    {"resident_id": 4,  "doctor_name": "Dr. James Reid",   "booking_type": "Pain Management Review", "date": "2026-03-16", "time": "11:30 AM", "status": "ongoing"},
+    {"resident_id": 5,  "doctor_name": "Dr. Priya Nair",   "booking_type": "Counselling Session",    "date": "2026-03-16", "time": "02:00 PM", "status": "pending"},
+    {"resident_id": 10, "doctor_name": "Dr. Tom Blake",    "booking_type": "Fall Risk Assessment",   "date": "2026-03-16", "time": "03:30 PM", "status": "pending"},
+    {"resident_id": 2,  "doctor_name": "Dr. Sarah Wilson", "booking_type": "Medication Review",      "date": "2026-03-17", "time": "09:00 AM", "status": "pending"},
+    {"resident_id": 3,  "doctor_name": "Dr. James Reid",   "booking_type": "Routine Check-up",       "date": "2026-03-17", "time": "10:30 AM", "status": "pending"},
+    {"resident_id": 6,  "doctor_name": "Dr. Priya Nair",   "booking_type": "Fatigue Assessment",     "date": "2026-03-18", "time": "09:00 AM", "status": "pending"},
+    {"resident_id": 7,  "doctor_name": "Dr. Tom Blake",    "booking_type": "Behaviour Review",       "date": "2026-03-18", "time": "11:00 AM", "status": "pending"},
+    {"resident_id": 8,  "doctor_name": "Dr. Sarah Wilson", "booking_type": "Medication Compliance",  "date": "2026-03-19", "time": "10:00 AM", "status": "pending"},
+    {"resident_id": 9,  "doctor_name": "Dr. James Reid",   "booking_type": "Follow-up Consultation", "date": "2026-03-19", "time": "02:30 PM", "status": "pending"},
+    {"resident_id": 1,  "doctor_name": "Dr. Priya Nair",   "booking_type": "Physical Exam",          "date": "2026-03-20", "time": "09:30 AM", "status": "pending"},
+    {"resident_id": 4,  "doctor_name": "Dr. Tom Blake",    "booking_type": "Pain Check",             "date": "2026-03-21", "time": "11:00 AM", "status": "pending"},
+    {"resident_id": 5,  "doctor_name": "Dr. Sarah Wilson", "booking_type": "Wellness Check",         "date": "2026-03-24", "time": "10:00 AM", "status": "pending"},
+    {"resident_id": 10, "doctor_name": "Dr. James Reid",   "booking_type": "Mobility Assessment",    "date": "2026-03-25", "time": "09:00 AM", "status": "pending"},
+    {"resident_id": 2,  "doctor_name": "Dr. Priya Nair",   "booking_type": "Appetite Review",        "date": "2026-03-26", "time": "01:00 PM", "status": "pending"},
+    {"resident_id": 3,  "doctor_name": "Dr. Tom Blake",    "booking_type": "Exercise Session",       "date": "2026-03-27", "time": "08:00 AM", "status": "pending"},
+    {"resident_id": 6,  "doctor_name": "Dr. Sarah Wilson", "booking_type": "Vitals Check",           "date": "2026-03-28", "time": "10:30 AM", "status": "pending"},
+    # Past (completed/cancelled)
+    {"resident_id": 1,  "doctor_name": "Dr. James Reid",   "booking_type": "Check Blood Pressure",   "date": "2026-03-10", "time": "09:00 AM", "status": "completed"},
+    {"resident_id": 9,  "doctor_name": "Dr. Sarah Wilson", "booking_type": "Agitation Follow-up",    "date": "2026-03-11", "time": "11:00 AM", "status": "completed"},
+    {"resident_id": 7,  "doctor_name": "Dr. Priya Nair",   "booking_type": "Behaviour Consultation", "date": "2026-03-12", "time": "02:00 PM", "status": "completed"},
+    {"resident_id": 4,  "doctor_name": "Dr. Tom Blake",    "booking_type": "Pain Assessment",        "date": "2026-03-13", "time": "10:00 AM", "status": "completed"},
+    {"resident_id": 8,  "doctor_name": "Dr. James Reid",   "booking_type": "Medication Review",      "date": "2026-03-14", "time": "09:30 AM", "status": "cancelled"},
+    {"resident_id": 5,  "doctor_name": "Dr. Sarah Wilson", "booking_type": "Mood Assessment",        "date": "2026-03-14", "time": "01:30 PM", "status": "completed"},
+    # April 2026
+    {"resident_id": 1,  "doctor_name": "Dr. Sarah Wilson", "booking_type": "Quarterly Review",       "date": "2026-04-02", "time": "10:00 AM", "status": "pending"},
+    {"resident_id": 2,  "doctor_name": "Dr. James Reid",   "booking_type": "Appetite & Nutrition",   "date": "2026-04-03", "time": "11:00 AM", "status": "pending"},
+    {"resident_id": 3,  "doctor_name": "Dr. Priya Nair",   "booking_type": "Wellness Check",         "date": "2026-04-07", "time": "09:00 AM", "status": "pending"},
+    {"resident_id": 4,  "doctor_name": "Dr. Tom Blake",    "booking_type": "Pain Management",        "date": "2026-04-09", "time": "02:00 PM", "status": "pending"},
+    {"resident_id": 5,  "doctor_name": "Dr. Sarah Wilson", "booking_type": "Counselling",            "date": "2026-04-10", "time": "10:30 AM", "status": "pending"},
+    {"resident_id": 10, "doctor_name": "Dr. James Reid",   "booking_type": "Fall Prevention Review", "date": "2026-04-14", "time": "09:00 AM", "status": "pending"},
+    {"resident_id": 6,  "doctor_name": "Dr. Priya Nair",   "booking_type": "Fatigue Follow-up",      "date": "2026-04-15", "time": "11:00 AM", "status": "pending"},
+    {"resident_id": 7,  "doctor_name": "Dr. Tom Blake",    "booking_type": "Behaviour Check",        "date": "2026-04-17", "time": "02:30 PM", "status": "cancelled"},
+    {"resident_id": 9,  "doctor_name": "Dr. Sarah Wilson", "booking_type": "Sleep Review",           "date": "2026-04-22", "time": "10:00 AM", "status": "pending"},
+    {"resident_id": 8,  "doctor_name": "Dr. James Reid",   "booking_type": "Medication Check",       "date": "2026-04-24", "time": "09:30 AM", "status": "pending"},
+]
+
+def seed_bookings():
+    added = 0
+    for b in BOOKINGS:
+        if not exists(models.Booking, resident_id=b["resident_id"], date=b["date"], time=b["time"]):
+            db.add(models.Booking(**b))
+            added += 1
+    db.commit()
+    print(f"  Bookings:      {added} added")
+
+
 # MAIN
 if __name__ == "__main__":
     print("\n Seeding Sphere Care database...\n")
@@ -332,6 +377,7 @@ if __name__ == "__main__":
         seed_staff()
         seed_alerts()
         seed_cameras()
+        seed_bookings()
         print("\n Done! All pages now have real data. Restart your FastAPI server.\n")
     except Exception as e:
         db.rollback()

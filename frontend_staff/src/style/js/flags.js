@@ -16,6 +16,51 @@ function authHeaders(){
   return h;
 }
 
+// ── DEMO DATA (fallback) ──
+const DEMO_FLAGS = [
+  {id:1, resident_name:'Hannah Li',    resident_id:'RES005', event_type:'Distress',   description:'Low mood noted; follow-up set',              severity:'Medium', flagged_at:'Oct 23, 2024 02:40 PM', status:'Pending Review', source:'AI',  ai_confidence:82,
+   sev_desc:"Speech cue: 'I don't feel well' — Emotional distress indicator.",
+   transcript:"Staff: How are you feeling today, Hannah?\nHannah: Not great. I just feel sad.\n[Distress detected by AI system.]",
+   video_timestamp:'00:01:45'},
+  {id:2, resident_name:'George Patel', resident_id:'RES004', event_type:'Pain',       description:'Frequent pain reports; under review',          severity:'High',   flagged_at:'Oct 23, 2024 02:32 PM', status:'Pending Review', source:'AI',  ai_confidence:91,
+   sev_desc:"Verbal cue: 'My back hurts a lot' — Pain escalation detected.",
+   transcript:"Staff: How is your pain level today?\nGeorge: It's really bad, maybe 8 out of 10.\n[High pain level detected by AI system.]",
+   video_timestamp:'00:03:12'},
+  {id:3, resident_name:'Sarah Johnson', resident_id:'RES001', event_type:'Pain',      description:'Mild back pain after exercise',               severity:'Low',    flagged_at:'Oct 23, 2024 02:30 PM', status:'Pending Review', source:'AI',  ai_confidence:74,
+   sev_desc:"Movement pattern indicates mild discomfort post-exercise.",
+   transcript:"Staff: How did the exercise go?\nSarah: Good but my back is a little sore.\n[Mild pain indicator detected.]",
+   video_timestamp:'00:00:55'},
+  {id:4, resident_name:'Patrick Ellis', resident_id:'RES007', event_type:'Agitation', description:'Raised voice during meal; calm now',           severity:'Low',    flagged_at:'Oct 23, 2024 02:25 PM', status:'Resolved',       source:'Staff',ai_confidence:null,
+   sev_desc:"Voice tone elevated during meal time. Resident calmed after staff intervention.",
+   transcript:"Patrick: I don't want this food!\nStaff: Let's try something else.\n[Agitation resolved by staff.]",
+   video_timestamp:'00:02:05'},
+  {id:5, resident_name:'Hannah Li',    resident_id:'RES005', event_type:'Crying',     description:'Soft crying detected for 2 minutes.',          severity:'Medium', flagged_at:'Oct 23, 2024 02:20 PM', status:'Open',           source:'AI',  ai_confidence:88,
+   sev_desc:"Audio pattern detected: soft crying for approximately 2 minutes.",
+   transcript:"AI System: Crying audio pattern detected.\nDuration: 2 minutes 14 seconds.\n[Staff notified automatically.]",
+   video_timestamp:'00:01:30'},
+  {id:6, resident_name:'George Patel', resident_id:'RES004', event_type:'Pain',       description:'Frequent pain reports; under review',          severity:'High',   flagged_at:'Oct 23, 2024 02:18 PM', status:'Open',           source:'AI',  ai_confidence:93,
+   sev_desc:"Repeated pain reports within 30-minute window. Escalation recommended.",
+   transcript:"George: The pain hasn't gone away since this morning.\nStaff: I'll get the nurse to check on you.\n[Repeated pain flag — AI escalation alert.]",
+   video_timestamp:'00:00:42'},
+  {id:7, resident_name:'John Lee',     resident_id:'RES009', event_type:'Medication', description:'Medication refusal detected',                  severity:'Medium', flagged_at:'Oct 23, 2024 02:02 PM', status:'Pending Review', source:'AI',  ai_confidence:76,
+   sev_desc:"Speech cue: 'No, not taking it' — Medication compliance issue.",
+   transcript:"Staff: John, here's your evening medication.\nJohn: No, not taking it.\n[Refusal detected by AI system.]",
+   video_timestamp:'00:02:18'},
+  {id:8, resident_name:'Evelyn Brooks', resident_id:'RES003', event_type:'Wandering', description:'Resident found outside designated area',       severity:'Low',    flagged_at:'Oct 22, 2024 11:15 AM', status:'Resolved',       source:'AI',  ai_confidence:85,
+   sev_desc:"Movement detected outside designated resident zone during rest period.",
+   transcript:"AI System: Resident detected in corridor zone B.\nStaff notified: 11:17 AM.\n[Resident returned to room safely.]",
+   video_timestamp:'00:00:20'},
+];
+
+const DEMO_RESIDENTS = {
+  'RES001':{name:'Sarah Johnson',  age:78,room:'105',status:'monitoring',admit:'Oct 23, 2024',carer:'Sarah Mitchell',  color:'#7c3aed',ai:'Mild back pain after exercise. BP slightly elevated, monitoring closely. Mood stable.',         ec:{name:'James Johnson',rel:'Son',     phone:'+61 400 111 222',email:'james@email.com'},   notes:['Oct 23 — Mild discomfort during physio.','Oct 22 — Medication adjusted.']},
+  'RES003':{name:'Evelyn Brooks',  age:68,room:'301',status:'stable',    admit:'Jan 10, 2024',carer:'Jen Rodriguez',  color:'#059669',ai:'All vitals normal. Active in morning exercises. Positive mood throughout the day.',               ec:{name:'Mark Brooks',  rel:'Spouse',  phone:'+61 400 333 444',email:'mark@email.com'},    notes:['Oct 23 — All clear, vitals excellent.']},
+  'RES004':{name:'George Patel',   age:74,room:'202',status:'monitoring',admit:'Jun 20, 2023',carer:'David Thompson', color:'#d97706',ai:'Frequent pain reports; under review. Sleep patterns irregular. Family notified.',                 ec:{name:'Priya Patel',  rel:'Daughter',phone:'+61 400 444 555',email:'priya@email.com'},  notes:['Oct 23 — Pain medication reviewed.','Oct 22 — Difficulty sleeping.']},
+  'RES005':{name:'Hannah Li',      age:72,room:'103',status:'monitoring',admit:'Nov 3, 2023', carer:'Linda Pham',     color:'#dc2626',ai:'Low mood noted; counselling set for tomorrow. Eating well, less social interaction.',             ec:{name:'David Li',     rel:'Son',     phone:'+61 400 555 666',email:'david.li@email.com'},notes:['Oct 23 — Low mood, counselling arranged.','Oct 20 — Good family visit.']},
+  'RES007':{name:'Patrick Ellis',  age:85,room:'104',status:'monitoring',admit:'Apr 2, 2023', carer:'Michael Chen',  color:'#7c3aed',ai:'Raised voice during meal; calm now. Staff monitoring behaviour. No fall risk detected.',          ec:{name:'Carol Ellis',  rel:'Spouse',  phone:'+61 400 777 888',email:'carol@email.com'},   notes:['Oct 23 — Agitation during meal, resolved.']},
+  'RES009':{name:'John Lee',       age:80,room:'108',status:'stable',    admit:'Sep 18, 2023',carer:'Sarah Johnson',  color:'#0369a1',ai:'Brief agitation resolved after family visit on Tuesday. Sleeping patterns have improved with medication adjustment. Participated well in group activities. Overall stable emotional state with positive social engagement.',ec:{name:'Mary Lee',rel:'Daughter',phone:'+61 400 999 000',email:'mary.lee@email.com'},notes:['Oct 23 — Medication refusal noted, resolved.','Oct 22 — Good family visit.']},
+};
+
 // ── resident color map (for API data) ──
 const COLOR_MAP = {};
 let colorIdx = 0;
@@ -27,7 +72,9 @@ function resColor(resId){
 let allFlags = [];
 let filteredFlags = [];
 
+// ════════════════════════
 // API CALLS
+// ════════════════════════
 
 async function loadStats(){
   try {
@@ -60,11 +107,10 @@ async function loadFlags(){
     if(!res.ok) throw new Error();
     const data = await res.json();
     // if API returns data use it, else fallback to demo
-    allFlags = data.map(normaliseFlag);
+    allFlags = data.length ? data.map(normaliseFlag) : [...DEMO_FLAGS];
     showApiStatus(true);
   } catch(e) {
-    allFlags = [];
-    showApiError('flags-tbody', 7);
+    allFlags = [...DEMO_FLAGS];
     showApiStatus(false);
   }
   filteredFlags = [...allFlags];
@@ -101,7 +147,10 @@ function splitDatetime(str){
   return {date: str, time:''};
 }
 
+// ════════════════════════
 // RENDER
+// ════════════════════════
+
 function ini(n){ return (n||'??').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2); }
 
 function renderFlags(){
@@ -161,7 +210,9 @@ function filterFlags(){
   renderFlags();
 }
 
+// ════════════════════════
 // TABS
+// ════════════════════════
 function switchMainTab(tab, btn){
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
   document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
@@ -169,7 +220,9 @@ function switchMainTab(tab, btn){
   document.getElementById('tab-'+tab).classList.add('active');
 }
 
+// ════════════════════════
 // FLAG DETAIL MODAL
+// ════════════════════════
 function openFlagModal(id){
   const f = allFlags.find(x=>x.id===id);
   if(!f) return;
@@ -196,7 +249,9 @@ function openFlagModal(id){
   openModal('modal-flag');
 }
 
+// ════════════════════════
 // RESIDENT PROFILE MODAL
+// ════════════════════════
 async function openResidentModal(resId, resName){
   // try API first
   let r = null;
@@ -211,7 +266,10 @@ async function openResidentModal(resId, resName){
     } catch(e){}
   }
 
-  // if not found, build minimal object from name
+  // fallback to demo
+  if(!r) r = DEMO_RESIDENTS[resId];
+
+  // if still nothing, build minimal object from name
   if(!r){
     r = {
       name: resName || resId || '—',
@@ -282,10 +340,14 @@ function switchProfileTab(tab, btn){
   document.getElementById('ptab-'+tab).classList.add('active');
 }
 
-//MODAL HELPERS
+// ── MODAL HELPERS ──
 function openModal(id){document.getElementById(id).classList.add('open');document.body.style.overflow='hidden';}
 function closeModal(id){document.getElementById(id).classList.remove('open');document.body.style.overflow='';}
-document.querySelectorAll('.overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)closeModal(o.id);}));
+document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('.overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)closeModal(o.id);}));
+  loadStats();
+  loadFlags();
+});
 
 function showApiStatus(connected){
   let el=document.getElementById('api-status');
@@ -296,12 +358,3 @@ function showApiStatus(connected){
   el.style.opacity='1';
   setTimeout(()=>el.style.opacity='0',3000);
 }
-
-function showApiError(tbodyId, cols){
-  const el=document.getElementById(tbodyId);
-  if(el) el.innerHTML=`<tr><td colspan="${cols}" style="text-align:center;padding:40px;color:var(--red);font-size:13px;font-weight:600;">⚠ Unable to load data. Please check your connection.</td></tr>`;
-}
-
-// ── INIT ──
-loadStats();
-loadFlags();

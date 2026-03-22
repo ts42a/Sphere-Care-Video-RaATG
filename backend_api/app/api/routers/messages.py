@@ -43,7 +43,7 @@ def _fmt_msg(m: models.Message) -> schemas.MessageResponse:
         sender_role=m.sender_role,
         content=m.content,
         is_self=m.is_self,
-        created_at=m.created_at.strftime("%I:%M %p"),
+        created_at=m.created_at,
     )
 
 

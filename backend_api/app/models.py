@@ -5,7 +5,6 @@ from sqlalchemy.orm import relationship
 
 from app.db.base import Base
 
-
 class User(Base):
     __tablename__ = "users"
 
@@ -14,6 +13,7 @@ class User(Base):
     email = Column(String, unique=True, nullable=False, index=True)
     password_hash = Column(String, nullable=False)
     role = Column(String, default="staff")
+    phone = Column(String, nullable=True)  # added
     created_at = Column(DateTime, default=datetime.utcnow)
 
 
@@ -50,6 +50,7 @@ class Staff(Base):
     __tablename__ = "staff"
 
     id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True, unique=True)
     staff_id = Column(String, unique=True, nullable=False, index=True)
     full_name = Column(String, nullable=False)
     shift_time = Column(String, nullable=False)
@@ -57,6 +58,8 @@ class Staff(Base):
     status = Column(String, default="active")
     role = Column(String, default="staff")
     created_at = Column(DateTime, default=datetime.utcnow)
+
+    user = relationship("User", backref="staff_profile")
 
 
 class Alert(Base):
@@ -77,8 +80,8 @@ class Notification(Base):
     category = Column(String, nullable=False, default="alert")
     title = Column(String, nullable=False)
     body = Column(Text, nullable=False)
-    is_read = Column(String, default="false")
-    is_priority = Column(String, default="false")
+    is_read = Column(Boolean, default="false")
+    is_priority = Column(Boolean, default="false")
     created_at = Column(DateTime, default=datetime.utcnow)
 
 
@@ -141,18 +144,18 @@ class AiInsight(Base):
     is_new = Column(String, default="true")          # "true" / "false"
     created_at = Column(DateTime, default=datetime.utcnow)
 
-# CAMERA  (Recording Console)
+
 class Camera(Base):
     __tablename__ = "cameras"
 
     id = Column(Integer, primary_key=True, index=True)
-    title = Column(String, nullable=False)           # e.g. "Room 101 — Main View"
-    resident_name = Column(String, nullable=True)    # resident associated with this camera
-    floor = Column(String, nullable=True)            # "Floor 1" / "Floor 2" / "Floor 3"
+    title = Column(String, nullable=False)
+    resident_name = Column(String, nullable=True)
+    floor = Column(String, nullable=True)
     status = Column(String, default="live")          # "live" | "offline"
     alert = Column(String, default="fine")           # "critical" | "fine" | "none"
-    description = Column(Text, nullable=True)        # latest AI detection note
-    stream_url = Column(String, nullable=True)       # HLS .m3u8 URL (when real cameras connected)
+    description = Column(Text, nullable=True)
+    stream_url = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     alerts = relationship("CameraAlert", back_populates="camera", cascade="all, delete-orphan")
@@ -173,32 +176,26 @@ class CameraAlert(Base):
     camera = relationship("Camera", back_populates="alerts")
 
 
-# FLAGS  (Flags & Reviews)
 class Flag(Base):
     __tablename__ = "flags"
 
     id = Column(Integer, primary_key=True, index=True)
 
-    # Resident info
     resident_name = Column(String, nullable=False)
-    resident_id   = Column(String, nullable=True)    # e.g. "RES005"
+    resident_id   = Column(String, nullable=True)
 
-    # Event details
-    event_type    = Column(String, nullable=False)   # Pain | Distress | Agitation | Crying | Fall Risk | Medication | Wandering
+    event_type    = Column(String, nullable=False)
     description   = Column(Text,   nullable=False)
-    severity      = Column(String, nullable=False)   # High | Medium | Low
-    source        = Column(String, default="AI")     # AI | Staff
+    severity      = Column(String, nullable=False)
+    source        = Column(String, default="AI")
 
-    # Status
-    status        = Column(String, default="Open")   # Open | Pending Review | Resolved | Escalated
+    status        = Column(String, default="Open")
 
-    # AI detail fields
-    sev_desc      = Column(Text,   nullable=True)    # AI severity explanation
-    transcript    = Column(Text,   nullable=True)    # transcript text (plain, no HTML)
-    video_timestamp = Column(String, nullable=True)  # e.g. "00:02:18"
-    ai_confidence = Column(Integer, nullable=True)   # 0-100
+    sev_desc      = Column(Text,   nullable=True)
+    transcript    = Column(Text,   nullable=True)
+    video_timestamp = Column(String, nullable=True)
+    ai_confidence = Column(Integer, nullable=True)
 
-    # Timestamps
     flagged_at    = Column(DateTime, default=datetime.utcnow)
     created_at    = Column(DateTime, default=datetime.utcnow)
 
@@ -209,7 +206,7 @@ class FlagComment(Base):
     __tablename__ = "flag_comments"
 
     id      = Column(Integer, primary_key=True, index=True)
-    flag_id = Column(Integer, ForeignKey("flags.id"), nullable=False)
+    flag_id = Column(Integer, ForeignKey("flags.id"), nullable=False, index=True)
     author  = Column(String, nullable=False)
     body    = Column(Text, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)

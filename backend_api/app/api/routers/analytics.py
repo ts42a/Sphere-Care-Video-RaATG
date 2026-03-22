@@ -36,14 +36,15 @@ DEPARTMENTS = [
 def _monthly_activity(db: Session, days: int) -> list[schemas.MonthlyActivityPoint]:
     """Count bookings created per calendar month within the last `days` days."""
     since = date.today() - timedelta(days=days)
+    month_extract = func.extract("month", models.Booking.created_at).label("month_num")
     rows = (
         db.query(
-            func.strftime("%m", models.Booking.created_at).label("month_num"),
+            month_extract,
             func.count(models.Booking.id).label("cnt"),
         )
         .filter(models.Booking.created_at >= since)
-        .group_by("month_num")
-        .order_by("month_num")
+        .group_by(month_extract)
+        .order_by(month_extract)
         .all()
     )
     # Build a full 12-month map (zero-fill missing months)

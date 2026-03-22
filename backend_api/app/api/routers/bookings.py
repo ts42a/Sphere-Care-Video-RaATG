@@ -9,7 +9,12 @@ router = APIRouter(prefix="/bookings", tags=["Bookings"])
 
 @router.get("/", response_model=list[schemas.BookingResponse])
 def get_bookings(db: Session = Depends(get_db)):
-    return db.query(models.Booking).all()
+    from sqlalchemy.orm import joinedload
+    return (
+        db.query(models.Booking)
+        .options(joinedload(models.Booking.resident))
+        .all()
+    )
 
 
 @router.post("/", response_model=schemas.BookingResponse)
