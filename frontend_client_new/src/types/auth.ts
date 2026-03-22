@@ -1,24 +1,37 @@
 export type AuthUser = {
-  id: string;
-  name: string;
+  id: number;
+  full_name: string;
   email: string;
+  phone?: string;
+  role: string;
+  created_at?: string;
+  account_status?: string;
 };
 
 export type LoginResponse = {
   access_token: string;
+  token_type?: string;
   user: AuthUser;
 };
 
 export type RegisterPayload = {
+  full_name: string;
   email: string;
   phone: string;
   password: string;
-  confirmPassword: string;
+  role?: string;
+};
+
+export type RegisterResponse = {
+  access_token?: string;
+  token_type?: string;
+  user?: AuthUser;
+  success?: boolean;
+  message?: string;
 };
 
 export type ForgotPasswordResponse = {
-  success: boolean;
-  email: string;
+  message: string;
 };
 
 export type VerifyCodeResponse = {
@@ -27,7 +40,6 @@ export type VerifyCodeResponse = {
 };
 
 export type ResetPasswordPayload = {
-  email: string;
-  password: string;
-  confirmPassword: string;
+  token: string;
+  new_password: string;
 };

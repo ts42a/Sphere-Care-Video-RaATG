@@ -20,8 +20,8 @@ import { spacing } from "../../src/theme/spacing";
 import { typography } from "../../src/theme/typography";
 
 export default function LoginScreen() {
-  const [email, setEmail] = useState("johnsmith@gmail.com");
-  const [password, setPassword] = useState("XXXXXXXXXXX");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 

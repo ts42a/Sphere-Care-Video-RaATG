@@ -15,12 +15,26 @@ export const authService = {
   },
 
   async register(payload: {
+    firstName: string;
+    lastName: string;
     email: string;
     phone: string;
     password: string;
     confirmPassword: string;
   }) {
-    return registerUser(payload);
+    if (payload.password !== payload.confirmPassword) {
+      throw new Error("Passwords do not match");
+    }
+
+    const fullName = `${payload.firstName} ${payload.lastName}`.trim();
+
+    return registerUser({
+      full_name: fullName,
+      email: payload.email,
+      phone: payload.phone,
+      password: payload.password,
+      role: "client",
+    });
   },
 
   async forgotPassword(email: string) {
@@ -32,11 +46,18 @@ export const authService = {
   },
 
   async resetPassword(payload: {
-    email: string;
+    token: string;
     password: string;
     confirmPassword: string;
   }) {
-    return resetPassword(payload);
+    if (payload.password !== payload.confirmPassword) {
+      throw new Error("Passwords do not match");
+    }
+
+    return resetPassword({
+      token: payload.token,
+      new_password: payload.password,
+    });
   },
 
   async logout() {

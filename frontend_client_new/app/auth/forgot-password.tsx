@@ -12,7 +12,6 @@ import {
   Platform,
 } from "react-native";
 import { router } from "expo-router";
-
 import PageHeader from "../../src/components/PageHeader";
 import { authService } from "../../src/services/authService";
 import { colors } from "../../src/theme/colors";
@@ -20,20 +19,25 @@ import { spacing } from "../../src/theme/spacing";
 import { typography } from "../../src/theme/typography";
 
 export default function ForgotPasswordScreen() {
-  const [email, setEmail] = useState("contact@dscodetech.com");
+  const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   async function handleReset() {
     setError("");
 
+    if (!email.trim()) {
+      setError("Please enter your email");
+      return;
+    }
+
     try {
       setLoading(true);
-      const result = await authService.forgotPassword(email);
+      await authService.forgotPassword(email.trim());
 
       router.push({
         pathname: "/auth/verify-code",
-        params: { email: result.email },
+        params: { email: email.trim() },
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Reset failed");
@@ -76,7 +80,7 @@ export default function ForgotPasswordScreen() {
             {!!error && <Text style={styles.errorText}>{error}</Text>}
 
             <Pressable
-              style={styles.primaryBtn}
+              style={[styles.primaryBtn, loading && styles.primaryBtnDisabled]}
               onPress={handleReset}
               disabled={loading}
             >
@@ -142,6 +146,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginTop: spacing.sm,
+  },
+  primaryBtnDisabled: {
+    opacity: 0.7,
   },
   primaryBtnText: {
     ...typography.button,

@@ -11,19 +11,22 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  Image,
 } from "react-native";
 import { router } from "expo-router";
-
+import { Images } from "../../src/constants/images";
 import { authService } from "../../src/services/authService";
 import { colors } from "../../src/theme/colors";
 import { spacing } from "../../src/theme/spacing";
 import { typography } from "../../src/theme/typography";
 
 export default function RegisterScreen() {
-  const [email, setEmail] = useState("johnsmith@gmail.com");
-  const [phone, setPhone] = useState("04123456789");
-  const [password, setPassword] = useState("XXXXXXXX");
-  const [confirmPassword, setConfirmPassword] = useState("XXXXXXXX");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -33,6 +36,8 @@ export default function RegisterScreen() {
     try {
       setLoading(true);
       await authService.register({
+        firstName,
+        lastName,
         email,
         phone,
         password,
@@ -65,15 +70,34 @@ export default function RegisterScreen() {
         >
           <View style={styles.screen}>
             <View style={styles.logoWrap}>
-              <View style={styles.logoBox}>
-                <Text style={styles.logoPlaceholder}>LOGO</Text>
-              </View>
+              <Image
+                source={Images.logo_2}
+                style={{ width: 250, height: 60, resizeMode: "contain" }}
+              />
             </View>
 
             <Text style={styles.title}>Register</Text>
             <Text style={styles.subtitle}>Enter your details to register</Text>
 
             <View style={styles.form}>
+              <View style={styles.nameRow}>
+                <TextInput
+                  style={[styles.input, styles.nameInput, styles.nameInputTight]}
+                  placeholder="First name"
+                  placeholderTextColor={colors.textMuted}
+                  value={firstName}
+                  onChangeText={setFirstName}
+                />
+
+                <TextInput
+                  style={[styles.input, styles.nameInput, styles.nameInputTight]}
+                  placeholder="Last name"
+                  placeholderTextColor={colors.textMuted}
+                  value={lastName}
+                  onChangeText={setLastName}
+                />
+              </View>
+
               <TextInput
                 style={styles.input}
                 placeholder="Enter your Email here"
@@ -198,6 +222,17 @@ const styles = StyleSheet.create({
     ...typography.body,
     textAlign: "center",
     marginBottom: spacing.xxl,
+  },
+  nameRow: {
+  flexDirection: "row",
+  gap: 12,
+  marginBottom: 16,
+  },
+  nameInput: {
+    flex: 1,
+  },
+  nameInputTight: {
+  marginBottom: 0,
   },
   form: {
     width: "100%",
