@@ -19,7 +19,8 @@ import { typography } from "../../../src/theme/typography";
 
 export default function VideoCallScreen() {
   const { contactId } = useLocalSearchParams<{ contactId: string }>();
-
+  const [isConnected, setIsConnected] = useState(true);
+  const [callSeconds, setCallSeconds] = useState(0);
   const [contact, setContact] = useState<CallContact | null>(null);
   const [transcriptLines, setTranscriptLines] = useState<string[]>([]);
   const [expanded, setExpanded] = useState(false);
@@ -43,6 +44,23 @@ export default function VideoCallScreen() {
 
     return () => clearInterval(interval);
   }, [contactId]);
+
+  useEffect(() => {
+    if (!isConnected) return;
+
+    const timer = setInterval(() => {
+      setCallSeconds((prev) => prev + 1);
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [isConnected]);
+
+  function formatCallTime(totalSeconds: number) {
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+
+    return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+  }
 
   async function loadInitialData(id: string) {
     try {
@@ -82,7 +100,7 @@ export default function VideoCallScreen() {
       <View style={styles.topbar}>
         <View style={styles.timerWrap}>
           <View style={styles.redDot} />
-          <Text style={styles.timerText}>00:30</Text>
+          <Text style={styles.callTime}>{formatCallTime(callSeconds)}</Text>
         </View>
 
         <View style={styles.aiPill}>
@@ -152,20 +170,20 @@ export default function VideoCallScreen() {
       <View style={styles.bottomControls}>
         <ControlItem
           label="Mute"
-          icon={<Feather name="mic-off" size={28} color={colors.surface} />}
+          icon={<Feather name="mic" size={28} color={colors.surface} />}
           onPress={() => {}}
         />
 
         <ControlItem
           label="End"
           center
-          icon={<Feather name="phone-off" size={28} color={colors.surface} />}
+          icon={<Feather name="phone" size={28} color={colors.surface} />}
           onPress={() => router.replace("/call")}
         />
 
         <ControlItem
           label="Stop"
-          icon={<Feather name="video-off" size={28} color={colors.surface} />}
+          icon={<Feather name="video" size={28} color={colors.surface} />}
           onPress={() => {}}
         />
       </View>
@@ -227,9 +245,10 @@ const styles = StyleSheet.create({
     backgroundColor: colors.danger,
     marginRight: 10,
   },
-  timerText: {
-    color: colors.surface,
-    fontSize: 17,
+  callTime: {
+    ...typography.body,
+    color: "#6C7482",
+    fontSize: 16,
   },
   aiPill: {
     paddingHorizontal: 18,
