@@ -19,15 +19,14 @@ import os
 
 SMTP_HOST     = os.getenv("SMTP_HOST", "smtp.gmail.com")
 SMTP_PORT     = int(os.getenv("SMTP_PORT", "587"))
-SMTP_USER     = os.getenv("SMTP_USER", "")        # your Gmail / SMTP address
-SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")    # app password
+SMTP_USER     = os.getenv("SMTP_USER", "")
+SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
 SMTP_FROM     = os.getenv("SMTP_FROM", SMTP_USER)
 
 # ── In-memory OTP store  { user_id: {"code": "123456", "expires": datetime} }
-# For production, replace with Redis or a DB table.
 _otp_store: dict[int, dict] = {}
 
-OTP_EXPIRE_MINUTES = 10   # OTP valid for 10 minutes
+OTP_EXPIRE_MINUTES = 10
 OTP_LENGTH         = 6
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
@@ -97,7 +96,6 @@ def _generate_otp() -> str:
 
 
 def _mask_email(email: str) -> str:
-    """Return j***@gmail.com style hint."""
     try:
         local, domain = email.split("@", 1)
         masked = local[0] + "***"
@@ -107,7 +105,6 @@ def _mask_email(email: str) -> str:
 
 
 def _send_otp_email(to_email: str, otp_code: str) -> None:
-    """Send OTP via SMTP. Raises RuntimeError on failure."""
     if not SMTP_USER or not SMTP_PASSWORD:
         raise RuntimeError("SMTP credentials not configured. Set SMTP_USER and SMTP_PASSWORD env vars.")
 
@@ -146,16 +143,28 @@ If you did not request this, please ignore this email or contact your administra
 
 @router.post("/register", response_model=schemas.TokenResponse)
 def register(user: schemas.UserCreate, db: Session = Depends(get_db)):
+
+    # email confirmation check (used by HTML web frontend)
+    if user.email_confirmation and user.email != user.email_confirmation:
+        raise HTTPException(status_code=400, detail={"msg": "Emails do not match"})
+
+    # retype_password check (used by HTML web frontend)
+    if user.retype_password and user.password != user.retype_password:
+        raise HTTPException(status_code=400, detail={"msg": "Passwords do not match"})
+
     validate_password(user.password)
+
     existing_user = db.query(models.User).filter(models.User.email == user.email).first()
     if existing_user:
         raise HTTPException(status_code=400, detail={"msg": "This email is already registered"})
+
     try:
         new_user = models.User(
             full_name=user.full_name,
             email=user.email,
             password_hash=hash_password(user.password),
-            role=user.role
+            role=user.role,
+            phone=user.phone,  # added — None if not provided (web frontend)
         )
         db.add(new_user)
         db.flush()
@@ -226,10 +235,6 @@ def update_me(
 
 @router.post("/request-otp")
 def request_otp(user: models.User = Depends(_get_current_user)):
-    """
-    Generate a 6-digit OTP, store it server-side, and email it to the user.
-    Returns a masked email hint so the frontend can show "sent to j***@gmail.com".
-    """
     otp_code = _generate_otp()
     _otp_store[user.id] = {
         "code":    otp_code,
@@ -239,7 +244,6 @@ def request_otp(user: models.User = Depends(_get_current_user)):
     try:
         _send_otp_email(user.email, otp_code)
     except RuntimeError as e:
-        # SMTP not configured — surface a clear error
         raise HTTPException(status_code=503, detail={"msg": str(e)})
     except Exception as e:
         raise HTTPException(status_code=500, detail={"msg": "Failed to send email", "error": str(e)})
@@ -247,7 +251,7 @@ def request_otp(user: models.User = Depends(_get_current_user)):
     return {
         "msg":        "Verification code sent",
         "email_hint": _mask_email(user.email),
-        "expires_in": OTP_EXPIRE_MINUTES * 60,  # seconds
+        "expires_in": OTP_EXPIRE_MINUTES * 60,
     }
 
 
@@ -259,10 +263,6 @@ def change_password(
     user: models.User = Depends(_get_current_user),
     db: Session = Depends(get_db)
 ):
-    """
-    Verify OTP code, then change the password.
-    Expects: { current_password, new_password, otp_code }
-    """
     # 1. Verify current password
     if not verify_password(payload.current_password, user.password_hash):
         raise HTTPException(status_code=400, detail={"msg": "Incorrect current password"})
