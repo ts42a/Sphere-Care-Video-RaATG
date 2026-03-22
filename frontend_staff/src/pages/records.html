@@ -145,6 +145,9 @@
   </div>
 </div>
 
+
+
+
   <!-- skeleton shown while JS loads records -->
   <div id="page-skeleton" class="p-4 placeholder-glow">
     <div class="row g-3">
@@ -168,8 +171,18 @@
         <div class="p-3"><span class="placeholder bg-secondary w-75 d-block mb-2" style="height:14px;border-radius:4px;"></span><span class="placeholder bg-secondary w-50 d-block" style="height:12px;border-radius:4px;"></span></div>
       </div></div>
     </div>
-  </div><script src="/style/js/script.js"></script>
-<script src="/style/js/records.js"></script>
+  </div><script src="../style/js/script.js"></script>
+<script src="../style/js/records.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+(function() {
+  window.hideSkeleton = function() {
+    var el = document.getElementById('page-skeleton');
+    if (el) el.style.display = 'none';
+  };
+  setTimeout(window.hideSkeleton, 3000);
+})();
+</script>
 <script src="/components/sidebar.js"></script>
 </body>
 </html>

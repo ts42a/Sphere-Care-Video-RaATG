@@ -4,6 +4,9 @@
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="/style/css/account.css"/>
 
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="/style/css/account.css"/>
+
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Account – Sphere Care</title>
@@ -164,8 +167,180 @@
     </div>
   </div>
 </div>
-</div><script src="/style/js/script.js"></script>
-<script src="/style/js/account.js"></script>
+</div><div class="toast" id="toast"></div>
+<script src="../style/js/script.js"></script>
+<script src="../style/js/account.js"></script>
 <script src="/components/sidebar.js"></script>
+</body>
+</htmlPE html>
+<html lang="en">
+<head>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="/style/css/account.css"/>
+
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Account – Sphere Care</title>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
+
+</head>
+<body>
+<div class="app">
+
+<!-- SIDEBAR -->
+<div id="sidebar-container"></div>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-title">My Account</div>
+  </div>
+
+  <div class="content">
+    <div class="account-layout">
+
+      <!-- LEFT: PROFILE CARD -->
+      <div class="profile-card">
+        <div class="avatar-wrap">
+          <div class="avatar-circle" id="avatar-circle" onclick="document.getElementById('avatar-file-input').click()">
+            <span id="avatar-initials">SC</span>
+          </div>
+          <div class="avatar-edit-btn" onclick="document.getElementById('avatar-file-input').click()">
+            <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          </div>
+          <input type="file" id="avatar-file-input" accept="image/*" onchange="handleAvatarUpload(event)"/>
+        </div>
+
+        <div class="profile-name" id="profile-name">Loading…</div>
+        <div class="role-badge" id="role-badge">—</div>
+        <div class="profile-email" id="profile-email">—</div>
+
+        <div class="profile-divider"></div>
+
+        <div class="profile-meta">
+          <div class="meta-row">
+            <span class="meta-label">Member since</span>
+            <span class="meta-val" id="meta-joined">—</span>
+          </div>
+          <div class="meta-row">
+            <span class="meta-label">Status</span>
+            <span class="meta-val" style="color:var(--green);">● Active</span>
+          </div>
+          <div class="meta-row">
+            <span class="meta-label">Last login</span>
+            <span class="meta-val" id="meta-lastlogin">Today</span>
+          </div>
+        </div>
+
+        <button class="btn-logout" onclick="handleLogout()">
+          <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          Sign Out
+        </button>
+      </div>
+
+      <!-- RIGHT: FORMS -->
+      <div class="right-col">
+
+        <!-- Personal Info -->
+        <div class="section-card">
+          <div class="section-title">
+            <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            Personal Information
+          </div>
+          <div class="form-grid">
+            <div>
+              <label class="flabel">Full Name</label>
+              <input class="finput" id="input-name" type="text" placeholder="Your full name"/>
+            </div>
+            <div>
+              <label class="flabel">Role</label>
+              <div class="role-display" id="role-display">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                <span id="role-display-text">—</span>
+              </div>
+            </div>
+            <div class="form-full">
+              <label class="flabel">Email Address</label>
+              <input class="finput readonly-style" id="input-email" type="email" disabled placeholder="your@email.com"/>
+            </div>
+          </div>
+          <button class="btn-save" id="btn-save-profile" onclick="saveProfile()">Save Changes</button>
+        </div>
+
+        <!-- Change Password -->
+        <div class="section-card">
+          <div class="section-title">
+            <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            Change Password
+          </div>
+
+          <!-- Step 1: Password fields -->
+          <div id="pwd-step1">
+            <div class="form-grid">
+              <div class="form-full">
+                <label class="flabel">Current Password</label>
+                <input class="finput" id="input-current-pwd" type="password" placeholder="Enter current password"/>
+              </div>
+              <div>
+                <label class="flabel">New Password</label>
+                <input class="finput" id="input-new-pwd" type="password" placeholder="Min 8 characters" oninput="checkPwdStrength(this.value)"/>
+                <div class="pwd-strength"><div class="pwd-strength-bar" id="pwd-bar" style="width:0%;background:#e2e8f0;"></div></div>
+              </div>
+              <div>
+                <label class="flabel">Confirm New Password</label>
+                <input class="finput" id="input-confirm-pwd" type="password" placeholder="Repeat new password"/>
+              </div>
+            </div>
+            <button class="btn-send-otp" id="btn-send-otp" onclick="sendOtp()">
+              Send Verification Code
+            </button>
+          </div>
+
+          <!-- Step 2: OTP entry -->
+          <div class="otp-step" id="otp-step">
+            <p class="otp-label">
+              A 6-digit verification code has been sent to<br/>
+              <b id="otp-dest">your registered email</b>.<br/>
+              Enter it below to confirm your password change.
+            </p>
+            <div class="otp-boxes" id="otp-boxes">
+              <input class="otp-box" maxlength="1" type="text" inputmode="numeric" pattern="[0-9]"/>
+              <input class="otp-box" maxlength="1" type="text" inputmode="numeric" pattern="[0-9]"/>
+              <input class="otp-box" maxlength="1" type="text" inputmode="numeric" pattern="[0-9]"/>
+              <input class="otp-box" maxlength="1" type="text" inputmode="numeric" pattern="[0-9]"/>
+              <input class="otp-box" maxlength="1" type="text" inputmode="numeric" pattern="[0-9]"/>
+              <input class="otp-box" maxlength="1" type="text" inputmode="numeric" pattern="[0-9]"/>
+            </div>
+            <div class="otp-resend">
+              Didn't receive it? <a id="resend-link" onclick="resendOtp()">Resend code</a>
+              <span id="resend-timer" style="display:none;">in <b id="resend-countdown">60</b>s</span>
+            </div>
+            <div class="otp-actions">
+              <button class="btn-otp-confirm" id="btn-otp-confirm" onclick="verifyOtp()" disabled>Confirm Change</button>
+              <button class="btn-otp-cancel" onclick="cancelOtp()">Cancel</button>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Danger Zone -->
+        <div class="section-card danger-zone">
+          <div class="section-title danger-title">
+            <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            Danger Zone
+          </div>
+          <p style="font-size:13px;color:var(--text2);margin-bottom:14px;line-height:1.6;">Deleting your account is permanent and cannot be undone. All your data will be removed.</p>
+          <button class="btn-danger-outline" onclick="confirmDelete()">Delete My Account</button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+</div><div class="toast" id="toast"></div>
+<script src="../style/js/script.js"></script>
+<script src="../style/js/account.js"></script>
+<script src="../components/sidebar.js"></script>
 </body>
 </html>
