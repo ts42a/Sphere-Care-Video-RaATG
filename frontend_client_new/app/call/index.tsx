@@ -89,7 +89,7 @@ export default function CallCenterScreen() {
             </View>
 
             <View style={styles.summaryIconWrap}>
-              <Feather name="phone-call" size={34} color="#C98E99" />
+              <Feather name="phone-call" size={34} color="#948ec9" />
             </View>
           </View>
 
@@ -257,7 +257,6 @@ const styles = StyleSheet.create({
     borderRadius: 26,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#F8EEF1",
   },
   statsRow: {
     flexDirection: "row",

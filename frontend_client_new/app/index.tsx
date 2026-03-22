@@ -20,6 +20,7 @@ import { profileService } from "../src/services/profileService";
 import { notificationService } from "../src/services/notificationService";
 import { colors } from "../src/theme/colors";
 import { spacing } from "../src/theme/spacing";
+import { typography } from "@/src/theme/typography";
 
 export default function HomeScreen() {
   const [userName, setUserName] = useState("User");
@@ -51,7 +52,7 @@ export default function HomeScreen() {
     {
       id: 1,
       category: "Medication",
-      name: "Name of the medication in full",
+      name: "Vitamin D 1000 IU after breakfast",
       time: "8:00",
       type: "green" as const,
       icon: <Ionicons name="medical-outline" size={26} color="#27C27F" />,
@@ -132,10 +133,6 @@ export default function HomeScreen() {
                 Hello, {userName}
               </Text>
             </Pressable>
-
-            <Text style={styles.subtitle}>
-              Let’s keep track of your care today.
-            </Text>
           </View>
 
           <ReminderCard
@@ -173,7 +170,21 @@ export default function HomeScreen() {
               <Text style={styles.taskAddBtnText}>+</Text>
             </Pressable>
           </View>
+          <View style={styles.aiCard}>
+            <View style={styles.aiIconWrap}>
+              <Text style={styles.aiIconText}>AI</Text>
+            </View>
 
+            <View style={styles.aiContent}>
+              <Text style={styles.aiText}>
+                Need help planning today’s tasks and reminders?
+              </Text>
+
+              <Pressable>
+                <Text style={styles.aiLink}>Ask AI assistant</Text>
+              </Pressable>
+            </View>
+          </View>
           <View style={styles.taskList}>
             {tasks.map((task) => (
               <TaskCard
@@ -279,13 +290,13 @@ const styles = StyleSheet.create({
   quickActionsRow: {
     flexDirection: "row",
     gap: spacing.lg,
-    marginBottom: 72,
+    marginBottom: 40,
   },
   taskHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: spacing.xxl,
+    marginBottom: spacing.xl,
   },
   taskHeaderTitle: {
     fontSize: 26,
@@ -308,5 +319,43 @@ const styles = StyleSheet.create({
   taskList: {
     gap: spacing.lg,
     paddingBottom: spacing.xxl,
+  },
+  aiCard: {
+    backgroundColor: "#E9EEFB",
+    borderRadius: 22,
+    padding: spacing.lg + 2,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.lg,
+    marginBottom: spacing.lg,
+  },
+  aiIconWrap: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    borderWidth: 2,
+    borderColor: colors.icon,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  aiIconText: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: colors.icon,
+  },
+  aiContent: {
+    flex: 1,
+  },
+  aiText: {
+    ...typography.body,
+    color: colors.icon,
+    lineHeight: 21,
+    marginBottom: spacing.sm,
+    fontSize: 15,
+  },
+  aiLink: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#FF8A2B",
   },
 });
