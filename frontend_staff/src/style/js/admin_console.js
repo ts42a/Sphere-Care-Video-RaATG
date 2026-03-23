@@ -1,17 +1,560 @@
+/**
+ * Admin Console - RBAC, Staff & Resident Management
+ * Handles tab switching, form submissions, and data loading
+ */
+
+// API_BASE is defined in script.js (loaded before this file)
+const token = localStorage.getItem('spherecare_token') || localStorage.getItem('access_token');
+const adminId = localStorage.getItem('spherecare_admin_id');
+const centerIdDisplay = localStorage.getItem('spherecare_center_id');
+
 function authH() {
-  const h = { 'Content-Type': 'application/json' };
-  const t = localStorage.getItem('access_token');
-  if (t) h['Authorization'] = `Bearer ${t}`;
-  return h;
+  return { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
 }
 
-/* ═══ SKELETON HELPERS ══════════════════════════════════════════════ */
-function safeShowSkeleton() {
-  if (typeof showSkeleton === 'function') showSkeleton();
+function safeShowSkeleton() { if (typeof showSkeleton === 'function') showSkeleton(); }
+function safeHideSkeleton() { if (typeof hideSkeleton === 'function') hideSkeleton(); }
+
+// Store center ID globally
+let centerID = centerIdDisplay || '';
+
+/* ── Add Staff modal helpers ── */
+function openAddStaff() {
+  document.getElementById('modal-add').classList.add('open');
+}
+function closeAddStaff() {
+  document.getElementById('modal-add').classList.remove('open');
+  const msg = document.getElementById('staff-message');
+  if (msg) msg.innerHTML = '';
 }
 
-function safeHideSkeleton() {
-  if (typeof hideSkeleton === 'function') hideSkeleton();
+/* ── Resident modal helpers ── */
+function openAddResident() {
+  document.getElementById('modal-add-resident').classList.add('open');
+}
+function closeAddResident() {
+  document.getElementById('modal-add-resident').classList.remove('open');
+  const msg = document.getElementById('resident-message');
+  if (msg) msg.innerHTML = '';
+}
+function closeEditResident() {
+  document.getElementById('modal-edit-resident').classList.remove('open');
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  // Form handlers
+  const staffForm = document.getElementById('staff-form');
+  if (staffForm) staffForm.addEventListener('submit', handleStaffFormSubmit);
+  
+  const residentForm = document.getElementById('resident-form');
+  if (residentForm) residentForm.addEventListener('submit', handleResidentFormSubmit);
+
+  displayCenterId();
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+// STAFF MANAGEMENT (legacy functions for tab-based admin system)
+// ═════════════════════════════════════════════════════════════════════════════
+
+function loadStaffList() {
+  const staffTable = document.getElementById('staff-table');
+  const staffTbody = document.getElementById('staff-tbody');
+  const staffLoading = document.getElementById('staff-list-loading');
+
+  if (!staffLoading) return;
+
+  staffLoading.style.display = 'block';
+  if (staffTable) staffTable.style.display = 'none';
+
+  fetch(`${API_BASE}/admin/staff`, {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    }
+  })
+    .then(res => res.json())
+    .then(staff => {
+      if (!staffTbody) return;
+      
+      staffTbody.innerHTML = '';
+      
+      if (staff.length === 0) {
+        staffTbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text3);">No staff members yet</td></tr>';
+      } else {
+        staff.forEach(s => {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td><strong>${s.staff_id}</strong></td>
+            <td>${s.full_name}</td>
+            <td>${s.role}</td>
+            <td>${s.shift_time}</td>
+            <td>${s.assigned_unit}</td>
+            <td><span class="admin-badge ${s.status === 'active' ? 'active' : 'inactive'}">${s.status.toUpperCase()}</span></td>
+            <td style="display:flex;gap:6px;flex-wrap:wrap;">
+              <button type="button" class="admin-action-btn" style="background:#cce5ff;color:#004085;padding:6px 10px;border:none;border-radius:4px;cursor:pointer;font-size:12px;font-weight:600;" onclick="editStaff('${s.staff_id}', '${s.full_name}')">✏️ Edit</button>
+              <button type="button" class="admin-action-btn" style="background:#f8d7da;color:#721c24;padding:6px 10px;border:none;border-radius:4px;cursor:pointer;font-size:12px;font-weight:600;" onclick="deleteStaff('${s.staff_id}', '${s.full_name}')">🗑️ Delete</button>
+            </td>
+          `;
+          staffTbody.appendChild(row);
+        });
+      }
+
+      staffLoading.style.display = 'none';
+      if (staffTable) staffTable.style.display = 'table';
+    })
+    .catch(err => {
+      console.error('Error loading staff:', err);
+      if (staffLoading) staffLoading.innerHTML = '<div class="admin-error">Failed to load staff list</div>';
+    });
+}
+
+function handleStaffFormSubmit(e) {
+  e.preventDefault();
+
+  const formData = new FormData(e.target);
+  const data = {
+    full_name: formData.get('full_name'),
+    role: formData.get('role'),
+    shift_time: formData.get('shift_time'),
+    assigned_unit: formData.get('assigned_unit')
+  };
+
+  const messageDiv = document.getElementById('staff-message');
+  if (messageDiv) messageDiv.innerHTML = '<div class="admin-loading">Creating staff member...</div>';
+
+  const params = new URLSearchParams(data);
+  fetch(`${API_BASE}/admin/staff/create?${params}`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  })
+    .then(res => res.json())
+    .then(result => {
+      if (messageDiv) {
+        if (result.success) {
+          messageDiv.innerHTML = `<div class="admin-success">✓ ${result.message}</div>`;
+          e.target.reset();
+          setTimeout(() => {
+            messageDiv.innerHTML = '';
+            closeAddStaff();
+            loadStaff();
+          }, 2000);
+        } else {
+          messageDiv.innerHTML = `<div class="admin-error">✗ ${result.detail?.msg || 'Failed to create staff'}</div>`;
+        }
+      }
+    })
+    .catch(err => {
+      console.error('Error creating staff:', err);
+      if (messageDiv) messageDiv.innerHTML = '<div class="admin-error">✗ Error creating staff member</div>';
+    });
+}
+
+function deleteStaff(staffId, fullName) {
+  if (!confirm(`Delete staff member ${fullName || staffId}?`)) return;
+
+  fetch(`${API_BASE}/admin/staff/${staffId}`, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    }
+  })
+    .then(res => res.json())
+    .then(result => {
+      if (result.success) {
+        alert(result.message);
+        loadStaffList();
+      } else {
+        alert('Failed to delete staff member');
+      }
+    })
+    .catch(err => {
+      console.error('Error deleting staff:', err);
+      alert('Error deleting staff member');
+    });
+}
+
+function editStaff(staffId, fullName) {
+  alert(`Edit functionality for ${fullName || staffId} - Coming soon!`);
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// RESIDENT MANAGEMENT
+// ═════════════════════════════════════════════════════════════════════════════
+
+function loadResidentsList() {
+  const residentTable = document.getElementById('resident-table');
+  const residentTbody = document.getElementById('resident-tbody');
+  const residentLoading = document.getElementById('resident-list-loading');
+
+  if (!residentLoading) return;
+
+  residentLoading.style.display = 'block';
+  if (residentTable) residentTable.style.display = 'none';
+
+  fetch(`${API_BASE}/admin/residents`, {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    }
+  })
+    .then(res => res.json())
+    .then(residents => {
+      if (!residentTbody) return;
+      
+      residentTbody.innerHTML = '';
+      
+      if (residents.length === 0) {
+        residentTbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text3);">No residents yet</td></tr>';
+      } else {
+        residents.forEach(r => {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td><strong>${r.id}</strong></td>
+            <td>${r.full_name}</td>
+            <td>${r.age}</td>
+            <td>${r.room}</td>
+            <td><span class="admin-badge ${r.status === 'stable' ? 'active' : 'inactive'}">${r.status.toUpperCase()}</span></td>
+            <td>
+              <button class="admin-action-btn admin-action-edit" onclick="editResident(${r.id})">Edit</button>
+              <button class="admin-action-btn admin-action-delete" onclick="deleteResident(${r.id})">Delete</button>
+            </td>
+          `;
+          residentTbody.appendChild(row);
+        });
+      }
+
+      residentLoading.style.display = 'none';
+      if (residentTable) residentTable.style.display = 'table';
+    })
+    .catch(err => {
+      console.error('Error loading residents:', err);
+      if (residentLoading) residentLoading.innerHTML = '<div class="admin-error">Failed to load residents list</div>';
+    });
+}
+
+function handleResidentFormSubmit(e) {
+  e.preventDefault();
+
+  const formData = new FormData(e.target);
+  const data = {
+    full_name: formData.get('full_name'),
+    age: parseInt(formData.get('age')),
+    room: formData.get('room'),
+    status: formData.get('status')
+  };
+
+  const messageDiv = document.getElementById('resident-message');
+  if (messageDiv) messageDiv.innerHTML = '<div class="admin-loading">Creating resident...</div>';
+
+  const params = new URLSearchParams(data);
+  fetch(`${API_BASE}/admin/resident/create?${params}`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  })
+    .then(res => res.json())
+    .then(result => {
+      if (messageDiv) {
+        if (result.success) {
+          messageDiv.innerHTML = `<div class="admin-success">✓ ${result.message}</div>`;
+          e.target.reset();
+          setTimeout(() => {
+            messageDiv.innerHTML = '';
+            closeAddResident();
+            loadStaff();
+          }, 2000);
+        } else {
+          messageDiv.innerHTML = `<div class="admin-error">✗ ${result.detail?.msg || 'Failed to create resident'}</div>`;
+        }
+      }
+    })
+    .catch(err => {
+      console.error('Error creating resident:', err);
+      if (messageDiv) messageDiv.innerHTML = '<div class="admin-error">✗ Error creating resident</div>';
+    });
+}
+
+function deleteResident(residentId) {
+  if (!confirm(`Delete resident ${residentId}?`)) return;
+
+  fetch(`${API_BASE}/admin/resident/${residentId}`, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    }
+  })
+    .then(res => res.json())
+    .then(result => {
+      if (result.success) {
+        alert(result.message);
+        loadResidentsList();
+      } else {
+        alert('Failed to delete resident');
+      }
+    })
+    .catch(err => {
+      console.error('Error deleting resident:', err);
+      alert('Error deleting resident');
+    });
+}
+
+function editResident(residentId) {
+  alert(`Edit functionality for resident ${residentId} - Coming soon!`);
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// STAFF APPROVALS MANAGEMENT
+// ═════════════════════════════════════════════════════════════════════════════
+
+function loadPendingStaffApprovals() {
+  const pendingTable = document.getElementById('pending-staff-table');
+  const pendingTbody = document.getElementById('pending-staff-tbody');
+  const pendingLoading = document.getElementById('pending-staff-loading');
+
+  if (!pendingLoading) return;
+
+  pendingLoading.style.display = 'block';
+  if (pendingTable) pendingTable.style.display = 'none';
+
+  fetch(`${API_BASE}/admin/staff/pending`, {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    }
+  })
+    .then(res => res.json())
+    .then(staffList => {
+      if (!pendingTbody) return;
+      
+      pendingTbody.innerHTML = '';
+      
+      if (!staffList || staffList.length === 0) {
+        pendingTbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text3);">No pending staff approvals</td></tr>';
+      } else {
+        staffList.forEach(s => {
+          const createdDate = new Date(s.created_at).toLocaleDateString();
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td><strong>${s.staff_id || 'N/A'}</strong></td>
+            <td>${s.full_name}</td>
+            <td>${s.email}</td>
+            <td>${createdDate}</td>
+            <td><span class="admin-badge inactive">PENDING</span></td>
+            <td>
+              <button class="admin-action-btn" style="background:#d4edda;color:#155724;" onclick="approveStaffMember(${s.staff_id}, '${s.full_name}')">Approve</button>
+              <button class="admin-action-btn" style="background:#f8d7da;color:#721c24;" onclick="rejectStaffMember(${s.staff_id}, '${s.full_name}')">Reject</button>
+            </td>
+          `;
+          pendingTbody.appendChild(row);
+        });
+      }
+
+      pendingLoading.style.display = 'none';
+      if (pendingTable) pendingTable.style.display = 'table';
+    })
+    .catch(err => {
+      console.error('Error loading pending staff:', err);
+      if (pendingLoading) pendingLoading.innerHTML = '<div class="admin-error">Failed to load pending approvals</div>';
+    });
+}
+
+function approveStaffMember(staffId, fullName) {
+  if (!confirm(`Approve ${fullName} for staff role?`)) return;
+
+  const messageDiv = document.getElementById('approval-message');
+  if (messageDiv) {
+    messageDiv.style.display = 'block';
+    messageDiv.className = 'admin-loading';
+    messageDiv.textContent = 'Processing approval...';
+  }
+
+  fetch(`${API_BASE}/admin/staff/${staffId}/approve`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    }
+  })
+    .then(res => res.json())
+    .then(result => {
+      if (messageDiv) {
+        messageDiv.className = result.success ? 'admin-success' : 'admin-error';
+        messageDiv.innerHTML = `<strong>${result.message || 'Approval processed'}</strong>`;
+      }
+      setTimeout(() => {
+        if (messageDiv) messageDiv.style.display = 'none';
+        loadPendingStaffApprovals();
+      }, 2000);
+    })
+    .catch(err => {
+      console.error('Error approving staff:', err);
+      if (messageDiv) {
+        messageDiv.className = 'admin-error';
+        messageDiv.textContent = 'Error approving staff member';
+      }
+    });
+}
+
+function rejectStaffMember(staffId, fullName) {
+  const reason = prompt(`Enter rejection reason for ${fullName}:`, 'Does not meet requirements');
+  if (reason === null) return;
+
+  const messageDiv = document.getElementById('approval-message');
+  if (messageDiv) {
+    messageDiv.style.display = 'block';
+    messageDiv.className = 'admin-loading';
+    messageDiv.textContent = 'Processing rejection...';
+  }
+
+  fetch(`${API_BASE}/admin/staff/${staffId}/reject`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ reason })
+  })
+    .then(res => res.json())
+    .then(result => {
+      if (messageDiv) {
+        messageDiv.className = result.success ? 'admin-success' : 'admin-error';
+        messageDiv.innerHTML = `<strong>${result.message || 'Rejection processed'}</strong>`;
+      }
+      setTimeout(() => {
+        if (messageDiv) messageDiv.style.display = 'none';
+        loadPendingStaffApprovals();
+      }, 2000);
+    })
+    .catch(err => {
+      console.error('Error rejecting staff:', err);
+      if (messageDiv) {
+        messageDiv.className = 'admin-error';
+        messageDiv.textContent = 'Error rejecting staff member';
+      }
+    });
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// STAFF REGISTRATION MANAGEMENT
+// ═════════════════════════════════════════════════════════════════════════════
+
+function displayCenterId() {
+  const centerIdElement = document.getElementById('center-id-display');
+  if (centerIdElement && centerID) {
+    centerIdElement.textContent = centerID;
+  }
+}
+
+function copyCenterId() {
+  const centerIdElement = document.getElementById('center-id-display');
+  if (!centerIdElement) return;
+
+  const centerIdText = centerIdElement.textContent.trim();
+  if (!centerIdText) {
+    alert('No center ID to copy');
+    return;
+  }
+
+  navigator.clipboard.writeText(centerIdText).then(() => {
+    const copyBtn = document.getElementById('copy-center-id-btn');
+    if (copyBtn) {
+      const originalText = copyBtn.textContent;
+      copyBtn.textContent = '✓ Copied!';
+      copyBtn.style.background = '#d4edda';
+      copyBtn.style.color = '#155724';
+      
+      setTimeout(() => {
+        copyBtn.textContent = originalText;
+        copyBtn.style.background = '';
+        copyBtn.style.color = '';
+      }, 2000);
+    }
+  }).catch(err => {
+    console.error('Failed to copy center ID:', err);
+    alert('Failed to copy center ID');
+  });
+}
+
+function loadRegistrationRequests() {
+  const registrationTable = document.getElementById('registration-table');
+  const registrationTbody = document.getElementById('registration-tbody');
+  const loadingDiv = document.getElementById('registration-list-loading');
+
+  if (!loadingDiv) return;
+
+  loadingDiv.style.display = 'block';
+  if (registrationTable) registrationTable.style.display = 'none';
+
+  fetch(`${API_BASE}/admin/staff/pending`, {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    }
+  })
+    .then(res => res.json())
+    .then(registrations => {
+      if (!registrationTbody) return;
+      
+      registrationTbody.innerHTML = '';
+      
+      if (!registrations || registrations.length === 0) {
+        registrationTbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text3);">No registration requests</td></tr>';
+      } else {
+        registrations.forEach(reg => {
+          const createdDate = new Date(reg.created_at).toLocaleDateString('en-AU', {
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric'
+          });
+          const row = document.createElement('tr');
+          
+          let statusBadgeClass = 'inactive';
+          let statusText = 'PENDING';
+          if (reg.approval_status === 'approved') {
+            statusBadgeClass = 'active';
+            statusText = 'APPROVED';
+          } else if (reg.approval_status === 'rejected') {
+            statusBadgeClass = 'inactive';
+            statusText = 'REJECTED';
+          }
+          
+          row.innerHTML = `
+            <td>${createdDate}</td>
+            <td><strong>${reg.full_name}</strong></td>
+            <td>${reg.email}</td>
+            <td><span class="admin-badge ${statusBadgeClass}">${statusText}</span></td>
+            <td>
+              ${reg.approval_status === 'pending' ? `
+                <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                  <button class="admin-action-btn" style="background:#d4edda;color:#155724;padding:6px 10px;border:none;border-radius:4px;cursor:pointer;font-size:12px;font-weight:600;" onclick="approveStaffMember(${reg.staff_id}, '${reg.full_name}')">✓ Approve</button>
+                  <button class="admin-action-btn" style="background:#f8d7da;color:#721c24;padding:6px 10px;border:none;border-radius:4px;cursor:pointer;font-size:12px;font-weight:600;" onclick="rejectStaffMember(${reg.staff_id}, '${reg.full_name}')">✗ Reject</button>
+                </div>
+              ` : `<span style="color:var(--text3);font-size:12px;">No action needed</span>`}
+            </td>
+          `;
+          registrationTbody.appendChild(row);
+        });
+      }
+
+      loadingDiv.style.display = 'none';
+      if (registrationTable) registrationTable.style.display = 'table';
+    })
+    .catch(err => {
+      console.error('Error loading registration requests:', err);
+      if (loadingDiv) {
+        loadingDiv.style.display = 'none';
+        loadingDiv.innerHTML = '<div class="admin-error">Failed to load registration requests</div>';
+      }
+    });
 }
 
 /* ═══ CLOCK ═════════════════════════════════════════════════════════ */
@@ -42,7 +585,14 @@ let currentUser = null;
 
 function initUser() {
   try {
-    const u = JSON.parse(localStorage.getItem('user') || '{}');
+    let u = {};
+    try { u = JSON.parse(localStorage.getItem('user') || '{}'); } catch(_){}
+    // fallback: build user from spherecare_* keys if 'user' is empty
+    if (!u.role) {
+      u.role = localStorage.getItem('spherecare_role') || '';
+      u.full_name = u.full_name || localStorage.getItem('spherecare_user_name') || '';
+      u.email = u.email || localStorage.getItem('spherecare_user_email') || '';
+    }
     currentUser = u;
 
     const adminNameEl = document.getElementById('admin-name');
@@ -103,10 +653,22 @@ const DEMO_TASKS = [
   { title: 'Visitor Log Review', status: 'inprogress', desc: 'Review visitor logs for this week.', assignee: 'Linda Pham', due: 'Mar 16' }
 ];
 
+const DEMO_RESIDENTS = [
+  { id: 1, full_name: 'Dorothy Williams', age: 82, room: 'Room 104', status: 'stable' },
+  { id: 2, full_name: 'Harold Mitchell', age: 79, room: 'Room 207', status: 'critical' },
+  { id: 3, full_name: 'Margaret Chen', age: 88, room: 'Room 112', status: 'stable' },
+  { id: 4, full_name: 'Robert Clarke', age: 74, room: 'Room 305', status: 'recovering' },
+  { id: 5, full_name: 'Eleanor Davis', age: 91, room: 'Room 201', status: 'observation' },
+  { id: 6, full_name: 'Frank Nguyen', age: 85, room: 'Room 108', status: 'stable' }
+];
+
 let allStaff = [];
+let allResidents = [];
 let editingId = null;
 let editingStaffId = null;
+let editingResidentId = null;
 let usingDemo = false;
+let usingDemoResidents = false;
 let usingDemoStats = true;
 let usingDemoAlerts = true;
 
@@ -160,7 +722,27 @@ async function loadStaff() {
     usingDemoAlerts = true;
   }
 
+  /* Load residents */
+  try {
+    const rr = await fetch(`${API_BASE}/admin/residents`, { headers: authH() });
+    if (rr.ok) {
+      const d = await rr.json();
+      if (d.length) {
+        allResidents = d;
+        usingDemoResidents = false;
+      } else {
+        throw new Error('empty');
+      }
+    } else {
+      throw new Error();
+    }
+  } catch (e) {
+    allResidents = DEMO_RESIDENTS.map(r => ({ ...r }));
+    usingDemoResidents = true;
+  }
+
   renderStaff();
+  renderResidents();
 
   if (usingDemoStats) renderStats();
   if (usingDemoAlerts) renderAlerts();
@@ -217,6 +799,101 @@ function renderStaff() {
   if (countEl) {
     countEl.textContent = `Showing ${total} of ${total} staff members`;
   }
+}
+
+/* ═══ RENDER RESIDENTS TABLE ════════════════════════════════════════ */
+function residentBadge(s) {
+  if (s === 'stable')     return `<span class="status-badge status-active">● Stable</span>`;
+  if (s === 'critical')   return `<span class="status-badge status-leave" style="color:#ef4444;">● Critical</span>`;
+  if (s === 'recovering') return `<span class="status-badge status-pending" style="color:var(--blue);">● Recovering</span>`;
+  return `<span class="status-badge status-pending">● ${esc(s || 'Unknown')}</span>`;
+}
+
+function renderResidents() {
+  const tbody = document.getElementById('resident-tbody');
+  if (!tbody) return;
+
+  tbody.innerHTML = allResidents.map(r => `
+    <tr>
+      <td>
+        <div class="staff-name">${esc(r.full_name)}</div>
+      </td>
+      <td>${r.age}</td>
+      <td>${esc(r.room)}</td>
+      <td>${residentBadge(r.status)}</td>
+      <td>
+        <button class="action-btn" title="Edit" onclick="openEditResident(${r.id})">
+          <svg viewBox="0 0 24 24">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+          </svg>
+        </button>
+        <button class="action-btn" title="Delete" onclick="confirmDeleteResident(${r.id}, '${esc(r.full_name)}')">
+          <svg viewBox="0 0 24 24">
+            <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+          </svg>
+        </button>
+      </td>
+    </tr>
+  `).join('');
+
+  const ct = document.getElementById('resident-count');
+  if (ct) ct.textContent = `Showing ${allResidents.length} residents`;
+
+  const stableCount   = allResidents.filter(r => r.status === 'stable').length;
+  const criticalCount = allResidents.filter(r => r.status === 'critical').length;
+  const totalEl       = document.getElementById('stat-total-residents');
+  const stableEl      = document.getElementById('stat-stable');
+  const critEl        = document.getElementById('stat-critical');
+  if (totalEl)  totalEl.textContent  = allResidents.length;
+  if (stableEl) stableEl.textContent = stableCount;
+  if (critEl)   critEl.textContent   = criticalCount;
+}
+
+/* ═══ RESIDENT CRUD ═════════════════════════════════════════════════ */
+function openEditResident(id) {
+  const r = allResidents.find(x => x.id === id);
+  if (!r) return;
+  editingResidentId = id;
+  document.getElementById('edit-res-name').value   = r.full_name || '';
+  document.getElementById('edit-res-age').value    = r.age || '';
+  document.getElementById('edit-res-room').value   = r.room || '';
+  document.getElementById('edit-res-status').value = r.status || 'stable';
+  document.getElementById('modal-edit-resident').classList.add('open');
+}
+
+async function saveResident() {
+  const r = allResidents.find(x => x.id === editingResidentId);
+  if (!r) return;
+  r.full_name = document.getElementById('edit-res-name').value.trim();
+  r.age       = parseInt(document.getElementById('edit-res-age').value) || r.age;
+  r.room      = document.getElementById('edit-res-room').value.trim();
+  r.status    = document.getElementById('edit-res-status').value;
+  try {
+    if (!usingDemoResidents) {
+      const params = new URLSearchParams({ full_name: r.full_name, age: r.age, room: r.room, status: r.status });
+      await fetch(`${API_BASE}/admin/resident/${editingResidentId}?${params}`, { method: 'PATCH', headers: authH() });
+    }
+  } catch (e) {}
+  renderResidents();
+  closeEditResident();
+}
+
+function confirmDeleteResident(id, name) {
+  if (!confirm(`Delete resident ${name}?`)) return;
+  deleteResidentById(id);
+}
+
+async function deleteResidentById(id) {
+  const resId = id || editingResidentId;
+  try {
+    if (!usingDemoResidents) {
+      await fetch(`${API_BASE}/admin/resident/${resId}`, { method: 'DELETE', headers: authH() });
+    }
+  } catch (e) {}
+  allResidents = allResidents.filter(x => x.id !== resId);
+  renderResidents();
+  closeEditResident();
 }
 
 /* ═══ STATS ═════════════════════════════════════════════════════════ */
@@ -340,16 +1017,16 @@ async function saveStaff() {
 
   try {
     if (!usingDemo) {
-      await fetch(`${API_BASE}/staff/${editingStaffId}`, {
+      const params = new URLSearchParams({
+        full_name: s.full_name,
+        shift_time: s.shift_time,
+        assigned_unit: s.assigned_unit,
+        status: s.status,
+        role: s.role
+      });
+      await fetch(`${API_BASE}/admin/staff/${editingStaffId}?${params}`, {
         method: 'PATCH',
-        headers: authH(),
-        body: JSON.stringify({
-          full_name: s.full_name,
-          shift_time: s.shift_time,
-          assigned_unit: s.assigned_unit,
-          status: s.status,
-          role: s.role
-        })
+        headers: authH()
       });
     }
   } catch (e) {}
@@ -364,7 +1041,7 @@ async function deleteStaff() {
 
   try {
     if (!usingDemo) {
-      await fetch(`${API_BASE}/staff/${editingStaffId}`, {
+      await fetch(`${API_BASE}/admin/staff/${editingStaffId}`, {
         method: 'DELETE',
         headers: authH()
       });
@@ -480,8 +1157,7 @@ async function initAdminConsolePage() {
     updateClock();
     setInterval(updateClock, 1000);
 
-    const isAdmin = initUser();
-    if (!isAdmin) return;
+    initUser();
 
     await loadStaff();
 

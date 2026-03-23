@@ -1,5 +1,6 @@
 let staffData = [];
 let editingId = null;
+let viewingId = null;
 
 // ── AUTH GUARD ──
 // Only admin role can see this page
@@ -67,12 +68,12 @@ async function loadStaff() {
   } catch {
     // Fallback demo data matching seed.py
     staffData = [
-      { staff_id: 'ST-4829', full_name: 'Sarah Johnson',  shift_time: '7:00 AM - 3:00 PM',  assigned_unit: 'ICU Ward',     status: 'active',   role: 'Senior Carer' },
-      { staff_id: 'ST-3746', full_name: 'Michael Chen',   shift_time: '3:00 PM - 11:00 PM', assigned_unit: 'Emergency',    status: 'on_leave', role: 'Nurse' },
-      { staff_id: 'ST-5920', full_name: 'Emma Rodriguez', shift_time: '11:00 PM - 7:00 AM', assigned_unit: 'General Ward', status: 'pending',  role: 'Carer' },
-      { staff_id: 'ST-1038', full_name: 'David Kim',      shift_time: '7:00 AM - 3:00 PM',  assigned_unit: 'Pediatrics',   status: 'active',   role: 'Doctor' },
-      { staff_id: 'ST-2241', full_name: 'Linda Pham',     shift_time: '7:00 AM - 3:00 PM',  assigned_unit: 'Geriatrics',   status: 'active',   role: 'Carer' },
-      { staff_id: 'ST-6610', full_name: 'James Carter',   shift_time: '3:00 PM - 11:00 PM', assigned_unit: 'Neurology',    status: 'active',   role: 'Nurse' },
+      { staff_id: 'ST-4829', full_name: 'Sarah Johnson',  shift_time: '7:00 AM - 3:00 PM',  assigned_unit: 'ICU Ward',     status: 'active',   role: 'Senior Carer', availability: 'ready',    location: 'Nurses Station A' },
+      { staff_id: 'ST-3746', full_name: 'Michael Chen',   shift_time: '3:00 PM - 11:00 PM', assigned_unit: 'Emergency',    status: 'on_leave', role: 'Nurse',        availability: 'busy',     location: 'Room 104' },
+      { staff_id: 'ST-5920', full_name: 'Emma Rodriguez', shift_time: '11:00 PM - 7:00 AM', assigned_unit: 'General Ward', status: 'pending',  role: 'Carer',        availability: 'on_break', location: 'Break Room' },
+      { staff_id: 'ST-1038', full_name: 'David Kim',      shift_time: '7:00 AM - 3:00 PM',  assigned_unit: 'Pediatrics',   status: 'active',   role: 'Doctor',       availability: 'busy',     location: 'Room 312' },
+      { staff_id: 'ST-2241', full_name: 'Linda Pham',     shift_time: '7:00 AM - 3:00 PM',  assigned_unit: 'Geriatrics',   status: 'active',   role: 'Carer',        availability: 'ready',    location: 'Room 205' },
+      { staff_id: 'ST-6610', full_name: 'James Carter',   shift_time: '3:00 PM - 11:00 PM', assigned_unit: 'Neurology',    status: 'active',   role: 'Nurse',        availability: 'on_break', location: 'Cafeteria' },
     ];
   }
   renderTable();
@@ -94,9 +95,11 @@ async function loadStats() {
     // Compute from local staffData
     const active  = staffData.filter(s => s.status === 'active').length;
     const pending = staffData.filter(s => s.status === 'pending').length;
+    const onBreak = staffData.filter(s => s.availability === 'on_break').length;
     document.getElementById('stat-active').textContent  = active;
     document.getElementById('stat-pending').textContent = pending;
     document.getElementById('stat-shifts').textContent  = staffData.length;
+    document.getElementById('stat-break').textContent   = onBreak;
   }
 }
 
@@ -104,38 +107,82 @@ async function loadStats() {
 function renderTable() {
   const tbody = document.getElementById('staff-tbody');
   if (!staffData.length) {
-    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#9aa0ac;padding:24px;">No staff found.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#9aa0ac;padding:24px;">No staff found.</td></tr>';
     return;
   }
 
   tbody.innerHTML = staffData.map(s => {
-    const statusClass = s.status === 'active' ? 'status-active' : s.status === 'on_leave' ? 'status-leave' : 'status-pending';
-    const statusLabel = s.status === 'active' ? 'Active' : s.status === 'on_leave' ? 'On Leave' : 'Pending';
-    // Shift hours calc (just show 8 hours as label like in screenshot)
+    const avail = s.availability || 'ready';
+    const availClass = avail === 'ready' ? 'avail-ready' : avail === 'busy' ? 'avail-busy' : 'avail-break';
+    const availLabel = avail === 'ready' ? 'Ready' : avail === 'busy' ? 'Busy' : 'On Break';
+    const loc = s.location || '—';
     return `
       <tr>
         <td>
           <div class="staff-name">${s.full_name}</div>
-          <div class="staff-id">ID: ${s.staff_id}</div>
+          <div class="staff-id">ID: ${s.staff_id} · ${s.role || 'Staff'}</div>
         </td>
         <td>
           <div class="shift-main">${s.shift_time}</div>
           <div class="shift-hours">8 hours</div>
         </td>
         <td>${s.assigned_unit}</td>
-        <td><span class="status-badge ${statusClass}">${statusLabel}</span></td>
-        <td>
+        <td><span class="avail-badge ${availClass}">${availLabel}</span></td>
+        <td><span class="loc-text">${loc}</span></td>
+        <td class="actions-cell">
+          <button class="action-btn green" title="Call" onclick="callStaff('${s.staff_id}')">
+            <svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.362 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.338 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+          </button>
           <button class="action-btn" title="View details" onclick="viewStaff('${s.staff_id}')">
-            <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+            <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
           </button>
           <button class="action-btn blue" title="Edit" onclick="editStaff('${s.staff_id}')">
-            <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
           </button>
         </td>
       </tr>`;
   }).join('');
 
   document.getElementById('staff-count').textContent = `${staffData.length} staff member${staffData.length !== 1 ? 's' : ''}`;
+}
+
+// ── VIEW STAFF ──
+function viewStaff(id) {
+  const s = staffData.find(x => x.staff_id === id);
+  if (!s) return;
+  viewingId = id;
+  const initials = s.full_name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+  document.getElementById('view-avatar').textContent = initials;
+  document.getElementById('view-name').textContent = s.full_name;
+  document.getElementById('view-role').textContent = s.role || 'Staff';
+  document.getElementById('view-id').textContent = s.staff_id;
+  document.getElementById('view-shift').textContent = s.shift_time;
+  document.getElementById('view-unit').textContent = s.assigned_unit;
+
+  const statusLabel = s.status === 'active' ? 'Active' : s.status === 'on_leave' ? 'On Leave' : 'Pending';
+  const statusClass = s.status === 'active' ? 'status-active' : s.status === 'on_leave' ? 'status-leave' : 'status-pending';
+  document.getElementById('view-status').innerHTML = `<span class="status-badge ${statusClass}">${statusLabel}</span>`;
+
+  const avail = s.availability || 'ready';
+  const availLabel = avail === 'ready' ? 'Ready' : avail === 'busy' ? 'Busy' : 'On Break';
+  const availClass = avail === 'ready' ? 'avail-ready' : avail === 'busy' ? 'avail-busy' : 'avail-break';
+  document.getElementById('view-avail').innerHTML = `<span class="avail-badge ${availClass}">${availLabel}</span>`;
+
+  document.getElementById('view-location').textContent = s.location || '—';
+  document.getElementById('modal-view').classList.add('open');
+}
+
+function closeViewModal() {
+  document.getElementById('modal-view').classList.remove('open');
+  viewingId = null;
+}
+
+// ── CALL STAFF ──
+function callStaff(id) {
+  const s = staffData.find(x => x.staff_id === id);
+  if (!s) return;
+  // Navigate to the call page with the staff member pre-selected
+  window.location.href = `call.html?staff=${encodeURIComponent(s.staff_id)}&name=${encodeURIComponent(s.full_name)}`;
 }
 
 // ── EDIT / DELETE ──
@@ -149,11 +196,9 @@ function editStaff(id) {
   document.getElementById('edit-unit').value  = s.assigned_unit;
   document.getElementById('edit-status').value = s.status;
   document.getElementById('edit-role').value  = s.role;
+  document.getElementById('edit-availability').value = s.availability || 'ready';
+  document.getElementById('edit-location').value = s.location || '';
   document.getElementById('modal-edit').classList.add('open');
-}
-
-function viewStaff(id) {
-  editStaff(id); // open same modal in view context
 }
 
 function closeModal() {
@@ -168,6 +213,8 @@ async function saveStaff() {
     assigned_unit: document.getElementById('edit-unit').value,
     status:        document.getElementById('edit-status').value,
     role:          document.getElementById('edit-role').value,
+    availability:  document.getElementById('edit-availability').value,
+    location:      document.getElementById('edit-location').value,
   };
   try {
     const res = await fetch(`${API_BASE}/staff/${editingId}`, {
@@ -223,6 +270,63 @@ function exportPDF() {
     headStyles: { fillColor: [46, 196, 182] }
   });
   doc.save('staff_report.pdf');
+}
+
+// ── ADD STAFF MODAL ──
+function openAddModal() {
+  document.getElementById('add-name').value = '';
+  document.getElementById('add-role').selectedIndex = 0;
+  document.getElementById('add-shift').selectedIndex = 0;
+  document.getElementById('add-unit').selectedIndex = 0;
+  document.getElementById('modal-add').classList.add('open');
+}
+
+function closeAddModal() {
+  document.getElementById('modal-add').classList.remove('open');
+}
+
+async function submitAddStaff() {
+  const full_name = document.getElementById('add-name').value.trim();
+  if (!full_name) { alert('Please enter a full name.'); return; }
+
+  const payload = {
+    full_name,
+    shift_time:    document.getElementById('add-shift').value,
+    assigned_unit: document.getElementById('add-unit').value,
+    role:          document.getElementById('add-role').value,
+  };
+
+  try {
+    const res = await fetch(`${API_BASE}/admin-console/staff/create?full_name=${encodeURIComponent(payload.full_name)}&shift_time=${encodeURIComponent(payload.shift_time)}&assigned_unit=${encodeURIComponent(payload.assigned_unit)}&role=${encodeURIComponent(payload.role)}`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
+    });
+    if (!res.ok) throw new Error();
+    const created = await res.json();
+    staffData.push({
+      staff_id:      created.staff_id,
+      full_name:     created.full_name,
+      shift_time:    created.shift_time,
+      assigned_unit: created.assigned_unit,
+      status:        'active',
+      role:          created.role || payload.role
+    });
+  } catch {
+    // Fallback: add locally with generated ID
+    const ts = Date.now().toString().slice(-4);
+    const rnd = Math.floor(1000 + Math.random() * 9000);
+    staffData.push({
+      staff_id:      `ST-${ts}-${rnd}`,
+      full_name:     payload.full_name,
+      shift_time:    payload.shift_time,
+      assigned_unit: payload.assigned_unit,
+      status:        'active',
+      role:          payload.role
+    });
+  }
+  closeAddModal();
+  renderTable();
+  loadStats();
 }
 
 // ── INIT ──

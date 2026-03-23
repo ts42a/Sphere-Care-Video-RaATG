@@ -1,6 +1,20 @@
 // API BASE URL – change this to your server
 // ──────────────────────────────────────────
-const API_BASE = 'http://localhost:8000';
+const API_BASE = '/api/v1';
+
+// Migrate spherecare_* localStorage keys to the format all pages expect
+(function migrateAuth() {
+  if (!localStorage.getItem('access_token') && localStorage.getItem('spherecare_token')) {
+    localStorage.setItem('access_token', localStorage.getItem('spherecare_token'));
+  }
+  if (!localStorage.getItem('user') && localStorage.getItem('spherecare_role')) {
+    localStorage.setItem('user', JSON.stringify({
+      full_name: localStorage.getItem('spherecare_user_name') || '',
+      email: localStorage.getItem('spherecare_user_email') || '',
+      role: localStorage.getItem('spherecare_role') || 'staff'
+    }));
+  }
+})();
 
 // ──────────────────────────────────────────
 // REGISTER
@@ -135,6 +149,8 @@ function showPage(name) {
   }
 }
 
+window.showPage = showPage;
+
 function setRole(role) {
   const btnStaff = document.getElementById('btn-staff');
   const btnAdmin = document.getElementById('btn-admin');
@@ -228,7 +244,7 @@ function loginWithGoogle() {
   if (token) {
     localStorage.setItem('access_token', token);
     // Fetch user info then redirect to dashboard
-    fetch('http://localhost:8000/auth/me', {
+    fetch('/api/v1/auth/me', {
       headers: { 'Authorization': `Bearer ${token}` }
     })
     .then(r => r.json())

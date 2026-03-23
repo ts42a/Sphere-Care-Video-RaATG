@@ -8,7 +8,7 @@ import type {
 } from "../types/auth";
 
 const USE_MOCK_AUTH = false;
-const API_BASE_URL = "http://192.168.1.107:8000";
+const API_BASE_URL = "http://localhost:8000";
 
 function wait(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));

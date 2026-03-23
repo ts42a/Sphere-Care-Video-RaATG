@@ -59,15 +59,22 @@
       <!-- Tabs -->
       <div class="tabs">
         <div class="tab active" onclick="switchTab('staff',this)">Staff Summary</div>
+        <div class="tab" onclick="switchTab('residents',this)">Residents</div>
         <div class="tab" onclick="switchTab('tasks',this)">Task Review</div>
         <div class="tab" onclick="switchTab('reports',this)">Reports &amp; Analytics</div>
       </div>
 
       <!-- ── TAB: STAFF SUMMARY ── -->
       <div class="tab-panel active" id="tab-staff">
-        <div class="section-hdr">
-          <div class="section-title">Staff Activity Overview</div>
-          <div class="section-sub">Current staff tasks and operational status overview.</div>
+        <div class="section-hdr" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;">
+          <div>
+            <div class="section-title">Staff Activity Overview</div>
+            <div class="section-sub">Current staff tasks and operational status overview.</div>
+          </div>
+          <button class="btn btn-primary" onclick="openAddStaff()" style="display:flex;align-items:center;gap:6px;padding:10px 20px;border:none;border-radius:10px;background:var(--teal);color:#fff;font-weight:600;cursor:pointer;font-size:14px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Add Staff
+          </button>
         </div>
         <div class="admin-layout">
           <!-- Table -->
@@ -115,6 +122,55 @@
             <div class="alerts-card">
               <div class="alerts-title">Recent Alerts</div>
               <div id="alerts-list"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── TAB: RESIDENTS ── -->
+      <div class="tab-panel" id="tab-residents">
+        <div class="section-hdr" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;">
+          <div>
+            <div class="section-title">Resident Management</div>
+            <div class="section-sub">Add, edit and manage facility residents.</div>
+          </div>
+          <button class="btn btn-primary" onclick="openAddResident()" style="display:flex;align-items:center;gap:6px;padding:10px 20px;border:none;border-radius:10px;background:var(--teal);color:#fff;font-weight:600;cursor:pointer;font-size:14px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Add Resident
+          </button>
+        </div>
+        <div class="admin-layout">
+          <div class="card" style="flex:1;">
+            <div class="table-wrap">
+              <table id="resident-table">
+                <thead>
+                  <tr>
+                    <th>Resident Name</th>
+                    <th>Age</th>
+                    <th>Room</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="resident-tbody"></tbody>
+              </table>
+            </div>
+            <div class="table-footer">
+              <div class="table-count" id="resident-count">Loading…</div>
+            </div>
+          </div>
+          <div class="stats-col">
+            <div class="stat-card">
+              <div class="stat-num" id="stat-total-residents">–</div>
+              <div class="stat-label">Total Residents</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-num" id="stat-stable" style="color:var(--green)">–</div>
+              <div class="stat-label">Stable</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-num" id="stat-critical" style="color:#ef4444">–</div>
+              <div class="stat-label">Critical</div>
             </div>
           </div>
         </div>
@@ -217,6 +273,135 @@
       <button class="btn btn-danger" onclick="deleteStaff()">Delete</button>
       <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
       <button class="btn btn-primary" onclick="saveStaff()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD STAFF MODAL -->
+<div class="overlay" id="modal-add" onclick="if(event.target===this)closeAddStaff()">
+  <div class="modal">
+    <div class="mhdr"><h3>Add New Staff Member</h3><button class="mclose" onclick="closeAddStaff()">✕</button></div>
+    <form id="staff-form">
+      <div class="mbody">
+        <div id="staff-message"></div>
+        <div class="mrow">
+          <div>
+            <label class="flabel">Full Name</label>
+            <input class="finput" name="full_name" placeholder="e.g. Jane Smith" required/>
+          </div>
+          <div>
+            <label class="flabel">Role</label>
+            <select class="fsel" name="role">
+              <option>Senior Carer</option>
+              <option>Nurse</option>
+              <option>Carer</option>
+              <option>Doctor</option>
+              <option>Admin</option>
+            </select>
+          </div>
+        </div>
+        <div class="mrow">
+          <div>
+            <label class="flabel">Shift Time</label>
+            <input class="finput" name="shift_time" placeholder="e.g. 7:00 AM – 3:00 PM" required/>
+          </div>
+          <div>
+            <label class="flabel">Assigned Unit</label>
+            <select class="fsel" name="assigned_unit">
+              <option>ICU Ward</option>
+              <option>Emergency</option>
+              <option>General Ward</option>
+              <option>Pediatrics</option>
+              <option>Geriatrics</option>
+              <option>Neurology</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="mfooter">
+        <button type="button" class="btn btn-outline" onclick="closeAddStaff()">Cancel</button>
+        <button type="submit" class="btn btn-primary">Create Staff</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ADD RESIDENT MODAL -->
+<div class="overlay" id="modal-add-resident" onclick="if(event.target===this)closeAddResident()">
+  <div class="modal">
+    <div class="mhdr"><h3>Add New Resident</h3><button class="mclose" onclick="closeAddResident()">✕</button></div>
+    <form id="resident-form">
+      <div class="mbody">
+        <div id="resident-message"></div>
+        <div class="mrow">
+          <div>
+            <label class="flabel">Full Name</label>
+            <input class="finput" name="full_name" placeholder="e.g. Dorothy Williams" required/>
+          </div>
+          <div>
+            <label class="flabel">Age</label>
+            <input class="finput" name="age" type="number" min="0" max="150" placeholder="e.g. 78" required/>
+          </div>
+        </div>
+        <div class="mrow">
+          <div>
+            <label class="flabel">Room</label>
+            <input class="finput" name="room" placeholder="e.g. Room 204" required/>
+          </div>
+          <div>
+            <label class="flabel">Status</label>
+            <select class="fsel" name="status">
+              <option value="stable">Stable</option>
+              <option value="critical">Critical</option>
+              <option value="recovering">Recovering</option>
+              <option value="observation">Under Observation</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="mfooter">
+        <button type="button" class="btn btn-outline" onclick="closeAddResident()">Cancel</button>
+        <button type="submit" class="btn btn-primary">Add Resident</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- EDIT RESIDENT MODAL -->
+<div class="overlay" id="modal-edit-resident" onclick="if(event.target===this)closeEditResident()">
+  <div class="modal">
+    <div class="mhdr"><h3>Edit Resident</h3><button class="mclose" onclick="closeEditResident()">✕</button></div>
+    <div class="mbody">
+      <div class="mrow">
+        <div>
+          <label class="flabel">Full Name</label>
+          <input class="finput" id="edit-res-name" placeholder="Full Name"/>
+        </div>
+        <div>
+          <label class="flabel">Age</label>
+          <input class="finput" id="edit-res-age" type="number" min="0" max="150"/>
+        </div>
+      </div>
+      <div class="mrow">
+        <div>
+          <label class="flabel">Room</label>
+          <input class="finput" id="edit-res-room" placeholder="Room"/>
+        </div>
+        <div>
+          <label class="flabel">Status</label>
+          <select class="fsel" id="edit-res-status">
+            <option value="stable">Stable</option>
+            <option value="critical">Critical</option>
+            <option value="recovering">Recovering</option>
+            <option value="observation">Under Observation</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="mfooter">
+      <button class="btn btn-danger" onclick="deleteResidentById()">Delete</button>
+      <button class="btn btn-outline" onclick="closeEditResident()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveResident()">Save Changes</button>
     </div>
   </div>
 </div>

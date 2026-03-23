@@ -40,6 +40,13 @@
             <input type="text" id="reg-fullname" placeholder="Full Name" />
           </div>
 
+          <div class="input-group" id="org-name-group" style="display:none;">
+            <span class="icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 3H5a2 2 0 0 0-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-5m-4-6h.01M19 13a6 6 0 0 0-6-6"/></svg>
+            </span>
+            <input type="text" id="reg-org-name" placeholder="Organization/Care Centre Name" />
+          </div>
+
           <div class="input-group">
             <span class="icon">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
@@ -77,17 +84,26 @@
           <!-- Staff / Admin Toggle -->
           <div class="role-toggle">
             <div class="toggle-track">
-              <button class="toggle-btn active" id="btn-staff" onclick="setRole('staff')">Staff</button>
-              <button class="toggle-btn" id="btn-admin" onclick="setRole('admin')">Admin</button>
+              <button type="button" class="toggle-btn active" id="btn-staff" onclick="setRole('staff')">Staff</button>
+              <button type="button" class="toggle-btn" id="btn-admin" onclick="setRole('admin')">Admin</button>
             </div>
           </div>
 
+          <!-- Center ID for Staff (Hidden by default) -->
+          <div class="input-group" id="center-id-group" style="display:none;">
+            <span class="icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            </span>
+            <input type="text" id="reg-center-id" placeholder="Center ID (provided by your admin)" />
+          </div>
+
           <div id="register-error" style="display:none;color:#e74c3c;font-size:13px;text-align:center;margin-bottom:10px;"></div>
-          <button class="btn-primary btn-create" id="btn-register" data-label="Create Now" onclick="handleRegister()">Create Now</button>
+          <div id="register-success" style="display:none;color:#27ae60;font-size:13px;text-align:center;margin-bottom:10px;word-wrap:break-word;"></div>
+          <button type="button" class="btn-primary btn-create" id="btn-register" data-label="Create Now" onclick="handleRegister()">Create Now</button>
 
           <div class="divider">or</div>
 
-          <p class="form-footer">Have an account? <a onclick="showPage('login')">Sign in</a></p>
+          <p class="form-footer">Have an account? <a onclick="showPage('login')">Login</a></p>
         </div>
       </div>
 
@@ -121,6 +137,14 @@
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
             </span>
             <input type="email" id="login-email" placeholder="Email Address" />
+          </div>
+
+          <!-- Center ID for Staff Login (Hidden by default) -->
+          <div class="input-group" id="login-center-id-group" style="display:none;">
+            <span class="icon" style="color:#9aa0ac">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            </span>
+            <input type="text" id="login-center-id" placeholder="Your Center ID" />
           </div>
 
           <div class="input-group">
@@ -208,5 +232,6 @@
   </div>
 </div><script src="/style/js/script.js"></script>
 <script src="/style/js/reset.js"></script>
+<script src="/style/js/register_login.js"></script>
 </body>
 </html>

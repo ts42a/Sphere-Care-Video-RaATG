@@ -199,12 +199,436 @@
           </div>
         </div>
 
-        <!-- ── ADMIN ── -->
+        <!-- ── ADMIN CONSOLE ── -->
         <div class="page-section" id="sec-admin">
-          <div class="placeholder-page">
-            <div class="placeholder-icon">⚙️</div>
-            <div class="placeholder-title">Admin Console</div>
-            <div class="placeholder-sub">System settings, configuration and audit logs.</div>
+          <style>
+            .admin-tabs {
+              display: flex;
+              gap: 8px;
+              margin-bottom: 24px;
+              border-bottom: 1px solid #e5e5e5;
+            }
+            .admin-tab-btn {
+              padding: 12px 16px;
+              background: none;
+              border: none;
+              cursor: pointer;
+              font-size: 14px;
+              font-weight: 600;
+              color: var(--text3);
+              border-bottom: 3px solid transparent;
+              transition: all 0.3s ease;
+            }
+            .admin-tab-btn.active {
+              color: var(--primary);
+              border-bottom-color: var(--primary);
+            }
+            .admin-tab-btn:hover {
+              color: var(--primary);
+            }
+            .admin-tab-content {
+              display: none;
+            }
+            .admin-tab-content.active {
+              display: block;
+            }
+            .admin-form-group {
+              margin-bottom: 16px;
+            }
+            .admin-form-group label {
+              display: block;
+              margin-bottom: 6px;
+              font-size: 13px;
+              font-weight: 600;
+              color: var(--text1);
+            }
+            .admin-form-group input,
+            .admin-form-group select {
+              width: 100%;
+              padding: 10px 12px;
+              border: 1px solid #e5e5e5;
+              border-radius: 6px;
+              font-size: 14px;
+              font-family: inherit;
+            }
+            .admin-form-group input:focus,
+            .admin-form-group select:focus {
+              outline: none;
+              border-color: var(--primary);
+              box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+            }
+            .admin-button-group {
+              display: flex;
+              gap: 8px;
+              margin-top: 20px;
+            }
+            .admin-btn {
+              padding: 10px 16px;
+              border: none;
+              border-radius: 6px;
+              cursor: pointer;
+              font-size: 14px;
+              font-weight: 600;
+              transition: all 0.2s ease;
+            }
+            .admin-btn-primary {
+              background: var(--primary);
+              color: white;
+            }
+            .admin-btn-primary:hover {
+              background: #3a7bc8;
+            }
+            .admin-btn-secondary {
+              background: #e5e5e5;
+              color: var(--text1);
+            }
+            .admin-btn-secondary:hover {
+              background: #d9d9d9;
+            }
+            .admin-table {
+              width: 100%;
+              border-collapse: collapse;
+              margin-top: 16px;
+              background: white;
+              border: 1px solid #e5e5e5;
+              border-radius: 8px;
+              overflow: hidden;
+            }
+            .admin-table thead {
+              background: #f5f5f5;
+            }
+            .admin-table th {
+              padding: 12px 16px;
+              text-align: left;
+              font-size: 13px;
+              font-weight: 600;
+              color: var(--text1);
+              border-bottom: 1px solid #e5e5e5;
+            }
+            .admin-table td {
+              padding: 12px 16px;
+              font-size: 14px;
+              color: var(--text2);
+              border-bottom: 1px solid #f0f0f0;
+            }
+            .admin-table tbody tr:hover {
+              background: #f9f9f9;
+            }
+            .admin-badge {
+              display: inline-block;
+              padding: 4px 8px;
+              border-radius: 4px;
+              font-size: 12px;
+              font-weight: 600;
+            }
+            .admin-badge.active {
+              background: #d4edda;
+              color: #155724;
+            }
+            .admin-badge.inactive {
+              background: #f8d7da;
+              color: #721c24;
+            }
+            .admin-action-btn {
+              padding: 4px 8px;
+              margin: 0 4px;
+              border: none;
+              border-radius: 4px;
+              cursor: pointer;
+              font-size: 12px;
+              font-weight: 600;
+            }
+            .admin-action-edit {
+              background: #cce5ff;
+              color: #004085;
+            }
+            .admin-action-delete {
+              background: #f5c6cb;
+              color: #721c24;
+            }
+            .admin-grid {
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              gap: 24px;
+              margin-bottom: 24px;
+            }
+            @media (max-width: 1200px) {
+              .admin-grid {
+                grid-template-columns: 1fr;
+              }
+            }
+            .admin-card {
+              background: white;
+              border: 1px solid #e5e5e5;
+              border-radius: 8px;
+              padding: 20px;
+            }
+            .admin-card h3 {
+              margin: 0 0 16px 0;
+              font-size: 16px;
+              font-weight: 700;
+              color: var(--text1);
+            }
+            .admin-loading {
+              text-align: center;
+              padding: 40px;
+              color: var(--text3);
+            }
+            .admin-error {
+              background: #f8d7da;
+              color: #721c24;
+              padding: 12px;
+              border-radius: 6px;
+              margin-bottom: 16px;
+            }
+            .admin-success {
+              background: #d4edda;
+              color: #155724;
+              padding: 12px;
+              border-radius: 6px;
+              margin-bottom: 16px;
+            }
+          </style>
+
+          <div class="admin-tabs">
+            <button class="admin-tab-btn active" data-tab="staff-mgmt">👥 Staff Management</button>
+            <button class="admin-tab-btn" data-tab="staff-registration">📝 Staff Registration</button>
+            <button class="admin-tab-btn" data-tab="staff-approvals">🔔 Pending Approvals</button>
+            <button class="admin-tab-btn" data-tab="resident-mgmt">🏠 Resident Management</button>
+            <button class="admin-tab-btn" data-tab="rbac">🔐 Access Control (RBAC)</button>
+          </div>
+
+          <!-- STAFF MANAGEMENT TAB -->
+          <div class="admin-tab-content active" id="staff-mgmt">
+            <div class="admin-grid">
+              <!-- Create New Staff -->
+              <div class="admin-card">
+                <h3>➕ Add New Staff Member</h3>
+                <form id="staff-form">
+                  <div class="admin-form-group">
+                    <label>Full Name</label>
+                    <input type="text" name="full_name" placeholder="e.g., John Smith" required/>
+                  </div>
+                  <div class="admin-form-group">
+                    <label>Role</label>
+                    <select name="role" required>
+                      <option value="nurse">Nurse</option>
+                      <option value="carer">Care Assistant</option>
+                      <option value="doctor">Doctor</option>
+                      <option value="admin">Administrator</option>
+                    </select>
+                  </div>
+                  <div class="admin-form-group">
+                    <label>Shift Time</label>
+                    <input type="text" name="shift_time" placeholder="e.g., 08:00-16:00" required/>
+                  </div>
+                  <div class="admin-form-group">
+                    <label>Assigned Unit</label>
+                    <input type="text" name="assigned_unit" placeholder="e.g., Unit A" required/>
+                  </div>
+                  <div class="admin-button-group">
+                    <button type="submit" class="admin-btn admin-btn-primary">Create Staff Member</button>
+                    <button type="reset" class="admin-btn admin-btn-secondary">Clear Form</button>
+                  </div>
+                  <div id="staff-message"></div>
+                </form>
+              </div>
+
+              <!-- Staff List -->
+              <div class="admin-card">
+                <h3>📋 Current Staff</h3>
+                <div id="staff-list-loading" class="admin-loading">Loading staff list...</div>
+                <table class="admin-table" id="staff-table" style="display:none;">
+                  <thead>
+                    <tr>
+                      <th>Staff ID</th>
+                      <th>Name</th>
+                      <th>Role</th>
+                      <th>Shift</th>
+                      <th>Unit</th>
+                      <th>Status</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="staff-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- STAFF REGISTRATION TAB -->
+          <div class="admin-tab-content" id="staff-registration">
+            <div class="admin-grid">
+              <!-- Staff Self-Registration Info -->
+              <div class="admin-card">
+                <h3>📝 Staff Self-Registration Info</h3>
+                <p style="color: var(--text3); margin-bottom: 16px;">Staff members can register using your Center ID. Share this ID with your staff:</p>
+                <div style="background: #f0f4f8; padding: 16px; border-radius: 8px; margin-bottom: 16px; text-align: center;">
+                  <div style="font-size: 12px; color: var(--text3); margin-bottom: 8px;">Your Center ID:</div>
+                  <div style="font-size: 24px; font-weight: 800; color: var(--primary); font-family: monospace;" id="center-id-display">Loading...</div>
+                  <button id="copy-center-id-btn" class="admin-btn admin-btn-primary" style="margin-top: 12px; font-size: 13px;" onclick="copyCenterId()">📋 Copy Center ID</button>
+                </div>
+                <p style="font-size: 13px; color: var(--text3); margin: 0;">
+                  <strong>Instructions for Staff:</strong><br/>
+                  1. Go to the Staff Registration page<br/>
+                  2. Select "Staff" role<br/>
+                  3. Enter their details and your Center ID<br/>
+                  4. Submit registration<br/>
+                  5. Wait for your approval in the "Pending Approvals" tab
+                </p>
+              </div>
+
+              <!-- Staff Registration Requests List -->
+              <div class="admin-card">
+                <h3>📋 All Registration Requests (Pending + Approved)</h3>
+                <div id="registration-list-loading" class="admin-loading">Loading registration requests...</div>
+                <table class="admin-table" id="registration-table" style="display:none;">
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Name</th>
+                      <th>Email</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody id="registration-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- STAFF APPROVALS TAB -->
+          <div class="admin-tab-content" id="staff-approvals">
+            <div class="admin-card">
+              <h3>🔔 Pending Staff Approvals</h3>
+              <p style="color: var(--text3); margin-bottom: 16px;">Review and approve new staff registration requests.</p>
+              
+              <div id="pending-staff-loading" class="admin-loading">Loading pending approvals...</div>
+              <table class="admin-table" id="pending-staff-table" style="display:none;">
+                <thead>
+                  <tr>
+                    <th>Staff ID</th>
+                    <th>Full Name</th>
+                    <th>Email</th>
+                    <th>Registered</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="pending-staff-tbody"></tbody>
+              </table>
+              <div id="approval-message" style="display:none;margin-top:16px;padding:12px;border-radius:6px;"></div>
+            </div>
+          </div>
+
+          <!-- RESIDENT MANAGEMENT TAB -->
+          <div class="admin-tab-content" id="resident-mgmt">
+            <div class="admin-grid">
+              <!-- Create New Resident -->
+              <div class="admin-card">
+                <h3>➕ Add New Resident</h3>
+                <form id="resident-form">
+                  <div class="admin-form-group">
+                    <label>Full Name</label>
+                    <input type="text" name="full_name" placeholder="e.g., Mary Johnson" required/>
+                  </div>
+                  <div class="admin-form-group">
+                    <label>Age</label>
+                    <input type="number" name="age" min="18" max="120" placeholder="e.g., 75" required/>
+                  </div>
+                  <div class="admin-form-group">
+                    <label>Room Number</label>
+                    <input type="text" name="room" placeholder="e.g., 204" required/>
+                  </div>
+                  <div class="admin-form-group">
+                    <label>Initial Status</label>
+                    <select name="status" required>
+                      <option value="stable">Stable</option>
+                      <option value="at-risk">At Risk</option>
+                      <option value="critical">Critical</option>
+                      <option value="recovery">Recovery</option>
+                    </select>
+                  </div>
+                  <div class="admin-button-group">
+                    <button type="submit" class="admin-btn admin-btn-primary">Create Resident</button>
+                    <button type="reset" class="admin-btn admin-btn-secondary">Clear Form</button>
+                  </div>
+                  <div id="resident-message"></div>
+                </form>
+              </div>
+
+              <!-- Residents List -->
+              <div class="admin-card">
+                <h3>📋 Current Residents</h3>
+                <div id="resident-list-loading" class="admin-loading">Loading residents list...</div>
+                <table class="admin-table" id="resident-table" style="display:none;">
+                  <thead>
+                    <tr>
+                      <th>Resident ID</th>
+                      <th>Name</th>
+                      <th>Age</th>
+                      <th>Room</th>
+                      <th>Status</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="resident-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- RBAC TAB -->
+          <div class="admin-tab-content" id="rbac">
+            <div class="admin-card">
+              <h3>🔐 Role-Based Access Control (RBAC)</h3>
+              <p style="color: var(--text3); margin-bottom: 20px;">Configure permissions for different staff roles and access levels.</p>
+              
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+                <!-- Admin Permissions -->
+                <div style="border: 1px solid #e5e5e5; border-radius: 8px; padding: 16px;">
+                  <h4 style="margin-top: 0; font-weight: 700; color: var(--text1);">👨‍💼 Administrator</h4>
+                  <div style="font-size: 13px; color: var(--text2); margin-bottom: 12px;">Full system access</div>
+                  <ul style="list-style: none; padding: 0; margin: 0;">
+                    <li style="padding: 8px 0; border-bottom: 1px solid #f0f0f0;"><input type="checkbox" checked disabled/> <span>View Residents</span></li>
+                    <li style="padding: 8px 0; border-bottom: 1px solid #f0f0f0;"><input type="checkbox" checked disabled/> <span>Manage Residents</span></li>
+                    <li style="padding: 8px 0; border-bottom: 1px solid #f0f0f0;"><input type="checkbox" checked disabled/> <span>View Staff</span></li>
+                    <li style="padding: 8px 0; border-bottom: 1px solid #f0f0f0;"><input type="checkbox" checked disabled/> <span>Manage Staff</span></li>
+                    <li style="padding: 8px 0; border-bottom: 1px solid #f0f0f0;"><input type="checkbox" checked disabled/> <span>View Analytics</span></li>
+                    <li style="padding: 8px 0; border-bottom: 1px solid #f0f0f0;"><input type="checkbox" checked disabled/> <span>Manage Alerts</span></li>
+                    <li style="padding: 8px 0;"><input type="checkbox" checked disabled/> <span>Admin Console</span></li>
+                  </ul>
+                </div>
+
+                <!-- Nurse Permissions -->
+                <div style="border: 1px solid #e5e5e5; border-radius: 8px; padding: 16px;">
+                  <h4 style="margin-top: 0; font-weight: 700; color: var(--text1);">👩‍⚕️ Nurse</h4>
+                  <div style="font-size: 13px; color: var(--text2); margin-bottom: 12px;">View and manage residents</div>
+                  <ul style="list-style: none; padding: 0; margin: 0;">
+                    <li style="padding: 8px 0; border-bottom: 1px solid #f0f0f0;"><input type="checkbox" checked disabled/> <span>View Residents</span></li>
+                    <li style="padding: 8px 0; border-bottom: 1px solid #f0f0f0;"><input type="checkbox" checked disabled/> <span>Manage Residents</span></li>
+                    <li style="padding: 8px 0; border-bottom: 1px solid #f0f0f0;"><input type="checkbox" checked disabled/> <span>View Staff</span></li>
+                    <li style="padding: 8px 0; border-bottom: 1px solid #f0f0f0;"><input type="checkbox" checked disabled/> <span>View Analytics</span></li>
+                    <li style="padding: 8px 0; border-bottom: 1px solid #f0f0f0;"><input type="checkbox" checked disabled/> <span>Manage Alerts</span></li>
+                    <li style="padding: 8px 0;"><input type="checkbox" disabled/> <span>Admin Console</span></li>
+                  </ul>
+                </div>
+
+                <!-- Care Assistant Permissions -->
+                <div style="border: 1px solid #e5e5e5; border-radius: 8px; padding: 16px;">
+                  <h4 style="margin-top: 0; font-weight: 700; color: var(--text1);">🧑‍⚕️ Care Assistant</h4>
+                  <div style="font-size: 13px; color: var(--text2); margin-bottom: 12px;">View own assigned residents</div>
+                  <ul style="list-style: none; padding: 0; margin: 0;">
+                    <li style="padding: 8px 0; border-bottom: 1px solid #f0f0f0;"><input type="checkbox" checked disabled/> <span>View Residents (own)</span></li>
+                    <li style="padding: 8px 0; border-bottom: 1px solid #f0f0f0;"><input type="checkbox" checked disabled/> <span>Update Records</span></li>
+                    <li style="padding: 8px 0; border-bottom: 1px solid #f0f0f0;"><input type="checkbox" disabled/> <span>View Staff</span></li>
+                    <li style="padding: 8px 0; border-bottom: 1px solid #f0f0f0;"><input type="checkbox" disabled/> <span>View Analytics</span></li>
+                    <li style="padding: 8px 0; border-bottom: 1px solid #f0f0f0;"><input type="checkbox" checked disabled/> <span>View Alerts (own)</span></li>
+                    <li style="padding: 8px 0;"><input type="checkbox" disabled/> <span>Admin Console</span></li>
+                  </ul>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -332,6 +756,8 @@
     </div>
   </div><script src="../style/js/script.js"></script>
 <script src="../style/js/dashboard.js"></script>
+<script src="../style/js/admin_console.js"></script>
 <script src="/components/sidebar.js"></script>
+<script src="/style/js/dashboard_auth.js"></script>
 </body>
 </html>
