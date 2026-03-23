@@ -24,6 +24,7 @@ import { settingService } from "../../src/services/settingService";
 import { colors } from "../../src/theme/colors";
 import { spacing } from "../../src/theme/spacing";
 import { typography } from "../../src/theme/typography";
+import PageHeader from "../../src/components/PageHeader";
 
 export default function SettingsScreen() {
   const [settings, setSettings] = useState<SettingRow[]>([]);
@@ -123,7 +124,9 @@ export default function SettingsScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.pageTitle}>Settings</Text>
+        <View style={styles.topRow}>
+          <PageHeader title="Settings" />
+        </View>
 
         {loading ? (
           <View style={styles.loaderWrap}>
@@ -276,6 +279,9 @@ const styles = StyleSheet.create({
     ...typography.pageTitle,
     textAlign: "center",
     marginBottom: spacing.xxxl,
+  },
+  topRow: {
+    marginBottom: 28,
   },
   loaderWrap: {
     paddingTop: 40,

@@ -1,16 +1,16 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --navy: #0f1b2d;
-      --navy2: #162236;
-      --teal: #2ec4b6;
-      --teal-dark: #25a99e;
+      --navy: #0F172A;
+      --navy2: #1E293B;
+      --teal: #38BDF8;
+      --teal-dark: #0EA5E9;
       --white: #ffffff;
       --gray-100: #f4f6f9;
       --gray-300: #c8cdd6;
-      --gray-400: #9aa0ac;
-      --gray-600: #5a6170;
-      --dark-text: #1a2535;
+      --gray-400: #94A3B8;
+      --gray-600: #64748B;
+      --dark-text: #0F172A;
       --card-bg: #ffffff;
       --input-bg: #f7f9fc;
       --input-border: #dde1ea;
@@ -19,7 +19,7 @@
 
     html, body {
       height: 100%;
-      font-family: 'Manrope', sans-serif;
+      font-family: 'Inter', sans-serif;
       background: var(--navy);
     }
 
@@ -173,7 +173,7 @@
       border-radius: 30px;
       border: 1.5px solid var(--input-border);
       background: var(--input-bg);
-      font-family: 'Manrope', sans-serif;
+      font-family: 'Inter', sans-serif;
       font-size: 14px;
       color: var(--dark-text);
       outline: none;
@@ -235,7 +235,7 @@
       padding: 9px 0;
       font-size: 14px;
       font-weight: 600;
-      font-family: 'Manrope', sans-serif;
+      font-family: 'Inter', sans-serif;
       cursor: pointer;
       border-radius: 26px;
       border: none;
@@ -257,7 +257,7 @@
       height: 52px;
       border-radius: 30px;
       border: none;
-      font-family: 'Manrope', sans-serif;
+      font-family: 'Inter', sans-serif;
       font-size: 15px;
       font-weight: 700;
       cursor: pointer;
@@ -316,7 +316,7 @@
       border-radius: 30px;
       border: 1.5px solid var(--input-border);
       background: #fff;
-      font-family: 'Manrope', sans-serif;
+      font-family: 'Inter', sans-serif;
       font-size: 13px;
       font-weight: 600;
       color: var(--dark-text);

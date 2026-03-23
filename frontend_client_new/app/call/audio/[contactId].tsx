@@ -18,7 +18,8 @@ import { typography } from "../../../src/theme/typography";
 
 export default function AudioCallScreen() {
   const { contactId } = useLocalSearchParams<{ contactId: string }>();
-
+  const [isConnected, setIsConnected] = useState(true);
+  const [callSeconds, setCallSeconds] = useState(0);
   const [contact, setContact] = useState<CallContact | null>(null);
   const [loading, setLoading] = useState(true);
   const [muted, setMuted] = useState(false);
@@ -32,6 +33,22 @@ export default function AudioCallScreen() {
       });
     }
   }, [contactId]);
+  useEffect(() => {
+    if (!isConnected) return;
+
+    const timer = setInterval(() => {
+      setCallSeconds((prev) => prev + 1);
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [isConnected]);
+
+  function formatCallTime(totalSeconds: number) {
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+
+    return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+  }
 
   async function loadContact(id: string) {
     try {
@@ -57,80 +74,96 @@ export default function AudioCallScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.topbar}>
         <Pressable onPress={() => router.back()}>
-          <Feather name="arrow-left" size={28} color={colors.icon} />
+          <Feather name="arrow-left" size={26} color={colors.icon} />
         </Pressable>
 
-        <Text style={styles.callTime}>00:04</Text>
+        <Text style={styles.callTime}>{formatCallTime(callSeconds)}</Text>
 
         <Pressable>
-          <Feather name="more-vertical" size={26} color={colors.icon} />
+          <Feather name="more-vertical" size={24} color={colors.icon} />
         </Pressable>
       </View>
 
-      <View style={styles.avatarWrap}>
-        <View
-          style={[
-            styles.avatarCircle,
-            { backgroundColor: contact.avatarColor || "#D9D9D9" },
-          ]}
-        >
-          <Text style={styles.avatarText}>{contact.initials}</Text>
+      <View style={styles.content}>
+        <View style={styles.avatarWrap}>
+          <View
+            style={[
+              styles.avatarCircle,
+              { backgroundColor: contact.avatarColor || "#D9D9D9" },
+            ]}
+          >
+            <Text style={styles.avatarText}>{contact.initials}</Text>
+          </View>
+          <View style={styles.onlineDot} />
         </View>
-        <View style={styles.onlineDot} />
-      </View>
 
-      <Text style={styles.name}>{contact.name}</Text>
-      <Text style={styles.role}>{contact.specialty}</Text>
+        <Text style={styles.name}>{contact.name}</Text>
+        <Text style={styles.role}>{contact.specialty}</Text>
 
-      <View style={styles.statusPill}>
-        <Text style={styles.statusText}>Connected</Text>
-      </View>
+        <View style={styles.statusPill}>
+          <Text style={styles.statusText}>Connected</Text>
+        </View>
 
-      <View style={styles.grid}>
-        <ControlCard
-          label="Mute"
-          active={muted}
-          icon={<Feather name="mic-off" size={28} color={colors.icon} />}
-          onPress={() => setMuted((prev) => !prev)}
-        />
-        <ControlCard
-          label="Speaker"
-          active={speakerOn}
-          icon={<Feather name="volume-2" size={28} color={colors.icon} />}
-          onPress={() => setSpeakerOn((prev) => !prev)}
-        />
-        <ControlCard
-          label="Video"
-          icon={<Feather name="video" size={28} color={colors.icon} />}
-          onPress={() =>
-            router.replace({
-              pathname: "/call/video/[contactId]",
-              params: { contactId: contact.id },
-            })
-          }
-        />
-        <ControlCard
-          label="Add"
-          icon={
-            <Ionicons name="person-add-outline" size={28} color={colors.icon} />
-          }
-          onPress={() => {}}
-        />
-      </View>
+        <View style={styles.grid}>
+          <ControlCard
+            label="Mute"
+            active={muted}
+            icon={
+              <Feather
+                name={muted ? "mic-off" : "mic"}
+                size={24}
+                color={colors.icon}
+              />
+            }
+            onPress={() => setMuted((prev) => !prev)}
+          />
+          <ControlCard
+            label="Speaker"
+            active={speakerOn}
+            icon={
+              <Feather
+                name={speakerOn ? "volume-2" : "volume-x"}
+                size={24}
+                color={colors.icon}
+              />
+            }
+            onPress={() => setSpeakerOn((prev) => !prev)}
+          />
+          <ControlCard
+            label="Video"
+            icon={<Feather name="video" size={24} color={colors.icon} />}
+            onPress={() =>
+              router.replace({
+                pathname: "/call/video/[contactId]",
+                params: { contactId: contact.id },
+              })
+            }
+          />
+          <ControlCard
+            label="Add"
+            icon={
+              <Ionicons name="person-add-outline" size={24} color={colors.icon} />
+            }
+            onPress={() => {}}
+          />
+        </View>
 
-      <View style={styles.connectionWrap}>
-        <MaterialIcons name="graphic-eq" size={32} color={colors.success} />
-        <Text style={styles.connectionText}>Excellent connection</Text>
-      </View>
+        <View style={styles.connectionWrap}>
+          <MaterialIcons name="graphic-eq" size={28} color={colors.success} />
+          <Text style={styles.connectionText}>Excellent connection</Text>
+        </View>
+        <View style={styles.bottomActions}>
+          <Pressable style={styles.leftActionBtn}>
+            <MaterialIcons name="dialpad" size={24} color={colors.icon} />
+          </Pressable>
 
-      <View style={styles.bottomActions}>
-        <Pressable style={styles.smallBtn}>
-          <MaterialIcons name="dialpad" size={28} color={colors.icon} />
-        </Pressable>
-
-        <Pressable style={styles.endBtn} onPress={() => router.replace("/call")}>
-          <Feather name="phone-off" size={28} color={colors.surface} />
-        </Pressable>
+          <Pressable
+            style={styles.endBtn}
+            onPress={() => router.replace("/call")}
+          >
+            <Feather name="phone" size={28} color="#FFFFFF" />
+          </Pressable>
+        </View>
       </View>
     </SafeAreaView>
   );
@@ -168,45 +201,50 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
-    paddingTop: 10,
-    paddingHorizontal: spacing.xxxl,
+    paddingTop: 6,
+    paddingHorizontal: spacing.xxl,
   },
   topbar: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 34,
+    marginBottom: 14,
   },
   callTime: {
     ...typography.body,
     color: "#6C7482",
-    fontSize: 18,
+    fontSize: 16,
+  },
+  content: {
+    flex: 1,
+    justifyContent: "space-between",
+    paddingBottom: 14,
   },
   avatarWrap: {
     alignItems: "center",
     justifyContent: "center",
-    marginTop: spacing.md,
-    marginBottom: spacing.xxxl,
+    marginTop: 4,
+    marginBottom: 14,
   },
   avatarCircle: {
-    width: 210,
-    height: 210,
-    borderRadius: 105,
+    width: 150,
+    height: 150,
+    borderRadius: 75,
     alignItems: "center",
     justifyContent: "center",
   },
   avatarText: {
-    fontSize: 56,
+    fontSize: 40,
     fontWeight: "700",
     color: colors.surface,
   },
   onlineDot: {
     position: "absolute",
-    right: 92,
-    bottom: 14,
-    width: 26,
-    height: 26,
-    borderRadius: 13,
+    right: 98,
+    bottom: 6,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     backgroundColor: "#2BC35A",
     borderWidth: 4,
     borderColor: colors.background,
@@ -215,44 +253,46 @@ const styles = StyleSheet.create({
     textAlign: "center",
     ...typography.pageTitle,
     color: colors.textPrimary,
-    marginBottom: spacing.sm,
+    marginBottom: 4,
+    fontSize: 22,
   },
   role: {
     textAlign: "center",
     ...typography.body,
     color: "#6E7685",
-    marginBottom: spacing.lg,
+    marginBottom: 10,
+    fontSize: 14,
   },
   statusPill: {
     alignSelf: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 10,
+    paddingHorizontal: 18,
+    paddingVertical: 8,
     borderRadius: 999,
     backgroundColor: "#E5F4EA",
-    marginBottom: 34,
+    marginBottom: 18,
   },
   statusText: {
     color: "#25A34C",
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: "500",
   },
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
-    rowGap: spacing.lg,
-    marginBottom: spacing.xl,
+    rowGap: 14,
+    marginBottom: 18,
   },
   controlCard: {
     width: "47%",
-    height: 122,
-    borderRadius: 22,
+    height: 98,
+    borderRadius: 20,
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.borderStrong,
     alignItems: "center",
     justifyContent: "center",
-    gap: spacing.md,
+    gap: 10,
   },
   controlCardActive: {
     backgroundColor: "#F2F8FF",
@@ -260,42 +300,48 @@ const styles = StyleSheet.create({
   controlLabel: {
     ...typography.body,
     color: "#586474",
-    fontSize: 17,
+    fontSize: 16,
   },
   connectionWrap: {
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
     gap: spacing.xs,
-    marginBottom: 34,
+    marginBottom: 18,
   },
   connectionText: {
     ...typography.body,
-    fontSize: 18,
+    fontSize: 16,
     color: colors.success,
   },
   bottomActions: {
-    marginTop: "auto",
-    marginBottom: 34,
-    flexDirection: "row",
+    height: 92,
     justifyContent: "center",
     alignItems: "center",
-    gap: 34,
+    marginBottom: 4,
+    position: "relative",
   },
-  smallBtn: {
-    width: 76,
-    height: 76,
-    borderRadius: 38,
+  leftActionBtn: {
+    position: "absolute",
+    left: 40,
+    width: 68,
+    height: 68,
+    borderRadius: 34,
     backgroundColor: "#ECEDEF",
     alignItems: "center",
     justifyContent: "center",
   },
   endBtn: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
+    width: 84,
+    height: 84,
+    borderRadius: 42,
     backgroundColor: "#EF2626",
     alignItems: "center",
     justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.18,
+    shadowRadius: 12,
+    elevation: 8,
   },
 });
