@@ -1,9 +1,5 @@
-/**
- * Admin Console - RBAC, Staff & Resident Management
- * Handles tab switching, form submissions, and data loading
- */
+//Admin Console - RBAC
 
-// API_BASE is defined in script.js (loaded before this file)
 const token = localStorage.getItem('spherecare_token') || localStorage.getItem('access_token');
 const adminId = localStorage.getItem('spherecare_admin_id');
 const centerIdDisplay = localStorage.getItem('spherecare_center_id');
@@ -18,7 +14,6 @@ function safeHideSkeleton() { if (typeof hideSkeleton === 'function') hideSkelet
 // Store center ID globally
 let centerID = centerIdDisplay || '';
 
-/* ── Add Staff modal helpers ── */
 function openAddStaff() {
   document.getElementById('modal-add').classList.add('open');
 }
@@ -52,9 +47,7 @@ document.addEventListener('DOMContentLoaded', () => {
   displayCenterId();
 });
 
-// ═════════════════════════════════════════════════════════════════════════════
 // STAFF MANAGEMENT (legacy functions for tab-based admin system)
-// ═════════════════════════════════════════════════════════════════════════════
 
 function loadStaffList() {
   const staffTable = document.getElementById('staff-table');
@@ -181,9 +174,7 @@ function editStaff(staffId, fullName) {
   alert(`Edit functionality for ${fullName || staffId} - Coming soon!`);
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
 // RESIDENT MANAGEMENT
-// ═════════════════════════════════════════════════════════════════════════════
 
 function loadResidentsList() {
   const residentTable = document.getElementById('resident-table');
@@ -309,9 +300,7 @@ function editResident(residentId) {
   alert(`Edit functionality for resident ${residentId} - Coming soon!`);
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
 // STAFF APPROVALS MANAGEMENT
-// ═════════════════════════════════════════════════════════════════════════════
 
 function loadPendingStaffApprovals() {
   const pendingTable = document.getElementById('pending-staff-table');
@@ -442,9 +431,7 @@ function rejectStaffMember(staffId, fullName) {
     });
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
 // STAFF REGISTRATION MANAGEMENT
-// ═════════════════════════════════════════════════════════════════════════════
 
 function displayCenterId() {
   const centerIdElement = document.getElementById('center-id-display');
@@ -557,7 +544,7 @@ function loadRegistrationRequests() {
     });
 }
 
-/* ═══ CLOCK ═════════════════════════════════════════════════════════ */
+/* ═══ CLOCK ═══ */
 function updateClock() {
   const now = new Date();
 
@@ -580,7 +567,7 @@ function updateClock() {
   }
 }
 
-/* ═══ AUTH GUARD — admin only ══════════════════════════════════════ */
+
 let currentUser = null;
 
 function initUser() {
@@ -628,7 +615,7 @@ function initUser() {
   }
 }
 
-/* ═══ DEMO DATA ═════════════════════════════════════════════════════ */
+/* ═══ DEMO DATA */
 const DEMO_STAFF = [
   { id: 1, staff_id: 'ST-4829', full_name: 'Sarah Johnson', shift_time: '7:00 AM – 3:00 PM', hours: '8 hours', assigned_unit: 'ICU Ward', status: 'active', role: 'Senior Carer' },
   { id: 2, staff_id: 'ST-3746', full_name: 'Michael Chen', shift_time: '3:00 PM – 11:00 PM', hours: '8 hours', assigned_unit: 'Emergency', status: 'on_leave', role: 'Nurse' },
@@ -672,7 +659,7 @@ let usingDemoResidents = false;
 let usingDemoStats = true;
 let usingDemoAlerts = true;
 
-/* ═══ LOAD STAFF ════════════════════════════════════════════════════ */
+/* ═══ LOAD STAFF ═════════ */
 async function loadStaff() {
   try {
     const r = await fetch(`${API_BASE}/staff/`, { headers: authH() });
@@ -750,7 +737,7 @@ async function loadStaff() {
   renderTasks();
 }
 
-/* ═══ RENDER STAFF TABLE ════════════════════════════════════════════ */
+/* ═══ RENDER STAFF TABLE ═══ */
 function statusBadge(s) {
   if (s === 'active' || s === 'Active') {
     return `<span class="status-badge status-active">● Active</span>`;
@@ -801,7 +788,7 @@ function renderStaff() {
   }
 }
 
-/* ═══ RENDER RESIDENTS TABLE ════════════════════════════════════════ */
+/* ═══ RENDER RESIDENTS TABLE ═════*/
 function residentBadge(s) {
   if (s === 'stable')     return `<span class="status-badge status-active">● Stable</span>`;
   if (s === 'critical')   return `<span class="status-badge status-leave" style="color:#ef4444;">● Critical</span>`;
@@ -850,7 +837,7 @@ function renderResidents() {
   if (critEl)   critEl.textContent   = criticalCount;
 }
 
-/* ═══ RESIDENT CRUD ═════════════════════════════════════════════════ */
+/* ═══ RESIDENT CRUD ══════════════════ */
 function openEditResident(id) {
   const r = allResidents.find(x => x.id === id);
   if (!r) return;
@@ -896,7 +883,7 @@ async function deleteResidentById(id) {
   closeEditResident();
 }
 
-/* ═══ STATS ═════════════════════════════════════════════════════════ */
+/* ═══ STATS ═══════════════════════════ */
 function renderStats() {
   const active = allStaff.filter(s => s.status === 'active' || s.status === 'Active').length;
 
@@ -905,7 +892,7 @@ function renderStats() {
   document.getElementById('stat-shifts').textContent = allStaff.length;
 }
 
-/* ═══ ALERTS ════════════════════════════════════════════════════════ */
+/* ═══ ALERTS ═════════════ */
 function renderAlerts() {
   const iconMap = {
     warning: `<svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
@@ -930,7 +917,7 @@ function renderAlerts() {
   `).join('');
 }
 
-/* ═══ ALERTS FROM API ═══════════════════════════════════════════════ */
+/* ═══ ALERTS FROM API ═════*/
 function renderAlertsFromAPI(alerts) {
   const iconMap = {
     warning: `<svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
@@ -955,7 +942,7 @@ function renderAlertsFromAPI(alerts) {
   `).join('');
 }
 
-/* ═══ TASKS ═════════════════════════════════════════════════════════ */
+/* ═══ TASKS ═ */
 function renderTasks() {
   const badgeMap = { overdue: 'tb-overdue', inprogress: 'tb-inprogress', done: 'tb-done' };
   const labelMap = { overdue: 'Overdue', inprogress: 'In Progress', done: 'Done' };
@@ -975,7 +962,7 @@ function renderTasks() {
   `).join('');
 }
 
-/* ═══ TABS ══════════════════════════════════════════════════════════ */
+/* ═══ TABS ════ */
 function switchTab(name, btn) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
@@ -984,7 +971,7 @@ function switchTab(name, btn) {
   document.getElementById('tab-' + name).classList.add('active');
 }
 
-/* ═══ EDIT MODAL ════════════════════════════════════════════════════ */
+/* ═══ EDIT MODAL ═══ */
 function openEdit(id) {
   const s = allStaff.find(x => x.id === id);
   if (!s) return;
@@ -1061,7 +1048,7 @@ function viewStaff(id) {
   alert(`${s.full_name} (${s.staff_id})\nUnit: ${s.assigned_unit}\nShift: ${s.shift_time}\nRole: ${s.role}\nStatus: ${s.status}`);
 }
 
-/* ═══ EXPORT PDF ════════════════════════════════════════════════════ */
+/* ═══ EXPORT PDF ═══════════════ */
 function exportPDF() {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
@@ -1141,7 +1128,7 @@ function exportPDF() {
   doc.save(`SphereCarw_Staff_Report_${now.toISOString().slice(0, 10)}.pdf`);
 }
 
-/* ═══ HELPERS ═══════════════════════════════════════════════════════ */
+/* ══ HELPERS ═══ */
 function esc(s) {
   return (s || '')
     .replace(/&/g, '&amp;')
@@ -1149,7 +1136,7 @@ function esc(s) {
     .replace(/>/g, '&gt;');
 }
 
-/* ═══ PAGE INIT ═════════════════════════════════════════════════════ */
+/* ═══ PAGE INIT ══ */
 async function initAdminConsolePage() {
   try {
     safeShowSkeleton();
@@ -1173,7 +1160,7 @@ async function initAdminConsolePage() {
   }
 }
 
-/* ═══ INIT ══════════════════════════════════════════════════════════ */
+/* ═══ INIT ════*/
 document.addEventListener('DOMContentLoaded', async () => {
   await initAdminConsolePage();
 });

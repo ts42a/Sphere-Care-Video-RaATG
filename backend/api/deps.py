@@ -18,10 +18,7 @@ def get_db() -> Generator[Session, None, None]:
 
 
 def get_admin_db(admin_id: int) -> Generator[Session, None, None]:
-    """
-    Get admin-specific database session.
-    Each admin has their own SQLite database.
-    """
+# Get admin-specific database session
     SessionLocal = AdminDatabaseManager.get_admin_session_local(admin_id)
     db = SessionLocal()
     try:

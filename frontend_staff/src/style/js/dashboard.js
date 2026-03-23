@@ -9,7 +9,6 @@
 })();
 // ── DASHBOARD MESSAGES WIDGET ──
 (function() {
-  // Avatar colour palette (matches message.js)
   var AVATAR_COLORS = ['#2ec4b6','#7c3aed','#db2777','#059669','#d97706','#0369a1','#dc2626','#9333ea'];
   var colorMap = {}, colorIdx = 0;
 

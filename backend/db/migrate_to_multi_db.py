@@ -1,11 +1,3 @@
-"""
-Migration script to transition from single database to per-admin database structure.
-Run this after updating all models to include admin_id.
-
-Usage:
-    python -m backend.db.migrate_to_multi_db admin_id
-"""
-
 import sys
 from sqlalchemy import text
 from backend.db.session import SessionLocal
@@ -15,16 +7,6 @@ from backend.models.admin import Admin
 
 
 def migrate_single_to_multi_db(admin_id: int, source_admin_id: int = 1) -> bool:
-    """
-    Migrate data from a single admin in the monolithic database to a per-admin database.
-    
-    Args:
-        admin_id: The admin ID to create a database for
-        source_admin_id: The admin_id value to filter by in the source database
-    
-    Returns:
-        bool: True if migration successful, False otherwise
-    """
     try:
         # Step 1: Initialize new admin database
         print(f"[1/5] Initializing database for admin {admin_id}...")

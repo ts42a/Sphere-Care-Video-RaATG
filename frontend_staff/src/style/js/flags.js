@@ -74,7 +74,6 @@ let filteredFlags = [];
 
 // ════════════════════════
 // API CALLS
-// ════════════════════════
 
 async function loadStats(){
   try {
@@ -147,9 +146,8 @@ function splitDatetime(str){
   return {date: str, time:''};
 }
 
-// ════════════════════════
 // RENDER
-// ════════════════════════
+// ══════════
 
 function ini(n){ return (n||'??').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2); }
 
@@ -192,7 +190,7 @@ function renderFlags(){
   }).join('');
 }
 
-// ── client-side filter (for instant search without extra API call) ──
+// client-side filter (for instant search without extra API call) 
 function filterFlags(){
   const search = document.getElementById('flag-search').value.toLowerCase();
   const etype  = document.getElementById('f-etype').value;
@@ -210,9 +208,9 @@ function filterFlags(){
   renderFlags();
 }
 
-// ════════════════════════
+
 // TABS
-// ════════════════════════
+
 function switchMainTab(tab, btn){
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
   document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
@@ -220,9 +218,9 @@ function switchMainTab(tab, btn){
   document.getElementById('tab-'+tab).classList.add('active');
 }
 
-// ════════════════════════
+
 // FLAG DETAIL MODAL
-// ════════════════════════
+
 function openFlagModal(id){
   const f = allFlags.find(x=>x.id===id);
   if(!f) return;
@@ -249,9 +247,9 @@ function openFlagModal(id){
   openModal('modal-flag');
 }
 
-// ════════════════════════
+
 // RESIDENT PROFILE MODAL
-// ════════════════════════
+
 async function openResidentModal(resId, resName){
   // try API first
   let r = null;
@@ -340,7 +338,7 @@ function switchProfileTab(tab, btn){
   document.getElementById('ptab-'+tab).classList.add('active');
 }
 
-// ── MODAL HELPERS ──
+// ── MODAL HELPERS ─
 function openModal(id){document.getElementById(id).classList.add('open');document.body.style.overflow='hidden';}
 function closeModal(id){document.getElementById(id).classList.remove('open');document.body.style.overflow='';}
 document.addEventListener('DOMContentLoaded', function() {

@@ -12,7 +12,6 @@ def initialize_new_admin_database(admin_id: int) -> bool:
     """
     Initialize a new database for a newly created admin.
     This should be called immediately after creating an admin account.
-    
     Returns:
         bool: True if initialization successful, False otherwise
     """
@@ -34,6 +33,7 @@ def migrate_admin_database(admin_id: int) -> bool:
     Run migrations on an existing admin database.
     Use this when you need to update the database schema.
     
+
     Returns:
         bool: True if migration successful, False otherwise
     """
@@ -49,7 +49,6 @@ def migrate_admin_database(admin_id: int) -> bool:
 def get_admin_db_session(admin_id: int) -> Session:
     """
     Get a database session for a specific admin.
-    
     Usage:
         db = get_admin_db_session(admin_id)
         residents = db.query(Resident).filter(Resident.admin_id == admin_id).all()
@@ -75,7 +74,6 @@ def verify_admin_database_exists(admin_id: int) -> bool:
 def list_all_admin_databases() -> dict:
     """
     List all existing admin databases.
-    
     Returns:
         dict: Mapping of admin_id to database path
     """

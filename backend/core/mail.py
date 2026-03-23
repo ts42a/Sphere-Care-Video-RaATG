@@ -2,7 +2,7 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
-# ⚠️ replace with your actual credentials or env vars later
+# replace with your actual credentials or env vars later
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
 SMTP_EMAIL = "your_email@gmail.com"
@@ -31,10 +31,8 @@ def send_email(to_email: str, subject: str, body: str) -> bool:
         print(f"[MAIL ERROR] {e}")
         return False
 
-
-# ========================
 # Helper functions
-# ========================
+
 def send_otp_email(to_email: str, otp: str) -> bool:
     subject = "Sphere Care - Your OTP Code"
     body = f"""
