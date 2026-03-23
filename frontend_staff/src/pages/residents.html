@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="/style/css/residents.css"/>
 
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Sphere Care – Residents</title>
-<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
 
 </head>
 <body>
@@ -22,7 +22,7 @@
       <div class="topbar-title" id="topbar-title">Dashboard</div>
       <div class="topbar-right">
         <span class="topbar-date" id="topbar-date"></span>
-        <div class="avatar">SC</div>
+        <div class="avatar topbar-avatar" id="user-avatar"></div>
       </div>
     </div>
 
@@ -98,7 +98,7 @@
           <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;flex-wrap:wrap;">
             <div style="position:relative;flex:1;min-width:220px;max-width:360px;">
               <svg style="position:absolute;left:12px;top:50%;transform:translateY(-50%);width:15px;height:15px;stroke:var(--text3);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-              <input style="width:100%;height:38px;padding:0 14px 0 36px;border-radius:10px;border:1.5px solid var(--border);font-family:Manrope,sans-serif;font-size:13px;outline:none;background:#fff;" id="res-search" placeholder="Search by name, room, or ID..." oninput="filterResidents()"/>
+              <input style="width:100%;height:38px;padding:0 14px 0 36px;border-radius:10px;border:1.5px solid var(--border);font-family:'Inter',sans-serif;font-size:13px;outline:none;background:#fff;" id="res-search" placeholder="Search by name, room, or ID..." oninput="filterResidents()"/>
             </div>
             <select class="fsel" id="f-status" onchange="filterResidents()"><option value="">All Conditions</option><option value="stable">Stable</option><option value="monitoring">Monitoring</option></select>
           </div>
@@ -229,8 +229,8 @@
     <div class="ptab-content" id="ptab-flags"><div id="p-flags"></div></div>
     <div class="ptab-content" id="ptab-records"><div id="p-records"></div></div>
   </div>
-</div><script src="/style/js/script.js"></script>
-<script src="/style/js/residents.js"></script>
+</div><script src="../style/js/script.js"></script>
+<script src="../style/js/residents.js"></script>
 <script src="/components/sidebar.js"></script>
 </body>
 </html>
