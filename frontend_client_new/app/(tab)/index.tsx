@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { router, useFocusEffect } from "expo-router";
+import { router, useFocusEffect, Stack } from "expo-router";
 import { Ionicons, Feather } from "@expo/vector-icons";
 import {
   SafeAreaView,
@@ -11,15 +11,14 @@ import {
   Image,
 } from "react-native";
 
-import { Images } from "../src/constants/images";
-import ReminderCard from "../src/components/ReminderCard";
-import QuickActionCard from "../src/components/QuickActionCard";
-import TaskCard from "../src/components/TaskCard";
-import BottomNav from "../src/components/BottomNav";
-import { profileService } from "../src/services/profileService";
-import { notificationService } from "../src/services/notificationService";
-import { colors } from "../src/theme/colors";
-import { spacing } from "../src/theme/spacing";
+import { Images } from "../../src/constants/images";
+import ReminderCard from "../../src/components/ReminderCard";
+import QuickActionCard from "../../src/components/QuickActionCard";
+import TaskCard from "../../src/components/TaskCard";
+import { profileService } from "../../src/services/profileService";
+import { notificationService } from "../../src/services/notificationService";
+import { colors } from "../../src/theme/colors";
+import { spacing } from "../../src/theme/spacing";
 import { typography } from "@/src/theme/typography";
 
 export default function HomeScreen() {
@@ -76,7 +75,7 @@ export default function HomeScreen() {
   ];
 
   return (
-    <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.container}>
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
@@ -146,9 +145,10 @@ export default function HomeScreen() {
             <QuickActionCard
               bigTitle="CALL"
               smallTitle="Someone"
+              reverseTextOrder
               variant="purple"
               icon={<Feather name="phone-call" size={28} color="#B6BCEB" />}
-              onPress={() => router.push("/call")}
+              onPress={() => router.navigate("/call")}
             />
 
             <QuickActionCard
@@ -156,7 +156,7 @@ export default function HomeScreen() {
               smallTitle="Manage"
               variant="mint"
               icon={<Feather name="calendar" size={28} color="#9FD3C7" />}
-              onPress={() => router.push("/booking")}
+              onPress={() => router.navigate("/booking")}
             />
           </View>
 
@@ -165,7 +165,7 @@ export default function HomeScreen() {
 
             <Pressable
               style={styles.taskAddBtn}
-              onPress={() => router.push("/task")}
+              onPress={() => router.navigate("/task")}
             >
               <Text style={styles.taskAddBtnText}>+</Text>
             </Pressable>
@@ -199,8 +199,6 @@ export default function HomeScreen() {
           </View>
         </View>
       </ScrollView>
-
-      <BottomNav active="home" />
     </SafeAreaView>
   );
 }

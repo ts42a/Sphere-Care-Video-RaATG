@@ -32,12 +32,19 @@ function buildCalendarDays(visibleMonth: Date) {
   const month = visibleMonth.getMonth();
 
   const firstDayOfMonth = new Date(year, month, 1);
+  const lastDayOfMonth = new Date(year, month + 1, 0);
+
   const startDay = firstDayOfMonth.getDay();
+  const daysInMonth = lastDayOfMonth.getDate();
+
+  const totalCells = startDay + daysInMonth;
+  const weekCount = Math.ceil(totalCells / 7);
+  const visibleCells = weekCount * 7;
 
   const gridStart = new Date(year, month, 1 - startDay);
 
   const days: Date[] = [];
-  for (let i = 0; i < 42; i++) {
+  for (let i = 0; i < visibleCells; i++) {
     const date = new Date(gridStart);
     date.setDate(gridStart.getDate() + i);
     days.push(date);

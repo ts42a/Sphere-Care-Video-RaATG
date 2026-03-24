@@ -267,7 +267,7 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
   },
   topRow: {
-    marginBottom: 28,
+    marginBottom: 18,
   },
   rightWrap: {
     position: "absolute",
@@ -281,7 +281,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#F1F3F6",
     borderRadius: 20,
     padding: 18,
-    marginBottom: 26,
+    marginBottom: 16,
     alignItems: "center",
   },
   avatarWrap: {

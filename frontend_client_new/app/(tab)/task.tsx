@@ -2,10 +2,10 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { View, Text, StyleSheet, Pressable, ScrollView } from "react-native";
 import { Feather, Ionicons } from "@expo/vector-icons";
 import { useMemo, useState } from "react";
+import { Stack } from "expo-router";
 
 import PageHeader from "../../src/components/PageHeader";
 import TaskCard from "../../src/components/TaskCard";
-import BottomNav from "../../src/components/BottomNav";
 import { colors } from "../../src/theme/colors";
 import { spacing } from "../../src/theme/spacing";
 import { typography } from "../../src/theme/typography";
@@ -61,13 +61,13 @@ export default function TaskScreen() {
   }, [activeFilter]);
 
   return (
-    <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.container}>
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.screen}>
-          <PageHeader title="Task" />
+          <PageHeader title="Task" showBack={false} />
 
           <View style={styles.aiCard}>
             <View style={styles.aiIconWrap}>
@@ -133,8 +133,6 @@ export default function TaskScreen() {
           )}
         </View>
       </ScrollView>
-
-      <BottomNav active="task" />
     </SafeAreaView>
   );
 }
@@ -150,7 +148,7 @@ const styles = StyleSheet.create({
   screen: {
     paddingTop: spacing.xxl,
     paddingHorizontal: spacing.xxl,
-    paddingBottom: spacing.xxl,
+    paddingBottom: 8,
   },
   aiCard: {
     backgroundColor: "#E9EEFB",

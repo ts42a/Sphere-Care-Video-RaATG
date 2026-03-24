@@ -218,13 +218,15 @@ function SettingsCard({
       </View>
 
       {isToggle ? (
-        <Switch
-          value={!!item.value}
-          onValueChange={(nextValue) => onToggle(item, nextValue)}
-          disabled={busy}
-          trackColor={{ false: colors.borderStrong, true: colors.successLight }}
-          thumbColor={item.value ? colors.success : colors.surface}
-        />
+        <View style={styles.switchWrap}>
+          <Switch
+            value={!!item.value}
+            onValueChange={(nextValue) => onToggle(item, nextValue)}
+            disabled={busy}
+            trackColor={{ false: colors.borderStrong, true: colors.successLight }}
+            thumbColor={item.value ? colors.success : colors.surface}
+          />
+        </View>
       ) : isDanger ? null : (
         <Feather name="chevron-right" size={28} color={colors.textMuted} />
       )}
@@ -281,7 +283,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xxxl,
   },
   topRow: {
-    marginBottom: 28,
+    marginBottom: 10,
   },
   loaderWrap: {
     paddingTop: 40,
@@ -292,6 +294,11 @@ const styles = StyleSheet.create({
     marginTop: spacing.lg,
     marginBottom: spacing.md,
     paddingHorizontal: spacing.xs,
+  },
+  switchWrap: {
+    justifyContent: "center",
+    alignItems: "center",
+    marginLeft: spacing.md,
   },
   card: {
     minHeight: 92,

@@ -8,9 +8,8 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { Feather, Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
+import { router, Stack } from "expo-router";
 import { useEffect, useState } from "react";
-import BottomNav from "../../src/components/BottomNav";
 import PageHeader from "../../src/components/PageHeader";
 
 import { bookingService } from "../../src/services/bookingService";
@@ -39,14 +38,14 @@ export default function BookingScreen() {
   }, []);
 
   return (
-    <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.container}>
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.screen}>
           <View style={styles.topRow}>
-            <PageHeader title="Booking" />
+            <PageHeader title="Booking" showBack={false} />
           </View>
 
           <View style={styles.heroCard}>
@@ -92,8 +91,6 @@ export default function BookingScreen() {
           )}
         </View>
       </ScrollView>
-
-      <BottomNav active="booking" />
     </SafeAreaView>
   );
 }
