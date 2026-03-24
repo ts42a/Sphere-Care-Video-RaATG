@@ -1,550 +1,21 @@
-//Admin Console - RBAC
-
-const token = localStorage.getItem('spherecare_token') || localStorage.getItem('access_token');
-const adminId = localStorage.getItem('spherecare_admin_id');
-const centerIdDisplay = localStorage.getItem('spherecare_center_id');
-
+//Admin console - RBAC
 function authH() {
-  return { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
+  const h = { 'Content-Type': 'application/json' };
+  const t = localStorage.getItem('access_token');
+  if (t) h['Authorization'] = `Bearer ${t}`;
+  return h;
 }
 
-function safeShowSkeleton() { if (typeof showSkeleton === 'function') showSkeleton(); }
-function safeHideSkeleton() { if (typeof hideSkeleton === 'function') hideSkeleton(); }
-
-// Store center ID globally
-let centerID = centerIdDisplay || '';
-
-function openAddStaff() {
-  document.getElementById('modal-add').classList.add('open');
-}
-function closeAddStaff() {
-  document.getElementById('modal-add').classList.remove('open');
-  const msg = document.getElementById('staff-message');
-  if (msg) msg.innerHTML = '';
+/*SKELETON HELPERS*/
+function safeShowSkeleton() {
+  if (typeof showSkeleton === 'function') showSkeleton();
 }
 
-/* ── Resident modal helpers ── */
-function openAddResident() {
-  document.getElementById('modal-add-resident').classList.add('open');
-}
-function closeAddResident() {
-  document.getElementById('modal-add-resident').classList.remove('open');
-  const msg = document.getElementById('resident-message');
-  if (msg) msg.innerHTML = '';
-}
-function closeEditResident() {
-  document.getElementById('modal-edit-resident').classList.remove('open');
+function safeHideSkeleton() {
+  if (typeof hideSkeleton === 'function') hideSkeleton();
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  // Form handlers
-  const staffForm = document.getElementById('staff-form');
-  if (staffForm) staffForm.addEventListener('submit', handleStaffFormSubmit);
-  
-  const residentForm = document.getElementById('resident-form');
-  if (residentForm) residentForm.addEventListener('submit', handleResidentFormSubmit);
-
-  displayCenterId();
-});
-
-// STAFF MANAGEMENT (legacy functions for tab-based admin system)
-
-function loadStaffList() {
-  const staffTable = document.getElementById('staff-table');
-  const staffTbody = document.getElementById('staff-tbody');
-  const staffLoading = document.getElementById('staff-list-loading');
-
-  if (!staffLoading) return;
-
-  staffLoading.style.display = 'block';
-  if (staffTable) staffTable.style.display = 'none';
-
-  fetch(`${API_BASE}/admin/staff`, {
-    method: 'GET',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    }
-  })
-    .then(res => res.json())
-    .then(staff => {
-      if (!staffTbody) return;
-      
-      staffTbody.innerHTML = '';
-      
-      if (staff.length === 0) {
-        staffTbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text3);">No staff members yet</td></tr>';
-      } else {
-        staff.forEach(s => {
-          const row = document.createElement('tr');
-          row.innerHTML = `
-            <td><strong>${s.staff_id}</strong></td>
-            <td>${s.full_name}</td>
-            <td>${s.role}</td>
-            <td>${s.shift_time}</td>
-            <td>${s.assigned_unit}</td>
-            <td><span class="admin-badge ${s.status === 'active' ? 'active' : 'inactive'}">${s.status.toUpperCase()}</span></td>
-            <td style="display:flex;gap:6px;flex-wrap:wrap;">
-              <button type="button" class="admin-action-btn" style="background:#cce5ff;color:#004085;padding:6px 10px;border:none;border-radius:4px;cursor:pointer;font-size:12px;font-weight:600;" onclick="editStaff('${s.staff_id}', '${s.full_name}')">✏️ Edit</button>
-              <button type="button" class="admin-action-btn" style="background:#f8d7da;color:#721c24;padding:6px 10px;border:none;border-radius:4px;cursor:pointer;font-size:12px;font-weight:600;" onclick="deleteStaff('${s.staff_id}', '${s.full_name}')">🗑️ Delete</button>
-            </td>
-          `;
-          staffTbody.appendChild(row);
-        });
-      }
-
-      staffLoading.style.display = 'none';
-      if (staffTable) staffTable.style.display = 'table';
-    })
-    .catch(err => {
-      console.error('Error loading staff:', err);
-      if (staffLoading) staffLoading.innerHTML = '<div class="admin-error">Failed to load staff list</div>';
-    });
-}
-
-function handleStaffFormSubmit(e) {
-  e.preventDefault();
-
-  const formData = new FormData(e.target);
-  const data = {
-    full_name: formData.get('full_name'),
-    role: formData.get('role'),
-    shift_time: formData.get('shift_time'),
-    assigned_unit: formData.get('assigned_unit')
-  };
-
-  const messageDiv = document.getElementById('staff-message');
-  if (messageDiv) messageDiv.innerHTML = '<div class="admin-loading">Creating staff member...</div>';
-
-  const params = new URLSearchParams(data);
-  fetch(`${API_BASE}/admin/staff/create?${params}`, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${token}`
-    }
-  })
-    .then(res => res.json())
-    .then(result => {
-      if (messageDiv) {
-        if (result.success) {
-          messageDiv.innerHTML = `<div class="admin-success">✓ ${result.message}</div>`;
-          e.target.reset();
-          setTimeout(() => {
-            messageDiv.innerHTML = '';
-            closeAddStaff();
-            loadStaff();
-          }, 2000);
-        } else {
-          messageDiv.innerHTML = `<div class="admin-error">✗ ${result.detail?.msg || 'Failed to create staff'}</div>`;
-        }
-      }
-    })
-    .catch(err => {
-      console.error('Error creating staff:', err);
-      if (messageDiv) messageDiv.innerHTML = '<div class="admin-error">✗ Error creating staff member</div>';
-    });
-}
-
-function deleteStaff(staffId, fullName) {
-  if (!confirm(`Delete staff member ${fullName || staffId}?`)) return;
-
-  fetch(`${API_BASE}/admin/staff/${staffId}`, {
-    method: 'DELETE',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    }
-  })
-    .then(res => res.json())
-    .then(result => {
-      if (result.success) {
-        alert(result.message);
-        loadStaffList();
-      } else {
-        alert('Failed to delete staff member');
-      }
-    })
-    .catch(err => {
-      console.error('Error deleting staff:', err);
-      alert('Error deleting staff member');
-    });
-}
-
-function editStaff(staffId, fullName) {
-  alert(`Edit functionality for ${fullName || staffId} - Coming soon!`);
-}
-
-// RESIDENT MANAGEMENT
-
-function loadResidentsList() {
-  const residentTable = document.getElementById('resident-table');
-  const residentTbody = document.getElementById('resident-tbody');
-  const residentLoading = document.getElementById('resident-list-loading');
-
-  if (!residentLoading) return;
-
-  residentLoading.style.display = 'block';
-  if (residentTable) residentTable.style.display = 'none';
-
-  fetch(`${API_BASE}/admin/residents`, {
-    method: 'GET',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    }
-  })
-    .then(res => res.json())
-    .then(residents => {
-      if (!residentTbody) return;
-      
-      residentTbody.innerHTML = '';
-      
-      if (residents.length === 0) {
-        residentTbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text3);">No residents yet</td></tr>';
-      } else {
-        residents.forEach(r => {
-          const row = document.createElement('tr');
-          row.innerHTML = `
-            <td><strong>${r.id}</strong></td>
-            <td>${r.full_name}</td>
-            <td>${r.age}</td>
-            <td>${r.room}</td>
-            <td><span class="admin-badge ${r.status === 'stable' ? 'active' : 'inactive'}">${r.status.toUpperCase()}</span></td>
-            <td>
-              <button class="admin-action-btn admin-action-edit" onclick="editResident(${r.id})">Edit</button>
-              <button class="admin-action-btn admin-action-delete" onclick="deleteResident(${r.id})">Delete</button>
-            </td>
-          `;
-          residentTbody.appendChild(row);
-        });
-      }
-
-      residentLoading.style.display = 'none';
-      if (residentTable) residentTable.style.display = 'table';
-    })
-    .catch(err => {
-      console.error('Error loading residents:', err);
-      if (residentLoading) residentLoading.innerHTML = '<div class="admin-error">Failed to load residents list</div>';
-    });
-}
-
-function handleResidentFormSubmit(e) {
-  e.preventDefault();
-
-  const formData = new FormData(e.target);
-  const data = {
-    full_name: formData.get('full_name'),
-    age: parseInt(formData.get('age')),
-    room: formData.get('room'),
-    status: formData.get('status')
-  };
-
-  const messageDiv = document.getElementById('resident-message');
-  if (messageDiv) messageDiv.innerHTML = '<div class="admin-loading">Creating resident...</div>';
-
-  const params = new URLSearchParams(data);
-  fetch(`${API_BASE}/admin/resident/create?${params}`, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${token}`
-    }
-  })
-    .then(res => res.json())
-    .then(result => {
-      if (messageDiv) {
-        if (result.success) {
-          messageDiv.innerHTML = `<div class="admin-success">✓ ${result.message}</div>`;
-          e.target.reset();
-          setTimeout(() => {
-            messageDiv.innerHTML = '';
-            closeAddResident();
-            loadStaff();
-          }, 2000);
-        } else {
-          messageDiv.innerHTML = `<div class="admin-error">✗ ${result.detail?.msg || 'Failed to create resident'}</div>`;
-        }
-      }
-    })
-    .catch(err => {
-      console.error('Error creating resident:', err);
-      if (messageDiv) messageDiv.innerHTML = '<div class="admin-error">✗ Error creating resident</div>';
-    });
-}
-
-function deleteResident(residentId) {
-  if (!confirm(`Delete resident ${residentId}?`)) return;
-
-  fetch(`${API_BASE}/admin/resident/${residentId}`, {
-    method: 'DELETE',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    }
-  })
-    .then(res => res.json())
-    .then(result => {
-      if (result.success) {
-        alert(result.message);
-        loadResidentsList();
-      } else {
-        alert('Failed to delete resident');
-      }
-    })
-    .catch(err => {
-      console.error('Error deleting resident:', err);
-      alert('Error deleting resident');
-    });
-}
-
-function editResident(residentId) {
-  alert(`Edit functionality for resident ${residentId} - Coming soon!`);
-}
-
-// STAFF APPROVALS MANAGEMENT
-
-function loadPendingStaffApprovals() {
-  const pendingTable = document.getElementById('pending-staff-table');
-  const pendingTbody = document.getElementById('pending-staff-tbody');
-  const pendingLoading = document.getElementById('pending-staff-loading');
-
-  if (!pendingLoading) return;
-
-  pendingLoading.style.display = 'block';
-  if (pendingTable) pendingTable.style.display = 'none';
-
-  fetch(`${API_BASE}/admin/staff/pending`, {
-    method: 'GET',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    }
-  })
-    .then(res => res.json())
-    .then(staffList => {
-      if (!pendingTbody) return;
-      
-      pendingTbody.innerHTML = '';
-      
-      if (!staffList || staffList.length === 0) {
-        pendingTbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text3);">No pending staff approvals</td></tr>';
-      } else {
-        staffList.forEach(s => {
-          const createdDate = new Date(s.created_at).toLocaleDateString();
-          const row = document.createElement('tr');
-          row.innerHTML = `
-            <td><strong>${s.staff_id || 'N/A'}</strong></td>
-            <td>${s.full_name}</td>
-            <td>${s.email}</td>
-            <td>${createdDate}</td>
-            <td><span class="admin-badge inactive">PENDING</span></td>
-            <td>
-              <button class="admin-action-btn" style="background:#d4edda;color:#155724;" onclick="approveStaffMember(${s.staff_id}, '${s.full_name}')">Approve</button>
-              <button class="admin-action-btn" style="background:#f8d7da;color:#721c24;" onclick="rejectStaffMember(${s.staff_id}, '${s.full_name}')">Reject</button>
-            </td>
-          `;
-          pendingTbody.appendChild(row);
-        });
-      }
-
-      pendingLoading.style.display = 'none';
-      if (pendingTable) pendingTable.style.display = 'table';
-    })
-    .catch(err => {
-      console.error('Error loading pending staff:', err);
-      if (pendingLoading) pendingLoading.innerHTML = '<div class="admin-error">Failed to load pending approvals</div>';
-    });
-}
-
-function approveStaffMember(staffId, fullName) {
-  if (!confirm(`Approve ${fullName} for staff role?`)) return;
-
-  const messageDiv = document.getElementById('approval-message');
-  if (messageDiv) {
-    messageDiv.style.display = 'block';
-    messageDiv.className = 'admin-loading';
-    messageDiv.textContent = 'Processing approval...';
-  }
-
-  fetch(`${API_BASE}/admin/staff/${staffId}/approve`, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    }
-  })
-    .then(res => res.json())
-    .then(result => {
-      if (messageDiv) {
-        messageDiv.className = result.success ? 'admin-success' : 'admin-error';
-        messageDiv.innerHTML = `<strong>${result.message || 'Approval processed'}</strong>`;
-      }
-      setTimeout(() => {
-        if (messageDiv) messageDiv.style.display = 'none';
-        loadPendingStaffApprovals();
-      }, 2000);
-    })
-    .catch(err => {
-      console.error('Error approving staff:', err);
-      if (messageDiv) {
-        messageDiv.className = 'admin-error';
-        messageDiv.textContent = 'Error approving staff member';
-      }
-    });
-}
-
-function rejectStaffMember(staffId, fullName) {
-  const reason = prompt(`Enter rejection reason for ${fullName}:`, 'Does not meet requirements');
-  if (reason === null) return;
-
-  const messageDiv = document.getElementById('approval-message');
-  if (messageDiv) {
-    messageDiv.style.display = 'block';
-    messageDiv.className = 'admin-loading';
-    messageDiv.textContent = 'Processing rejection...';
-  }
-
-  fetch(`${API_BASE}/admin/staff/${staffId}/reject`, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ reason })
-  })
-    .then(res => res.json())
-    .then(result => {
-      if (messageDiv) {
-        messageDiv.className = result.success ? 'admin-success' : 'admin-error';
-        messageDiv.innerHTML = `<strong>${result.message || 'Rejection processed'}</strong>`;
-      }
-      setTimeout(() => {
-        if (messageDiv) messageDiv.style.display = 'none';
-        loadPendingStaffApprovals();
-      }, 2000);
-    })
-    .catch(err => {
-      console.error('Error rejecting staff:', err);
-      if (messageDiv) {
-        messageDiv.className = 'admin-error';
-        messageDiv.textContent = 'Error rejecting staff member';
-      }
-    });
-}
-
-// STAFF REGISTRATION MANAGEMENT
-
-function displayCenterId() {
-  const centerIdElement = document.getElementById('center-id-display');
-  if (centerIdElement && centerID) {
-    centerIdElement.textContent = centerID;
-  }
-}
-
-function copyCenterId() {
-  const centerIdElement = document.getElementById('center-id-display');
-  if (!centerIdElement) return;
-
-  const centerIdText = centerIdElement.textContent.trim();
-  if (!centerIdText) {
-    alert('No center ID to copy');
-    return;
-  }
-
-  navigator.clipboard.writeText(centerIdText).then(() => {
-    const copyBtn = document.getElementById('copy-center-id-btn');
-    if (copyBtn) {
-      const originalText = copyBtn.textContent;
-      copyBtn.textContent = '✓ Copied!';
-      copyBtn.style.background = '#d4edda';
-      copyBtn.style.color = '#155724';
-      
-      setTimeout(() => {
-        copyBtn.textContent = originalText;
-        copyBtn.style.background = '';
-        copyBtn.style.color = '';
-      }, 2000);
-    }
-  }).catch(err => {
-    console.error('Failed to copy center ID:', err);
-    alert('Failed to copy center ID');
-  });
-}
-
-function loadRegistrationRequests() {
-  const registrationTable = document.getElementById('registration-table');
-  const registrationTbody = document.getElementById('registration-tbody');
-  const loadingDiv = document.getElementById('registration-list-loading');
-
-  if (!loadingDiv) return;
-
-  loadingDiv.style.display = 'block';
-  if (registrationTable) registrationTable.style.display = 'none';
-
-  fetch(`${API_BASE}/admin/staff/pending`, {
-    method: 'GET',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    }
-  })
-    .then(res => res.json())
-    .then(registrations => {
-      if (!registrationTbody) return;
-      
-      registrationTbody.innerHTML = '';
-      
-      if (!registrations || registrations.length === 0) {
-        registrationTbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text3);">No registration requests</td></tr>';
-      } else {
-        registrations.forEach(reg => {
-          const createdDate = new Date(reg.created_at).toLocaleDateString('en-AU', {
-            day: 'numeric',
-            month: 'short',
-            year: 'numeric'
-          });
-          const row = document.createElement('tr');
-          
-          let statusBadgeClass = 'inactive';
-          let statusText = 'PENDING';
-          if (reg.approval_status === 'approved') {
-            statusBadgeClass = 'active';
-            statusText = 'APPROVED';
-          } else if (reg.approval_status === 'rejected') {
-            statusBadgeClass = 'inactive';
-            statusText = 'REJECTED';
-          }
-          
-          row.innerHTML = `
-            <td>${createdDate}</td>
-            <td><strong>${reg.full_name}</strong></td>
-            <td>${reg.email}</td>
-            <td><span class="admin-badge ${statusBadgeClass}">${statusText}</span></td>
-            <td>
-              ${reg.approval_status === 'pending' ? `
-                <div style="display:flex;gap:6px;flex-wrap:wrap;">
-                  <button class="admin-action-btn" style="background:#d4edda;color:#155724;padding:6px 10px;border:none;border-radius:4px;cursor:pointer;font-size:12px;font-weight:600;" onclick="approveStaffMember(${reg.staff_id}, '${reg.full_name}')">✓ Approve</button>
-                  <button class="admin-action-btn" style="background:#f8d7da;color:#721c24;padding:6px 10px;border:none;border-radius:4px;cursor:pointer;font-size:12px;font-weight:600;" onclick="rejectStaffMember(${reg.staff_id}, '${reg.full_name}')">✗ Reject</button>
-                </div>
-              ` : `<span style="color:var(--text3);font-size:12px;">No action needed</span>`}
-            </td>
-          `;
-          registrationTbody.appendChild(row);
-        });
-      }
-
-      loadingDiv.style.display = 'none';
-      if (registrationTable) registrationTable.style.display = 'table';
-    })
-    .catch(err => {
-      console.error('Error loading registration requests:', err);
-      if (loadingDiv) {
-        loadingDiv.style.display = 'none';
-        loadingDiv.innerHTML = '<div class="admin-error">Failed to load registration requests</div>';
-      }
-    });
-}
-
-/* ═══ CLOCK ═══ */
+/* CLOCK */
 function updateClock() {
   const now = new Date();
 
@@ -567,19 +38,12 @@ function updateClock() {
   }
 }
 
-
+/* AUTH GUARD — admin only*/
 let currentUser = null;
 
 function initUser() {
   try {
-    let u = {};
-    try { u = JSON.parse(localStorage.getItem('user') || '{}'); } catch(_){}
-    // fallback: build user from spherecare_* keys if 'user' is empty
-    if (!u.role) {
-      u.role = localStorage.getItem('spherecare_role') || '';
-      u.full_name = u.full_name || localStorage.getItem('spherecare_user_name') || '';
-      u.email = u.email || localStorage.getItem('spherecare_user_email') || '';
-    }
+    const u = JSON.parse(localStorage.getItem('user') || '{}');
     currentUser = u;
 
     const adminNameEl = document.getElementById('admin-name');
@@ -615,7 +79,7 @@ function initUser() {
   }
 }
 
-/* ═══ DEMO DATA */
+/*  DEMO DATA  */
 const DEMO_STAFF = [
   { id: 1, staff_id: 'ST-4829', full_name: 'Sarah Johnson', shift_time: '7:00 AM – 3:00 PM', hours: '8 hours', assigned_unit: 'ICU Ward', status: 'active', role: 'Senior Carer' },
   { id: 2, staff_id: 'ST-3746', full_name: 'Michael Chen', shift_time: '3:00 PM – 11:00 PM', hours: '8 hours', assigned_unit: 'Emergency', status: 'on_leave', role: 'Nurse' },
@@ -640,26 +104,14 @@ const DEMO_TASKS = [
   { title: 'Visitor Log Review', status: 'inprogress', desc: 'Review visitor logs for this week.', assignee: 'Linda Pham', due: 'Mar 16' }
 ];
 
-const DEMO_RESIDENTS = [
-  { id: 1, full_name: 'Dorothy Williams', age: 82, room: 'Room 104', status: 'stable' },
-  { id: 2, full_name: 'Harold Mitchell', age: 79, room: 'Room 207', status: 'critical' },
-  { id: 3, full_name: 'Margaret Chen', age: 88, room: 'Room 112', status: 'stable' },
-  { id: 4, full_name: 'Robert Clarke', age: 74, room: 'Room 305', status: 'recovering' },
-  { id: 5, full_name: 'Eleanor Davis', age: 91, room: 'Room 201', status: 'observation' },
-  { id: 6, full_name: 'Frank Nguyen', age: 85, room: 'Room 108', status: 'stable' }
-];
-
 let allStaff = [];
-let allResidents = [];
 let editingId = null;
 let editingStaffId = null;
-let editingResidentId = null;
 let usingDemo = false;
-let usingDemoResidents = false;
 let usingDemoStats = true;
 let usingDemoAlerts = true;
 
-/* ═══ LOAD STAFF ═════════ */
+/* LOAD STAFF*/
 async function loadStaff() {
   try {
     const r = await fetch(`${API_BASE}/staff/`, { headers: authH() });
@@ -709,27 +161,7 @@ async function loadStaff() {
     usingDemoAlerts = true;
   }
 
-  /* Load residents */
-  try {
-    const rr = await fetch(`${API_BASE}/admin/residents`, { headers: authH() });
-    if (rr.ok) {
-      const d = await rr.json();
-      if (d.length) {
-        allResidents = d;
-        usingDemoResidents = false;
-      } else {
-        throw new Error('empty');
-      }
-    } else {
-      throw new Error();
-    }
-  } catch (e) {
-    allResidents = DEMO_RESIDENTS.map(r => ({ ...r }));
-    usingDemoResidents = true;
-  }
-
   renderStaff();
-  renderResidents();
 
   if (usingDemoStats) renderStats();
   if (usingDemoAlerts) renderAlerts();
@@ -737,7 +169,7 @@ async function loadStaff() {
   renderTasks();
 }
 
-/* ═══ RENDER STAFF TABLE ═══ */
+/*RENDER STAFF TABLE */
 function statusBadge(s) {
   if (s === 'active' || s === 'Active') {
     return `<span class="status-badge status-active">● Active</span>`;
@@ -777,6 +209,12 @@ function renderStaff() {
             <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
           </svg>
         </button>
+        ${(s.status === 'pending' || s.status === 'Pending') ? `
+        <button class="action-btn" title="Approve" onclick="approveStaff(${s.id})" style="color:#22c55e;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+        </button>` : ''}
       </td>
     </tr>
   `).join('');
@@ -788,102 +226,7 @@ function renderStaff() {
   }
 }
 
-/* ═══ RENDER RESIDENTS TABLE ═════*/
-function residentBadge(s) {
-  if (s === 'stable')     return `<span class="status-badge status-active">● Stable</span>`;
-  if (s === 'critical')   return `<span class="status-badge status-leave" style="color:#ef4444;">● Critical</span>`;
-  if (s === 'recovering') return `<span class="status-badge status-pending" style="color:var(--blue);">● Recovering</span>`;
-  return `<span class="status-badge status-pending">● ${esc(s || 'Unknown')}</span>`;
-}
-
-function renderResidents() {
-  const tbody = document.getElementById('resident-tbody');
-  if (!tbody) return;
-
-  tbody.innerHTML = allResidents.map(r => `
-    <tr>
-      <td>
-        <div class="staff-name">${esc(r.full_name)}</div>
-      </td>
-      <td>${r.age}</td>
-      <td>${esc(r.room)}</td>
-      <td>${residentBadge(r.status)}</td>
-      <td>
-        <button class="action-btn" title="Edit" onclick="openEditResident(${r.id})">
-          <svg viewBox="0 0 24 24">
-            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-          </svg>
-        </button>
-        <button class="action-btn" title="Delete" onclick="confirmDeleteResident(${r.id}, '${esc(r.full_name)}')">
-          <svg viewBox="0 0 24 24">
-            <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-          </svg>
-        </button>
-      </td>
-    </tr>
-  `).join('');
-
-  const ct = document.getElementById('resident-count');
-  if (ct) ct.textContent = `Showing ${allResidents.length} residents`;
-
-  const stableCount   = allResidents.filter(r => r.status === 'stable').length;
-  const criticalCount = allResidents.filter(r => r.status === 'critical').length;
-  const totalEl       = document.getElementById('stat-total-residents');
-  const stableEl      = document.getElementById('stat-stable');
-  const critEl        = document.getElementById('stat-critical');
-  if (totalEl)  totalEl.textContent  = allResidents.length;
-  if (stableEl) stableEl.textContent = stableCount;
-  if (critEl)   critEl.textContent   = criticalCount;
-}
-
-/* ═══ RESIDENT CRUD ══════════════════ */
-function openEditResident(id) {
-  const r = allResidents.find(x => x.id === id);
-  if (!r) return;
-  editingResidentId = id;
-  document.getElementById('edit-res-name').value   = r.full_name || '';
-  document.getElementById('edit-res-age').value    = r.age || '';
-  document.getElementById('edit-res-room').value   = r.room || '';
-  document.getElementById('edit-res-status').value = r.status || 'stable';
-  document.getElementById('modal-edit-resident').classList.add('open');
-}
-
-async function saveResident() {
-  const r = allResidents.find(x => x.id === editingResidentId);
-  if (!r) return;
-  r.full_name = document.getElementById('edit-res-name').value.trim();
-  r.age       = parseInt(document.getElementById('edit-res-age').value) || r.age;
-  r.room      = document.getElementById('edit-res-room').value.trim();
-  r.status    = document.getElementById('edit-res-status').value;
-  try {
-    if (!usingDemoResidents) {
-      const params = new URLSearchParams({ full_name: r.full_name, age: r.age, room: r.room, status: r.status });
-      await fetch(`${API_BASE}/admin/resident/${editingResidentId}?${params}`, { method: 'PATCH', headers: authH() });
-    }
-  } catch (e) {}
-  renderResidents();
-  closeEditResident();
-}
-
-function confirmDeleteResident(id, name) {
-  if (!confirm(`Delete resident ${name}?`)) return;
-  deleteResidentById(id);
-}
-
-async function deleteResidentById(id) {
-  const resId = id || editingResidentId;
-  try {
-    if (!usingDemoResidents) {
-      await fetch(`${API_BASE}/admin/resident/${resId}`, { method: 'DELETE', headers: authH() });
-    }
-  } catch (e) {}
-  allResidents = allResidents.filter(x => x.id !== resId);
-  renderResidents();
-  closeEditResident();
-}
-
-/* ═══ STATS ═══════════════════════════ */
+/* STATS */
 function renderStats() {
   const active = allStaff.filter(s => s.status === 'active' || s.status === 'Active').length;
 
@@ -892,7 +235,7 @@ function renderStats() {
   document.getElementById('stat-shifts').textContent = allStaff.length;
 }
 
-/* ═══ ALERTS ═════════════ */
+/* ALERTS */
 function renderAlerts() {
   const iconMap = {
     warning: `<svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
@@ -917,7 +260,7 @@ function renderAlerts() {
   `).join('');
 }
 
-/* ═══ ALERTS FROM API ═════*/
+/*ALERTS FROM API*/
 function renderAlertsFromAPI(alerts) {
   const iconMap = {
     warning: `<svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
@@ -942,7 +285,7 @@ function renderAlertsFromAPI(alerts) {
   `).join('');
 }
 
-/* ═══ TASKS ═ */
+/* TASKS */
 function renderTasks() {
   const badgeMap = { overdue: 'tb-overdue', inprogress: 'tb-inprogress', done: 'tb-done' };
   const labelMap = { overdue: 'Overdue', inprogress: 'In Progress', done: 'Done' };
@@ -962,7 +305,7 @@ function renderTasks() {
   `).join('');
 }
 
-/* ═══ TABS ════ */
+/*TABS */
 function switchTab(name, btn) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
@@ -971,7 +314,90 @@ function switchTab(name, btn) {
   document.getElementById('tab-' + name).classList.add('active');
 }
 
-/* ═══ EDIT MODAL ═══ */
+/*ADD STAFF MODAL */
+function openAddStaff() {
+  ['add-name','add-staff-id','add-shift'].forEach(id => { document.getElementById(id).value = ''; });
+  document.getElementById('add-unit').value = 'ICU Ward';
+  document.getElementById('add-role').value = 'Carer';
+  document.getElementById('add-status').value = 'active';
+  document.getElementById('add-staff-err').style.display = 'none';
+  document.getElementById('modal-add-staff').classList.add('open');
+}
+
+function closeAddStaff() {
+  document.getElementById('modal-add-staff').classList.remove('open');
+}
+
+async function submitAddStaff() {
+  const name     = document.getElementById('add-name').value.trim();
+  const staffId  = document.getElementById('add-staff-id').value.trim();
+  const shift    = document.getElementById('add-shift').value.trim();
+  const unit     = document.getElementById('add-unit').value;
+  const role     = document.getElementById('add-role').value;
+  const status   = document.getElementById('add-status').value;
+  const errEl    = document.getElementById('add-staff-err');
+  const btn      = document.getElementById('btn-add-staff-submit');
+
+  if (!name || !staffId || !shift) {
+    errEl.textContent = 'Please fill in Name, Staff ID and Shift Time.';
+    errEl.style.display = 'block';
+    return;
+  }
+  errEl.style.display = 'none';
+  btn.disabled = true; btn.textContent = 'Adding…';
+
+  const payload = { staff_id: staffId, full_name: name, shift_time: shift, assigned_unit: unit, role, status };
+
+  try {
+    if (!usingDemo) {
+      const res = await fetch(`${API_BASE}/staff/`, {
+        method: 'POST',
+        headers: authH(),
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || 'Failed to add staff');
+      }
+      const created = await res.json();
+      allStaff.push({ ...created, id: created.id || Date.now() });
+    } else {
+      // Demo mode — add locally
+      allStaff.push({ ...payload, id: Date.now(), hours: '8 hours' });
+    }
+    renderStaff();
+    renderStats();
+    closeAddStaff();
+  } catch (err) {
+    errEl.textContent = '⚠ ' + err.message;
+    errEl.style.display = 'block';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Add Staff';
+  }
+}
+
+/*APPROVE STAFF (pending → active)*/
+async function approveStaff(id) {
+  const s = allStaff.find(x => x.id === id);
+  if (!s) return;
+
+  try {
+    if (!usingDemo) {
+      await fetch(`${API_BASE}/staff/${s.staff_id}`, {
+        method: 'PATCH',
+        headers: authH(),
+        body: JSON.stringify({ status: 'active' })
+      });
+    }
+    s.status = 'active';
+    renderStaff();
+    renderStats();
+  } catch (e) {
+    alert('Failed to approve staff member.');
+  }
+}
+
+/* EDIT MODAL*/
 function openEdit(id) {
   const s = allStaff.find(x => x.id === id);
   if (!s) return;
@@ -1004,16 +430,16 @@ async function saveStaff() {
 
   try {
     if (!usingDemo) {
-      const params = new URLSearchParams({
-        full_name: s.full_name,
-        shift_time: s.shift_time,
-        assigned_unit: s.assigned_unit,
-        status: s.status,
-        role: s.role
-      });
-      await fetch(`${API_BASE}/admin/staff/${editingStaffId}?${params}`, {
+      await fetch(`${API_BASE}/staff/${editingStaffId}`, {
         method: 'PATCH',
-        headers: authH()
+        headers: authH(),
+        body: JSON.stringify({
+          full_name: s.full_name,
+          shift_time: s.shift_time,
+          assigned_unit: s.assigned_unit,
+          status: s.status,
+          role: s.role
+        })
       });
     }
   } catch (e) {}
@@ -1028,7 +454,7 @@ async function deleteStaff() {
 
   try {
     if (!usingDemo) {
-      await fetch(`${API_BASE}/admin/staff/${editingStaffId}`, {
+      await fetch(`${API_BASE}/staff/${editingStaffId}`, {
         method: 'DELETE',
         headers: authH()
       });
@@ -1048,7 +474,7 @@ function viewStaff(id) {
   alert(`${s.full_name} (${s.staff_id})\nUnit: ${s.assigned_unit}\nShift: ${s.shift_time}\nRole: ${s.role}\nStatus: ${s.status}`);
 }
 
-/* ═══ EXPORT PDF ═══════════════ */
+/* EXPORT PDF*/
 function exportPDF() {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
@@ -1128,7 +554,7 @@ function exportPDF() {
   doc.save(`SphereCarw_Staff_Report_${now.toISOString().slice(0, 10)}.pdf`);
 }
 
-/* ══ HELPERS ═══ */
+/* HELPERS*/
 function esc(s) {
   return (s || '')
     .replace(/&/g, '&amp;')
@@ -1136,7 +562,7 @@ function esc(s) {
     .replace(/>/g, '&gt;');
 }
 
-/* ═══ PAGE INIT ══ */
+/*PAGE INIT */
 async function initAdminConsolePage() {
   try {
     safeShowSkeleton();
@@ -1144,7 +570,8 @@ async function initAdminConsolePage() {
     updateClock();
     setInterval(updateClock, 1000);
 
-    initUser();
+    const isAdmin = initUser();
+    if (!isAdmin) return;
 
     await loadStaff();
 
@@ -1160,7 +587,7 @@ async function initAdminConsolePage() {
   }
 }
 
-/* ═══ INIT ════*/
+/*INIT*/
 document.addEventListener('DOMContentLoaded', async () => {
   await initAdminConsolePage();
 });
