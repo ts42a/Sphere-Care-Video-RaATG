@@ -127,11 +127,16 @@ export default function LoginScreen() {
               </Pressable>
             </View>
 
-            <View style={styles.bottomTextRow}>
-              <Text style={styles.bottomText}>Don't have an account? </Text>
-              <Pressable onPress={() => router.push("/auth/register")}>
-                <Text style={styles.inlineLink}>Register</Text>
-              </Pressable>
+            <View style={styles.registerPrompt}>
+              <View style={styles.bottomTextRow}>
+                <Text style={styles.bottomText}>Don&apos;t have an account? </Text>
+                <Pressable onPress={() => router.push("/auth/register")}>
+                  <Text style={styles.inlineLink}>Register</Text>
+                </Pressable>
+              </View>
+              <Text style={styles.registerHint}>
+                Guided signup: address, guardian, emergency contacts, and policies (7 steps).
+              </Text>
             </View>
           </View>
         </ScrollView>
@@ -273,13 +278,25 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "700",
   },
+  registerPrompt: {
+    alignItems: "center",
+    marginTop: spacing.lg,
+    width: "100%",
+  },
   bottomTextRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: spacing.lg,
   },
   bottomText: {
     ...typography.body,
+  },
+  registerHint: {
+    ...typography.subText,
+    color: colors.textMuted,
+    textAlign: "center",
+    marginTop: spacing.sm,
+    paddingHorizontal: spacing.md,
+    lineHeight: 18,
   },
   inlineLink: {
     ...typography.cardTitle,
