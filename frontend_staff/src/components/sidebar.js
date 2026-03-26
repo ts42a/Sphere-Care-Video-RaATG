@@ -48,7 +48,7 @@
     <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="23" y1="11" x2="17" y2="11"/><line x1="20" y1="8" x2="20" y2="14"/></svg></span>
     Staff &amp; Roles
   </a>
-  <a class="nav-item" href="/pages/admin_console.html">
+  <a class="nav-item nav-admin-only" href="/pages/admin_console.html">
     <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg></span>
     Admin Console
   </a>
@@ -92,5 +92,13 @@
         item.classList.add('active');
       }
     });
+
+    try {
+      const u = JSON.parse(sessionStorage.getItem('user') || '{}');
+      const role = u.role || u.global_role || 'staff';
+      document.querySelectorAll('.nav-admin-only').forEach(el => {
+        el.style.display = role === 'admin' ? '' : 'none';
+      });
+    } catch (_) {}
   });
 })();

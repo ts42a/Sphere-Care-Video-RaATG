@@ -167,28 +167,26 @@
   </div>
 </div>
 
-<!-- ADD RESIDENT MODAL -->
+<!-- ADD RESIDENT MODAL (Invite by Account ID) -->
 <div class="overlay" id="modal-add">
-  <div class="modal">
+  <div class="modal" style="max-width:480px;">
     <div class="mhdr"><h3>Add New Resident</h3><button class="mclose" onclick="closeModal('modal-add')">✕</button></div>
     <div class="mbody">
-      <div class="msec-title">Profile Photo</div>
-      <div class="av-upload-row">
-        <div class="av-preview" id="add-av-preview">🧑</div>
-        <div><label class="av-upload-btn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>Upload Photo<input type="file" accept="image/*" style="display:none" onchange="previewAv(this,'add-av-preview','add-av-data')"/></label><div class="av-hint">JPG or PNG, up to 5MB</div></div>
+      <div style="text-align:center;margin-bottom:18px;">
+        <div style="font-size:40px;margin-bottom:8px;">🔗</div>
+        <p style="font-size:13px;color:var(--text2);line-height:1.6;">
+          To add a resident, enter the <b>Account ID</b> of a client who has registered on the Sphere Care mobile app.<br/>
+          The client will receive an invitation to join your center.
+        </p>
       </div>
-      <input type="hidden" id="add-av-data"/>
-      <div class="msec-title">Resident Information</div>
-      <div class="frow"><div class="fgroup"><label class="flabel">Full Name *</label><input class="finput" id="add-name" placeholder="e.g. Margaret Thompson"/></div><div class="fgroup"><label class="flabel">Age *</label><input class="finput" id="add-age" type="number" min="1" max="130" placeholder="e.g. 82"/></div></div>
-      <div class="frow"><div class="fgroup"><label class="flabel">Room Number *</label><input class="finput" id="add-room" placeholder="e.g. 108"/></div><div class="fgroup"><label class="flabel">Admission Date</label><input class="finput" id="add-admit" type="date"/></div></div>
-      <div class="frow full"><div class="fgroup"><label class="flabel">Assigned Carer</label><input class="finput" id="add-carer" placeholder="e.g. Sarah Johnson"/></div></div>
-      <div class="mdivider"></div>
-      <div class="msec-title">Emergency Contact</div>
-      <div class="frow"><div class="fgroup"><label class="flabel">Contact Name *</label><input class="finput" id="ec-name" placeholder="e.g. James Thompson"/></div><div class="fgroup"><label class="flabel">Relationship *</label><select class="fselect" id="ec-rel"><option value="">Select...</option><option>Son</option><option>Daughter</option><option>Spouse</option><option>Brother</option><option>Sister</option><option>Friend</option><option>Other</option></select></div></div>
-      <div class="frow"><div class="fgroup"><label class="flabel">Phone Number *</label><input class="finput" id="ec-phone" placeholder="e.g. +61 400 123 456"/></div><div class="fgroup"><label class="flabel">Email</label><input class="finput" id="ec-email" type="email" placeholder="e.g. james@email.com"/></div></div>
+      <div class="msec-title">Client Account ID</div>
+      <input class="finput" id="add-account-id" placeholder="e.g. ACC-47291038" style="text-transform:uppercase;font-weight:700;font-size:15px;letter-spacing:1px;text-align:center;"/>
+      <div style="font-size:11.5px;color:var(--text3);margin-top:6px;text-align:center;">
+        The client can find their Account ID in&nbsp;<b>Settings → Account</b>&nbsp;on the mobile app.
+      </div>
       <div class="merr" id="add-err"></div>
     </div>
-    <div class="mfooter"><button class="btn btn-outline" onclick="closeModal('modal-add')">Cancel</button><button class="btn btn-primary" onclick="submitAdd()">Add Resident</button></div>
+    <div class="mfooter"><button class="btn btn-outline" onclick="closeModal('modal-add')">Cancel</button><button class="btn btn-primary" onclick="submitInvite()">Send Invitation</button></div>
   </div>
 </div>
 
@@ -232,5 +230,36 @@
 </div><script src="../style/js/script.js"></script>
 <script src="../style/js/residents.js"></script>
 <script src="/components/sidebar.js"></script>
+
+<!-- EDIT RESIDENT MODAL -->
+<div class="overlay" id="modal-edit">
+  <div class="modal">
+    <div class="mhdr"><h3>Edit Resident</h3><button class="mclose" onclick="closeModal('modal-edit')">✕</button></div>
+    <div class="mbody">
+      <input type="hidden" id="edit-id"/>
+      <div class="msec-title">Resident Information</div>
+      <div class="frow"><div class="fgroup"><label class="flabel">Full Name *</label><input class="finput" id="edit-name" placeholder="e.g. Margaret Thompson"/></div><div class="fgroup"><label class="flabel">Age *</label><input class="finput" id="edit-age" type="number" min="1" max="130" placeholder="e.g. 82"/></div></div>
+      <div class="frow"><div class="fgroup"><label class="flabel">Room Number *</label><input class="finput" id="edit-room" placeholder="e.g. 108"/></div><div class="fgroup"><label class="flabel">Status</label><select class="fselect" id="edit-status"><option value="stable">Stable</option><option value="monitoring">Monitoring</option></select></div></div>
+      <div class="merr" id="edit-err"></div>
+    </div>
+    <div class="mfooter"><button class="btn btn-outline" onclick="closeModal('modal-edit')">Cancel</button><button class="btn btn-primary" onclick="submitEdit()">Save Changes</button></div>
+  </div>
+</div>
+
+<!-- DELETE CONFIRM MODAL -->
+<div class="overlay" id="modal-delete">
+  <div class="modal" style="max-width:420px;">
+    <div class="mhdr"><h3>Delete Resident</h3><button class="mclose" onclick="closeModal('modal-delete')">✕</button></div>
+    <div class="mbody" style="text-align:center;padding:24px 20px;">
+      <div style="font-size:40px;margin-bottom:12px;">⚠️</div>
+      <input type="hidden" id="del-id"/>
+      <p style="font-size:14px;font-weight:600;margin-bottom:6px;">Are you sure you want to delete this resident?</p>
+      <p id="del-name" style="font-size:13px;color:var(--text2);margin-bottom:4px;"></p>
+      <p style="font-size:12px;color:#b91c1c;">This action cannot be undone.</p>
+    </div>
+    <div class="mfooter" style="justify-content:center;gap:12px;"><button class="btn btn-outline" onclick="closeModal('modal-delete')">Cancel</button><button class="btn" id="btn-confirm-del" style="background:#dc2626;color:#fff;border:none;" onclick="confirmDelete()">Delete</button></div>
+  </div>
+</div>
+
 </body>
 </html>

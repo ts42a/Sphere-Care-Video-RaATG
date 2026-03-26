@@ -44,15 +44,18 @@
 
   <div class="content" id="main-content">
 
-    <!-- ACCESS DENIED -->
+    <!-- ACCESS DENIED (not logged in) -->
     <div class="access-denied" id="access-denied" style="display:none;">
       <div class="access-denied-icon">🔒</div>
       <div class="access-denied-title">Access Denied</div>
-      <div class="access-denied-sub">This page is restricted to Admin accounts only. Please contact your facility manager if you need access.</div>
+      <div class="access-denied-sub">Please sign in to view staff directory.</div>
     </div>
 
-    <!-- STAFF PANEL (admin only) -->
+    <!-- STAFF PANEL (admin: full access; staff: read-only roster) -->
     <div id="staff-panel" style="display:none;">
+      <div id="staff-readonly-banner" class="alert alert-secondary" role="status" style="display:none;margin-bottom:16px;border-radius:10px;font-size:14px;">
+        <strong>View only</strong> — You can see your team roster and roles. Only an administrator can add, edit, or remove staff.
+      </div>
       <div class="tabs">
         <div class="tab active" onclick="switchTab('summary',this)">Staff Summary</div>
         <div class="tab" onclick="switchTab('taskreview',this)">Task Review</div>
@@ -65,7 +68,9 @@
             <div class="section-title">Staff Activity Overview</div>
             <div class="section-sub">Live operational summary of staff performance and shift coverage</div>
           </div>
-          <button class="btn btn-primary" onclick="openAddModal()" style="height:fit-content;">+ Add Staff</button>
+          <div id="staff-admin-actions">
+            <button type="button" class="btn btn-primary" onclick="openAddModal()" style="height:fit-content;">+ Add Staff</button>
+          </div>
         </div>
         <div class="admin-layout">
           <!-- Table -->
@@ -89,7 +94,7 @@
             </div>
             <div class="table-footer">
               <div class="table-count" id="staff-count"></div>
-              <button class="btn-export" onclick="exportPDF()">
+              <button type="button" class="btn-export" id="staff-export-btn" onclick="exportPDF()">
                 <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                 Export List
               </button>
@@ -237,8 +242,8 @@
       </div>
     </div>
     <div class="mfooter">
-      <button class="btn btn-outline" onclick="closeViewModal()">Close</button>
-      <button class="btn btn-primary" onclick="closeViewModal();editStaff(viewingId)">Edit</button>
+      <button type="button" class="btn btn-outline" onclick="closeViewModal()">Close</button>
+      <button type="button" class="btn btn-primary" id="staff-view-edit-btn" onclick="closeViewModal();editStaff(viewingId)">Edit</button>
     </div>
   </div>
 </div>

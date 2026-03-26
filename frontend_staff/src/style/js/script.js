@@ -2,17 +2,42 @@
 // ──────────────────────────────────────────
 const API_BASE = '/api/v1';
 
-// Migrate spherecare_* localStorage keys to the format all pages expect
+// Migrate spherecare_* sessionStorage keys to the format all pages expect
 (function migrateAuth() {
-  if (!localStorage.getItem('access_token') && localStorage.getItem('spherecare_token')) {
-    localStorage.setItem('access_token', localStorage.getItem('spherecare_token'));
+  const accessToken = sessionStorage.getItem('access_token');
+  const legacyToken = sessionStorage.getItem('spherecare_token');
+
+  if (!accessToken && legacyToken) {
+    sessionStorage.setItem('access_token', legacyToken);
   }
-  if (!localStorage.getItem('user') && localStorage.getItem('spherecare_role')) {
-    localStorage.setItem('user', JSON.stringify({
-      full_name: localStorage.getItem('spherecare_user_name') || '',
-      email: localStorage.getItem('spherecare_user_email') || '',
-      role: localStorage.getItem('spherecare_role') || 'staff'
+  if (accessToken && legacyToken !== accessToken) {
+    sessionStorage.setItem('spherecare_token', accessToken);
+  }
+
+  if (!sessionStorage.getItem('user') && sessionStorage.getItem('spherecare_role')) {
+    sessionStorage.setItem('user', JSON.stringify({
+      full_name: sessionStorage.getItem('spherecare_user_name') || '',
+      email: sessionStorage.getItem('spherecare_user_email') || '',
+      role: sessionStorage.getItem('spherecare_role') || 'staff'
     }));
+  }
+
+  // Normalise stored user: ensure 'role' is always set from 'global_role'
+  try {
+    const stored = JSON.parse(sessionStorage.getItem('user') || '{}');
+    if (stored.global_role && !stored.role) {
+      stored.role = stored.global_role;
+      sessionStorage.setItem('user', JSON.stringify(stored));
+    }
+  } catch (_) {}
+})();
+
+// ── Auth guard: redirect to login if no session (runs on every page) ──
+(function authGuard() {
+  const isLoginPage = window.location.pathname.includes('register-login');
+  const token = sessionStorage.getItem('access_token') || sessionStorage.getItem('spherecare_token');
+  if (!isLoginPage && !token) {
+    window.location.href = '/pages/register-login.html';
   }
 })();
 
@@ -66,8 +91,9 @@ async function handleRegister() {
     }
 
     // store token and redirect
-    localStorage.setItem('access_token', data.access_token);
-    localStorage.setItem('user', JSON.stringify(data.user));
+    sessionStorage.setItem('access_token', data.access_token);
+    if (data.user) data.user.role = data.user.role || data.user.global_role || 'staff';
+    sessionStorage.setItem('user', JSON.stringify(data.user));
     showPage('login');
 
   } catch (err) {
@@ -106,8 +132,9 @@ async function handleLogin() {
       return;
     }
 
-    localStorage.setItem('access_token', data.access_token);
-    localStorage.setItem('user', JSON.stringify(data.user));
+    sessionStorage.setItem('access_token', data.access_token);
+    if (data.user) data.user.role = data.user.role || data.user.global_role || 'staff';
+    sessionStorage.setItem('user', JSON.stringify(data.user));
     window.location.href = '/pages/dashboard.html';
 
   } catch (err) {
@@ -242,14 +269,14 @@ function loginWithGoogle() {
   // Google login success — token passed back in URL
   const token = params.get('token');
   if (token) {
-    localStorage.setItem('access_token', token);
+    sessionStorage.setItem('access_token', token);
     // Fetch user info then redirect to dashboard
     fetch('/api/v1/auth/me', {
       headers: { 'Authorization': `Bearer ${token}` }
     })
     .then(r => r.json())
     .then(user => {
-      localStorage.setItem('user', JSON.stringify(user));
+      sessionStorage.setItem('user', JSON.stringify(user));
       // Clean URL then redirect
       window.location.replace('/pages/dashboard.html');
     })
@@ -275,7 +302,7 @@ function loginWithGoogle() {
 
 // Inject avatar dropdown into every page that has a topbar avatar
 function initUserAvatar() {
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const user = JSON.parse(sessionStorage.getItem('user') || '{}');
   const name = user.full_name || 'User';
   const role = user.role || 'staff';
   const initials = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
@@ -339,8 +366,8 @@ function toggleAvatarDropdown(avatarEl, name, role) {
 }
 
 function handleLogout() {
-  localStorage.removeItem('access_token');
-  localStorage.removeItem('user');
+  sessionStorage.removeItem('access_token');
+  sessionStorage.removeItem('user');
   window.location.href = '/pages/register-login.html';
 }
 

@@ -4,7 +4,7 @@ from typing import List, Optional, Literal
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-router = APIRouter(prefix="/call", tags=["Call"])
+router = APIRouter(tags=["Call"])
 
 
 # Pydantic Schemas

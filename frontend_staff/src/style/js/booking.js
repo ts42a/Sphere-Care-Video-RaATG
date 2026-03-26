@@ -2,9 +2,16 @@
 let bookings = [];
 const now = new Date();
 
+function bookingAuthHeaders() {
+  var h = { 'Content-Type': 'application/json' };
+  var t = sessionStorage.getItem('access_token');
+  if (t) h['Authorization'] = 'Bearer ' + t;
+  return h;
+}
+
 async function loadBookings() {
   try {
-    const res = await fetch(`${API_BASE}/bookings/`);
+    const res = await fetch(`${API_BASE}/bookings/`, { headers: bookingAuthHeaders() });
     if (!res.ok) throw new Error('Failed to fetch');
     const data = await res.json();
     // Normalise API fields to match our calendar format
@@ -354,9 +361,9 @@ document.addEventListener('DOMContentLoaded', () => {
     weekday:'long', day:'numeric', month:'long', year:'numeric'
   });
 
-  // Avatar initials from localStorage (matches script.js pattern)
+  // Avatar initials from sessionStorage (matches script.js pattern)
   try {
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const user = JSON.parse(sessionStorage.getItem('user') || '{}');
     const name = user.full_name || 'Sphere Care';
     const initials = name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
     document.getElementById('user-avatar').textContent = initials;

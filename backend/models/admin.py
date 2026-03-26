@@ -1,28 +1,20 @@
-from datetime import datetime
-from sqlalchemy import Column, Integer, String, DateTime, Boolean
-from backend.db.base import Base, TimestampMixin
+from sqlalchemy import BigInteger, Boolean, Column, DateTime, ForeignKey, String, func
+from backend.db.base import Base
 
 
 class Admin(Base):
-    """
-    Admin/Care Center manager.
-    Each admin has their own database and manages staff and residents.
-    """
+    """Admin account belonging to an organization."""
     __tablename__ = "admins"
 
-    id = Column(Integer, primary_key=True, index=True)
-    full_name = Column(String, nullable=False)
-    email = Column(String, unique=True, nullable=False, index=True)
+    id = Column(BigInteger, primary_key=True, index=True)
+    organization_id = Column(BigInteger, ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False, index=True)
+    unique_code = Column(String(50), unique=True, nullable=False, index=True)
+    email = Column(String(255), unique=True, nullable=False, index=True)
     password_hash = Column(String, nullable=False)
-    organization_name = Column(String, nullable=False)
-    phone = Column(String, nullable=True)
-    address = Column(String, nullable=True)
-    city = Column(String, nullable=True)
-    state = Column(String, nullable=True)
-    postal_code = Column(String, nullable=True)
-    country = Column(String, nullable=True)
-    role = Column(String, default="admin", nullable=False)  # Always "admin"
-    
-    is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    full_name = Column(String(255), nullable=False)
+    phone = Column(String(50), nullable=True)
+    role = Column(String(50), nullable=False, default="admin")  # admin, super_admin, owner
+    is_active = Column(Boolean, nullable=False, default=True)
+    last_login_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())

@@ -1,5 +1,4 @@
-from datetime import datetime
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
+from sqlalchemy import BigInteger, Boolean, Column, Date, DateTime, String, Time, func
 from sqlalchemy.orm import relationship
 
 from backend.db.base import Base
@@ -8,16 +7,23 @@ from backend.db.base import Base
 class Staff(Base):
     __tablename__ = "staff"
 
-    id = Column(Integer, primary_key=True, index=True)
-    admin_id = Column(Integer, nullable=False, index=True)  # References admin
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=True, unique=True)
-    staff_id = Column(String, unique=True, nullable=False, index=True)
-    full_name = Column(String, nullable=False)
-    shift_time = Column(String, nullable=False)
-    assigned_unit = Column(String, nullable=False)
-    status = Column(String, default="active")
-    role = Column(String, default="staff")
-    approval_status = Column(String, default="pending")  # pending, approved, rejected
-    created_at = Column(DateTime, default=datetime.utcnow)
+    id = Column(BigInteger, primary_key=True, index=True)
+    admin_id = Column(BigInteger, nullable=False, index=True)
+    user_id = Column(BigInteger, nullable=False, unique=True, index=True)  # logical link → users.id
+    staff_code = Column(String(50), unique=True, nullable=False, index=True)
+    full_name = Column(String(255), nullable=False)
+    role = Column(String(80), nullable=False)
+    department = Column(String(120), nullable=True)
+    shift_start = Column(Time, nullable=True)
+    shift_end = Column(Time, nullable=True)
+    assigned_unit = Column(String(120), nullable=True)
+    status = Column(String(50), nullable=False, default="active")
+    approval_status = Column(String(50), nullable=False, default="pending")
+    hire_date = Column(Date, nullable=True)
+    is_deleted = Column(Boolean, nullable=False, default=False)
+    deleted_at = Column(DateTime(timezone=True), nullable=True)
+    deleted_by = Column(BigInteger, nullable=True)
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())
 
-    user = relationship("User", backref="staff_profile")
+    resident_assignments = relationship("ResidentStaffAssignment", back_populates="staff", cascade="all, delete-orphan")

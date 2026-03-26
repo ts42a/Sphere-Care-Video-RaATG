@@ -20,7 +20,7 @@ from backend import models
 from backend.core.config import SECRET_KEY
 import bcrypt
 
-router = APIRouter(prefix="/auth", tags=["Password Reset"])
+router = APIRouter(tags=["Password Reset"])
 
 # ── CONFIG ──
 GMAIL_ADDRESS  = os.getenv("GMAIL_ADDRESS",  "carllu2537153344@gmail.com")

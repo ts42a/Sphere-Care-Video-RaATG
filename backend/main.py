@@ -13,7 +13,11 @@ from backend import models  # noqa: F401
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Create all tables from ORM metadata (no-op if they already exist)
     Base.metadata.create_all(bind=engine)
+    # Seed test data when DB is fresh (no-op if data already exists)
+    from backend.db.seed import seed_database
+    seed_database()
     yield
 
 

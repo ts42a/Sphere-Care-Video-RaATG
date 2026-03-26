@@ -5,7 +5,7 @@ from typing import Optional
 from backend.api.deps import get_db
 from backend import models, schemas
 
-router = APIRouter(prefix="/alerts", tags=["Alerts"])
+router = APIRouter(tags=["Alerts"])
 
 
 def _fmt(alert: models.Alert) -> schemas.AlertResponse:
@@ -14,15 +14,16 @@ def _fmt(alert: models.Alert) -> schemas.AlertResponse:
         level=alert.level,
         title=alert.title,
         message=alert.message,
+        source=alert.source,
         is_read=alert.is_read,
-        created_at=alert.created_at.strftime("%b %d, %Y %I:%M %p"),
+        created_at=alert.created_at,
     )
 
 
 @router.get("/", response_model=list[schemas.AlertResponse])
 def get_alerts(
     level: Optional[str] = None,
-    is_read: Optional[str] = None,
+    is_read: Optional[bool] = None,
     limit: int = 20,
     db: Session = Depends(get_db),
 ):
@@ -30,7 +31,7 @@ def get_alerts(
     Get all alerts, newest first.
     Optional filters:
       - level: warning | critical | info
-      - is_read: "true" | "false"
+      - is_read: true | false
       - limit: max results (default 20)
     """
     query = db.query(models.Alert).order_by(models.Alert.created_at.desc())
@@ -57,7 +58,7 @@ def mark_alert_read(alert_id: int, db: Session = Depends(get_db)):
     alert = db.query(models.Alert).filter(models.Alert.id == alert_id).first()
     if not alert:
         raise HTTPException(status_code=404, detail="Alert not found.")
-    alert.is_read = "true"
+    alert.is_read = True
     db.commit()
     db.refresh(alert)
     return _fmt(alert)
@@ -68,8 +69,8 @@ def mark_all_read(db: Session = Depends(get_db)):
     """Mark all unread alerts as read."""
     updated = (
         db.query(models.Alert)
-        .filter(models.Alert.is_read == "false")
-        .update({"is_read": "true"})
+        .filter(models.Alert.is_read == False)
+        .update({"is_read": True})
     )
     db.commit()
     return {"marked_read": updated}

@@ -1,156 +1,138 @@
 """
 Admin Console Router - RBAC Management, Staff & Resident Management
 """
-from fastapi import APIRouter, Depends, HTTPException, Header
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import List
-import uuid
-import time
-import random as _r
 
 from backend.api.deps import get_db
 from backend import models, schemas
-from backend.api.routers.auth import _get_current_user, create_access_token, hash_password
-from backend.db.db_manager import AdminDatabaseManager
+from backend.api.rbac import require_admin_account
+from backend.utils.id_generator import generate_unique_id
 
-router = APIRouter(prefix="/admin", tags=["Admin Console"])
+router = APIRouter(tags=["Admin Console"])
+
+
+def _staff_query_for_admin_org(db: Session, admin: models.Admin):
+    """Staff rows whose owning admin belongs to the same organization as ``admin``."""
+    return (
+        db.query(models.Staff)
+        .join(models.Admin, models.Staff.admin_id == models.Admin.id)
+        .filter(models.Admin.organization_id == admin.organization_id)
+    )
+
 
 @router.get("/staff/pending", response_model=list)
-def get_pending_staff(current_user: models.User = Depends(_get_current_user), db: Session = Depends(get_db)):
+def get_pending_staff(admin: models.Admin = Depends(require_admin_account), db: Session = Depends(get_db)):
     """Get all pending staff waiting for approval"""
-    
-    admin_id = getattr(current_user, 'admin_id', None) or (current_user.id if hasattr(current_user, 'role') and current_user.role == 'admin' else None)
-    
-    if not admin_id:
-        raise HTTPException(status_code=403, detail={"msg": "Unauthorized"})
-    
-    try:
-        SessionLocal = AdminDatabaseManager.get_admin_session_local(admin_id)
-        admin_db = SessionLocal()
-        
-        try:
-            pending_staff = admin_db.query(models.Staff).filter(
-                models.Staff.admin_id == admin_id,
-                models.Staff.approval_status == "pending"
-            ).all()
-            
-            return [
-                {
-                    "id": s.id,
-                    "staff_id": s.staff_id,
-                    "full_name": s.full_name,
-                    "email": admin_db.query(models.User).filter(models.User.id == s.user_id).first().email if s.user_id else "N/A",
-                    "created_at": s.created_at.isoformat() if s.created_at else None,
-                    "approval_status": s.approval_status
-                }
-                for s in pending_staff
-            ]
-        finally:
-            admin_db.close()
-    except Exception as e:
-        raise HTTPException(status_code=500, detail={"msg": "Failed to fetch pending staff", "error": str(e)})
+    pending_staff = (
+        _staff_query_for_admin_org(db, admin)
+        .filter(models.Staff.approval_status == "pending")
+        .all()
+    )
+    rows = []
+    for s in pending_staff:
+        user_row = (
+            db.query(models.User).filter(models.User.id == s.user_id).first() if s.user_id else None
+        )
+        rows.append(
+            {
+                "id": s.id,
+                "staff_code": s.staff_code,
+                "staff_id": s.staff_code,
+                "full_name": s.full_name,
+                "email": user_row.email if user_row else "N/A",
+                "role": s.role,
+                "created_at": s.created_at.isoformat() if s.created_at else None,
+                "approval_status": s.approval_status,
+            }
+        )
+    return rows
 
 
-@router.post("/staff/{staff_id}/approve")
+@router.get("/staff/requests", response_model=list)
+def get_staff_requests(admin: models.Admin = Depends(require_admin_account), db: Session = Depends(get_db)):
+    """Get all self-registration staff requests for current organization"""
+    requests = (
+        _staff_query_for_admin_org(db, admin)
+        .filter(models.Staff.user_id.isnot(None))
+        .order_by(models.Staff.created_at.desc())
+        .all()
+    )
+    result = []
+    for staff in requests:
+        user = db.query(models.User).filter(models.User.id == staff.user_id).first() if staff.user_id else None
+        result.append({
+            "id": staff.id,
+            "staff_code": staff.staff_code,
+            "staff_id": staff.staff_code,
+            "full_name": staff.full_name,
+            "email": user.email if user else "N/A",
+            "role": staff.role,
+            "status": staff.status,
+            "approval_status": staff.approval_status,
+            "created_at": staff.created_at.isoformat() if staff.created_at else None,
+        })
+    return result
+
+
+@router.post("/staff/{staff_code}/approve")
 def approve_staff(
-    staff_id: str,
-    current_user: models.User = Depends(_get_current_user),
+    staff_code: str,
+    admin: models.Admin = Depends(require_admin_account),
     db: Session = Depends(get_db)
 ):
     """Approve a pending staff member"""
-    
-    admin_id = getattr(current_user, 'admin_id', None) or (current_user.id if hasattr(current_user, 'role') and current_user.role == 'admin' else None)
-    
-    if not admin_id:
-        raise HTTPException(status_code=403, detail={"msg": "Unauthorized"})
-    
-    try:
-        SessionLocal = AdminDatabaseManager.get_admin_session_local(admin_id)
-        admin_db = SessionLocal()
-        
-        try:
-            staff = admin_db.query(models.Staff).filter(
-                models.Staff.admin_id == admin_id,
-                models.Staff.staff_id == staff_id
-            ).first()
-            
-            if not staff:
-                raise HTTPException(status_code=404, detail={"msg": "Staff member not found"})
-            
-            staff.approval_status = "approved"
-            staff.status = "active"  # Also set status to active
-            admin_db.commit()
-            
-            return {"success": True, "message": f"Staff member {staff.full_name} has been approved"}
-        finally:
-            admin_db.close()
-            
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail={"msg": "Failed to approve staff", "error": str(e)})
+    staff = (
+        _staff_query_for_admin_org(db, admin)
+        .filter(models.Staff.staff_code == staff_code)
+        .first()
+    )
+
+    if not staff:
+        raise HTTPException(status_code=404, detail={"msg": "Staff member not found"})
+
+    staff.approval_status = "approved"
+    staff.status = "active"
+    db.commit()
+
+    return {"success": True, "message": f"Staff member {staff.full_name} has been approved"}
 
 
-@router.post("/staff/{staff_id}/reject")
+@router.post("/staff/{staff_code}/reject")
 def reject_staff(
-    staff_id: str,
+    staff_code: str,
     reason: str = "",
-    current_user: models.User = Depends(_get_current_user),
+    admin: models.Admin = Depends(require_admin_account),
     db: Session = Depends(get_db)
 ):
     """Reject a pending staff member"""
-    
-    admin_id = getattr(current_user, 'admin_id', None) or (current_user.id if hasattr(current_user, 'role') and current_user.role == 'admin' else None)
-    
-    if not admin_id:
-        raise HTTPException(status_code=403, detail={"msg": "Unauthorized"})
-    
-    try:
-        SessionLocal = AdminDatabaseManager.get_admin_session_local(admin_id)
-        admin_db = SessionLocal()
-        
-        try:
-            staff = admin_db.query(models.Staff).filter(
-                models.Staff.admin_id == admin_id,
-                models.Staff.staff_id == staff_id
-            ).first()
-            
-            if not staff:
-                raise HTTPException(status_code=404, detail={"msg": "Staff member not found"})
-            
-            staff.approval_status = "rejected"
-            staff.status = "inactive"
-            admin_db.commit()
-            
-            return {"success": True, "message": f"Staff member {staff.full_name} has been rejected", "reason": reason}
-        finally:
-            admin_db.close()
-            
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail={"msg": "Failed to reject staff", "error": str(e)})
+    staff = (
+        _staff_query_for_admin_org(db, admin)
+        .filter(models.Staff.staff_code == staff_code)
+        .first()
+    )
 
+    if not staff:
+        raise HTTPException(status_code=404, detail={"msg": "Staff member not found"})
 
+    staff.approval_status = "rejected"
+    staff.status = "inactive"
+    db.commit()
+
+    return {"success": True, "message": f"Staff member {staff.full_name} has been rejected", "reason": reason}
 
 
 @router.get("/staff", response_model=List[dict])
-def get_all_staff(current_user: models.User = Depends(_get_current_user), db: Session = Depends(get_db)):
-    """Get all staff members for current admin"""
-    
-    admin_id = getattr(current_user, 'admin_id', None) or (current_user.id if hasattr(current_user, 'role') and current_user.role == 'admin' else None)
-    
-    if not admin_id:
-        raise HTTPException(status_code=403, detail={"msg": "Unauthorized"})
-    
-    staff_list = db.query(models.Staff).filter(models.Staff.admin_id == admin_id).all()
-    
+def get_all_staff(admin: models.Admin = Depends(require_admin_account), db: Session = Depends(get_db)):
+    """Get all staff members for the current admin's organization"""
+    staff_list = _staff_query_for_admin_org(db, admin).all()
     return [
         {
             "id": s.id,
-            "staff_id": s.staff_id,
+            "staff_code": s.staff_code,
+            "staff_id": s.staff_code,
             "full_name": s.full_name,
-            "shift_time": s.shift_time,
             "assigned_unit": s.assigned_unit,
             "status": s.status,
             "role": s.role,
@@ -162,282 +144,183 @@ def get_all_staff(current_user: models.User = Depends(_get_current_user), db: Se
 
 @router.post("/staff/create", response_model=dict)
 def create_staff(
-    full_name: str,
-    shift_time: str,
-    assigned_unit: str,
-    role: str = "staff",
-    current_user: models.User = Depends(_get_current_user),
-    db: Session = Depends(get_db)
+    admin: models.Admin = Depends(require_admin_account),
+    db: Session = Depends(get_db),
+    full_name: str = Query(..., min_length=1),
+    assigned_unit: str = Query(..., min_length=1),
+    role: str = Query("staff"),
 ):
     """Create a new staff member"""
-    
-    admin_id = getattr(current_user, 'admin_id', None) or (current_user.id if hasattr(current_user, 'role') and current_user.role == 'admin' else None)
-    
-    if not admin_id:
-        raise HTTPException(status_code=403, detail={"msg": "Unauthorized"})
-    
-    try:
-        # Generate unique staff ID
-        timestamp = str(int(time.time()))[-4:]
-        random_suffix = str(_r.randint(1000, 9999))
-        staff_id = f"ST-{timestamp}-{random_suffix}"
-        
-        # Create staff record in admin's database
-        SessionLocal = AdminDatabaseManager.get_admin_session_local(admin_id)
-        admin_db = SessionLocal()
-        
-        try:
-            new_staff = models.Staff(
-                admin_id=admin_id,
-                staff_id=staff_id,
-                full_name=full_name,
-                shift_time=shift_time,
-                assigned_unit=assigned_unit,
-                status="active",
-                role=role
-            )
-            admin_db.add(new_staff)
-            admin_db.commit()
-            admin_db.refresh(new_staff)
-            
-            return {
-                "success": True,
-                "staff_id": staff_id,
-                "full_name": full_name,
-                "shift_time": shift_time,
-                "assigned_unit": assigned_unit,
-                "role": role,
-                "message": f"Staff member {full_name} created successfully with ID {staff_id}"
-            }
-        finally:
-            admin_db.close()
-            
-    except Exception as e:
-        raise HTTPException(status_code=500, detail={"msg": "Failed to create staff", "error": str(e)})
+    admin_id = admin.id
+
+    staff_code = f"STF-{generate_unique_id(db, models.Staff, 'staff_code')}"
+
+    new_staff = models.Staff(
+        admin_id=admin_id,
+        staff_code=staff_code,
+        full_name=full_name,
+        assigned_unit=assigned_unit,
+        status="active",
+        role=role
+    )
+    db.add(new_staff)
+    db.commit()
+    db.refresh(new_staff)
+
+    return {
+        "success": True,
+        "staff_code": staff_code,
+        "full_name": full_name,
+        "assigned_unit": assigned_unit,
+        "role": role,
+        "message": f"Staff member {full_name} created successfully with ID {staff_code}"
+    }
 
 
-@router.patch("/staff/{staff_id}")
+@router.patch("/staff/{staff_code}")
 def update_staff(
-    staff_id: str,
+    staff_code: str,
     full_name: str = None,
-    shift_time: str = None,
     assigned_unit: str = None,
     status: str = None,
     role: str = None,
-    current_user: models.User = Depends(_get_current_user),
+    admin: models.Admin = Depends(require_admin_account),
     db: Session = Depends(get_db)
 ):
     """Update staff member details"""
-    
-    admin_id = getattr(current_user, 'admin_id', None) or (current_user.id if hasattr(current_user, 'role') and current_user.role == 'admin' else None)
-    
-    if not admin_id:
-        raise HTTPException(status_code=403, detail={"msg": "Unauthorized"})
-    
-    try:
-        SessionLocal = AdminDatabaseManager.get_admin_session_local(admin_id)
-        admin_db = SessionLocal()
-        
-        try:
-            staff = admin_db.query(models.Staff).filter(
-                models.Staff.admin_id == admin_id,
-                models.Staff.staff_id == staff_id
-            ).first()
-            
-            if not staff:
-                raise HTTPException(status_code=404, detail={"msg": "Staff member not found"})
-            
-            if full_name:
-                staff.full_name = full_name
-            if shift_time:
-                staff.shift_time = shift_time
-            if assigned_unit:
-                staff.assigned_unit = assigned_unit
-            if status:
-                staff.status = status
-            if role:
-                staff.role = role
-            
-            admin_db.commit()
-            
-            return {"success": True, "message": "Staff member updated successfully"}
-        finally:
-            admin_db.close()
-            
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail={"msg": "Failed to update staff", "error": str(e)})
+    staff = (
+        _staff_query_for_admin_org(db, admin)
+        .filter(models.Staff.staff_code == staff_code)
+        .first()
+    )
+
+    if not staff:
+        raise HTTPException(status_code=404, detail={"msg": "Staff member not found"})
+
+    if full_name:
+        staff.full_name = full_name
+    if assigned_unit:
+        staff.assigned_unit = assigned_unit
+    if status:
+        staff.status = status
+    if role:
+        staff.role = role
+
+    db.commit()
+
+    return {"success": True, "message": "Staff member updated successfully"}
 
 
-@router.delete("/staff/{staff_id}")
+@router.delete("/staff/{staff_code}")
 def delete_staff(
-    staff_id: str,
-    current_user: models.User = Depends(_get_current_user),
+    staff_code: str,
+    admin: models.Admin = Depends(require_admin_account),
     db: Session = Depends(get_db)
 ):
     """Delete a staff member"""
-    
-    admin_id = getattr(current_user, 'admin_id', None) or (current_user.id if hasattr(current_user, 'role') and current_user.role == 'admin' else None)
-    
-    if not admin_id:
-        raise HTTPException(status_code=403, detail={"msg": "Unauthorized"})
-    
-    try:
-        SessionLocal = AdminDatabaseManager.get_admin_session_local(admin_id)
-        admin_db = SessionLocal()
-        
-        try:
-            staff = admin_db.query(models.Staff).filter(
-                models.Staff.admin_id == admin_id,
-                models.Staff.staff_id == staff_id
-            ).first()
-            
-            if not staff:
-                raise HTTPException(status_code=404, detail={"msg": "Staff member not found"})
-            
-            admin_db.delete(staff)
-            admin_db.commit()
-            
-            return {"success": True, "message": f"Staff member {staff_id} deleted successfully"}
-        finally:
-            admin_db.close()
-            
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail={"msg": "Failed to delete staff", "error": str(e)})
+    staff = (
+        _staff_query_for_admin_org(db, admin)
+        .filter(models.Staff.staff_code == staff_code)
+        .first()
+    )
+
+    if not staff:
+        raise HTTPException(status_code=404, detail={"msg": "Staff member not found"})
+
+    db.delete(staff)
+    db.commit()
+
+    return {"success": True, "message": f"Staff member {staff_code} deleted successfully"}
 
 
 # RESIDENT MANAGEMENT
 
 @router.get("/residents", response_model=List[dict])
 def get_all_residents(
-    current_user: models.User = Depends(_get_current_user),
+    admin: models.Admin = Depends(require_admin_account),
     db: Session = Depends(get_db)
 ):
     """Get all residents for current admin"""
-    
-    admin_id = getattr(current_user, 'admin_id', None) or (current_user.id if hasattr(current_user, 'role') and current_user.role == 'admin' else None)
-    
-    if not admin_id:
-        raise HTTPException(status_code=403, detail={"msg": "Unauthorized"})
-    
-    try:
-        SessionLocal = AdminDatabaseManager.get_admin_session_local(admin_id)
-        admin_db = SessionLocal()
-        
-        try:
-            residents = admin_db.query(models.Resident).filter(models.Resident.admin_id == admin_id).all()
-            
-            return [
-                {
-                    "id": r.id,
-                    "full_name": r.full_name,
-                    "age": r.age,
-                    "room": r.room,
-                    "status": r.status,
-                    "created_at": r.created_at.isoformat() if r.created_at else None,
-                }
-                for r in residents
-            ]
-        finally:
-            admin_db.close()
-    except Exception as e:
-        raise HTTPException(status_code=500, detail={"msg": "Failed to fetch residents", "error": str(e)})
+    admin_id = admin.id
+
+    residents = db.query(models.Resident).filter(models.Resident.admin_id == admin_id).all()
+
+    return [
+        {
+            "id": r.id,
+            "full_name": r.full_name,
+            "age": r.age,
+            "room": r.room,
+            "status": r.status,
+            "created_at": r.created_at.isoformat() if r.created_at else None,
+        }
+        for r in residents
+    ]
 
 
 @router.post("/resident/create", response_model=dict)
 def create_resident(
-    full_name: str,
-    age: int,
-    room: str,
-    status: str = "stable",
-    current_user: models.User = Depends(_get_current_user),
-    db: Session = Depends(get_db)
+    admin: models.Admin = Depends(require_admin_account),
+    db: Session = Depends(get_db),
+    full_name: str = Query(..., min_length=1),
+    age: int = Query(..., ge=0, le=130),
+    room: str = Query(..., min_length=1),
+    status: str = Query("active"),
 ):
     """Create a new resident"""
-    
-    admin_id = getattr(current_user, 'admin_id', None) or (current_user.id if hasattr(current_user, 'role') and current_user.role == 'admin' else None)
-    
-    if not admin_id:
-        raise HTTPException(status_code=403, detail={"msg": "Unauthorized"})
-    
-    try:
-        SessionLocal = AdminDatabaseManager.get_admin_session_local(admin_id)
-        admin_db = SessionLocal()
-        
-        try:
-            # Generate unique resident ID
-            resident_id = str(uuid.uuid4())[:8].upper()
-            
-            new_resident = models.Resident(
-                admin_id=admin_id,
-                full_name=full_name,
-                age=age,
-                room=room,
-                status=status
-            )
-            admin_db.add(new_resident)
-            admin_db.commit()
-            admin_db.refresh(new_resident)
-            
-            return {
-                "success": True,
-                "resident_id": resident_id,
-                "full_name": full_name,
-                "age": age,
-                "room": room,
-                "status": status,
-                "message": f"Resident {full_name} created successfully with ID {resident_id}"
-            }
-        finally:
-            admin_db.close()
-            
-    except Exception as e:
-        raise HTTPException(status_code=500, detail={"msg": "Failed to create resident", "error": str(e)})
+    admin_id = admin.id
+
+    new_resident = models.Resident(
+        admin_id=admin_id,
+        full_name=full_name,
+        age=age,
+        room=room,
+        status=status
+    )
+    db.add(new_resident)
+    db.flush()
+
+    new_resident.unique_code = generate_unique_id(db, models.Resident, "unique_code")
+    resident_id = f"RES-{new_resident.unique_code}"
+    db.commit()
+    db.refresh(new_resident)
+
+    return {
+        "success": True,
+        "resident_id": resident_id,
+        "full_name": full_name,
+        "age": age,
+        "room": room,
+        "status": status,
+        "message": f"Resident {full_name} created successfully with ID {resident_id}"
+    }
 
 
 @router.get("/residents/{resident_id}")
 def get_resident(
     resident_id: int,
-    current_user: models.User = Depends(_get_current_user),
+    admin: models.Admin = Depends(require_admin_account),
     db: Session = Depends(get_db)
 ):
     """Get resident details"""
-    
-    admin_id = getattr(current_user, 'admin_id', None) or (current_user.id if hasattr(current_user, 'role') and current_user.role == 'admin' else None)
-    
-    if not admin_id:
-        raise HTTPException(status_code=403, detail={"msg": "Unauthorized"})
-    
-    try:
-        SessionLocal = AdminDatabaseManager.get_admin_session_local(admin_id)
-        admin_db = SessionLocal()
-        
-        try:
-            resident = admin_db.query(models.Resident).filter(
-                models.Resident.admin_id == admin_id,
-                models.Resident.id == resident_id
-            ).first()
-            
-            if not resident:
-                raise HTTPException(status_code=404, detail={"msg": "Resident not found"})
-            
-            return {
-                "id": resident.id,
-                "full_name": resident.full_name,
-                "age": resident.age,
-                "room": resident.room,
-                "status": resident.status,
-                "created_at": resident.created_at.isoformat() if resident.created_at else None,
-            }
-        finally:
-            admin_db.close()
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail={"msg": "Failed to fetch resident", "error": str(e)})
+    admin_id = admin.id
+
+    resident = db.query(models.Resident).filter(
+        models.Resident.admin_id == admin_id,
+        models.Resident.id == resident_id
+    ).first()
+
+    if not resident:
+        raise HTTPException(status_code=404, detail={"msg": "Resident not found"})
+
+    return {
+        "id": resident.id,
+        "full_name": resident.full_name,
+        "age": resident.age,
+        "room": resident.room,
+        "status": resident.status,
+        "created_at": resident.created_at.isoformat() if resident.created_at else None,
+    }
 
 
 @router.patch("/resident/{resident_id}")
@@ -447,107 +330,77 @@ def update_resident(
     age: int = None,
     room: str = None,
     status: str = None,
-    current_user: models.User = Depends(_get_current_user),
+    admin: models.Admin = Depends(require_admin_account),
     db: Session = Depends(get_db)
 ):
     """Update resident details"""
-    
-    admin_id = getattr(current_user, 'admin_id', None) or (current_user.id if hasattr(current_user, 'role') and current_user.role == 'admin' else None)
-    
-    if not admin_id:
-        raise HTTPException(status_code=403, detail={"msg": "Unauthorized"})
-    
-    try:
-        SessionLocal = AdminDatabaseManager.get_admin_session_local(admin_id)
-        admin_db = SessionLocal()
-        
-        try:
-            resident = admin_db.query(models.Resident).filter(
-                models.Resident.admin_id == admin_id,
-                models.Resident.id == resident_id
-            ).first()
-            
-            if not resident:
-                raise HTTPException(status_code=404, detail={"msg": "Resident not found"})
-            
-            if full_name:
-                resident.full_name = full_name
-            if age:
-                resident.age = age
-            if room:
-                resident.room = room
-            if status:
-                resident.status = status
-            
-            admin_db.commit()
-            
-            return {"success": True, "message": "Resident updated successfully"}
-        finally:
-            admin_db.close()
-            
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail={"msg": "Failed to update resident", "error": str(e)})
+    admin_id = admin.id
+
+    resident = db.query(models.Resident).filter(
+        models.Resident.admin_id == admin_id,
+        models.Resident.id == resident_id
+    ).first()
+
+    if not resident:
+        raise HTTPException(status_code=404, detail={"msg": "Resident not found"})
+
+    if full_name:
+        resident.full_name = full_name
+    if age:
+        resident.age = age
+    if room:
+        resident.room = room
+    if status:
+        resident.status = status
+
+    db.commit()
+
+    return {"success": True, "message": "Resident updated successfully"}
 
 
 @router.delete("/resident/{resident_id}")
 def delete_resident(
     resident_id: int,
-    current_user: models.User = Depends(_get_current_user),
+    admin: models.Admin = Depends(require_admin_account),
     db: Session = Depends(get_db)
 ):
     """Delete a resident"""
-    
-    admin_id = getattr(current_user, 'admin_id', None) or (current_user.id if hasattr(current_user, 'role') and current_user.role == 'admin' else None)
-    
-    if not admin_id:
-        raise HTTPException(status_code=403, detail={"msg": "Unauthorized"})
-    
-    try:
-        SessionLocal = AdminDatabaseManager.get_admin_session_local(admin_id)
-        admin_db = SessionLocal()
-        
-        try:
-            resident = admin_db.query(models.Resident).filter(
-                models.Resident.admin_id == admin_id,
-                models.Resident.id == resident_id
-            ).first()
-            
-            if not resident:
-                raise HTTPException(status_code=404, detail={"msg": "Resident not found"})
-            
-            admin_db.delete(resident)
-            admin_db.commit()
-            
-            return {"success": True, "message": f"Resident deleted successfully"}
-        finally:
-            admin_db.close()
-            
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail={"msg": "Failed to delete resident", "error": str(e)})
+    admin_id = admin.id
+
+    resident = db.query(models.Resident).filter(
+        models.Resident.admin_id == admin_id,
+        models.Resident.id == resident_id
+    ).first()
+
+    if not resident:
+        raise HTTPException(status_code=404, detail={"msg": "Resident not found"})
+
+    db.delete(resident)
+    db.commit()
+
+    return {"success": True, "message": f"Resident deleted successfully"}
 
 
 # RBAC 
 
-@router.get("/permissions/{staff_id}", response_model=dict)
+@router.get("/permissions/{staff_code}", response_model=dict)
 def get_staff_permissions(
-    staff_id: str,
-    current_user: models.User = Depends(_get_current_user),
+    staff_code: str,
+    admin: models.Admin = Depends(require_admin_account),
     db: Session = Depends(get_db)
 ):
     """Get permissions for a staff member"""
-    
-    admin_id = getattr(current_user, 'admin_id', None) or (current_user.id if hasattr(current_user, 'role') and current_user.role == 'admin' else None)
-    
-    if not admin_id:
-        raise HTTPException(status_code=403, detail={"msg": "Unauthorized"})
-    
+    staff = (
+        _staff_query_for_admin_org(db, admin)
+        .filter(models.Staff.staff_code == staff_code)
+        .first()
+    )
+    if not staff:
+        raise HTTPException(status_code=404, detail={"msg": "Staff member not found"})
+
     # Default permissions based on role
     return {
-        "staff_id": staff_id,
+        "staff_code": staff_code,
         "permissions": {
             "view_residents": True,
             "manage_residents": True,
@@ -561,25 +414,27 @@ def get_staff_permissions(
     }
 
 
-@router.post("/permissions/{staff_id}/update")
+@router.post("/permissions/{staff_code}/update")
 def update_staff_permissions(
-    staff_id: str,
+    staff_code: str,
     permissions: dict,
-    current_user: models.User = Depends(_get_current_user),
+    admin: models.Admin = Depends(require_admin_account),
     db: Session = Depends(get_db)
 ):
     """Update permissions for a staff member"""
-    
-    admin_id = getattr(current_user, 'admin_id', None) or (current_user.id if hasattr(current_user, 'role') and current_user.role == 'admin' else None)
-    
-    if not admin_id:
-        raise HTTPException(status_code=403, detail={"msg": "Unauthorized"})
-    
+    staff = (
+        _staff_query_for_admin_org(db, admin)
+        .filter(models.Staff.staff_code == staff_code)
+        .first()
+    )
+    if not staff:
+        raise HTTPException(status_code=404, detail={"msg": "Staff member not found"})
+
     # In a real system, you would save these to a permissions table
     # For now, we return the updated permissions
     return {
         "success": True,
-        "staff_id": staff_id,
+        "staff_code": staff_code,
         "permissions": permissions,
         "message": "Permissions updated successfully"
     }

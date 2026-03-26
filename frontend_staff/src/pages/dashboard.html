@@ -9,7 +9,52 @@
 <title>Sphere Care – Dashboard</title>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
-
+<style>
+/* ── Staff / Resident Modals ── */
+.admin-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15,27,45,0.55);
+  backdrop-filter: blur(3px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.22s;
+}
+.admin-modal-overlay.open { opacity: 1; pointer-events: all; }
+.admin-modal {
+  background: #fff;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 480px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.2);
+  transform: translateY(18px);
+  transition: transform 0.22s;
+}
+.admin-modal-overlay.open .admin-modal { transform: translateY(0); }
+.admin-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 22px 16px;
+  border-bottom: 1px solid #e5e5e5;
+}
+.admin-modal-header h3 { margin: 0; font-size: 16px; font-weight: 800; }
+.admin-modal-close {
+  width: 30px; height: 30px;
+  border-radius: 8px; border: none;
+  background: #F1F5F9; cursor: pointer;
+  font-size: 16px; color: #64748B;
+}
+.admin-modal-close:hover { background: #E2E8F0; }
+.admin-modal-body { padding: 20px 22px 24px; }
+</style>
 </head>
 <body>
 <div class="app">
@@ -43,111 +88,57 @@
             <div class="stat-card">
               <div>
                 <div class="stat-label">Total Residents</div>
-                <div class="stat-value">247</div>
+                <div class="stat-value" id="dash-total-residents">—</div>
               </div>
               <div class="stat-icon blue">👥</div>
             </div>
             <div class="stat-card">
               <div>
                 <div class="stat-label">Active Alerts</div>
-                <div class="stat-value">12</div>
+                <div class="stat-value" id="dash-active-alerts">—</div>
               </div>
               <div class="stat-icon red">⚠️</div>
             </div>
             <div class="stat-card">
               <div>
                 <div class="stat-label">Staff On Duty</div>
-                <div class="stat-value">34</div>
+                <div class="stat-value" id="dash-staff-duty">—</div>
               </div>
               <div class="stat-icon green">🧑‍⚕️</div>
             </div>
             <div class="stat-card">
               <div>
-                <div class="stat-label">Occupancy Rate</div>
-                <div class="stat-value">94%</div>
+                <div class="stat-label">Pending Tasks</div>
+                <div class="stat-value" id="dash-pending-tasks">—</div>
               </div>
-              <div class="stat-icon purple">🥧</div>
+              <div class="stat-icon purple">📋</div>
             </div>
           </div>
 
-          <!-- Today's Tasks -->
+          <!-- Today's Bookings -->
           <div class="section-card">
-            <h3>Today's Tasks (Monday, 20 Oct)</h3>
-            <p class="section-sub">You have 6 tasks scheduled — 2 completed, 1 urgent.</p>
-            <div class="task-list">
-              <div class="task-item">
-                <div class="task-time">09.00</div>
-                <div class="task-bar default"></div>
-                <div class="task-info">
-                  <div class="task-title">Record and transcribe medication discussion.</div>
-                  <div class="task-status">Status: NOT DONE</div>
-                </div>
-              </div>
-              <div class="task-item">
-                <div class="task-time">11.00</div>
-                <div class="task-bar done"></div>
-                <div class="task-info">
-                  <div class="task-title">Record and transcribe medication discussion.</div>
-                  <div class="task-status done">Status: COMPLETED</div>
-                </div>
-              </div>
-              <div class="task-item">
-                <div class="task-time">12.00</div>
-                <div class="task-bar default"></div>
-                <div class="task-info">
-                  <div class="task-title">Record and transcribe medication discussion.</div>
-                  <div class="task-status">Status: NOT DONE</div>
-                </div>
-              </div>
-              <div class="task-item">
-                <div class="task-time">14.30</div>
-                <div class="task-bar urgent"></div>
-                <div class="task-info">
-                  <div class="task-title">Record and transcribe medication discussion.</div>
-                  <div class="task-status urgent">Status: URGENT</div>
-                </div>
-              </div>
+            <h3 id="dash-tasks-title">Today's Bookings</h3>
+            <p class="section-sub" id="dash-tasks-sub">Loading bookings…</p>
+            <div class="task-list" id="dash-tasks-list">
+              <div style="text-align:center;padding:24px 0;color:var(--text3);font-size:13px;">Loading…</div>
             </div>
           </div>
 
-          <!-- Recent Activities -->
+          <!-- Recent Flags -->
           <div class="section-card">
-            <h3>Recent Activities</h3>
+            <h3>Recent Flags</h3>
             <div class="table-wrap">
               <table>
                 <thead>
                   <tr>
                     <th>Resident</th>
-                    <th>Activity</th>
-                    <th>Time</th>
+                    <th>Event</th>
+                    <th>Severity</th>
                     <th>Status</th>
                   </tr>
                 </thead>
-                <tbody>
-                  <tr>
-                    <td>Mary Johnson</td>
-                    <td>Medication Administered</td>
-                    <td>2:30 PM</td>
-                    <td><span class="badge complete">Complete</span></td>
-                  </tr>
-                  <tr>
-                    <td>Robert Smith</td>
-                    <td>Physical Therapy</td>
-                    <td>1:45 PM</td>
-                    <td><span class="badge progress">In Progress</span></td>
-                  </tr>
-                  <tr>
-                    <td>Emily Davis</td>
-                    <td>Meal Service</td>
-                    <td>12:15 PM</td>
-                    <td><span class="badge complete">Complete</span></td>
-                  </tr>
-                  <tr>
-                    <td>George Lee</td>
-                    <td>Physiotherapy Session</td>
-                    <td>11:00 AM</td>
-                    <td><span class="badge pending">Pending</span></td>
-                  </tr>
+                <tbody id="dash-flags-tbody">
+                  <tr><td colspan="4" style="text-align:center;padding:24px;color:var(--text3);">Loading…</td></tr>
                 </tbody>
               </table>
             </div>
@@ -388,71 +379,42 @@
               border-radius: 6px;
               margin-bottom: 16px;
             }
+            /* ── Staff / Resident Modals (CSS moved to <head>) ── */
           </style>
 
           <div class="admin-tabs">
-            <button class="admin-tab-btn active" data-tab="staff-mgmt">👥 Staff Management</button>
-            <button class="admin-tab-btn" data-tab="staff-registration">📝 Staff Registration</button>
-            <button class="admin-tab-btn" data-tab="staff-approvals">🔔 Pending Approvals</button>
-            <button class="admin-tab-btn" data-tab="resident-mgmt">🏠 Resident Management</button>
-            <button class="admin-tab-btn" data-tab="rbac">🔐 Access Control (RBAC)</button>
+            <button class="admin-tab-btn active" data-tab="staff-mgmt" onclick="switchAdminTab('staff-mgmt',this)">👥 Staff Management</button>
+            <button class="admin-tab-btn" data-tab="staff-registration" onclick="switchAdminTab('staff-registration',this)">📝 Staff Registration</button>
+            <button class="admin-tab-btn" data-tab="staff-approvals" onclick="switchAdminTab('staff-approvals',this)">🔔 Pending Approvals</button>
+            <button class="admin-tab-btn" data-tab="resident-mgmt" onclick="switchAdminTab('resident-mgmt',this)">🏠 Resident Management</button>
+            <button class="admin-tab-btn" data-tab="rbac" onclick="switchAdminTab('rbac',this)">🔐 Access Control (RBAC)</button>
           </div>
 
           <!-- STAFF MANAGEMENT TAB -->
           <div class="admin-tab-content active" id="staff-mgmt">
-            <div class="admin-grid">
-              <!-- Create New Staff -->
-              <div class="admin-card">
-                <h3>➕ Add New Staff Member</h3>
-                <form id="staff-form">
-                  <div class="admin-form-group">
-                    <label>Full Name</label>
-                    <input type="text" name="full_name" placeholder="e.g., John Smith" required/>
-                  </div>
-                  <div class="admin-form-group">
-                    <label>Role</label>
-                    <select name="role" required>
-                      <option value="nurse">Nurse</option>
-                      <option value="carer">Care Assistant</option>
-                      <option value="doctor">Doctor</option>
-                      <option value="admin">Administrator</option>
-                    </select>
-                  </div>
-                  <div class="admin-form-group">
-                    <label>Shift Time</label>
-                    <input type="text" name="shift_time" placeholder="e.g., 08:00-16:00" required/>
-                  </div>
-                  <div class="admin-form-group">
-                    <label>Assigned Unit</label>
-                    <input type="text" name="assigned_unit" placeholder="e.g., Unit A" required/>
-                  </div>
-                  <div class="admin-button-group">
-                    <button type="submit" class="admin-btn admin-btn-primary">Create Staff Member</button>
-                    <button type="reset" class="admin-btn admin-btn-secondary">Clear Form</button>
-                  </div>
-                  <div id="staff-message"></div>
-                </form>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+              <div>
+                <h3 style="margin:0;font-size:16px;font-weight:700;">📋 Current Staff</h3>
+                <p style="margin:4px 0 0;font-size:13px;color:var(--text3);">Manage your registered staff members</p>
               </div>
-
-              <!-- Staff List -->
-              <div class="admin-card">
-                <h3>📋 Current Staff</h3>
-                <div id="staff-list-loading" class="admin-loading">Loading staff list...</div>
-                <table class="admin-table" id="staff-table" style="display:none;">
-                  <thead>
-                    <tr>
-                      <th>Staff ID</th>
-                      <th>Name</th>
-                      <th>Role</th>
-                      <th>Shift</th>
-                      <th>Unit</th>
-                      <th>Status</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody id="staff-tbody"></tbody>
-                </table>
-              </div>
+              <button class="admin-btn admin-btn-primary" onclick="openAddStaff()">➕ Add Staff</button>
+            </div>
+            <div class="admin-card">
+              <div id="staff-list-loading" class="admin-loading">Loading staff list...</div>
+              <table class="admin-table" id="staff-table" style="display:none;">
+                <thead>
+                  <tr>
+                    <th>Staff ID</th>
+                    <th>Name</th>
+                    <th>Role</th>
+                    <th>Shift</th>
+                    <th>Unit</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="staff-tbody"></tbody>
+              </table>
             </div>
           </div>
 
@@ -486,9 +448,12 @@
                   <thead>
                     <tr>
                       <th>Date</th>
+                      <th>Staff ID</th>
                       <th>Name</th>
                       <th>Email</th>
+                      <th>Role</th>
                       <th>Status</th>
+                      <th>Actions</th>
                     </tr>
                   </thead>
                   <tbody id="registration-tbody"></tbody>
@@ -510,6 +475,7 @@
                     <th>Staff ID</th>
                     <th>Full Name</th>
                     <th>Email</th>
+                    <th>Role</th>
                     <th>Registered</th>
                     <th>Status</th>
                     <th>Actions</th>
@@ -523,58 +489,28 @@
 
           <!-- RESIDENT MANAGEMENT TAB -->
           <div class="admin-tab-content" id="resident-mgmt">
-            <div class="admin-grid">
-              <!-- Create New Resident -->
-              <div class="admin-card">
-                <h3>➕ Add New Resident</h3>
-                <form id="resident-form">
-                  <div class="admin-form-group">
-                    <label>Full Name</label>
-                    <input type="text" name="full_name" placeholder="e.g., Mary Johnson" required/>
-                  </div>
-                  <div class="admin-form-group">
-                    <label>Age</label>
-                    <input type="number" name="age" min="18" max="120" placeholder="e.g., 75" required/>
-                  </div>
-                  <div class="admin-form-group">
-                    <label>Room Number</label>
-                    <input type="text" name="room" placeholder="e.g., 204" required/>
-                  </div>
-                  <div class="admin-form-group">
-                    <label>Initial Status</label>
-                    <select name="status" required>
-                      <option value="stable">Stable</option>
-                      <option value="at-risk">At Risk</option>
-                      <option value="critical">Critical</option>
-                      <option value="recovery">Recovery</option>
-                    </select>
-                  </div>
-                  <div class="admin-button-group">
-                    <button type="submit" class="admin-btn admin-btn-primary">Create Resident</button>
-                    <button type="reset" class="admin-btn admin-btn-secondary">Clear Form</button>
-                  </div>
-                  <div id="resident-message"></div>
-                </form>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+              <div>
+                <h3 style="margin:0;font-size:16px;font-weight:700;">🏠 Current Residents</h3>
+                <p style="margin:4px 0 0;font-size:13px;color:var(--text3);">Manage residents in your care centre</p>
               </div>
-
-              <!-- Residents List -->
-              <div class="admin-card">
-                <h3>📋 Current Residents</h3>
-                <div id="resident-list-loading" class="admin-loading">Loading residents list...</div>
-                <table class="admin-table" id="resident-table" style="display:none;">
-                  <thead>
-                    <tr>
-                      <th>Resident ID</th>
-                      <th>Name</th>
-                      <th>Age</th>
-                      <th>Room</th>
-                      <th>Status</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody id="resident-tbody"></tbody>
-                </table>
-              </div>
+              <button class="admin-btn admin-btn-primary" onclick="openAddResident()">➕ Add Resident</button>
+            </div>
+            <div class="admin-card">
+              <div id="resident-list-loading" class="admin-loading">Loading residents list...</div>
+              <table class="admin-table" id="resident-table" style="display:none;">
+                <thead>
+                  <tr>
+                    <th>Resident ID</th>
+                    <th>Name</th>
+                    <th>Age</th>
+                    <th>Room</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="resident-tbody"></tbody>
+              </table>
             </div>
           </div>
 
@@ -687,26 +623,8 @@
           <h4>AI Flags &amp; Insights</h4>
           <div class="rp-sub">Automated care recommendations and alerts</div>
 
-          <div class="alert-item red-a">
-            <div class="alert-dot red">⚠</div>
-            <div>
-              <div class="alert-title">High Priority Alert</div>
-              <div class="alert-desc">Room 204: Unusual sleep pattern detected</div>
-            </div>
-          </div>
-          <div class="alert-item amber-a">
-            <div class="alert-dot amber">💡</div>
-            <div>
-              <div class="alert-title">Care Suggestion</div>
-              <div class="alert-desc">Consider increasing social activities for Room 156</div>
-            </div>
-          </div>
-          <div class="alert-item blue-a">
-            <div class="alert-dot blue">ℹ</div>
-            <div>
-              <div class="alert-title">Insight</div>
-              <div class="alert-desc">Meal satisfaction scores improved 15% this week</div>
-            </div>
+          <div id="dash-ai-flags">
+            <div style="text-align:center;padding:16px 0;color:var(--text3);font-size:12px;">Loading…</div>
           </div>
         </div>
 
@@ -759,5 +677,87 @@
 <script src="../style/js/admin_console.js"></script>
 <script src="/components/sidebar.js"></script>
 <script src="/style/js/dashboard_auth.js"></script>
+
+<!-- ══ MODAL: Add Staff ══ -->
+<div class="admin-modal-overlay" id="modal-add">
+  <div class="admin-modal">
+    <div class="admin-modal-header">
+      <h3>➕ Add New Staff Member</h3>
+      <button class="admin-modal-close" onclick="closeAddStaff()">✕</button>
+    </div>
+    <div class="admin-modal-body">
+      <form id="staff-form">
+        <div class="admin-form-group">
+          <label>Full Name</label>
+          <input type="text" name="full_name" placeholder="e.g., John Smith" required/>
+        </div>
+        <div class="admin-form-group">
+          <label>Role</label>
+          <select name="role" required>
+            <option value="nurse">Nurse</option>
+            <option value="carer">Care Assistant</option>
+            <option value="doctor">Doctor</option>
+            <option value="admin">Administrator</option>
+          </select>
+        </div>
+        <div class="admin-form-group">
+          <label>Shift Time</label>
+          <input type="text" name="shift_time" placeholder="e.g., 08:00–16:00" required/>
+        </div>
+        <div class="admin-form-group">
+          <label>Assigned Unit</label>
+          <input type="text" name="assigned_unit" placeholder="e.g., Unit A" required/>
+        </div>
+        <div class="admin-button-group">
+          <button type="submit" class="admin-btn admin-btn-primary">Create Staff Member</button>
+          <button type="button" class="admin-btn admin-btn-secondary" onclick="closeAddStaff()">Cancel</button>
+        </div>
+        <div id="staff-message"></div>
+      </form>
+    </div>
+  </div>
+</div>
+<!-- /Add Staff MODAL -->
+
+<!-- ══ MODAL: Add Resident ══ -->
+<div class="admin-modal-overlay" id="modal-add-resident">
+  <div class="admin-modal">
+    <div class="admin-modal-header">
+      <h3>🏠 Add New Resident</h3>
+      <button class="admin-modal-close" onclick="closeAddResident()">✕</button>
+    </div>
+    <div class="admin-modal-body">
+      <form id="resident-form">
+        <div class="admin-form-group">
+          <label>Full Name</label>
+          <input type="text" name="full_name" placeholder="e.g., Mary Johnson" required/>
+        </div>
+        <div class="admin-form-group">
+          <label>Age</label>
+          <input type="number" name="age" min="18" max="120" placeholder="e.g., 75" required/>
+        </div>
+        <div class="admin-form-group">
+          <label>Room Number</label>
+          <input type="text" name="room" placeholder="e.g., 204" required/>
+        </div>
+        <div class="admin-form-group">
+          <label>Initial Status</label>
+          <select name="status" required>
+            <option value="stable">Stable</option>
+            <option value="at-risk">At Risk</option>
+            <option value="critical">Critical</option>
+            <option value="recovery">Recovery</option>
+          </select>
+        </div>
+        <div class="admin-button-group">
+          <button type="submit" class="admin-btn admin-btn-primary">Create Resident</button>
+          <button type="button" class="admin-btn admin-btn-secondary" onclick="closeAddResident()">Cancel</button>
+        </div>
+        <div id="resident-message"></div>
+      </form>
+    </div>
+  </div>
+</div>
+<!-- /Add Resident MODAL -->
 </body>
 </html>

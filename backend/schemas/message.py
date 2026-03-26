@@ -6,7 +6,7 @@ from pydantic import BaseModel
 
 class ConversationCreate(BaseModel):
     name: str
-    category: str
+    category: str = "direct"
 
 
 class ConversationResponse(BaseModel):
@@ -14,7 +14,7 @@ class ConversationResponse(BaseModel):
     name: str
     category: str
     last_message: Optional[str] = None
-    last_message_at: Optional[str] = None
+    last_message_at: Optional[datetime] = None
     unread_count: int
     created_at: Optional[datetime] = None
 
@@ -25,8 +25,10 @@ class MessageCreate(BaseModel):
     conversation_id: int
     sender_name: str
     sender_role: str
+    sender_user_id: Optional[int] = None
     content: str
-    is_self: str = "false"
+    message_type: str = "text"
+    is_self: bool = False
 
 
 class MessageResponse(BaseModel):
@@ -34,8 +36,10 @@ class MessageResponse(BaseModel):
     conversation_id: int
     sender_name: str
     sender_role: str
+    sender_user_id: Optional[int] = None
     content: str
-    is_self: str
+    message_type: str
+    is_self: bool
     created_at: datetime
 
     model_config = {"from_attributes": True}

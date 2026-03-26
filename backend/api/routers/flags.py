@@ -24,7 +24,7 @@ from sqlalchemy.orm import Session, selectinload
 from backend.api.deps import get_db
 from backend import models, schemas
 
-router = APIRouter(prefix="/flags", tags=["Flags & Reviews"])
+router = APIRouter(tags=["Flags & Reviews"])
 
 VALID_STATUSES = ("Open", "Pending Review", "Resolved", "Escalated")
 
@@ -72,7 +72,7 @@ def _fmt_comment(comment: models.FlagComment) -> schemas.FlagCommentResponse:
     return schemas.FlagCommentResponse(
         id=comment.id,
         flag_id=comment.flag_id,
-        author=comment.author,
+        author_name=comment.author_name,
         body=comment.body,
         created_at=_format_dt(comment.created_at),
     )
@@ -169,7 +169,7 @@ def get_flag_stats(db: Session = Depends(get_db)):
 @router.get("/", response_model=list[schemas.FlagResponse])
 def list_flags(
     resident_name: Optional[str] = Query(None),
-    resident_id: Optional[str] = Query(None),
+    resident_id: Optional[int] = Query(None),
     event_type: Optional[str] = Query(None),
     severity: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
@@ -328,7 +328,7 @@ def add_comment(
 
     comment = models.FlagComment(
         flag_id=flag_id,
-        author=body.author,
+        author_name=body.author_name,
         body=body.body,
     )
 

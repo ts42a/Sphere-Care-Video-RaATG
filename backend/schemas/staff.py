@@ -1,28 +1,41 @@
-from pydantic import BaseModel
+from datetime import date, datetime, time
 from typing import Optional
+
+from pydantic import BaseModel
 
 
 class StaffCreate(BaseModel):
-    staff_id: str
+    staff_code: str
     full_name: str
-    shift_time: str
+    role: str
+    department: Optional[str] = None
+    shift_start: Optional[time] = None
+    shift_end: Optional[time] = None
     assigned_unit: str
+    hire_date: Optional[date] = None
 
 
 class StaffUpdate(BaseModel):
-    shift_time: Optional[str]
-    assigned_unit: Optional[str]
-    status: Optional[str]
-    role: Optional[str]
+    shift_start: Optional[time] = None
+    shift_end: Optional[time] = None
+    assigned_unit: Optional[str] = None
+    status: Optional[str] = None
+    role: Optional[str] = None
+    department: Optional[str] = None
 
 
 class StaffResponse(BaseModel):
     id: int
-    staff_id: str
+    staff_code: str
     full_name: str
-    shift_time: str
+    role: str
+    department: Optional[str] = None
+    shift_start: Optional[time] = None
+    shift_end: Optional[time] = None
     assigned_unit: str
     status: str
-    role: str
+    approval_status: str
+    hire_date: Optional[date] = None
+    created_at: Optional[datetime] = None
 
     model_config = {"from_attributes": True}

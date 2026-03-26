@@ -6,7 +6,7 @@ let activeHls = null; // holds the HLS instance when real stream is playing
 
 function authHeaders(){
   const h = {'Content-Type':'application/json'};
-  const t = localStorage.getItem('access_token');
+  const t = sessionStorage.getItem('access_token');
   if(t) h['Authorization'] = `Bearer ${t}`;
   return h;
 }

@@ -3,7 +3,10 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-DATABASE_URL = "sqlite:///./sphere_care.db"
+DATABASE_URL = os.getenv(
+    "DATABASE_URL",
+    "postgresql://postgres:postgres@localhost:5432/sphere_care",
+)
 ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "*")
 SECRET_KEY = os.getenv("SECRET_KEY", "change-this-secret-key")
 JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")

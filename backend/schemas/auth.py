@@ -9,10 +9,20 @@ class UserCreate(BaseModel):
     email: EmailStr
     password: str
     phone: Optional[str] = None
-    role: str = "staff"
+    role: str = "staff"  # Maps to global_role on user model
     organization_name: Optional[str] = None  # For admin registration
     email_confirmation: Optional[str] = None  # Used by web frontend
     retype_password: Optional[str] = None  # Used by web frontend
+    date_of_birth: Optional[str] = None  # YYYY-MM-DD
+    gender: Optional[str] = None
+    # Admin address fields
+    address: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    postal_code: Optional[str] = None
+    country: Optional[str] = None
+    # Client optional center join
+    center_id: Optional[str] = None
 
 
 class AdminRegisterResponse(BaseModel):

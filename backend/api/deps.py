@@ -4,12 +4,11 @@ from fastapi import Depends, HTTPException, status
 from jose import JWTError, jwt
 
 from backend.db.session import SessionLocal
-from backend.db.db_manager import AdminDatabaseManager
 from backend.core.config import SECRET_KEY, JWT_ALGORITHM
 
 
 def get_db() -> Generator[Session, None, None]:
-    """Get default database session (for master/admin registration)."""
+    """Get database session."""
     db = SessionLocal()
     try:
         yield db
@@ -17,14 +16,8 @@ def get_db() -> Generator[Session, None, None]:
         db.close()
 
 
-def get_admin_db(admin_id: int) -> Generator[Session, None, None]:
-# Get admin-specific database session
-    SessionLocal = AdminDatabaseManager.get_admin_session_local(admin_id)
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+# Keep for backward compatibility — all tables are now in a single PG database.
+get_admin_db = get_db
 
 
 def get_current_admin_id(token: str = None) -> int:
@@ -57,8 +50,8 @@ def get_admin_context_db(admin_id: int = Depends(get_current_admin_id)) -> Gener
     """
     Get database session for the current admin from JWT token.
     Use this in protected routes to automatically get the admin's database.
+    All tables are now in a single PG database.
     """
-    SessionLocal = AdminDatabaseManager.get_admin_session_local(admin_id)
     db = SessionLocal()
     try:
         yield db

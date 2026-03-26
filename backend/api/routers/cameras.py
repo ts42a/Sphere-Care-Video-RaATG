@@ -20,7 +20,7 @@ from datetime import datetime
 from backend.api.deps import get_db
 from backend import models, schemas
 
-router = APIRouter(prefix="/cameras", tags=["Recording Console"])
+router = APIRouter(tags=["Recording Console"])
 
 # HELPERS
 def _fmt_camera(c: models.Camera) -> schemas.CameraResponse:
@@ -30,10 +30,10 @@ def _fmt_camera(c: models.Camera) -> schemas.CameraResponse:
         resident_name=c.resident_name,
         floor=c.floor,
         status=c.status,
-        alert=c.alert,
+        stream_status=c.stream_status,
         description=c.description,
         stream_url=c.stream_url,
-        created_at=c.created_at.strftime("%Y-%m-%d %H:%M"),
+        created_at=c.created_at,
     )
 
 
@@ -47,7 +47,7 @@ def _fmt_alert(a: models.CameraAlert) -> schemas.CameraAlertResponse:
         title=a.title,
         description=a.description,
         resolved=a.resolved,
-        created_at=a.created_at.strftime("%Y-%m-%d %H:%M"),
+        created_at=a.created_at,
     )
 
 # CAMERAS
@@ -74,14 +74,12 @@ def get_camera_stats(db: Session = Depends(get_db)):
 def get_cameras(
     floor:  Optional[str] = Query(None, description="e.g. Floor 1"),
     status: Optional[str] = Query(None, description="live | offline"),
-    alert:  Optional[str] = Query(None, description="critical | fine | none"),
     db: Session = Depends(get_db),
 ):
     """Live View tab — returns all cameras with optional filters."""
     q = db.query(models.Camera).order_by(models.Camera.id)
     if floor:  q = q.filter(models.Camera.floor  == floor)
     if status: q = q.filter(models.Camera.status == status)
-    if alert:  q = q.filter(models.Camera.alert  == alert)
     return [_fmt_camera(c) for c in q.all()]
 
 
@@ -111,9 +109,9 @@ def update_camera_status(
     c = db.query(models.Camera).filter(models.Camera.id == camera_id).first()
     if not c:
         raise HTTPException(status_code=404, detail="Camera not found.")
-    if payload.status      is not None: c.status      = payload.status
-    if payload.alert       is not None: c.alert       = payload.alert
-    if payload.description is not None: c.description = payload.description
+    if payload.status        is not None: c.status        = payload.status
+    if payload.stream_status is not None: c.stream_status = payload.stream_status
+    if payload.description   is not None: c.description   = payload.description
     db.commit()
     db.refresh(c)
     return _fmt_camera(c)
@@ -138,10 +136,6 @@ def get_alerts(
 def create_alert(alert_in: schemas.CameraAlertCreate, db: Session = Depends(get_db)):
     alert = models.CameraAlert(**alert_in.model_dump())
     db.add(alert)
-    if alert_in.camera_id and alert_in.alert_type == "critical":
-        cam = db.query(models.Camera).filter(models.Camera.id == alert_in.camera_id).first()
-        if cam:
-            cam.alert = "critical"
     db.commit()
     db.refresh(alert)
     return _fmt_alert(alert)
@@ -154,17 +148,5 @@ def resolve_alert(alert_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Alert not found.")
     alert.resolved = True
     db.commit()
-    # reset camera to 'fine' if no more unresolved critical alerts
-    if alert.camera_id:
-        still_critical = db.query(func.count(models.CameraAlert.id)).filter(
-            models.CameraAlert.camera_id == alert.camera_id,
-            models.CameraAlert.alert_type == "critical",
-            models.CameraAlert.resolved == False,
-        ).scalar()
-        if still_critical == 0:
-            cam = db.query(models.Camera).filter(models.Camera.id == alert.camera_id).first()
-            if cam:
-                cam.alert = "fine"
-                db.commit()
     db.refresh(alert)
     return _fmt_alert(alert)

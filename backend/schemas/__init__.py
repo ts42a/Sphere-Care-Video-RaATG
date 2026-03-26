@@ -11,3 +11,4 @@ from .camera import *
 from .flag import *
 from .dashboard import *
 from .analytics import *
+from .center_membership import *

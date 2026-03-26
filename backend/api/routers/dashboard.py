@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from backend.api.deps import get_db
 from backend import models, schemas
 
-router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
+router = APIRouter(tags=["Dashboard"])
 
 
 @router.get("/stats", response_model=schemas.DashboardStats)
@@ -34,7 +34,7 @@ def get_dashboard_stats(db: Session = Depends(get_db)):
 
     raw_alerts = (
         db.query(models.Alert)
-        .filter(models.Alert.is_read == "false")
+        .filter(models.Alert.is_read == False)
         .order_by(models.Alert.created_at.desc())
         .limit(5)
         .all()
@@ -46,6 +46,7 @@ def get_dashboard_stats(db: Session = Depends(get_db)):
             level=a.level,
             title=a.title,
             message=a.message,
+            source=a.source,
             is_read=a.is_read,
             created_at=a.created_at,
         )

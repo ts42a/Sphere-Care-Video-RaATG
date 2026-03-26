@@ -1,33 +1,38 @@
+from datetime import datetime
+from typing import List, Optional
+
 from pydantic import BaseModel
-from typing import Optional, List
 
 
 class FlagCreate(BaseModel):
     resident_name: str
-    resident_id: Optional[str] = None
+    resident_id: Optional[int] = None
+    camera_id: Optional[int] = None
     event_type: str
     description: str
     severity: str
-    source: str = "AI"
-    status: str = "Open"
+    source: str = "ai"
+    status: str = "open"
     sev_desc: Optional[str] = None
     transcript: Optional[str] = None
     video_timestamp: Optional[str] = None
     ai_confidence: Optional[float] = None
-    flagged_at: Optional[str] = None
+    flagged_at: Optional[datetime] = None
 
 
 class FlagCommentCreate(BaseModel):
-    author: str
+    author_name: str
+    author_user_id: Optional[int] = None
     body: str
 
 
 class FlagCommentResponse(BaseModel):
     id: int
     flag_id: int
-    author: str
+    author_name: str
+    author_user_id: Optional[int] = None
     body: str
-    created_at: str
+    created_at: datetime
 
     model_config = {"from_attributes": True}
 
@@ -35,7 +40,8 @@ class FlagCommentResponse(BaseModel):
 class FlagResponse(BaseModel):
     id: int
     resident_name: str
-    resident_id: Optional[str] = None
+    resident_id: Optional[int] = None
+    camera_id: Optional[int] = None
     event_type: str
     description: str
     severity: str
@@ -45,8 +51,8 @@ class FlagResponse(BaseModel):
     transcript: Optional[str] = None
     video_timestamp: Optional[str] = None
     ai_confidence: Optional[float] = None
-    flagged_at: str
-    created_at: str
+    flagged_at: datetime
+    created_at: datetime
     comments: List[FlagCommentResponse] = []
 
     model_config = {"from_attributes": True}

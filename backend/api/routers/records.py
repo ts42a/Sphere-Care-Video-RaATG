@@ -6,7 +6,7 @@ from typing import Optional
 from backend.api.deps import get_db
 from backend import models, schemas
 
-router = APIRouter(prefix="/records", tags=["Records Library"])
+router = APIRouter(tags=["Records Library"])
 
 
 #helpers
@@ -22,7 +22,6 @@ def _fmt_record(r: models.Record) -> schemas.RecordResponse:
         duration=r.duration,
         notes=r.notes,
         recorded_at=r.recorded_at,
-        recorded_time=r.recorded_time,
         created_at=r.created_at.strftime("%Y-%m-%d %H:%M"),
     )
 

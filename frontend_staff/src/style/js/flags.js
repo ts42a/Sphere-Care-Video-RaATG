@@ -11,7 +11,7 @@ tick(); setInterval(tick,1000);
 // ── AUTH ──
 function authHeaders(){
   const h={'Content-Type':'application/json'};
-  const t=localStorage.getItem('access_token');
+  const t=sessionStorage.getItem('access_token');
   if(t) h['Authorization']=`Bearer ${t}`;
   return h;
 }
@@ -105,8 +105,8 @@ async function loadFlags(){
     const res = await fetch(`${API_BASE}/flags/?${params}`, {headers: authHeaders()});
     if(!res.ok) throw new Error();
     const data = await res.json();
-    // if API returns data use it, else fallback to demo
-    allFlags = data.length ? data.map(normaliseFlag) : [...DEMO_FLAGS];
+    // if API returns data use it
+    allFlags = data.map(normaliseFlag);
     showApiStatus(true);
   } catch(e) {
     allFlags = [...DEMO_FLAGS];

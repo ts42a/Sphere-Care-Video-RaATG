@@ -1,236 +1,393 @@
-const API_BASE = ""; // keep empty if same origin
+/* ============================================================
+   account.js  –  Sphere Care Staff Portal – Account Page
+   NOTE: API_BASE is declared in script.js — not redeclared here.
+   Wrapped in IIFE to avoid scope conflicts with script.js globals.
+   ============================================================ */
+(function () {
+  'use strict';
 
-function getToken() {
-  return localStorage.getItem("token") || sessionStorage.getItem("token") || "";
-}
+  // ── helpers ──────────────────────────────────────────────────
 
-function authHeaders(json = true) {
-  const headers = {};
-  const token = getToken();
-  if (json) headers["Content-Type"] = "application/json";
-  if (token) headers["Authorization"] = `Bearer ${token}`;
-  return headers;
-}
+  function getToken() {
+    return sessionStorage.getItem('access_token') || sessionStorage.getItem('spherecare_token') || '';
+  }
 
-function setMessage(id, text, ok = true) {
-  const el = document.getElementById(id);
-  if (!el) return;
-  el.textContent = text;
-  el.style.color = ok ? "#198754" : "#dc3545";
-}
+  function apiFetch(path, opts) {
+    return fetch(API_BASE + path, Object.assign({
+      headers: { 'Authorization': 'Bearer ' + getToken(), 'Content-Type': 'application/json' }
+    }, opts));
+  }
 
-function initials(name) {
-  if (!name) return "SC";
-  return name
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map(x => x[0]?.toUpperCase() || "")
-    .join("");
-}
+  function makeInitials(name) {
+    if (!name) return '?';
+    return name.trim().split(/\s+/).map(w => w[0].toUpperCase()).slice(0, 2).join('');
+  }
 
-async function loadProfile() {
-  try {
-    const res = await fetch(`${API_BASE}/auth/me`, {
-      method: "GET",
-      headers: authHeaders(false)
+  function setAvatar(text) {
+    const hero = document.getElementById('account-hero-avatar');
+    const nav  = document.getElementById('user-avatar');
+    if (hero) hero.textContent = text;
+    if (nav)  nav.textContent  = text;
+  }
+
+  function setMeta(id, value) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = (value !== null && value !== undefined && value !== '') ? value : '—';
+  }
+
+  function showRowIf(rowId, condition) {
+    const row = document.getElementById(rowId);
+    if (row) row.style.display = condition ? '' : 'none';
+  }
+
+  function showMsg(id, text, isError) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent   = text;
+    el.className     = 'form-msg ' + (isError ? 'error' : 'success');
+    el.style.display = text ? 'block' : 'none';
+  }
+
+  function setVal(id, val) {
+    const el = document.getElementById(id);
+    if (el) el.value = (val !== null && val !== undefined) ? val : '';
+  }
+
+  // ── load profile ──────────────────────────────────────────────
+
+  async function loadProfile() {
+    if (!getToken()) { window.location.href = '/pages/register-login.html'; return; }
+
+    let data;
+    try {
+      const res = await apiFetch('/auth/me');
+      if (res.status === 401) { doLogout(); return; }
+      if (!res.ok) throw new Error(await res.text());
+      data = await res.json();
+    } catch (e) {
+      console.error('loadProfile error', e);
+      setMeta('display-name', 'Error loading profile');
+      return;
+    }
+
+    // Normalise: backend returns global_role, frontend expects role
+    if (!data.role && data.global_role) data.role = data.global_role;
+
+    // ── sidebar card ──
+    const avt = makeInitials(data.full_name);
+    setAvatar(avt);
+    setMeta('display-name',  data.full_name);
+    setMeta('display-email', data.email);
+
+    const roleLabel = (data.role || 'user').charAt(0).toUpperCase() + (data.role || 'user').slice(1);
+    const badge = document.getElementById('display-role-badge');
+    if (badge) {
+      badge.textContent = roleLabel;
+      badge.className   = 'role-badge role-' + (data.role || 'user');
+    }
+
+    // Account ID
+    let accountLabel;
+    if (data.role === 'admin') {
+      accountLabel = data.unique_code ? 'ADM-' + data.unique_code : '#' + data.id;
+    } else {
+      accountLabel = data.unique_code ? 'STF-' + data.unique_code : '#' + data.id;
+    }
+    setMeta('display-account-id', accountLabel);
+
+    // Center ID (admin only) — must be organization code (CTR-<org>), not ADM-<admin>
+    if (data.role === 'admin') {
+      if (data.center_id) {
+        setMeta('display-center-id', data.center_id);
+        showRowIf('row-center-id', true);
+      } else {
+        setMeta('display-center-id', '—');
+        showRowIf('row-center-id', true);
+      }
+    } else {
+      showRowIf('row-center-id', false);
+    }
+
+    // Centre Name
+    if (data.organization_name) {
+      setMeta('display-center-name', data.organization_name);
+      showRowIf('row-center-name', true);
+    } else {
+      showRowIf('row-center-name', false);
+    }
+
+    // Joined date
+    if (data.created_at) {
+      const d = new Date(data.created_at);
+      setMeta('display-joined', d.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }));
+    }
+
+    // Nav username
+    const navName = document.getElementById('user-name');
+    if (navName) navName.textContent = data.full_name || 'Account';
+
+    // ── profile form ──
+    setVal('full_name', data.full_name);
+    setVal('email',     data.email);
+    setVal('phone',     data.phone);
+    setVal('role',      roleLabel);
+
+    // ── preferences from localStorage ──
+    const loadToggle = (id, key) => {
+      const el = document.getElementById(id);
+      if (el) el.checked = localStorage.getItem(key) !== 'false';
+    };
+    loadToggle('email_notifications', 'pref_email_notif');
+    loadToggle('push_notifications',  'pref_push_notif');
+    loadToggle('dark_mode',           'pref_dark_mode');
+  }
+
+  // ── profile form ──────────────────────────────────────────────
+
+  function initProfileForm() {
+    const form = document.getElementById('profile-form');
+    if (!form) return;
+
+    document.getElementById('reload-profile-btn')?.addEventListener('click', () => {
+      loadProfile();
+      showMsg('profile-msg', '', false);
     });
 
-    const data = await res.json();
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const payload  = {};
+      const fullName = document.getElementById('full_name')?.value.trim();
+      const email    = document.getElementById('email')?.value.trim();
+      const phone    = document.getElementById('phone')?.value.trim();
 
-    if (!res.ok) {
-      setMessage("profile-message", data?.detail?.msg || "Failed to load profile", false);
-      return;
-    }
+      if (fullName) payload.full_name = fullName;
+      if (email)    payload.email     = email;
+      payload.phone = phone || '';
 
-    document.getElementById("full_name").value = data.full_name || "";
-    document.getElementById("email").value = data.email || "";
-    document.getElementById("phone").value = data.phone || "";
-    document.getElementById("role").value = data.role || "";
-    document.getElementById("forgot_email").value = data.email || "";
-
-    if (data.department) document.getElementById("department").value = data.department;
-    if (data.license_no) document.getElementById("license_no").value = data.license_no;
-
-    document.getElementById("account-hero-avatar").textContent = initials(data.full_name);
-    const topAvatar = document.getElementById("user-avatar");
-    if (topAvatar) topAvatar.textContent = initials(data.full_name);
-
-    document.getElementById("email_notifications").checked = !!data.email_notifications;
-    document.getElementById("push_notifications").checked = !!data.push_notifications;
-    document.getElementById("dark_mode").checked = !!data.dark_mode;
-    document.getElementById("biometric_lock").checked = !!data.biometric_lock;
-  } catch (err) {
-    setMessage("profile-message", "Server connection failed", false);
+      try {
+        const res  = await apiFetch('/auth/me', { method: 'PATCH', body: JSON.stringify(payload) });
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          showMsg('profile-msg', body?.detail?.msg || body?.detail || 'Update failed.', true);
+          return;
+        }
+        showMsg('profile-msg', 'Profile updated successfully.', false);
+        if (body.full_name) {
+          setMeta('display-name', body.full_name);
+          setAvatar(makeInitials(body.full_name));
+          const navName = document.getElementById('user-name');
+          if (navName) navName.textContent = body.full_name;
+        }
+        if (body.email) setMeta('display-email', body.email);
+      } catch {
+        showMsg('profile-msg', 'Network error. Please try again.', true);
+      }
+    });
   }
-}
 
-document.addEventListener("DOMContentLoaded", () => {
-  loadProfile();
+  // ── change password & OTP ──────────────────────────────────────
 
-  const profileForm = document.getElementById("profile-form");
-  const reloadBtn = document.getElementById("reload-profile-btn");
-  const prefForm = document.getElementById("preferences-form");
-  const requestOtpBtn = document.getElementById("request-otp-btn");
-  const passwordForm = document.getElementById("password-form");
-  const forgotForm = document.getElementById("forgot-form");
-  const logoutBtn = document.getElementById("logout-btn");
+  function initPasswordForm() {
+    const step1      = document.getElementById('pwd-step-1');
+    const step2      = document.getElementById('pwd-step-2');
+    const requestBtn = document.getElementById('request-otp-btn');
+    const cancelBtn  = document.getElementById('cancel-pwd-btn');
+    const confirmBtn = document.getElementById('confirm-pwd-btn');
 
-  profileForm?.addEventListener("submit", async (e) => {
-    e.preventDefault();
+    if (!requestBtn) return;
 
-    const payload = {
-      full_name: document.getElementById("full_name").value.trim(),
-      email: document.getElementById("email").value.trim(),
-      phone: document.getElementById("phone").value.trim(),
-      department: document.getElementById("department").value.trim(),
-      license_no: document.getElementById("license_no").value.trim()
-    };
+    requestBtn.addEventListener('click', async () => {
+      requestBtn.disabled    = true;
+      requestBtn.textContent = 'Sending…';
+      showMsg('pwd-msg', '', false);
 
-    try {
-      const res = await fetch(`${API_BASE}/account/me`, {
-        method: "PUT",
-        headers: authHeaders(true),
-        body: JSON.stringify(payload)
-      });
+      try {
+        const res  = await apiFetch('/auth/request-otp', { method: 'POST' });
+        const body = await res.json().catch(() => ({}));
 
-      const data = await res.json();
-      if (!res.ok) {
-        setMessage("profile-message", data?.detail?.msg || "Profile update failed", false);
-        return;
+        if (!res.ok) {
+          showMsg('pwd-msg', body?.detail?.msg || body?.detail || 'Could not send OTP.', true);
+          requestBtn.disabled    = false;
+          requestBtn.textContent = 'Send Verification Code';
+          return;
+        }
+
+        const hint   = body.email_hint || '';
+        const hintEl = document.getElementById('otp-email-hint');
+        if (hintEl) hintEl.textContent = hint ? 'OTP sent to ' + hint : 'your email';
+
+        if (step1) step1.style.display = 'none';
+        if (step2) step2.style.display = 'block';
+        document.getElementById('otp0')?.focus();
+      } catch {
+        showMsg('pwd-msg', 'Network error. Please try again.', true);
+        requestBtn.disabled    = false;
+        requestBtn.textContent = 'Send Verification Code';
       }
+    });
 
-      setMessage("profile-message", "Profile updated successfully");
-      document.getElementById("account-hero-avatar").textContent = initials(payload.full_name);
-    } catch {
-      setMessage("profile-message", "Server connection failed", false);
-    }
-  });
+    cancelBtn?.addEventListener('click', () => {
+      if (step2) step2.style.display = 'none';
+      if (step1) step1.style.display = 'block';
+      requestBtn.disabled    = false;
+      requestBtn.textContent = 'Send Verification Code';
+      clearPwdFields();
+      showMsg('pwd-msg', '', false);
+    });
 
-  reloadBtn?.addEventListener("click", loadProfile);
+    confirmBtn?.addEventListener('click', async () => {
+      const otp = collectOtp();
+      if (otp.length !== 6) { showMsg('pwd-msg', 'Please enter the full 6-digit OTP.', true); return; }
 
-  prefForm?.addEventListener("submit", async (e) => {
-    e.preventDefault();
+      const currentPwd = document.getElementById('current_password')?.value;
+      const newPwd     = document.getElementById('new_password')?.value;
+      const confirmPwd = document.getElementById('confirm_password')?.value;
 
-    const payload = {
-      email_notifications: document.getElementById("email_notifications").checked,
-      push_notifications: document.getElementById("push_notifications").checked,
-      dark_mode: document.getElementById("dark_mode").checked,
-      biometric_lock: document.getElementById("biometric_lock").checked
-    };
+      if (!currentPwd)               { showMsg('pwd-msg', 'Please enter your current password.',           true); return; }
+      if (!newPwd || newPwd.length < 8) { showMsg('pwd-msg', 'New password must be at least 8 characters.', true); return; }
+      if (newPwd !== confirmPwd)     { showMsg('pwd-msg', 'Passwords do not match.',                       true); return; }
 
-    try {
-      const res = await fetch(`${API_BASE}/account/preferences`, {
-        method: "PUT",
-        headers: authHeaders(true),
-        body: JSON.stringify(payload)
-      });
+      confirmBtn.disabled    = true;
+      confirmBtn.textContent = 'Changing…';
 
-      const data = await res.json();
-      if (!res.ok) {
-        setMessage("preferences-message", data?.detail?.msg || "Failed to save preferences", false);
-        return;
+      try {
+        const res  = await apiFetch('/auth/change-password', {
+          method: 'POST',
+          body: JSON.stringify({ current_password: currentPwd, new_password: newPwd, otp_code: otp })
+        });
+        const body = await res.json().catch(() => ({}));
+
+        if (!res.ok) {
+          showMsg('pwd-msg', body?.detail?.msg || body?.detail || 'Change failed.', true);
+          confirmBtn.disabled    = false;
+          confirmBtn.textContent = 'Confirm Change';
+          return;
+        }
+
+        showMsg('pwd-msg', 'Password changed successfully!', false);
+        clearPwdFields();
+        if (step2) step2.style.display = 'none';
+        if (step1) step1.style.display = 'block';
+        requestBtn.disabled    = false;
+        requestBtn.textContent = 'Send Verification Code';
+      } catch {
+        showMsg('pwd-msg', 'Network error. Please try again.', true);
+        confirmBtn.disabled    = false;
+        confirmBtn.textContent = 'Confirm Change';
       }
+    });
+  }
 
-      setMessage("preferences-message", "Preferences saved successfully");
-    } catch {
-      setMessage("preferences-message", "Server connection failed", false);
-    }
-  });
+  function collectOtp() {
+    return [0,1,2,3,4,5].map(i => {
+      const el = document.getElementById('otp' + i);
+      return el ? el.value.trim() : '';
+    }).join('');
+  }
 
-  requestOtpBtn?.addEventListener("click", async () => {
-    try {
-      const res = await fetch(`${API_BASE}/auth/request-otp`, {
-        method: "POST",
-        headers: authHeaders(false)
+  function clearPwdFields() {
+    [0,1,2,3,4,5].forEach(i => { const el = document.getElementById('otp' + i); if (el) el.value = ''; });
+    ['current_password','new_password','confirm_password'].forEach(id => {
+      const el = document.getElementById(id); if (el) el.value = '';
+    });
+    const bar = document.getElementById('pwd-bar');
+    if (bar) { bar.style.width = '0%'; bar.style.background = ''; }
+  }
+
+  // ── OTP box auto-advance ──────────────────────────────────────
+
+  function initOtpBoxes() {
+    const boxes = [0,1,2,3,4,5].map(i => document.getElementById('otp' + i)).filter(Boolean);
+
+    boxes.forEach((box, idx) => {
+      box.addEventListener('input', () => {
+        const val = box.value.replace(/\D/g, '');
+        box.value = val.slice(-1);
+        if (val && idx < boxes.length - 1) boxes[idx + 1].focus();
       });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        setMessage("otp-message", data?.detail?.msg || "OTP request failed", false);
-        return;
-      }
-
-      setMessage("otp-message", data.msg || "Verification code sent");
-    } catch {
-      setMessage("otp-message", "Server connection failed", false);
-    }
-  });
-
-  passwordForm?.addEventListener("submit", async (e) => {
-    e.preventDefault();
-
-    const current_password = document.getElementById("current_password").value;
-    const otp_code = document.getElementById("otp_code").value.trim();
-    const new_password = document.getElementById("new_password").value;
-    const confirm_password = document.getElementById("confirm_password").value;
-
-    if (new_password !== confirm_password) {
-      setMessage("password-message", "New password and confirm password do not match", false);
-      return;
-    }
-
-    try {
-      const res = await fetch(`${API_BASE}/auth/change-password`, {
-        method: "POST",
-        headers: authHeaders(true),
-        body: JSON.stringify({
-          current_password,
-          otp_code,
-          new_password
-        })
+      box.addEventListener('keydown', e => {
+        if (e.key === 'Backspace' && !box.value && idx > 0) boxes[idx - 1].focus();
       });
-
-      const data = await res.json();
-      if (!res.ok) {
-        const msg = data?.detail?.msg || (typeof data?.detail === "string" ? data.detail : "Password change failed");
-        setMessage("password-message", msg, false);
-        return;
-      }
-
-      setMessage("password-message", data.msg || "Password changed successfully");
-      passwordForm.reset();
-    } catch {
-      setMessage("password-message", "Server connection failed", false);
-    }
-  });
-
-  forgotForm?.addEventListener("submit", async (e) => {
-    e.preventDefault();
-
-    const email = document.getElementById("forgot_email").value.trim();
-
-    try {
-      const res = await fetch(`${API_BASE}/account/forgot-password`, {
-        method: "POST",
-        headers: authHeaders(true),
-        body: JSON.stringify({ email })
+      box.addEventListener('paste', e => {
+        e.preventDefault();
+        const pasted = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g,'');
+        pasted.split('').forEach((ch, i) => { if (boxes[idx + i]) boxes[idx + i].value = ch; });
+        const nextEmpty = boxes.findIndex((b, i) => i >= idx && !b.value);
+        if (nextEmpty !== -1) boxes[nextEmpty].focus();
       });
+    });
+  }
 
-      const data = await res.json();
-      if (!res.ok) {
-        setMessage("forgot-message", data?.detail?.msg || "Reset request failed", false);
-        return;
-      }
+  // ── password strength bar ─────────────────────────────────────
 
-      setMessage("forgot-message", data.msg || "Reset request submitted");
-    } catch {
-      setMessage("forgot-message", "Server connection failed", false);
-    }
+  function initPwdStrength() {
+    const input = document.getElementById('new_password');
+    const bar   = document.getElementById('pwd-bar');
+    if (!input || !bar) return;
+
+    const colors = ['', '#FC8181', '#F6AD55', '#68D391', '#38A169'];
+    const widths = ['0%', '25%', '50%', '75%', '100%'];
+
+    input.addEventListener('input', () => {
+      const v = input.value;
+      let score = 0;
+      if (v.length >= 8)           score++;
+      if (/[A-Z]/.test(v))         score++;
+      if (/[0-9]/.test(v))         score++;
+      if (/[^A-Za-z0-9]/.test(v)) score++;
+      bar.style.width      = widths[score];
+      bar.style.background = colors[score];
+    });
+  }
+
+  // ── preferences (localStorage) ───────────────────────────────
+
+  function initPreferences() {
+    const btn = document.getElementById('save-prefs-btn');
+    if (!btn) return;
+
+    btn.addEventListener('click', () => {
+      const save = (id, key) => {
+        const el = document.getElementById(id);
+        if (el) localStorage.setItem(key, el.checked ? 'true' : 'false');
+      };
+      save('email_notifications', 'pref_email_notif');
+      save('push_notifications',  'pref_push_notif');
+      save('dark_mode',           'pref_dark_mode');
+
+      const dark = localStorage.getItem('pref_dark_mode') !== 'false';
+      document.body.classList.toggle('dark', dark);
+
+      showMsg('prefs-msg', 'Preferences saved.', false);
+    });
+  }
+
+  // ── logout ────────────────────────────────────────────────────
+
+  function doLogout() {
+    ['access_token','spherecare_token','user','role','admin_id',
+     'spherecare_role','spherecare_user_name','spherecare_user_email'].forEach(k => sessionStorage.removeItem(k));
+    Object.keys(localStorage)
+      .filter(k => k.startsWith('spherecare_') || k.startsWith('pref_'))
+      .forEach(k => localStorage.removeItem(k));
+    window.location.href = '/pages/register-login.html';
+  }
+
+  function initLogout() {
+    document.getElementById('logout-btn')?.addEventListener('click', doLogout);
+  }
+
+  // ── init ──────────────────────────────────────────────────────
+
+  document.addEventListener('DOMContentLoaded', () => {
+    loadProfile();
+    initProfileForm();
+    initPasswordForm();
+    initOtpBoxes();
+    initPwdStrength();
+    initPreferences();
+    initLogout();
   });
 
-  logoutBtn?.addEventListener("click", async () => {
-    try {
-      await fetch(`${API_BASE}/account/logout`, {
-        method: "POST",
-        headers: authHeaders(false)
-      });
-    } catch (_) {}
+})(); // end IIFE
 
-    localStorage.removeItem("token");
-    sessionStorage.removeItem("token");
-    setMessage("logout-message", "Signing out...");
-    window.location.href = "/login.html";
-  });
-});

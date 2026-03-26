@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from backend.api.deps import get_db
 from backend import models, schemas
 
-router = APIRouter(prefix="/bookings", tags=["Bookings"])
+router = APIRouter(tags=["Bookings"])
 
 
 @router.get("/", response_model=list[schemas.BookingResponse])

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
-<link rel="stylesheet" href="../style/css/admin_console.css"/>
+<link rel="stylesheet" href="/style/css/admin_console.css"/>
 
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -12,18 +12,6 @@
 <!-- jsPDF for PDF export -->
 
 
-<style>
-  #modal-edit .modal, #modal-add-staff .modal {
-    display: block !important;
-    position: relative !important;
-    top: auto !important; left: auto !important;
-    z-index: auto !important;
-    width: 460px !important;
-    max-width: 95vw !important;
-    max-height: 90vh !important;
-    overflow-y: auto !important;
-  }
-</style>
 </head>
 <body>
 <!-- skeleton shown while JS loads admin data -->
@@ -71,26 +59,58 @@
       <!-- Tabs -->
       <div class="tabs">
         <div class="tab active" onclick="switchTab('staff',this)">Staff Summary</div>
+        <div class="tab" onclick="switchTab('residents',this)">Residents</div>
         <div class="tab" onclick="switchTab('tasks',this)">Task Review</div>
         <div class="tab" onclick="switchTab('reports',this)">Reports &amp; Analytics</div>
       </div>
 
       <!-- ── TAB: STAFF SUMMARY ── -->
       <div class="tab-panel active" id="tab-staff">
-        <div class="section-hdr">
-          <div class="section-title">Staff Activity Overview</div>
-          <div class="section-sub">Current staff tasks and operational status overview.</div>
+        <div class="section-hdr" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;">
+          <div>
+            <div class="section-title">Staff Activity Overview</div>
+            <div class="section-sub">Current staff tasks and operational status overview.</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:8px 16px;">
+            <span style="font-size:13px;color:var(--text3);font-weight:500;">Center ID:</span>
+            <span id="center-id-display" style="font-size:14px;font-weight:700;color:var(--navy);letter-spacing:0.5px;">—</span>
+            <button onclick="copyCenterId()" id="copy-center-id-btn" style="display:flex;align-items:center;gap:4px;padding:6px 12px;border:none;border-radius:8px;background:var(--teal);color:#fff;font-weight:600;cursor:pointer;font-size:12px;" title="Copy Center ID for staff to register">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              Copy
+            </button>
+          </div>
         </div>
+
+        <!-- Pending Staff Registrations -->
+        <div class="card" id="pending-card" style="margin-bottom:20px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px 8px;">
+            <div>
+              <div style="font-size:15px;font-weight:700;color:var(--navy);">Pending Staff Registrations</div>
+              <div style="font-size:12px;color:var(--text3);margin-top:2px;">Staff who registered using your Center ID. Approve to grant login access.</div>
+            </div>
+            <span class="status-badge status-pending" id="pending-count-badge" style="display:none;">0 pending</span>
+          </div>
+          <div class="table-wrap">
+            <table id="pending-reg-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Role</th>
+                  <th>Registered</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="pending-reg-tbody">
+                <tr><td colspan="5" style="text-align:center;color:var(--text3);padding:24px;">Loading…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
         <div class="admin-layout">
           <!-- Table -->
           <div class="card">
-            <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px 0;">
-              <div style="font-size:13px;color:var(--text2);">Manage all staff members below.</div>
-              <button onclick="openAddStaff()" style="display:inline-flex;align-items:center;gap:7px;padding:9px 18px;border-radius:10px;background:var(--navy);color:#fff;border:none;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                Add Staff
-              </button>
-            </div>
             <div class="table-wrap">
               <table id="staff-table">
                 <thead>
@@ -134,6 +154,55 @@
             <div class="alerts-card">
               <div class="alerts-title">Recent Alerts</div>
               <div id="alerts-list"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── TAB: RESIDENTS ── -->
+      <div class="tab-panel" id="tab-residents">
+        <div class="section-hdr" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;">
+          <div>
+            <div class="section-title">Resident Management</div>
+            <div class="section-sub">Add, edit and manage facility residents.</div>
+          </div>
+          <button class="btn btn-primary" onclick="openAddResident()" style="display:flex;align-items:center;gap:6px;padding:10px 20px;border:none;border-radius:10px;background:var(--teal);color:#fff;font-weight:600;cursor:pointer;font-size:14px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Add Resident
+          </button>
+        </div>
+        <div class="admin-layout">
+          <div class="card" style="flex:1;">
+            <div class="table-wrap">
+              <table id="resident-table">
+                <thead>
+                  <tr>
+                    <th>Resident Name</th>
+                    <th>Age</th>
+                    <th>Room</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="resident-tbody"></tbody>
+              </table>
+            </div>
+            <div class="table-footer">
+              <div class="table-count" id="resident-count">Loading…</div>
+            </div>
+          </div>
+          <div class="stats-col">
+            <div class="stat-card">
+              <div class="stat-num" id="stat-total-residents">–</div>
+              <div class="stat-label">Total Residents</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-num" id="stat-stable" style="color:var(--green)">–</div>
+              <div class="stat-label">Stable</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-num" id="stat-critical" style="color:#ef4444">–</div>
+              <div class="stat-label">Critical</div>
             </div>
           </div>
         </div>
@@ -240,64 +309,84 @@
   </div>
 </div>
 
-<!-- ADD STAFF MODAL -->
-<div class="overlay" id="modal-add-staff" onclick="if(event.target===this)closeAddStaff()">
+
+
+<!-- ADD RESIDENT MODAL -->
+<div class="overlay" id="modal-add-resident" onclick="if(event.target===this)closeAddResident()">
   <div class="modal">
-    <div class="mhdr"><h3>Add New Staff</h3><button class="mclose" onclick="closeAddStaff()">✕</button></div>
+    <div class="mhdr"><h3>Add New Resident</h3><button class="mclose" onclick="closeAddResident()">✕</button></div>
+    <form id="resident-form">
+      <div class="mbody">
+        <div id="resident-message"></div>
+        <div class="mrow">
+          <div>
+            <label class="flabel">Full Name</label>
+            <input class="finput" name="full_name" placeholder="e.g. Dorothy Williams" required/>
+          </div>
+          <div>
+            <label class="flabel">Age</label>
+            <input class="finput" name="age" type="number" min="0" max="150" placeholder="e.g. 78" required/>
+          </div>
+        </div>
+        <div class="mrow">
+          <div>
+            <label class="flabel">Room</label>
+            <input class="finput" name="room" placeholder="e.g. Room 204" required/>
+          </div>
+          <div>
+            <label class="flabel">Status</label>
+            <select class="fsel" name="status">
+              <option value="stable">Stable</option>
+              <option value="critical">Critical</option>
+              <option value="recovering">Recovering</option>
+              <option value="observation">Under Observation</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="mfooter">
+        <button type="button" class="btn btn-outline" onclick="closeAddResident()">Cancel</button>
+        <button type="submit" class="btn btn-primary">Add Resident</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- EDIT RESIDENT MODAL -->
+<div class="overlay" id="modal-edit-resident" onclick="if(event.target===this)closeEditResident()">
+  <div class="modal">
+    <div class="mhdr"><h3>Edit Resident</h3><button class="mclose" onclick="closeEditResident()">✕</button></div>
     <div class="mbody">
       <div class="mrow">
         <div>
-          <label class="flabel">Full Name *</label>
-          <input class="finput" id="add-name" placeholder="e.g. Sarah Johnson"/>
+          <label class="flabel">Full Name</label>
+          <input class="finput" id="edit-res-name" placeholder="Full Name"/>
         </div>
         <div>
-          <label class="flabel">Staff ID *</label>
-          <input class="finput" id="add-staff-id" placeholder="e.g. ST-1234"/>
-        </div>
-      </div>
-      <div class="mrow">
-        <div>
-          <label class="flabel">Shift Time *</label>
-          <input class="finput" id="add-shift" placeholder="e.g. 7:00 AM – 3:00 PM"/>
-        </div>
-        <div>
-          <label class="flabel">Assigned Unit *</label>
-          <select class="fsel" id="add-unit">
-            <option>ICU Ward</option>
-            <option>Emergency</option>
-            <option>General Ward</option>
-            <option>Pediatrics</option>
-            <option>Geriatrics</option>
-            <option>Neurology</option>
-            <option>Unassigned</option>
-          </select>
+          <label class="flabel">Age</label>
+          <input class="finput" id="edit-res-age" type="number" min="0" max="150"/>
         </div>
       </div>
       <div class="mrow">
         <div>
-          <label class="flabel">Role *</label>
-          <select class="fsel" id="add-role">
-            <option>Senior Carer</option>
-            <option>Nurse</option>
-            <option>Carer</option>
-            <option>Doctor</option>
-            <option>Admin</option>
-          </select>
+          <label class="flabel">Room</label>
+          <input class="finput" id="edit-res-room" placeholder="Room"/>
         </div>
         <div>
           <label class="flabel">Status</label>
-          <select class="fsel" id="add-status">
-            <option value="active">Active</option>
-            <option value="pending">Pending</option>
-            <option value="on_leave">On Leave</option>
+          <select class="fsel" id="edit-res-status">
+            <option value="stable">Stable</option>
+            <option value="critical">Critical</option>
+            <option value="recovering">Recovering</option>
+            <option value="observation">Under Observation</option>
           </select>
         </div>
       </div>
-      <div id="add-staff-err" style="display:none;color:#ef4444;font-size:12.5px;padding:10px 12px;background:#fef2f2;border-radius:8px;margin-top:4px;"></div>
     </div>
     <div class="mfooter">
-      <button class="btn btn-outline" onclick="closeAddStaff()">Cancel</button>
-      <button class="btn btn-primary" id="btn-add-staff-submit" onclick="submitAddStaff()">Add Staff</button>
+      <button class="btn btn-danger" onclick="deleteResidentById()">Delete</button>
+      <button class="btn btn-outline" onclick="closeEditResident()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveResident()">Save Changes</button>
     </div>
   </div>
 </div>
@@ -320,6 +409,6 @@
 <script src="../style/js/script.js"></script>
 <script src="../style/js/admin_console.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="../components/sidebar.js"></script>
+<script src="/components/sidebar.js"></script>
 </body>
 </html>

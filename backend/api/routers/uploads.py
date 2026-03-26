@@ -9,7 +9,7 @@ import uuid
 from fastapi import APIRouter, UploadFile, File, HTTPException, Query
 from fastapi.responses import JSONResponse
 
-router = APIRouter(prefix="/upload", tags=["Upload"])
+router = APIRouter(tags=["Upload"])
 
 #storage folders
 UPLOAD_ROOTS = {

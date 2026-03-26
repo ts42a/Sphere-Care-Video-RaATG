@@ -17,8 +17,10 @@ function safeHideSkeleton() {
 // ── AUTH GUARD ──
 function checkAccess() {
   try {
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
-    const token = localStorage.getItem('access_token');
+    const user = JSON.parse(sessionStorage.getItem('user') || '{}');
+    const token = sessionStorage.getItem('access_token');
+    // Normalise: backend returns global_role, frontend expects role
+    if (!user.role && user.global_role) user.role = user.global_role;
 
     if (!token || !user.role) {
       window.location.href = 'register-login.html';

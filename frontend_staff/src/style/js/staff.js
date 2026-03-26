@@ -1,35 +1,123 @@
 let staffData = [];
 let editingId = null;
 let viewingId = null;
+/** When true, roster is view-only (staff users). */
+let readOnlyMode = false;
+/** Set when API returns an error message to show instead of the table body (e.g. pending approval). */
+let staffListNotice = null;
+
+function staffAuthHeaders() {
+  const t = sessionStorage.getItem('access_token') || sessionStorage.getItem('spherecare_token');
+  const h = { 'Content-Type': 'application/json' };
+  if (t) h['Authorization'] = 'Bearer ' + t;
+  return h;
+}
+
+function normalizeStaffApiRow(s) {
+  const code = s.staff_code || s.staff_id;
+  let shift_time = s.shift_time;
+  if (!shift_time && (s.shift_start != null || s.shift_end != null)) {
+    const a = s.shift_start != null ? String(s.shift_start).slice(0, 5) : '';
+    const b = s.shift_end != null ? String(s.shift_end).slice(0, 5) : '';
+    shift_time = a && b ? `${a} – ${b}` : (a || b || '—');
+  }
+  if (!shift_time) shift_time = '—';
+  return {
+    ...s,
+    staff_id: code,
+    shift_time,
+    availability: s.availability || 'ready',
+    location: s.location || '—',
+    assigned_unit: s.assigned_unit || '—',
+  };
+}
+
+function applyReadOnlyUi() {
+  const banner = document.getElementById('staff-readonly-banner');
+  const adminAct = document.getElementById('staff-admin-actions');
+  const exp = document.getElementById('staff-export-btn');
+  const viewEdit = document.getElementById('staff-view-edit-btn');
+  if (banner) banner.style.display = readOnlyMode ? 'block' : 'none';
+  if (adminAct) adminAct.style.display = readOnlyMode ? 'none' : '';
+  if (exp) exp.style.display = readOnlyMode ? 'none' : '';
+  if (viewEdit) viewEdit.style.display = readOnlyMode ? 'none' : '';
+}
+
+function escapeHtml(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+/** Portal role: same sources as login / OAuth / legacy spherecare_* keys. */
+function resolvePortalRole() {
+  try {
+    const user = JSON.parse(sessionStorage.getItem('user') || '{}');
+    const raw =
+      user.role ||
+      user.global_role ||
+      sessionStorage.getItem('spherecare_role') ||
+      '';
+    return String(raw).toLowerCase().trim();
+  } catch (_) {
+    return '';
+  }
+}
+
+const ADMIN_PORTAL_ROLES = new Set(['admin', 'super_admin', 'owner']);
 
 // ── AUTH GUARD ──
-// Only admin role can see this page
+// Admin: full management. Staff: same page, read-only roster for their center.
 function checkAccess() {
   try {
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
-    const token = localStorage.getItem('access_token');
+    const token = sessionStorage.getItem('access_token') || sessionStorage.getItem('spherecare_token');
+    const user = JSON.parse(sessionStorage.getItem('user') || '{}');
+    if (!user.role && user.global_role) user.role = user.global_role;
+    if (!user.role && sessionStorage.getItem('spherecare_role')) {
+      user.role = sessionStorage.getItem('spherecare_role');
+    }
 
-    if (!token || !user.role) {
-      // Not logged in — redirect to login
+    if (!token) {
       window.location.href = 'register-login.html';
       return false;
     }
 
-    if (user.role !== 'admin') {
-      // Logged in but not admin — show access denied
-      document.getElementById('access-denied').style.display = 'flex';
-      document.getElementById('staff-panel').style.display = 'none';
-      document.getElementById('topbar-right').style.display = 'none';
+    const role = resolvePortalRole();
+    if (!role) {
+      window.location.href = 'register-login.html';
       return false;
     }
 
-    // Admin — show name in topbar
-    document.getElementById('admin-name').textContent = `Admin: ${user.full_name || 'Admin'}`;
-    document.getElementById('admin-role').textContent = user.role === 'admin' ? 'Facility Manager' : user.role;
-    document.getElementById('topbar-right').style.display = '';
-    document.getElementById('staff-panel').style.display = '';
-    document.getElementById('access-denied').style.display = 'none';
-    return true;
+    const denied = document.getElementById('access-denied');
+    const panel = document.getElementById('staff-panel');
+    const topbar = document.getElementById('topbar-right');
+    const nameEl = document.getElementById('admin-name');
+    const roleEl = document.getElementById('admin-role');
+
+    if (denied) denied.style.display = 'none';
+    if (panel) panel.style.display = 'block';
+    if (topbar) topbar.style.display = '';
+
+    if (ADMIN_PORTAL_ROLES.has(role)) {
+      readOnlyMode = false;
+      if (nameEl) nameEl.textContent = `Admin: ${user.full_name || 'Admin'}`;
+      if (roleEl) roleEl.textContent = 'Facility Manager';
+      applyReadOnlyUi();
+      return true;
+    }
+
+    if (role === 'staff') {
+      readOnlyMode = true;
+      if (nameEl) nameEl.textContent = user.full_name || 'Staff';
+      if (roleEl) roleEl.textContent = 'Staff (view only)';
+      applyReadOnlyUi();
+      return true;
+    }
+
+    if (denied) denied.style.display = 'flex';
+    if (panel) panel.style.display = 'none';
+    if (topbar) topbar.style.display = 'none';
+    return false;
   } catch {
     window.location.href = 'register-login.html';
     return false;
@@ -59,22 +147,41 @@ function switchTab(name, el) {
 
 // ── LOAD STAFF ──
 async function loadStaff() {
+  staffListNotice = null;
   try {
-    const res = await fetch(`${API_BASE}/staff/`, {
-      headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
-    });
-    if (!res.ok) throw new Error();
-    staffData = await res.json();
+    const res = await fetch(`${API_BASE}/staff/`, { headers: staffAuthHeaders() });
+    if (res.status === 403) {
+      let msg = 'You cannot view the staff directory yet.';
+      try {
+        const j = await res.json();
+        const d = j.detail;
+        if (d && typeof d === 'object' && d.msg) msg = d.msg;
+        else if (typeof d === 'string') msg = d;
+      } catch (_) {}
+      staffListNotice = msg;
+      staffData = [];
+    } else if (!res.ok) {
+      throw new Error('staff list unavailable');
+    } else {
+      const raw = await res.json();
+      staffData = Array.isArray(raw) ? raw.map(normalizeStaffApiRow) : [];
+    }
   } catch {
-    // Fallback demo data matching seed.py
-    staffData = [
-      { staff_id: 'ST-4829', full_name: 'Sarah Johnson',  shift_time: '7:00 AM - 3:00 PM',  assigned_unit: 'ICU Ward',     status: 'active',   role: 'Senior Carer', availability: 'ready',    location: 'Nurses Station A' },
-      { staff_id: 'ST-3746', full_name: 'Michael Chen',   shift_time: '3:00 PM - 11:00 PM', assigned_unit: 'Emergency',    status: 'on_leave', role: 'Nurse',        availability: 'busy',     location: 'Room 104' },
-      { staff_id: 'ST-5920', full_name: 'Emma Rodriguez', shift_time: '11:00 PM - 7:00 AM', assigned_unit: 'General Ward', status: 'pending',  role: 'Carer',        availability: 'on_break', location: 'Break Room' },
-      { staff_id: 'ST-1038', full_name: 'David Kim',      shift_time: '7:00 AM - 3:00 PM',  assigned_unit: 'Pediatrics',   status: 'active',   role: 'Doctor',       availability: 'busy',     location: 'Room 312' },
-      { staff_id: 'ST-2241', full_name: 'Linda Pham',     shift_time: '7:00 AM - 3:00 PM',  assigned_unit: 'Geriatrics',   status: 'active',   role: 'Carer',        availability: 'ready',    location: 'Room 205' },
-      { staff_id: 'ST-6610', full_name: 'James Carter',   shift_time: '3:00 PM - 11:00 PM', assigned_unit: 'Neurology',    status: 'active',   role: 'Nurse',        availability: 'on_break', location: 'Cafeteria' },
-    ];
+    if (readOnlyMode) {
+      staffData = [];
+      staffListNotice =
+        'Unable to load the team roster. Check your connection or ask your facility administrator.';
+    } else {
+      // Demo fallback for admins when API is down (local dev)
+      staffData = [
+        { staff_id: 'ST-4829', full_name: 'Sarah Johnson',  shift_time: '7:00 AM - 3:00 PM',  assigned_unit: 'ICU Ward',     status: 'active',   role: 'Senior Carer', availability: 'ready',    location: 'Nurses Station A' },
+        { staff_id: 'ST-3746', full_name: 'Michael Chen',   shift_time: '3:00 PM - 11:00 PM', assigned_unit: 'Emergency',    status: 'on_leave', role: 'Nurse',        availability: 'busy',     location: 'Room 104' },
+        { staff_id: 'ST-5920', full_name: 'Emma Rodriguez', shift_time: '11:00 PM - 7:00 AM', assigned_unit: 'General Ward', status: 'pending',  role: 'Carer',        availability: 'on_break', location: 'Break Room' },
+        { staff_id: 'ST-1038', full_name: 'David Kim',      shift_time: '7:00 AM - 3:00 PM',  assigned_unit: 'Pediatrics',   status: 'active',   role: 'Doctor',       availability: 'busy',     location: 'Room 312' },
+        { staff_id: 'ST-2241', full_name: 'Linda Pham',     shift_time: '7:00 AM - 3:00 PM',  assigned_unit: 'Geriatrics',   status: 'active',   role: 'Carer',        availability: 'ready',    location: 'Room 205' },
+        { staff_id: 'ST-6610', full_name: 'James Carter',   shift_time: '3:00 PM - 11:00 PM', assigned_unit: 'Neurology',    status: 'active',   role: 'Nurse',        availability: 'on_break', location: 'Cafeteria' },
+      ];
+    }
   }
   renderTable();
   loadStats();
@@ -82,32 +189,44 @@ async function loadStaff() {
 }
 
 async function loadStats() {
+  const setStat = (id, val) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = val;
+  };
   try {
-    const res = await fetch(`${API_BASE}/staff/stats/summary`, {
-      headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
-    });
+    const res = await fetch(`${API_BASE}/staff/stats/summary`, { headers: staffAuthHeaders() });
     if (!res.ok) throw new Error();
     const s = await res.json();
-    document.getElementById('stat-active').textContent  = s.active_staff;
-    document.getElementById('stat-pending').textContent = s.pending;
-    document.getElementById('stat-shifts').textContent  = s.shifts_today;
+    setStat('stat-active', s.active_staff);
+    setStat('stat-pending', s.pending);
+    setStat('stat-shifts', s.shifts_today);
+    const onBreak =
+      staffData.filter(x => x.availability === 'on_break').length;
+    setStat('stat-break', onBreak);
   } catch {
     // Compute from local staffData
-    const active  = staffData.filter(s => s.status === 'active').length;
+    const active = staffData.filter(s => s.status === 'active').length;
     const pending = staffData.filter(s => s.status === 'pending').length;
     const onBreak = staffData.filter(s => s.availability === 'on_break').length;
-    document.getElementById('stat-active').textContent  = active;
-    document.getElementById('stat-pending').textContent = pending;
-    document.getElementById('stat-shifts').textContent  = staffData.length;
-    document.getElementById('stat-break').textContent   = onBreak;
+    setStat('stat-active', active);
+    setStat('stat-pending', pending);
+    setStat('stat-shifts', staffData.length);
+    setStat('stat-break', onBreak);
   }
 }
 
 // ── RENDER TABLE ──
 function renderTable() {
   const tbody = document.getElementById('staff-tbody');
+  const countEl = document.getElementById('staff-count');
+  if (staffListNotice) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:#64748b;padding:32px;line-height:1.5;">${escapeHtml(staffListNotice)}</td></tr>`;
+    if (countEl) countEl.textContent = '';
+    return;
+  }
   if (!staffData.length) {
     tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#9aa0ac;padding:24px;">No staff found.</td></tr>';
+    if (countEl) countEl.textContent = '0 staff members';
     return;
   }
 
@@ -116,6 +235,11 @@ function renderTable() {
     const availClass = avail === 'ready' ? 'avail-ready' : avail === 'busy' ? 'avail-busy' : 'avail-break';
     const availLabel = avail === 'ready' ? 'Ready' : avail === 'busy' ? 'Busy' : 'On Break';
     const loc = s.location || '—';
+    const sid = (s.staff_id || '').replace(/'/g, "\\'");
+    const editBtn = readOnlyMode ? '' : `
+          <button class="action-btn blue" title="Edit" onclick="editStaff('${sid}')">
+            <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>`;
     return `
       <tr>
         <td>
@@ -130,20 +254,17 @@ function renderTable() {
         <td><span class="avail-badge ${availClass}">${availLabel}</span></td>
         <td><span class="loc-text">${loc}</span></td>
         <td class="actions-cell">
-          <button class="action-btn green" title="Call" onclick="callStaff('${s.staff_id}')">
+          <button class="action-btn green" title="Call" onclick="callStaff('${sid}')">
             <svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.362 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.338 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
           </button>
-          <button class="action-btn" title="View details" onclick="viewStaff('${s.staff_id}')">
+          <button class="action-btn" title="View details" onclick="viewStaff('${sid}')">
             <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-          </button>
-          <button class="action-btn blue" title="Edit" onclick="editStaff('${s.staff_id}')">
-            <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-          </button>
+          </button>${editBtn}
         </td>
       </tr>`;
   }).join('');
 
-  document.getElementById('staff-count').textContent = `${staffData.length} staff member${staffData.length !== 1 ? 's' : ''}`;
+  if (countEl) countEl.textContent = `${staffData.length} staff member${staffData.length !== 1 ? 's' : ''}`;
 }
 
 // ── VIEW STAFF ──
@@ -187,6 +308,10 @@ function callStaff(id) {
 
 // ── EDIT / DELETE ──
 function editStaff(id) {
+  if (readOnlyMode) {
+    viewStaff(id);
+    return;
+  }
   const s = staffData.find(x => x.staff_id === id);
   if (!s) return;
   editingId = id;
@@ -207,6 +332,7 @@ function closeModal() {
 }
 
 async function saveStaff() {
+  if (readOnlyMode) return;
   if (!editingId) return;
   const updates = {
     shift_time:    document.getElementById('edit-shift').value,
@@ -217,12 +343,9 @@ async function saveStaff() {
     location:      document.getElementById('edit-location').value,
   };
   try {
-    const res = await fetch(`${API_BASE}/staff/${editingId}`, {
+    const res = await fetch(`${API_BASE}/staff/${encodeURIComponent(editingId)}`, {
       method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-      },
+      headers: staffAuthHeaders(),
       body: JSON.stringify(updates)
     });
     if (!res.ok) throw new Error();
@@ -240,11 +363,12 @@ async function saveStaff() {
 }
 
 async function deleteStaff() {
+  if (readOnlyMode) return;
   if (!editingId || !confirm(`Delete staff member ${editingId}?`)) return;
   try {
-    await fetch(`${API_BASE}/staff/${editingId}`, {
+    await fetch(`${API_BASE}/staff/${encodeURIComponent(editingId)}`, {
       method: 'DELETE',
-      headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
+      headers: staffAuthHeaders()
     });
   } catch {}
   staffData = staffData.filter(s => s.staff_id !== editingId);
@@ -274,6 +398,7 @@ function exportPDF() {
 
 // ── ADD STAFF MODAL ──
 function openAddModal() {
+  if (readOnlyMode) return;
   document.getElementById('add-name').value = '';
   document.getElementById('add-role').selectedIndex = 0;
   document.getElementById('add-shift').selectedIndex = 0;
@@ -286,6 +411,7 @@ function closeAddModal() {
 }
 
 async function submitAddStaff() {
+  if (readOnlyMode) return;
   const full_name = document.getElementById('add-name').value.trim();
   if (!full_name) { alert('Please enter a full name.'); return; }
 
@@ -297,20 +423,26 @@ async function submitAddStaff() {
   };
 
   try {
-    const res = await fetch(`${API_BASE}/admin-console/staff/create?full_name=${encodeURIComponent(payload.full_name)}&shift_time=${encodeURIComponent(payload.shift_time)}&assigned_unit=${encodeURIComponent(payload.assigned_unit)}&role=${encodeURIComponent(payload.role)}`, {
+    const q = new URLSearchParams({
+      full_name: payload.full_name,
+      assigned_unit: payload.assigned_unit,
+      role: payload.role,
+    });
+    const res = await fetch(`${API_BASE}/admin/staff/create?${q}`, {
       method: 'POST',
-      headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
+      headers: staffAuthHeaders()
     });
     if (!res.ok) throw new Error();
     const created = await res.json();
-    staffData.push({
-      staff_id:      created.staff_id,
-      full_name:     created.full_name,
-      shift_time:    created.shift_time,
-      assigned_unit: created.assigned_unit,
-      status:        'active',
-      role:          created.role || payload.role
-    });
+    const code = created.staff_code || created.staff_id;
+    staffData.push(normalizeStaffApiRow({
+      staff_code: code,
+      full_name: created.full_name || payload.full_name,
+      shift_time: payload.shift_time,
+      assigned_unit: created.assigned_unit || payload.assigned_unit,
+      status: 'active',
+      role: created.role || payload.role
+    }));
   } catch {
     // Fallback: add locally with generated ID
     const ts = Date.now().toString().slice(-4);

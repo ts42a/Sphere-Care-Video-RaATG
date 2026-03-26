@@ -5,7 +5,7 @@ from backend.api.deps import get_db
 from backend import models
 from backend.api.routers.auth import _get_current_user
 
-router = APIRouter(prefix="/account", tags=["Account"])
+router = APIRouter(tags=["Account"])
 
 
 # Helper
@@ -16,7 +16,7 @@ def _user_to_dict(user: models.User):
         "full_name": user.full_name,
         "email": user.email,
         "phone": getattr(user, "phone", None),
-        "role": getattr(user, "role", None),
+        "role": getattr(user, "global_role", None),
         "department": getattr(user, "department", None),
         "license_no": getattr(user, "license_no", None),
         "email_notifications": bool(getattr(user, "email_notifications", False)),

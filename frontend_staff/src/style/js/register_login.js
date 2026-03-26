@@ -1,5 +1,6 @@
 const AUTH_API_BASE = (typeof API_BASE !== 'undefined' ? API_BASE.replace(/\/+$/, '') : '/api/v1');
 let selectedRole = "staff";
+let regStep = 1;
 
 function setRole(role) {
   selectedRole = role;
@@ -10,17 +11,66 @@ function setRole(role) {
   if (staffBtn) staffBtn.classList.toggle("active", role === "staff");
   if (adminBtn) adminBtn.classList.toggle("active", role === "admin");
 
-  // Show/hide org name field based on role (admin only)
-  const orgNameGroup = document.getElementById("org-name-group");
-  if (orgNameGroup) {
-    orgNameGroup.style.display = role === "admin" ? "flex" : "none";
+  // Update step 2 panels when role changes (only matters if already on step 2)
+  updateStep2Panels();
+}
+
+function updateStep2Panels() {
+  const step2Staff = document.getElementById("step2-staff");
+  const step2Admin = document.getElementById("step2-admin");
+  if (step2Staff) step2Staff.style.display = selectedRole === "staff" ? "block" : "none";
+  if (step2Admin) step2Admin.style.display = selectedRole === "admin" ? "block" : "none";
+}
+
+function updateStepIndicator(step) {
+  const dot1 = document.getElementById("step-dot-1");
+  const dot2 = document.getElementById("step-dot-2");
+  const barFill = document.getElementById("step-bar-fill");
+  if (step === 1) {
+    if (dot1) dot1.style.background = "#0f1b2d";
+    if (dot2) dot2.style.background = "#e2e8f0";
+    if (barFill) barFill.style.width = "0%";
+  } else {
+    if (dot1) dot1.style.background = "#0f1b2d";
+    if (dot2) dot2.style.background = "#0f1b2d";
+    if (barFill) barFill.style.width = "100%";
+  }
+}
+
+function nextRegStep() {
+  clearError("register-error");
+  const full_name = document.getElementById("reg-fullname")?.value.trim() || "";
+  const email = document.getElementById("reg-email")?.value.trim() || "";
+  const email_confirmation = document.getElementById("reg-email-conf")?.value.trim() || "";
+  const password = document.getElementById("reg-pass")?.value || "";
+  const retype_password = document.getElementById("reg-pass2")?.value || "";
+
+  if (!full_name || !email || !email_confirmation || !password || !retype_password) {
+    showError("register-error", "Please fill in all fields.");
+    return;
+  }
+  if (email !== email_confirmation) {
+    showError("register-error", "Emails do not match.");
+    return;
+  }
+  if (password !== retype_password) {
+    showError("register-error", "Passwords do not match.");
+    return;
   }
 
-  // Show/hide center ID field based on role (staff only)
-  const centerIdGroup = document.getElementById("center-id-group");
-  if (centerIdGroup) {
-    centerIdGroup.style.display = role === "staff" ? "flex" : "none";
-  }
+  regStep = 2;
+  document.getElementById("reg-step-1").style.display = "none";
+  document.getElementById("reg-step-2").style.display = "block";
+  updateStep2Panels();
+  updateStepIndicator(2);
+}
+
+function prevRegStep() {
+  regStep = 1;
+  clearError("register-error-2");
+  document.getElementById("reg-step-2").style.display = "none";
+  document.getElementById("reg-step-1").style.display = "block";
+  updateStepIndicator(1);
 }
 
 function showError(id, message) {
@@ -48,7 +98,7 @@ async function parseJsonSafe(response) {
 
 async function handleRegister(event) {
   if (event) event.preventDefault();
-  clearError("register-error");
+  clearError("register-error-2");
   const successEl = document.getElementById("register-success");
   if (successEl) successEl.style.display = "none";
 
@@ -57,21 +107,6 @@ async function handleRegister(event) {
   const email_confirmation = document.getElementById("reg-email-conf")?.value.trim() || "";
   const password = document.getElementById("reg-pass")?.value || "";
   const retype_password = document.getElementById("reg-pass2")?.value || "";
-
-  if (!full_name || !email || !email_confirmation || !password || !retype_password) {
-    showError("register-error", "Please fill in all fields.");
-    return;
-  }
-
-  if (email !== email_confirmation) {
-    showError("register-error", "Emails do not match.");
-    return;
-  }
-
-  if (password !== retype_password) {
-    showError("register-error", "Passwords do not match.");
-    return;
-  }
 
   try {
     let endpoint;
@@ -90,6 +125,11 @@ async function handleRegister(event) {
       endpoint = `${AUTH_API_BASE}/auth/admin/register`;
       const orgName = document.getElementById("reg-org-name")?.value.trim();
       payload.organization_name = orgName || full_name + "'s Care Centre";
+      payload.address = document.getElementById("reg-address")?.value.trim() || "";
+      payload.city = document.getElementById("reg-city")?.value.trim() || "";
+      payload.state = document.getElementById("reg-state")?.value.trim() || "";
+      payload.postal_code = document.getElementById("reg-postal-code")?.value.trim() || "";
+      payload.country = document.getElementById("reg-country")?.value.trim() || "";
 
       const response = await fetch(endpoint, {
         method: "POST",
@@ -101,21 +141,21 @@ async function handleRegister(event) {
 
       if (!response.ok) {
         const msg = typeof data.detail === "string" ? data.detail : data?.detail?.msg || "Admin signup failed.";
-        showError("register-error", msg);
+        showError("register-error-2", msg);
         return;
       }
 
       // Admin gets immediate access with center_id
-      localStorage.setItem("spherecare_logged_in", "true");
-      localStorage.setItem("spherecare_user_name", data.user?.full_name || "");
-      localStorage.setItem("spherecare_user_email", data.user?.email || "");
-      localStorage.setItem("spherecare_token", data.access_token || "");
-      localStorage.setItem("spherecare_role", "admin");
-      localStorage.setItem("spherecare_center_id", data.user?.center_id || "");
+      sessionStorage.setItem("spherecare_logged_in", "true");
+      sessionStorage.setItem("spherecare_user_name", data.user?.full_name || "");
+      sessionStorage.setItem("spherecare_user_email", data.user?.email || "");
+      sessionStorage.setItem("spherecare_token", data.access_token || "");
+      sessionStorage.setItem("spherecare_role", "admin");
+      sessionStorage.setItem("spherecare_center_id", data.user?.center_id || "");
 
       // Store in format expected by all pages
-      localStorage.setItem("access_token", data.access_token || "");
-      localStorage.setItem("user", JSON.stringify(data.user || {}));
+      sessionStorage.setItem("access_token", data.access_token || "");
+      sessionStorage.setItem("user", JSON.stringify(data.user || {}));
 
       window.location.href = "/pages/dashboard.html";
     } else {
@@ -123,12 +163,12 @@ async function handleRegister(event) {
       const center_id = document.getElementById("reg-center-id")?.value.trim() || "";
       
       if (!center_id) {
-        showError("register-error", "Please enter your Center ID provided by your admin.");
+        showError("register-error-2", "Please enter your Center ID provided by your admin.");
         return;
       }
 
-      endpoint = `${AUTH_API_BASE}/auth/staff/register`;
-      payload.admin_id = center_id;
+      // Send full CTR-… / ADM-… / digits; backend resolves org via Organization or Admin unique_code
+      endpoint = `${AUTH_API_BASE}/auth/staff/register?admin_id=${encodeURIComponent(center_id.trim())}`;
 
       const response = await fetch(endpoint, {
         method: "POST",
@@ -139,8 +179,15 @@ async function handleRegister(event) {
       const data = await parseJsonSafe(response);
 
       if (!response.ok) {
-        const msg = typeof data.detail === "string" ? data.detail : data?.detail?.msg || "Staff signup failed.";
-        showError("register-error", msg);
+        let msg;
+        if (typeof data.detail === "string") {
+          msg = data.detail;
+        } else if (data?.detail?.errors?.length) {
+          msg = (data.detail.msg || "Registration failed") + ": " + data.detail.errors.join(", ");
+        } else {
+          msg = data?.detail?.msg || "Staff signup failed.";
+        }
+        showError("register-error-2", msg);
         return;
       }
 
@@ -154,10 +201,10 @@ async function handleRegister(event) {
         }
         
         // Store pending info for reference
-        localStorage.setItem("spherecare_pending_email", email);
-        localStorage.setItem("spherecare_pending_center_id", center_id);
+        sessionStorage.setItem("spherecare_pending_email", email);
+        sessionStorage.setItem("spherecare_pending_center_id", center_id);
         
-        // Clear form
+        // Clear form and go back to step 1
         document.getElementById("reg-fullname").value = "";
         document.getElementById("reg-email").value = "";
         document.getElementById("reg-email-conf").value = "";
@@ -165,15 +212,16 @@ async function handleRegister(event) {
         document.getElementById("reg-pass2").value = "";
         document.getElementById("reg-center-id").value = "";
 
-        // After 3 seconds, redirect to login
+        // After 6 seconds, redirect to login
         setTimeout(() => {
+          prevRegStep();
           showPage("login");
         }, 6000);
       }
     }
   } catch (error) {
     console.error(error);
-    showError("register-error", "Could not connect to server.");
+    showError("register-error-2", "Could not connect to server.");
   }
 }
 
@@ -185,23 +233,19 @@ async function handleLogin(event) {
   const password = document.getElementById("login-pass")?.value || "";
   const center_id = document.getElementById("login-center-id")?.value.trim() || "";
 
-  console.log("Email:", email, "Has Center ID:", !!center_id);
-
   if (!email || !password) {
     showError("login-error", "Please enter email and password.");
     return;
   }
 
   try {
-    const url = `${AUTH_API_BASE}/auth/login`;
+    let url = `${AUTH_API_BASE}/auth/login`;
     const payload = { email, password };
-    
-    // Add center_id if provided (for staff login)
+
     if (center_id) {
-      payload.admin_id = center_id;
+      url = `${AUTH_API_BASE}/auth/login?admin_id=${encodeURIComponent(center_id.trim())}`;
     }
 
-    console.log("Fetching:", url, "with payload:", payload);
     const response = await fetch(url, {
       method: "POST",
       headers: {
@@ -213,32 +257,39 @@ async function handleLogin(event) {
     const data = await parseJsonSafe(response);
 
     if (!response.ok) {
-      if (response.status === 403 && data.detail && data.detail.includes("not approved")) {
+      const approvalStatus = data?.detail?.approval_status;
+      const detailMsg = typeof data.detail === "string" ? data.detail : data?.detail?.msg || "";
+
+      if (response.status === 403 && approvalStatus === "pending") {
         showError("login-error", "Your account is pending approval from your admin. Please check your email for updates.");
-      } else if (response.status === 403 && data.detail && data.detail.includes("rejected")) {
+      } else if (response.status === 403 && approvalStatus === "rejected") {
+        showError("login-error", "Your account has been rejected. Please contact your admin.");
+      } else if (response.status === 403 && detailMsg.toLowerCase().includes("pending")) {
+        showError("login-error", "Your account is pending approval from your admin. Please check your email for updates.");
+      } else if (response.status === 403 && detailMsg.toLowerCase().includes("rejected")) {
         showError("login-error", "Your account has been rejected. Please contact your admin.");
       } else {
-        const msg = typeof data.detail === "string" ? data.detail : data?.detail?.msg || "Login failed.";
+        const msg = detailMsg || "Login failed.";
         showError("login-error", msg);
       }
       return;
     }
 
-    localStorage.setItem("spherecare_logged_in", "true");
-    localStorage.setItem("spherecare_user_name", data.user?.full_name || "");
-    localStorage.setItem("spherecare_user_email", data.user?.email || "");
-    localStorage.setItem("spherecare_token", data.access_token || "");
-    localStorage.setItem("spherecare_role", data.user?.role || "staff");
+    sessionStorage.setItem("spherecare_logged_in", "true");
+    sessionStorage.setItem("spherecare_user_name", data.user?.full_name || "");
+    sessionStorage.setItem("spherecare_user_email", data.user?.email || "");
+    sessionStorage.setItem("spherecare_token", data.access_token || "");
+    sessionStorage.setItem("spherecare_role", data.user?.role || "staff");
 
     // Store in format expected by all pages
-    localStorage.setItem("access_token", data.access_token || "");
-    localStorage.setItem("user", JSON.stringify(data.user || {}));
+    sessionStorage.setItem("access_token", data.access_token || "");
+    sessionStorage.setItem("user", JSON.stringify(data.user || {}));
     
     // Store center_id for staff
     if (center_id) {
-      localStorage.setItem("spherecare_center_id", center_id);
+      sessionStorage.setItem("spherecare_center_id", center_id);
     } else if (data.admin_id) {
-      localStorage.setItem("spherecare_admin_id", data.admin_id || "");
+      sessionStorage.setItem("spherecare_admin_id", data.admin_id || "");
     }
 
     // Redirect to dashboard
@@ -252,6 +303,8 @@ async function handleLogin(event) {
 window.handleRegister = handleRegister;
 window.handleLogin = handleLogin;
 window.setRole = setRole;
+window.nextRegStep = nextRegStep;
+window.prevRegStep = prevRegStep;
 
 // Show/Hide different pages
 function showPage(pageId) {
@@ -274,3 +327,17 @@ function toggleLoginCenterId(showCenterId) {
 
 window.showPage = showPage;
 window.toggleLoginCenterId = toggleLoginCenterId;
+
+function initializeAuthPage() {
+  // Default registration role
+  setRole('staff');
+
+  // Center ID is no longer needed for login – backend searches all admin DBs
+  toggleLoginCenterId(false);
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initializeAuthPage);
+} else {
+  initializeAuthPage();
+}

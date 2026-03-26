@@ -3,16 +3,9 @@
 <head>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="/style/css/account.css"/>
-
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
-<link rel="stylesheet" href="/style/css/account.css"/>
-
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Account – Sphere Care</title>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
-
 </head>
 <body>
 <div class="app">
@@ -21,258 +14,201 @@
 
   <div class="main">
     <div class="topbar">
-      <div class="topbar-title">Account Settings</div>
+      <div class="topbar-title">My Account</div>
       <div class="topbar-right">
-        <a href="/dashboard.html" class="account-back-btn">← Back to Dashboard</a>
-        <div class="avatar topbar-avatar" id="user-avatar">U</div>
+        <div class="avatar topbar-avatar" id="user-avatar">SC</div>
       </div>
     </div>
 
     <div class="content">
-      <div class="center full-width-center">
+      <div class="account-layout">
 
-        <div class="account-hero">
-          <div>
-            <div class="account-hero-kicker">Sphere Care Account</div>
-            <h2>Manage your profile, password, and preferences</h2>
-            <p>Update your account information, control notifications, and manage your current session securely.</p>
+        <!-- ═══════════════════════════════════════════ LEFT: Identity card -->
+        <div class="profile-card">
+
+          <div class="avatar-wrap">
+            <div class="avatar-circle" id="account-hero-avatar">SC</div>
           </div>
-          <div class="account-hero-avatar" id="account-hero-avatar">SC</div>
+
+          <div class="profile-name" id="display-name">Loading…</div>
+          <div class="role-badge role-admin" id="display-role-badge">Admin</div>
+          <div class="profile-email" id="display-email">—</div>
+
+          <div class="profile-divider"></div>
+
+          <div class="profile-meta">
+            <div class="meta-row">
+              <span class="meta-label">Account ID</span>
+              <span class="meta-val" id="display-account-id">—</span>
+            </div>
+            <div class="meta-row" id="row-center-id" style="display:none;">
+              <span class="meta-label">Center ID</span>
+              <span class="meta-val" id="display-center-id">—</span>
+            </div>
+            <div class="meta-row" id="row-center-name" style="display:none;">
+              <span class="meta-label">Centre Name</span>
+              <span class="meta-val" id="display-center-name" style="text-align:right;max-width:160px;word-break:break-word;">—</span>
+            </div>
+            <div class="meta-row">
+              <span class="meta-label">Joined</span>
+              <span class="meta-val" id="display-joined">—</span>
+            </div>
+          </div>
+
+          <button class="btn-logout" id="logout-btn">
+            <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            Sign Out
+          </button>
+
         </div>
 
-        <div class="account-layout">
+        <!-- ════════════════════════════════════════════ RIGHT: Edit panels -->
+        <div class="right-col">
 
-          <!-- LEFT -->
-          <div class="account-column">
-
-            <div class="account-card">
-              <div class="account-card-head">
+          <!-- ── Profile form ── -->
+          <div class="section-card">
+            <div class="section-title">
+              <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              Profile Information
+            </div>
+            <form id="profile-form">
+              <div class="form-grid">
                 <div>
-                  <h3>Profile Information</h3>
-                  <p>Edit your personal details used in the system.</p>
+                  <label class="flabel">Full Name</label>
+                  <input id="full_name" class="finput" type="text" placeholder="Your full name"/>
                 </div>
-                <span class="account-pill">Profile</span>
+                <div>
+                  <label class="flabel">Email</label>
+                  <input id="email" class="finput" type="email" placeholder="Email address"/>
+                </div>
+                <div>
+                  <label class="flabel">Phone</label>
+                  <input id="phone" class="finput" type="text" placeholder="Phone number"/>
+                </div>
+                <div>
+                  <label class="flabel">Role</label>
+                  <input id="role" class="finput readonly-style" type="text" readonly/>
+                </div>
+                <div>
+                  <label class="flabel">Department</label>
+                  <input id="department" class="finput" type="text" placeholder="e.g. Aged Care, Nursing"/>
+                </div>
+                <div>
+                  <label class="flabel">License / Certification</label>
+                  <input id="license_no" class="finput" type="text" placeholder="Optional"/>
+                </div>
               </div>
+              <div style="display:flex;gap:10px;align-items:center;margin-top:18px;">
+                <button type="submit" class="btn-save" id="save-profile-btn" data-label="Save Changes">Save Changes</button>
+                <button type="button" class="btn-otp-cancel" id="reload-profile-btn">Reload</button>
+              </div>
+              <div id="profile-msg" style="margin-top:10px;font-size:13px;display:none;padding:8px 12px;border-radius:8px;"></div>
+            </form>
+          </div>
 
-              <form id="profile-form" class="account-form">
-                <div class="account-grid">
-                  <div class="account-field">
-                    <label for="full_name">Full Name</label>
-                    <input type="text" id="full_name" placeholder="Enter full name">
-                  </div>
-                  <div class="account-field">
-                    <label for="email">Email</label>
-                    <input type="email" id="email" placeholder="Enter email">
-                  </div>
-                </div>
-
-                <div class="account-grid">
-                  <div class="account-field">
-                    <label for="phone">Phone</label>
-                    <input type="text" id="phone" placeholder="Enter phone number">
-                  </div>
-                  <div class="account-field">
-                    <label for="role">Role</label>
-                    <input type="text" id="role" placeholder="Role" readonly>
-                  </div>
-                </div>
-
-                <div class="account-grid">
-                  <div class="account-field">
-                    <label for="department">Department</label>
-                    <input type="text" id="department" placeholder="Enter department">
-                  </div>
-                  <div class="account-field">
-                    <label for="license_no">License / Certification</label>
-                    <input type="text" id="license_no" placeholder="Optional">
-                  </div>
-                </div>
-
-                <div class="account-actions">
-                  <button type="submit" class="btn-primary">Save Profile</button>
-                  <button type="button" class="account-btn-secondary" id="reload-profile-btn">Reload</button>
-                </div>
-
-                <div class="account-message" id="profile-message"></div>
-              </form>
+          <!-- ── Change Password ── -->
+          <div class="section-card">
+            <div class="section-title">
+              <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              Change Password
             </div>
 
-            <div class="account-card">
-              <div class="account-card-head">
-                <div>
-                  <h3>Preferences</h3>
-                  <p>Customize notifications and interface settings.</p>
-                </div>
-                <span class="account-pill">Preferences</span>
+            <!-- Step 1: Request OTP -->
+            <div id="pwd-step-1">
+              <p style="font-size:13px;color:var(--text2);margin-bottom:14px;line-height:1.6;">
+                We'll send a 6-digit verification code to your registered email before allowing a password change.
+              </p>
+              <button type="button" class="btn-send-otp" id="request-otp-btn" data-label="Send Verification Code">
+                Send Verification Code
+              </button>
+            </div>
+
+            <!-- Step 2: OTP + new password (revealed after OTP sent) -->
+            <div id="pwd-step-2" class="otp-step">
+              <p class="otp-label">Enter the 6-digit code sent to <b id="otp-email-hint">your email</b>:</p>
+              <div class="otp-boxes">
+                <input class="otp-box" type="text" inputmode="numeric" maxlength="1" id="otp0"/>
+                <input class="otp-box" type="text" inputmode="numeric" maxlength="1" id="otp1"/>
+                <input class="otp-box" type="text" inputmode="numeric" maxlength="1" id="otp2"/>
+                <input class="otp-box" type="text" inputmode="numeric" maxlength="1" id="otp3"/>
+                <input class="otp-box" type="text" inputmode="numeric" maxlength="1" id="otp4"/>
+                <input class="otp-box" type="text" inputmode="numeric" maxlength="1" id="otp5"/>
               </div>
 
-              <form id="preferences-form" class="account-form">
-                <div class="toggle-row">
-                  <div>
-                    <div class="toggle-title">Email Notifications</div>
-                    <div class="toggle-sub">Receive important account updates by email.</div>
-                  </div>
-                  <label class="switch">
-                    <input type="checkbox" id="email_notifications">
-                    <span class="slider"></span>
-                  </label>
+              <div class="form-grid" style="margin-top:16px;">
+                <div>
+                  <label class="flabel">Current Password</label>
+                  <input id="current_password" class="finput" type="password" placeholder="Your current password"/>
                 </div>
-
-                <div class="toggle-row">
-                  <div>
-                    <div class="toggle-title">Push Notifications</div>
-                    <div class="toggle-sub">Receive real-time system and reminder alerts.</div>
-                  </div>
-                  <label class="switch">
-                    <input type="checkbox" id="push_notifications">
-                    <span class="slider"></span>
-                  </label>
+                <div><!-- spacer --></div>
+                <div>
+                  <label class="flabel">New Password</label>
+                  <input id="new_password" class="finput" type="password" placeholder="New password"/>
+                  <div class="pwd-strength" style="margin-top:6px;"><div class="pwd-strength-bar" id="pwd-bar"></div></div>
                 </div>
-
-                <div class="toggle-row">
-                  <div>
-                    <div class="toggle-title">Dark Mode</div>
-                    <div class="toggle-sub">Enable a dark interface for the account page.</div>
-                  </div>
-                  <label class="switch">
-                    <input type="checkbox" id="dark_mode">
-                    <span class="slider"></span>
-                  </label>
+                <div>
+                  <label class="flabel">Confirm Password</label>
+                  <input id="confirm_password" class="finput" type="password" placeholder="Confirm new password"/>
                 </div>
+              </div>
 
-                <div class="toggle-row">
-                  <div>
-                    <div class="toggle-title">Biometric Lock</div>
-                    <div class="toggle-sub">Reserve setting for mobile/device authentication.</div>
-                  </div>
-                  <label class="switch">
-                    <input type="checkbox" id="biometric_lock">
-                    <span class="slider"></span>
-                  </label>
-                </div>
-
-                <div class="account-actions">
-                  <button type="submit" class="btn-primary">Save Preferences</button>
-                </div>
-
-                <div class="account-message" id="preferences-message"></div>
-              </form>
+              <div class="otp-actions">
+                <button type="button" class="btn-otp-confirm" id="confirm-pwd-btn">Confirm Change</button>
+                <button type="button" class="btn-otp-cancel" id="cancel-pwd-btn">Cancel</button>
+              </div>
             </div>
+
+            <!-- Shared message for both OTP steps -->
+            <div id="pwd-msg" style="margin-top:10px;font-size:13px;display:none;padding:8px 12px;border-radius:8px;"></div>
 
           </div>
 
-          <!-- RIGHT -->
-          <div class="account-column">
-
-            <div class="account-card">
-              <div class="account-card-head">
-                <div>
-                  <h3>Change Password</h3>
-                  <p>Use your current auth flow with OTP verification.</p>
-                </div>
-                <span class="account-pill danger">Security</span>
-              </div>
-
-              <div class="otp-box">
-                <button type="button" id="request-otp-btn" class="account-btn-secondary w-100">Request Verification Code</button>
-                <div class="account-message" id="otp-message"></div>
-              </div>
-
-      </div>
-    </div>
-  </div>
-</div>
-</div><div class="toast" id="toast"></div>
-<script src="../style/js/script.js"></script>
-<script src="../style/js/account.js"></script>
-<script src="/components/sidebar.js"></script>
-</body>
-</htmlPE html>
-<html lang="en">
-<head>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
-<link rel="stylesheet" href="/style/css/account.css"/>
-
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Account – Sphere Care</title>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
-
-</head>
-<body>
-<div class="app">
-
-<!-- SIDEBAR -->
-<div id="sidebar-container"></div>
-
-<!-- MAIN -->
-<div class="main">
-  <div class="topbar">
-    <div class="topbar-title">My Account</div>
-  </div>
-
-                <div class="account-field">
-                  <label for="new_password">New Password</label>
-                  <input type="password" id="new_password" placeholder="New password">
-                </div>
-
-                <div class="account-field">
-                  <label for="confirm_password">Confirm New Password</label>
-                  <input type="password" id="confirm_password" placeholder="Confirm new password">
-                </div>
-
-                <div class="account-actions">
-                  <button type="submit" class="btn-primary">Change Password</button>
-                </div>
-
-                <div class="account-message" id="password-message"></div>
-              </form>
+          <!-- ── Preferences ── -->
+          <div class="section-card">
+            <div class="section-title">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+              Preferences
             </div>
 
-            <div class="account-card">
-              <div class="account-card-head">
-                <div>
-                  <h3>Forgot Password</h3>
-                  <p>Send a password reset request if the user is logged out later.</p>
-                </div>
-                <span class="account-pill">Recovery</span>
+            <div class="toggle-row">
+              <div>
+                <div class="toggle-title">Email Notifications</div>
+                <div class="toggle-sub">Receive important account updates by email.</div>
               </div>
-
-              <form id="forgot-form" class="account-form">
-                <div class="account-field">
-                  <label for="forgot_email">Email</label>
-                  <input type="email" id="forgot_email" placeholder="Enter your account email">
-                </div>
-
-                <div class="account-actions">
-                  <button type="submit" class="btn-primary">Send Reset Request</button>
-                </div>
-
-                <div class="account-message" id="forgot-message"></div>
-              </form>
+              <label class="switch"><input type="checkbox" id="email_notifications"><span class="slider"></span></label>
             </div>
 
-            <div class="account-card">
-              <div class="account-card-head">
-                <div>
-                  <h3>Session</h3>
-                  <p>Securely sign out from this device.</p>
-                </div>
+            <div class="toggle-row">
+              <div>
+                <div class="toggle-title">Push Notifications</div>
+                <div class="toggle-sub">Receive real-time system and reminder alerts.</div>
               </div>
-
-              <button type="button" id="logout-btn" class="account-btn-danger">Sign Out</button>
-              <div class="account-message" id="logout-message"></div>
+              <label class="switch"><input type="checkbox" id="push_notifications"><span class="slider"></span></label>
             </div>
 
+            <div class="toggle-row">
+              <div>
+                <div class="toggle-title">Dark Mode</div>
+                <div class="toggle-sub">Enable a dark interface (page preference).</div>
+              </div>
+              <label class="switch"><input type="checkbox" id="dark_mode"><span class="slider"></span></label>
+            </div>
+
+            <div style="display:flex;gap:10px;margin-top:18px;">
+              <button type="button" class="btn-save" id="save-prefs-btn">Save Preferences</button>
+            </div>
+            <div id="prefs-msg" style="margin-top:10px;font-size:13px;display:none;padding:8px 12px;border-radius:8px;"></div>
           </div>
 
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-</div><div class="toast" id="toast"></div>
+        </div><!-- /right-col -->
+
+      </div><!-- /account-layout -->
+    </div><!-- /content -->
+  </div><!-- /main -->
+
+</div><!-- /app -->
+
+<div class="toast" id="toast"></div>
 <script src="../style/js/script.js"></script>
 <script src="../style/js/account.js"></script>
 <script src="/components/sidebar.js"></script>

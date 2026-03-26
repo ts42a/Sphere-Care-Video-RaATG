@@ -16,7 +16,7 @@ from collections import defaultdict
 from backend.api.deps import get_db
 from backend import models, schemas
 
-router = APIRouter(prefix="/analytics", tags=["Reports & Analytics"])
+router = APIRouter(tags=["Reports & Analytics"])
 
 MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
           "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]

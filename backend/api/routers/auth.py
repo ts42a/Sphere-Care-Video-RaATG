@@ -1,6 +1,5 @@
 import re
 import random
-import bcrypt
 from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Header
@@ -10,6 +9,7 @@ from jose import jwt, JWTError
 from backend.api.deps import get_db
 from backend import models, schemas
 from backend.core.config import SECRET_KEY, JWT_ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
+from backend.core.security import get_password_hash, verify_password
 
 # ── Email (SMTP) ──────────────────────────────────────────────────────────────
 import smtplib
@@ -53,18 +53,6 @@ def validate_password(password: str) -> None:
         raise HTTPException(status_code=400, detail={"msg": "Password validation failed", "errors": errors})
 
 
-def hash_password(password: str) -> str:
-    salt = bcrypt.gensalt(rounds=14)
-    return bcrypt.hashpw(password.encode("utf-8"), salt).decode("utf-8")
-
-
-def verify_password(password: str, password_hash: str) -> bool:
-    try:
-        return bcrypt.checkpw(password.encode("utf-8"), password_hash.encode("utf-8"))
-    except Exception:
-        return False
-
-
 def create_access_token(data: dict, expires_minutes: int = None) -> str:
     to_encode = data.copy()
     expire = datetime.utcnow() + timedelta(minutes=expires_minutes or ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -72,7 +60,7 @@ def create_access_token(data: dict, expires_minutes: int = None) -> str:
     return jwt.encode(to_encode, SECRET_KEY, algorithm=JWT_ALGORITHM)
 
 
-def _get_current_user(authorization: str = Header(None), db: Session = Depends(get_db)) -> models.User:
+def _get_current_user(authorization: str = Header(None), db: Session = Depends(get_db)):
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail={"msg": "Unauthenticated"})
     token = authorization.split(" ", 1)[1]
@@ -93,7 +81,7 @@ def _get_current_user(authorization: str = Header(None), db: Session = Depends(g
     admin = db.query(models.Admin).filter(models.Admin.email == email).first()
     if admin:
         return admin
-    
+
     raise HTTPException(status_code=404, detail={"msg": "User does not exist"})
 
 
@@ -167,28 +155,48 @@ def register_admin(user: schemas.UserCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail={"msg": "This email is already registered"})
 
     try:
-        from backend.db.db_init import initialize_new_admin_database
+        from backend.db.db_init import initialize_new_admin
+        from backend.utils.id_generator import generate_unique_id
         
-        # Create admin in master database
+        # Create organization first (generate unique_code before flush to satisfy NOT NULL)
+        org_code = generate_unique_id(db, models.Organization, "unique_code")
+        new_org = models.Organization(
+            unique_code=org_code,
+            organization_name=user.organization_name or "My Care Centre",
+            phone=user.phone,
+            address_line_1=user.address,
+            city=user.city,
+            state=user.state,
+            postal_code=user.postal_code,
+            country=user.country,
+        )
+        db.add(new_org)
+        db.flush()
+
+        # Create admin linked to the organization
+        admin_code = generate_unique_id(db, models.Admin, "unique_code")
         new_admin = models.Admin(
+            organization_id=new_org.id,
+            unique_code=admin_code,
             full_name=user.full_name,
             email=user.email,
-            password_hash=hash_password(user.password),
-            organization_name=user.organization_name or "My Care Centre",
+            password_hash=get_password_hash(user.password),
             phone=user.phone,
         )
         db.add(new_admin)
+        db.flush()
         db.commit()
         db.refresh(new_admin)
+        db.refresh(new_org)
         admin_id = new_admin.id
         
-        # Initialize admin's personal database
-        success = initialize_new_admin_database(admin_id)
+        # Initialize admin upload folders
+        success = initialize_new_admin(admin_id)
         if not success:
-            # Rollback if database initialization fails
             db.delete(new_admin)
+            db.delete(new_org)
             db.commit()
-            raise Exception("Failed to initialize admin database")
+            raise Exception("Failed to initialize admin folders")
             
     except Exception as e:
         db.rollback()
@@ -207,22 +215,96 @@ def register_admin(user: schemas.UserCreate, db: Session = Depends(get_db)):
         "id": new_admin.id,
         "full_name": new_admin.full_name,
         "email": new_admin.email,
-        "role": "admin",
+        "global_role": "admin",
         "created_at": new_admin.created_at.isoformat() if hasattr(new_admin, 'created_at') and new_admin.created_at else None,
-        "organization_name": new_admin.organization_name,
-        "center_id": f"CTR-{admin_id}"  # Generate and return center ID
+        "organization_name": new_org.organization_name,
+        "center_id": f"CTR-{new_org.unique_code}"
     }
     
     return {"access_token": access_token, "token_type": "bearer", "user": admin_data}
 
 
+def _parse_center_id(raw: str | int | None, db: Session = None) -> int | None:
+    """Resolve center code to organization_id.
+
+    Accepts organization center codes (CTR-<org unique_code>), bare numeric org codes,
+    admin account codes (ADM-<admin unique_code>) when staff were given the wrong label,
+    and legacy numeric organization.id.
+    """
+    if raw is None:
+        return None
+    s = str(raw).strip().upper()
+    if s.startswith("CTR-"):
+        s = s[4:]
+    elif s.startswith("ADM-"):
+        s = s[4:]
+    if not s:
+        return None
+    if db is not None:
+        org = db.query(models.Organization).filter(models.Organization.unique_code == s).first()
+        if org:
+            return org.id
+        # Staff portal used to show CTR-{admin.unique_code}; accept that code here.
+        admin_row = db.query(models.Admin).filter(models.Admin.unique_code == s).first()
+        if admin_row:
+            return admin_row.organization_id
+    try:
+        legacy_id = int(s)
+    except ValueError:
+        return None
+    if db is not None:
+        org = db.query(models.Organization).filter(models.Organization.id == legacy_id).first()
+        return org.id if org else None
+    return legacy_id
+
+
+def _try_staff_login(payload, db: Session):
+    """Attempt staff login in the single database. Returns token response or None."""
+    try:
+        staff_user = db.query(models.User).filter(models.User.email == payload.email).first()
+        if staff_user and verify_password(payload.password, staff_user.password_hash):
+            staff_record = db.query(models.Staff).filter(models.Staff.user_id == staff_user.id).first()
+            if staff_record and staff_record.approval_status != "approved":
+                raise HTTPException(
+                    status_code=403,
+                    detail={
+                        "msg": f"Your account is pending admin approval. Status: {staff_record.approval_status}",
+                        "approval_status": staff_record.approval_status
+                    }
+                )
+            admin_id = staff_record.admin_id if staff_record else 0
+            access_token = create_access_token({
+                "sub": staff_user.email,
+                "admin_id": admin_id,
+                "role": staff_user.global_role,
+                "user_id": staff_user.id
+            })
+            return {"access_token": access_token, "token_type": "bearer", "user": staff_user}
+    except HTTPException:
+        raise
+    except Exception:
+        pass
+    return None
+
+
 @router.post("/staff/register")
-def register_staff(user: schemas.UserCreate, admin_id: int = None, db: Session = Depends(get_db)):
+def register_staff(user: schemas.UserCreate, admin_id: str | None = None, db: Session = Depends(get_db)):
     """Register a new staff member under an admin (public endpoint for staff signup)"""
     
     # admin_id is provided by staff during registration (e.g., CTR-123)
-    if not admin_id:
-        raise HTTPException(status_code=400, detail={"msg": "Center ID is required. Ask your admin for the Center ID."})
+    # Resolve unique_code (e.g. 13018757 from CTR-13018757) to actual organization ID
+    resolved_org_id = _parse_center_id(str(admin_id), db)
+    if not resolved_org_id:
+        raise HTTPException(status_code=400, detail={"msg": "Invalid Center ID. Please verify the Center ID with your admin."})
+
+    # Find the admin who manages this organization (pick first active admin)
+    org_admin = db.query(models.Admin).filter(
+        models.Admin.organization_id == resolved_org_id,
+        models.Admin.is_active == True,
+    ).first()
+    if not org_admin:
+        raise HTTPException(status_code=404, detail={"msg": "No active admin found for this center."})
+    resolved_admin_id = org_admin.id
 
     # email confirmation check
     if user.email_confirmation and user.email.strip().lower() != user.email_confirmation.strip().lower():
@@ -235,56 +317,48 @@ def register_staff(user: schemas.UserCreate, admin_id: int = None, db: Session =
     validate_password(user.password)
 
     try:
-        from backend.db.db_manager import AdminDatabaseManager
+        # Check if email already exists
+        existing_user = db.query(models.User).filter(models.User.email == user.email).first()
+        if existing_user:
+            raise HTTPException(status_code=400, detail={"msg": "This email is already registered"})
         
-        # Get admin-specific database session
-        SessionLocal = AdminDatabaseManager.get_admin_session_local(admin_id)
-        admin_db = SessionLocal()
+        from backend.utils.id_generator import generate_unique_id
+
+        # Create user with pending approval status (generate unique_code before flush)
+        user_code = generate_unique_id(db, models.User, "unique_code")
+        new_user = models.User(
+            unique_code=user_code,
+            full_name=user.full_name,
+            email=user.email,
+            password_hash=get_password_hash(user.password),
+            global_role=user.role or "staff",
+            phone=user.phone,
+        )
+        db.add(new_user)
+        db.flush()
         
-        try:
-            # Check if email already exists in this admin's database
-            existing_user = admin_db.query(models.User).filter(models.User.email == user.email).first()
-            if existing_user:
-                raise HTTPException(status_code=400, detail={"msg": "This email is already registered"})
-            
-            # Create user with pending approval status
-            new_user = models.User(
-                admin_id=admin_id,
-                full_name=user.full_name,
-                email=user.email,
-                password_hash=hash_password(user.password),
-                role=user.role or "staff",
-                phone=user.phone,
+        # Create staff record in PENDING status
+        if not db.query(models.Staff).filter(models.Staff.user_id == new_user.id).first():
+            staff_code = generate_unique_id(db, models.Staff, "staff_code")
+            staff_record = models.Staff(
+                admin_id=resolved_admin_id,
+                user_id=new_user.id,
+                staff_code=f"STF-{staff_code}",
+                full_name=new_user.full_name,
+                assigned_unit="Unassigned",
+                status="pending",
+                approval_status="pending",
+                role=new_user.global_role,
             )
-            admin_db.add(new_user)
-            admin_db.flush()
-            
-            # Create staff record in PENDING status
-            if not admin_db.query(models.Staff).filter(models.Staff.user_id == new_user.id).first():
-                import time, random as _r
-                timestamp = str(int(time.time()))[-4:]
-                random_suffix = str(_r.randint(1000, 9999))
-                staff_record = models.Staff(
-                    admin_id=admin_id,
-                    user_id=new_user.id,
-                    staff_id=f"ST-{timestamp}-{random_suffix}",
-                    full_name=new_user.full_name,
-                    shift_time="TBD",
-                    assigned_unit="Unassigned",
-                    status="pending",  # Initially pending
-                    approval_status="pending",  # PENDING ADMIN APPROVAL
-                    role=new_user.role,
-                )
-                admin_db.add(staff_record)
-            
-            admin_db.commit()
-            admin_db.refresh(new_user)
-        finally:
-            admin_db.close()
+            db.add(staff_record)
+        
+        db.commit()
+        db.refresh(new_user)
             
     except HTTPException:
         raise
     except Exception as e:
+        db.rollback()
         raise HTTPException(status_code=500, detail={"msg": "Staff registration failed", "error": str(e)})
 
     # Return response indicating staff needs to wait for approval
@@ -299,13 +373,13 @@ def register_staff(user: schemas.UserCreate, admin_id: int = None, db: Session =
     }
 
 
-@router.post("/register", response_model=schemas.TokenResponse)
-def register(user: schemas.UserCreate, authorization: str = Header(None), db: Session = Depends(get_db)):
+@router.post("/register")
+def register(user: schemas.UserCreate, db: Session = Depends(get_db)):
     """
     Unified registration endpoint (backwards compatible).
     Routes to appropriate handler based on role:
     - admin: /admin/register (public)
-    - staff: /staff/register (requires admin JWT)
+    - staff: /staff/register (requires center_id)
     - client: creates mobile app user in master database
     """
     role = getattr(user, 'role', 'staff') or 'staff'
@@ -314,8 +388,9 @@ def register(user: schemas.UserCreate, authorization: str = Header(None), db: Se
         # Admin Registration - delegate to register_admin
         return register_admin(user, db)
     elif role == "staff":
-        # Staff Registration - delegate to register_staff
-        return register_staff(user, authorization, db)
+        # Staff Registration - parse center_id from payload
+        parsed_id = _parse_center_id(user.center_id, db) if user.center_id else None
+        return register_staff(user, parsed_id, db)
     elif role == "client":
         # Mobile app client registration - create in master database as client user
         
@@ -329,9 +404,8 @@ def register(user: schemas.UserCreate, authorization: str = Header(None), db: Se
 
         validate_password(user.password)
 
-        # For client registration, use admin_id = 1 (master/default admin)
-        # In a real system, you might want to assign to the default care center
-        admin_id = 1
+        # Client users are not assigned to any admin initially
+        admin_id = 0
 
         try:
             # Check if email already exists in master User table
@@ -339,15 +413,36 @@ def register(user: schemas.UserCreate, authorization: str = Header(None), db: Se
             if existing_user:
                 raise HTTPException(status_code=400, detail={"msg": "This email is already registered"})
             
+            from backend.utils.id_generator import generate_unique_id
+
+            # Generate unique_code before flush to satisfy NOT NULL
+            client_code = generate_unique_id(db, models.User, "unique_code")
             new_user = models.User(
-                admin_id=admin_id,
+                unique_code=client_code,
                 full_name=user.full_name,
                 email=user.email,
-                password_hash=hash_password(user.password),
-                role="client",
+                password_hash=get_password_hash(user.password),
+                global_role="client",
                 phone=user.phone,
+                date_of_birth=user.date_of_birth,
+                gender=user.gender,
             )
             db.add(new_user)
+            db.flush()
+
+            # If center_id provided, create a join request
+            if user.center_id:
+                center_org_id = _parse_center_id(user.center_id, db)
+                if center_org_id:
+                    join_req = models.CenterJoinRequest(
+                        user_id=new_user.id,
+                        organization_id=center_org_id,
+                        membership_role="client",
+                        status="pending",
+                        initiated_by="user",
+                    )
+                    db.add(join_req)
+
             db.commit()
             db.refresh(new_user)
             
@@ -357,10 +452,9 @@ def register(user: schemas.UserCreate, authorization: str = Header(None), db: Se
             db.rollback()
             raise HTTPException(status_code=500, detail={"msg": "Client registration failed", "error": str(e)})
 
-        # Create JWT token for client
         access_token = create_access_token({
             "sub": new_user.email,
-            "admin_id": admin_id,
+            "admin_id": 0,
             "role": "client",
             "user_id": new_user.id
         })
@@ -370,96 +464,123 @@ def register(user: schemas.UserCreate, authorization: str = Header(None), db: Se
 
 
 @router.post("/login", response_model=schemas.TokenResponse)
-def login(payload: schemas.LoginRequest, admin_id: int = None, db: Session = Depends(get_db)):
-    """Login for both admin and staff. Staff should provide admin_id (center ID)"""
+def login(payload: schemas.LoginRequest, admin_id: str = None, db: Session = Depends(get_db)):
+    """Login for admin, staff, and client users."""
     
     # Try to find admin in Admin table first
     admin = db.query(models.Admin).filter(models.Admin.email == payload.email).first()
     
     if admin and verify_password(payload.password, admin.password_hash):
-        # Admin found - create response with center_id
+        # Admin found - look up organization for center info
+        org = db.query(models.Organization).filter(models.Organization.id == admin.organization_id).first()
         access_token = create_access_token({"sub": admin.email, "admin_id": admin.id, "role": "admin", "user_id": admin.id})
         admin_data = {
             "id": admin.id,
             "full_name": admin.full_name,
             "email": admin.email,
+            "global_role": "admin",
             "role": "admin",
             "created_at": admin.created_at.isoformat() if admin.created_at else None,
-            "organization_name": admin.organization_name,
-            "center_id": f"CTR-{admin.id}"
+            "organization_name": org.organization_name if org else "",
+            "center_id": f"CTR-{org.unique_code}" if org else f"CTR-{admin.unique_code or admin.id}"
         }
         return {"access_token": access_token, "token_type": "bearer", "user": admin_data}
-    
-    # Try staff login - requires admin_id (center ID)
-    if admin_id:
-        try:
-            from backend.db.db_manager import AdminDatabaseManager
-            
-            SessionLocal = AdminDatabaseManager.get_admin_session_local(admin_id)
-            admin_db = SessionLocal()
-            
-            try:
-                staff_user = admin_db.query(models.User).filter(models.User.email == payload.email).first()
-                
-                if staff_user and verify_password(payload.password, staff_user.password_hash):
-                    # Check approval status
-                    staff_record = admin_db.query(models.Staff).filter(models.Staff.user_id == staff_user.id).first()
-                    
-                    if staff_record and staff_record.approval_status != "approved":
-                        raise HTTPException(
-                            status_code=403, 
-                            detail={
-                                "msg": f"Your account is pending admin approval. Status: {staff_record.approval_status}",
-                                "approval_status": staff_record.approval_status
-                            }
-                        )
-                    
-                    # Staff is approved, allow login
-                    access_token = create_access_token({
-                        "sub": staff_user.email, 
-                        "admin_id": admin_id, 
-                        "role": staff_user.role, 
-                        "user_id": staff_user.id
-                    })
-                    return {"access_token": access_token, "token_type": "bearer", "user": staff_user}
-            finally:
-                admin_db.close()
-        except HTTPException:
-            raise
-        except Exception:
-            pass  # Continue to "no match" error
-    
+
+    # Try user login (client, staff, etc.) in single database
+    master_user = db.query(models.User).filter(models.User.email == payload.email).first()
+    if master_user and verify_password(payload.password, master_user.password_hash):
+        # Check staff approval status if staff
+        if master_user.global_role == "staff":
+            staff_record = db.query(models.Staff).filter(models.Staff.user_id == master_user.id).first()
+            if staff_record and staff_record.approval_status != "approved":
+                raise HTTPException(
+                    status_code=403,
+                    detail={
+                        "msg": f"Your account is pending admin approval. Status: {staff_record.approval_status}",
+                        "approval_status": staff_record.approval_status
+                    }
+                )
+            staff_admin_id = staff_record.admin_id if staff_record else 0
+        else:
+            staff_admin_id = 0
+
+        access_token = create_access_token({
+            "sub": master_user.email,
+            "admin_id": staff_admin_id,
+            "role": master_user.global_role,
+            "user_id": master_user.id,
+        })
+        return {"access_token": access_token, "token_type": "bearer", "user": master_user}
+
     # No match found
     raise HTTPException(status_code=401, detail={"msg": "Incorrect email or password"})
 
 
 @router.get("/me", response_model=schemas.UserResponse)
-def get_me(user: models.User = Depends(_get_current_user)):
+def get_me(user=Depends(_get_current_user), db: Session = Depends(get_db)):
+    if isinstance(user, models.Admin):
+        org = db.query(models.Organization).filter(models.Organization.id == user.organization_id).first()
+        return schemas.UserResponse(
+            id=user.id,
+            full_name=user.full_name,
+            email=user.email,
+            global_role=user.role,
+            phone=user.phone,
+            unique_code=user.unique_code,
+            is_active=user.is_active,
+            last_login_at=user.last_login_at,
+            created_at=user.created_at,
+            center_id=f"CTR-{org.unique_code}" if org else None,
+            organization_name=org.organization_name if org else None,
+        )
     return user
 
 
 @router.patch("/me", response_model=schemas.UserResponse)
 def update_me(
     updates: schemas.UserUpdate,
-    user: models.User = Depends(_get_current_user),
+    user=Depends(_get_current_user),
     db: Session = Depends(get_db)
 ):
+    is_admin = isinstance(user, models.Admin)
     try:
         if updates.full_name:
             user.full_name = updates.full_name
-            staff = db.query(models.Staff).filter(models.Staff.user_id == user.id).first()
-            if staff:
-                staff.full_name = updates.full_name
-        if hasattr(updates, "email") and updates.email:
-            if updates.email != user.email:
-                if db.query(models.User).filter(models.User.email == updates.email).first():
-                    raise HTTPException(status_code=400, detail={"msg": "This email is already in use"})
-                user.email = updates.email
+            if not is_admin:
+                staff = db.query(models.Staff).filter(models.Staff.user_id == user.id).first()
+                if staff:
+                    staff.full_name = updates.full_name
+        if updates.email and updates.email != user.email:
+            # Check both tables for email conflict
+            if db.query(models.User).filter(models.User.email == updates.email).first():
+                raise HTTPException(status_code=400, detail={"msg": "This email is already in use"})
+            if db.query(models.Admin).filter(models.Admin.email == updates.email).first():
+                raise HTTPException(status_code=400, detail={"msg": "This email is already in use"})
+            user.email = updates.email
+        if updates.phone is not None:
+            user.phone = updates.phone
         db.commit()
         db.refresh(user)
+    except HTTPException:
+        raise
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail={"msg": "Update failed", "error": str(e)})
+    if is_admin:
+        org = db.query(models.Organization).filter(models.Organization.id == user.organization_id).first()
+        return schemas.UserResponse(
+            id=user.id,
+            full_name=user.full_name,
+            email=user.email,
+            global_role=user.role,
+            phone=user.phone,
+            unique_code=user.unique_code,
+            is_active=user.is_active,
+            last_login_at=user.last_login_at,
+            created_at=user.created_at,
+            center_id=f"CTR-{org.unique_code}" if org else None,
+            organization_name=org.organization_name if org else None,
+        )
     return user
 
 

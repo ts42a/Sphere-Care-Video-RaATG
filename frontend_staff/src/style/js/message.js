@@ -1,6 +1,6 @@
 var ME={name:'Sarah Chen',role:'Senior Carer'};
-function authH(){var h={'Content-Type':'application/json'};var t=localStorage.getItem('access_token');if(t)h['Authorization']='Bearer '+t;return h;}
-function authHF(){var h={};var t=localStorage.getItem('access_token');if(t)h['Authorization']='Bearer '+t;return h;}
+function authH(){var h={'Content-Type':'application/json'};var t=sessionStorage.getItem('access_token');if(t)h['Authorization']='Bearer '+t;return h;}
+function authHF(){var h={};var t=sessionStorage.getItem('access_token');if(t)h['Authorization']='Bearer '+t;return h;}
 function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function ini(n){return(n||'?').split(' ').map(function(w){return w[0];}).join('').toUpperCase().slice(0,2);}
 function scrollBottom(){var el=document.getElementById('chat-messages');el.scrollTop=el.scrollHeight;}

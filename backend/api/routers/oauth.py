@@ -8,7 +8,7 @@ from backend.db.session import SessionLocal
 from jose import jwt
 from datetime import datetime, timedelta
 
-router = APIRouter(prefix="/auth", tags=["OAuth"])
+router = APIRouter(tags=["OAuth"])
 
 # CONFIG
 import os

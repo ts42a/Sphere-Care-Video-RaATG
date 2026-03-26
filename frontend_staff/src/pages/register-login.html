@@ -31,75 +31,126 @@
       <div class="right-panel">
         <div class="form-card">
           <h1>Create Account</h1>
-          <p class="subtitle">Enter your email address and password to log in.</p>
+          <p class="subtitle">Fill in your details to get started.</p>
 
-          <div class="input-group">
-            <span class="icon">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
-            </span>
-            <input type="text" id="reg-fullname" placeholder="Full Name" />
+          <!-- Step Indicator -->
+          <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:18px;">
+            <div id="step-dot-1" style="width:10px;height:10px;border-radius:50%;background:#0f1b2d;"></div>
+            <div id="step-bar" style="width:36px;height:3px;border-radius:2px;background:#e2e8f0;overflow:hidden;">
+              <div id="step-bar-fill" style="width:0%;height:100%;background:#0f1b2d;transition:width 0.3s;"></div>
+            </div>
+            <div id="step-dot-2" style="width:10px;height:10px;border-radius:50%;background:#e2e8f0;"></div>
           </div>
 
-          <div class="input-group" id="org-name-group" style="display:none;">
-            <span class="icon">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 3H5a2 2 0 0 0-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-5m-4-6h.01M19 13a6 6 0 0 0-6-6"/></svg>
-            </span>
-            <input type="text" id="reg-org-name" placeholder="Organization/Care Centre Name" />
+          <!-- ===== STEP 1 ===== -->
+          <div id="reg-step-1">
+            <div class="input-group">
+              <span class="icon">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              </span>
+              <input type="text" id="reg-fullname" placeholder="Full Name" />
+            </div>
+
+            <div class="input-group">
+              <span class="icon">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+              </span>
+              <input type="email" id="reg-email" placeholder="Email" />
+            </div>
+
+            <div class="input-group">
+              <span class="icon">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+              </span>
+              <input type="email" id="reg-email-conf" placeholder="Email Confirmation" />
+            </div>
+
+            <div class="input-group">
+              <span class="icon">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
+              </span>
+              <input type="password" id="reg-pass" placeholder="Password" />
+              <span class="eye-icon" onclick="togglePwd('reg-pass','reg-eye')">
+                <svg id="reg-eye" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              </span>
+            </div>
+
+            <div class="input-group">
+              <span class="icon">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
+              </span>
+              <input type="password" id="reg-pass2" placeholder="Retype Password" />
+              <span class="eye-icon" onclick="togglePwd('reg-pass2','reg-eye2')">
+                <svg id="reg-eye2" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              </span>
+            </div>
+
+            <!-- Staff / Admin Toggle -->
+            <div class="role-toggle">
+              <div class="toggle-track">
+                <button type="button" class="toggle-btn active" id="btn-staff" onclick="setRole('staff')">Staff</button>
+                <button type="button" class="toggle-btn" id="btn-admin" onclick="setRole('admin')">Admin</button>
+              </div>
+            </div>
+
+            <div id="register-error" style="display:none;color:#e74c3c;font-size:13px;text-align:center;margin-bottom:10px;"></div>
+            <button type="button" class="btn-primary btn-create" onclick="nextRegStep()">Next</button>
           </div>
 
-          <div class="input-group">
-            <span class="icon">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
-            </span>
-            <input type="email" id="reg-email" placeholder="Email" />
-          </div>
+          <!-- ===== STEP 2 ===== -->
+          <div id="reg-step-2" style="display:none;">
 
-          <div class="input-group">
-            <span class="icon">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
-            </span>
-            <input type="email" id="reg-email-conf" placeholder="Email Confirmation" />
-          </div>
+            <!-- Staff fields -->
+            <div id="step2-staff" style="display:none;">
+              <p style="font-size:13px;color:#5a6170;margin-bottom:12px;">Enter the Center ID provided by your admin.</p>
+              <div class="input-group">
+                <span class="icon">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                </span>
+                <input type="text" id="reg-center-id" placeholder="Center ID (e.g. CTR-83749261)" />
+              </div>
+            </div>
 
-          <div class="input-group">
-            <span class="icon">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
-            </span>
-            <input type="password" id="reg-pass" placeholder="Password" />
-            <span class="eye-icon" onclick="togglePwd('reg-pass','reg-eye')">
-              <svg id="reg-eye" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-            </span>
-          </div>
+            <!-- Admin fields -->
+            <div id="step2-admin" style="display:none;">
+              <p style="font-size:13px;color:#5a6170;margin-bottom:12px;">Tell us about your care centre.</p>
+              <div class="input-group">
+                <span class="icon">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                </span>
+                <input type="text" id="reg-org-name" placeholder="Organisation / Care Centre Name" />
+              </div>
+              <div class="input-group">
+                <span class="icon">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                </span>
+                <input type="text" id="reg-address" placeholder="Address" />
+              </div>
+              <div style="display:flex;gap:10px;">
+                <div class="input-group" style="flex:1;">
+                  <input type="text" id="reg-city" placeholder="City" style="padding-left:14px;" />
+                </div>
+                <div class="input-group" style="flex:1;">
+                  <input type="text" id="reg-state" placeholder="State" style="padding-left:14px;" />
+                </div>
+              </div>
+              <div style="display:flex;gap:10px;">
+                <div class="input-group" style="flex:1;">
+                  <input type="text" id="reg-postal-code" placeholder="Postal Code" style="padding-left:14px;" />
+                </div>
+                <div class="input-group" style="flex:1;">
+                  <input type="text" id="reg-country" placeholder="Country" style="padding-left:14px;" />
+                </div>
+              </div>
+            </div>
 
-          <div class="input-group">
-            <span class="icon">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
-            </span>
-            <input type="password" id="reg-pass2" placeholder="Retype Password" />
-            <span class="eye-icon" onclick="togglePwd('reg-pass2','reg-eye2')">
-              <svg id="reg-eye2" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-            </span>
-          </div>
-
-          <!-- Staff / Admin Toggle -->
-          <div class="role-toggle">
-            <div class="toggle-track">
-              <button type="button" class="toggle-btn active" id="btn-staff" onclick="setRole('staff')">Staff</button>
-              <button type="button" class="toggle-btn" id="btn-admin" onclick="setRole('admin')">Admin</button>
+            <div id="register-error-2" style="display:none;color:#e74c3c;font-size:13px;text-align:center;margin-bottom:10px;"></div>
+            <div id="register-success" style="display:none;color:#27ae60;font-size:13px;text-align:center;margin-bottom:10px;word-wrap:break-word;"></div>
+            <div style="display:flex;gap:10px;">
+              <button type="button" class="btn-primary btn-create" style="background:#e2e8f0;color:#0f1b2d;flex:1;" onclick="prevRegStep()">Back</button>
+              <button type="button" class="btn-primary btn-create" style="flex:2;" id="btn-register" data-label="Create Now" onclick="handleRegister()">Create Now</button>
             </div>
           </div>
-
-          <!-- Center ID for Staff (Hidden by default) -->
-          <div class="input-group" id="center-id-group" style="display:none;">
-            <span class="icon">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-            </span>
-            <input type="text" id="reg-center-id" placeholder="Center ID (provided by your admin)" />
-          </div>
-
-          <div id="register-error" style="display:none;color:#e74c3c;font-size:13px;text-align:center;margin-bottom:10px;"></div>
-          <div id="register-success" style="display:none;color:#27ae60;font-size:13px;text-align:center;margin-bottom:10px;word-wrap:break-word;"></div>
-          <button type="button" class="btn-primary btn-create" id="btn-register" data-label="Create Now" onclick="handleRegister()">Create Now</button>
 
           <div class="divider">or</div>
 
@@ -231,6 +282,7 @@
     </button>
   </div>
 </div><script src="../style/js/script.js"></script>
+<script src="../style/js/register_login.js"></script>
 <script src="../style/js/reset.js"></script>
 </body>
 </html>

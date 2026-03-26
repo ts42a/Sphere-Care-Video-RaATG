@@ -1,5 +1,7 @@
-from pydantic import BaseModel
 from datetime import datetime
+from typing import Optional
+
+from pydantic import BaseModel
 
 
 class NotificationCreate(BaseModel):
@@ -7,6 +9,8 @@ class NotificationCreate(BaseModel):
     title: str
     body: str
     is_priority: bool = False
+    related_entity_type: Optional[str] = None
+    related_entity_id: Optional[int] = None
 
 
 class NotificationResponse(BaseModel):
@@ -14,8 +18,9 @@ class NotificationResponse(BaseModel):
     category: str
     title: str
     body: str
-    is_read: bool
     is_priority: bool
+    related_entity_type: Optional[str] = None
+    related_entity_id: Optional[int] = None
     created_at: datetime
 
     model_config = {"from_attributes": True}

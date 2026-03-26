@@ -5,7 +5,7 @@ from typing import Optional
 from backend.api.deps import get_db
 from backend import models, schemas
 
-router = APIRouter(prefix="/notifications", tags=["Notifications"])
+router = APIRouter(tags=["Notifications"])
 
 
 def _fmt(n: models.Notification) -> schemas.NotificationResponse:
@@ -14,16 +14,14 @@ def _fmt(n: models.Notification) -> schemas.NotificationResponse:
         category=n.category,
         title=n.title,
         body=n.body,
-        is_read=n.is_read,
         is_priority=n.is_priority,
-        created_at=n.created_at.strftime("%b %d, %Y %I:%M %p"),
+        created_at=n.created_at,
     )
 
 
 @router.get("/", response_model=list[schemas.NotificationResponse])
 def get_notifications(
     category: Optional[str] = Query(None, description="appointment | alert | reminder"),
-    is_read: Optional[str] = Query(None, description="true | false"),
     limit: int = Query(50, ge=1, le=200),
     db: Session = Depends(get_db),
 ):
@@ -35,8 +33,6 @@ def get_notifications(
     q = db.query(models.Notification).order_by(models.Notification.created_at.desc())
     if category:
         q = q.filter(models.Notification.category == category)
-    if is_read is not None:
-        q = q.filter(models.Notification.is_read == is_read)
     return [_fmt(n) for n in q.limit(limit).all()]
 
 
@@ -49,8 +45,7 @@ def get_priority_alerts(
     rows = (
         db.query(models.Notification)
         .filter(
-            models.Notification.is_priority == "true",
-            models.Notification.is_read == "false",
+            models.Notification.is_priority == True,
         )
         .order_by(models.Notification.created_at.desc())
         .limit(limit)
@@ -70,32 +65,6 @@ def create_notification(
     db.commit()
     db.refresh(n)
     return _fmt(n)
-
-
-@router.patch("/{notification_id}/read", response_model=schemas.NotificationResponse)
-def mark_read(notification_id: int, db: Session = Depends(get_db)):
-    """Mark a single notification as read ('Mark as read' button)."""
-    n = db.query(models.Notification).filter(models.Notification.id == notification_id).first()
-    if not n:
-        raise HTTPException(status_code=404, detail="Notification not found.")
-    n.is_read = "true"
-    db.commit()
-    db.refresh(n)
-    return _fmt(n)
-
-
-@router.patch("/read-all", response_model=dict)
-def mark_all_read(
-    category: Optional[str] = Query(None),
-    db: Session = Depends(get_db),
-):
-    """Mark all (or all in a category) as read."""
-    q = db.query(models.Notification).filter(models.Notification.is_read == "false")
-    if category:
-        q = q.filter(models.Notification.category == category)
-    updated = q.update({"is_read": "true"})
-    db.commit()
-    return {"marked_read": updated}
 
 
 @router.delete("/{notification_id}", status_code=status.HTTP_204_NO_CONTENT)

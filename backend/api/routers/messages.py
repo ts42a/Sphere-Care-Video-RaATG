@@ -17,7 +17,7 @@ from typing import Optional
 from backend.api.deps import get_db
 from backend import models, schemas
 
-router = APIRouter(prefix="/messages", tags=["Messages"])
+router = APIRouter(tags=["Messages"])
 
 
 #helps

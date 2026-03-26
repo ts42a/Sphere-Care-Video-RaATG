@@ -11,11 +11,12 @@ updateClock(); setInterval(updateClock,1000);
 
 
 // ════ API CONFIG ════
-function authHeaders(){ const t=localStorage.getItem('access_token'); return t ? {'Content-Type':'application/json','Authorization':`Bearer ${t}`} : {'Content-Type':'application/json'}; }
+function authHeaders(){ const t=sessionStorage.getItem('access_token')||sessionStorage.getItem('spherecare_token'); return t ? {'Content-Type':'application/json','Authorization':`Bearer ${t}`} : {'Content-Type':'application/json'}; }
 
 async function apiFetch(path, opts={}){
   const res = await fetch(API_BASE + path, { headers: authHeaders(), ...opts });
-  if(!res.ok){ const e=await res.json().catch(()=>({})); throw new Error(e.detail||`API error ${res.status}`); }
+  if(res.status===401){ sessionStorage.clear(); window.location.href='/pages/register-login.html'; return; }
+  if(!res.ok){ const e=await res.json().catch(()=>({})); const msg = typeof e.detail === 'string' ? e.detail : (e.detail?.msg || `API error ${res.status}`); throw new Error(msg); }
   return res.json();
 }
 
@@ -26,15 +27,31 @@ function fmtDate(d){ if(!d)return'—'; try{return new Date(d).toLocaleDateStrin
 
 let residents=[],filtered=[],currentView='grid';
 
+function normStatus(s){
+  return String(s || 'stable').toLowerCase().replace(/\s+/g,'_');
+}
+
+function statusBadgeClass(status){
+  if (status === 'stable') return 'b-stable';
+  if (status === 'access_denied') return 'b-denied';
+  return 'b-monitoring';
+}
+
+function statusLabel(status){
+  if (status === 'access_denied') return 'Access Denied';
+  return status.charAt(0).toUpperCase()+status.slice(1);
+}
+
 // Map API resident → internal shape (fields from seed.py / models.Resident)
 function mapResident(r,i){
+  const status = normStatus(r.status);
   return {
     rawId:  r.id,
     id:     r.id ? 'RES'+String(r.id).padStart(3,'0') : 'RES???',
     name:   r.full_name  || 'Unknown',
     age:    r.age        ?? '—',
     room:   String(r.room ?? '—'),
-    status: (r.status    || 'stable').toLowerCase(),
+    status: status,
     admit:  fmtDate(r.admission_date),
     carer:  r.assigned_carer || 'Unassigned',
     ai:     r.ai_summary || 'No AI summary available.',
@@ -93,7 +110,11 @@ function renderGrid(){
         <span style="font-size:12px;color:var(--text2)">Age ${r.age}</span>
         <span class="flag-num ${r.flags>=2?'fn-high':r.flags>0?'fn-med':'fn-none'}" title="${r.flags} flag(s)">${r.flags}</span>
       </div>
-      <span class="badge ${r.status==='stable'?'b-stable':'b-monitoring'}">${r.status.charAt(0).toUpperCase()+r.status.slice(1)}</span>
+      <span class="badge ${statusBadgeClass(r.status)}">${statusLabel(r.status)}</span>
+      <div style="display:flex;gap:6px;margin-top:10px;justify-content:center;">
+        <button class="btn-sm btn-edit" onclick="event.stopPropagation();openEditModal(${r.rawId})" title="Edit">✏️ Edit</button>
+        <button class="btn-sm btn-del" onclick="event.stopPropagation();openDeleteModal(${r.rawId},'${r.name.replace(/'/g,"\\'")}')" title="Delete">🗑️</button>
+      </div>
     </div>`).join('');
 }
 
@@ -111,11 +132,15 @@ function renderList(){
       <td style="padding:13px 16px;vertical-align:middle;"><span class="flag-num ${r.flags>=2?'fn-high':r.flags>0?'fn-med':'fn-none'}">${r.flags}</span></td>
       <td style="padding:13px 16px;vertical-align:middle;font-size:12.5px;">${r.admit}</td>
       <td style="padding:13px 16px;vertical-align:middle;max-width:170px;font-size:12.5px;color:var(--text2);">${(r.ai||'').split('.')[0]}.</td>
-      <td style="padding:13px 16px;vertical-align:middle;"><span class="badge ${r.status==='stable'?'b-stable':'b-monitoring'}">${r.status.charAt(0).toUpperCase()+r.status.slice(1)}</span></td>
+      <td style="padding:13px 16px;vertical-align:middle;"><span class="badge ${statusBadgeClass(r.status)}">${statusLabel(r.status)}</span></td>
       <td style="padding:13px 16px;vertical-align:middle;">
-        <button class="rec-btn" onclick="event.stopPropagation();openProfile('${r.id}')">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>Profile
-        </button>
+        <div style="display:flex;gap:6px;">
+          <button class="btn-sm btn-edit" onclick="event.stopPropagation();openEditModal(${r.rawId})" title="Edit">✏️</button>
+          <button class="btn-sm btn-del" onclick="event.stopPropagation();openDeleteModal(${r.rawId},'${r.name.replace(/'/g,"\\'")}')" title="Delete">🗑️</button>
+          <button class="rec-btn" onclick="event.stopPropagation();openProfile('${r.id}')">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>Profile
+          </button>
+        </div>
       </td>
     </tr>`).join('');
 }
@@ -153,7 +178,7 @@ function openProfile(id){
   pav.innerHTML=ini(r.name);
   document.getElementById('p-name').textContent=r.name;
   document.getElementById('p-sub').textContent=`${r.age} years • Room ${r.room} • Carer: ${r.carer}`;
-  document.getElementById('p-status').innerHTML=`<span class="badge ${r.status==='stable'?'b-stable':'b-monitoring'}">${r.status.charAt(0).toUpperCase()+r.status.slice(1)}</span>`;
+  document.getElementById('p-status').innerHTML=`<span class="badge ${statusBadgeClass(r.status)}">${statusLabel(r.status)}</span>`;
 
   // Overview
   document.getElementById('p-admit').textContent=r.admit;
@@ -234,59 +259,33 @@ function switchTab(tab,el){
   document.getElementById('ptab-'+tab).classList.add('active');
 }
 
-// ════ ADD RESIDENT — POST to API ════
+// ════ ADD RESIDENT — Invite by Account ID ════
 function openAddModal(){
-  ['add-name','add-age','add-room','add-admit','add-carer','ec-name','ec-phone','ec-email'].forEach(id=>{document.getElementById(id).value='';});
-  document.getElementById('ec-rel').value='';
-  document.getElementById('add-av-preview').innerHTML='🧑';
-  document.getElementById('add-av-data').value='';
+  document.getElementById('add-account-id').value='';
   const errEl=document.getElementById('add-err');
   errEl.style.display='none';
   openModal('modal-add');
 }
 
-async function submitAdd(){
-  const name    = document.getElementById('add-name').value.trim();
-  const age     = document.getElementById('add-age').value.trim();
-  const room    = document.getElementById('add-room').value.trim();
-  const admit   = document.getElementById('add-admit').value;
-  const carer   = document.getElementById('add-carer').value.trim();
-  const ecName  = document.getElementById('ec-name').value.trim();
-  const ecRel   = document.getElementById('ec-rel').value;
-  const ecPhone = document.getElementById('ec-phone').value.trim();
-  const ecEmail = document.getElementById('ec-email').value.trim();
-  const errEl   = document.getElementById('add-err');
-  const btn     = document.querySelector('#modal-add .btn-primary');
+async function submitInvite(){
+  const accountId = document.getElementById('add-account-id').value.trim().toUpperCase();
+  const errEl     = document.getElementById('add-err');
+  const btn       = document.querySelector('#modal-add .btn-primary');
 
-  if(!name||!age||!room){errEl.textContent='Please fill in Name, Age and Room Number.';errEl.style.display='block';return;}
-  if(!ecName||!ecRel||!ecPhone){errEl.textContent='Please fill in Emergency Contact name, relationship and phone.';errEl.style.display='block';return;}
+  if(!accountId){errEl.textContent='Please enter the client Account ID.';errEl.style.display='block';return;}
   errEl.style.display='none';
 
-  const payload={
-    full_name:               name,
-    age:                     parseInt(age),
-    room_number:             room,
-    admission_date:          admit||new Date().toISOString().slice(0,10),
-    assigned_carer:          carer||'Unassigned',
-    status:                  'stable',
-    emergency_contact_name:  ecName,
-    emergency_contact_rel:   ecRel,
-    emergency_contact_phone: ecPhone,
-    emergency_contact_email: ecEmail,
-  };
-
-  btn.textContent='Saving…';btn.disabled=true;
+  btn.textContent='Sending…';btn.disabled=true;
   try{
-    await apiFetch('/residents/',{method:'POST',body:JSON.stringify(payload)});
-    await loadResidents();
+    await apiFetch('/center-membership/admin/invite',{method:'POST',body:JSON.stringify({account_id:accountId})});
     closeModal('modal-add');
-    showBanner('✓ Resident added','ok');
+    showBanner('✓ Invitation sent — waiting for client to accept','ok');
   } catch(err){
     errEl.textContent='⚠ '+err.message;
     errEl.style.background='#fef2f2';errEl.style.color='var(--red)';
     errEl.style.display='block';
   } finally{
-    btn.textContent='Add Resident';btn.disabled=false;
+    btn.textContent='Send Invitation';btn.disabled=false;
   }
 }
 
@@ -303,6 +302,71 @@ function exportPDF(){
   const was=currentView==='grid';
   if(was)setView('list');
   setTimeout(()=>{window.print();if(was)setView('grid');},100);
+}
+
+// ════ EDIT RESIDENT — PUT to API ════
+function openEditModal(rawId){
+  const r=residents.find(x=>x.rawId===rawId);
+  if(!r)return;
+  document.getElementById('edit-id').value=rawId;
+  document.getElementById('edit-name').value=r.name;
+  document.getElementById('edit-age').value=r.age;
+  document.getElementById('edit-room').value=r.room;
+  document.getElementById('edit-status').value=r.status;
+  document.getElementById('edit-err').style.display='none';
+  openModal('modal-edit');
+}
+
+async function submitEdit(){
+  const rawId  = document.getElementById('edit-id').value;
+  const name   = document.getElementById('edit-name').value.trim();
+  const age    = document.getElementById('edit-age').value.trim();
+  const room   = document.getElementById('edit-room').value.trim();
+  const status = document.getElementById('edit-status').value;
+  const errEl  = document.getElementById('edit-err');
+  const btn    = document.querySelector('#modal-edit .btn-primary');
+
+  if(!name||!age||!room){errEl.textContent='Please fill in Name, Age and Room Number.';errEl.style.display='block';return;}
+  errEl.style.display='none';
+
+  const payload={full_name:name,age:parseInt(age),room:room,status:status};
+
+  btn.textContent='Saving…';btn.disabled=true;
+  try{
+    await apiFetch('/residents/'+rawId,{method:'PUT',body:JSON.stringify(payload)});
+    await loadResidents();
+    closeModal('modal-edit');
+    showBanner('✓ Resident updated','ok');
+  } catch(err){
+    errEl.textContent='⚠ '+err.message;
+    errEl.style.background='#fef2f2';errEl.style.color='var(--red)';
+    errEl.style.display='block';
+  } finally{
+    btn.textContent='Save Changes';btn.disabled=false;
+  }
+}
+
+// ════ DELETE RESIDENT — DELETE from API ════
+function openDeleteModal(rawId,name){
+  document.getElementById('del-id').value=rawId;
+  document.getElementById('del-name').textContent=name;
+  openModal('modal-delete');
+}
+
+async function confirmDelete(){
+  const rawId=document.getElementById('del-id').value;
+  const btn=document.getElementById('btn-confirm-del');
+  btn.textContent='Deleting…';btn.disabled=true;
+  try{
+    await apiFetch('/residents/'+rawId,{method:'DELETE'});
+    await loadResidents();
+    closeModal('modal-delete');
+    showBanner('✓ Resident deleted','ok');
+  } catch(err){
+    showBanner('✗ '+err.message);
+  } finally{
+    btn.textContent='Delete';btn.disabled=false;
+  }
 }
 
 document.addEventListener('DOMContentLoaded', function() {
