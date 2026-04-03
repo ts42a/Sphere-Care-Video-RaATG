@@ -6,6 +6,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from backend.api.routers import api_router
+from backend.api.routers.ws import router as ws_router  # ── NEW ──
 from backend.db.base import Base
 from backend.db.session import engine
 from backend import models  # noqa: F401
@@ -72,3 +73,4 @@ def health():
     return {"status": "ok"}
 
 app.include_router(api_router, prefix="/api/v1")
+app.include_router(ws_router)
