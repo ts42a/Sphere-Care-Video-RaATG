@@ -12,3 +12,18 @@ python-jose[cryptography]
 httpx
 pytest
 pytest-asyncio
+
+# WebSocket support
+websockets
+
+# Async support
+anyio
+
+# Date/time utilities
+python-dateutil
+
+# File upload handling
+aiofiles
+
+# Environment & config
+pydantic-settings
