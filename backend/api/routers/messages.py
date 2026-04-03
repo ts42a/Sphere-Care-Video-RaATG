@@ -16,11 +16,12 @@ from typing import Optional
 
 from backend.api.deps import get_db
 from backend import models, schemas
+from backend.services import notification_service  # ── NEW ──
 
 router = APIRouter(tags=["Messages"])
 
 
-#helps
+# helps
 
 def _fmt_conv(c: models.Conversation) -> schemas.ConversationResponse:
     return schemas.ConversationResponse(
@@ -47,7 +48,7 @@ def _fmt_msg(m: models.Message) -> schemas.MessageResponse:
     )
 
 
-#Conversations
+# Conversations
 
 @router.get("/conversations", response_model=list[schemas.ConversationResponse])
 def get_conversations(
@@ -106,7 +107,7 @@ def delete_conversation(conversation_id: int, db: Session = Depends(get_db)):
     db.commit()
 
 
-#Messages 
+# Messages
 
 @router.get("/conversations/{conversation_id}/messages", response_model=list[schemas.MessageResponse])
 def get_messages(
@@ -129,7 +130,7 @@ def get_messages(
 
 
 @router.post("/conversations/{conversation_id}/messages", response_model=schemas.MessageResponse, status_code=status.HTTP_201_CREATED)
-def send_message(
+async def send_message(  # ── NEW: async ──
     conversation_id: int,
     msg_in: schemas.MessageCreate,
     db: Session = Depends(get_db),
@@ -153,4 +154,8 @@ def send_message(
 
     db.commit()
     db.refresh(msg)
+
+    # ── NEW: push real-time message to all connected tabs ──
+    await notification_service.notify_new_message(msg, conv.admin_id)
+
     return _fmt_msg(msg)
