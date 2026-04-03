@@ -37,7 +37,7 @@ async function loadConvs(){
 function updateLabel(){var t=allConvs.reduce(function(s,c){return s+(c.unread_count||0);},0);document.getElementById('unread-label').textContent=t?t+' unread message'+(t!==1?'s':''):'All caught up';}
 function setCat(cat,btn){currentCat=cat;document.querySelectorAll('.cat-tab').forEach(function(b){b.classList.remove('active');});btn.classList.add('active');filterConvs();}
 function filterConvs(){var q=document.getElementById('conv-search').value.toLowerCase();filteredConvs=allConvs.filter(function(c){if(currentCat&&c.category!==currentCat)return false;if(q&&!c.name.toLowerCase().includes(q)&&!(c.last_message||'').toLowerCase().includes(q))return false;return true;});renderConvList();}
-function renderConvList(){var el=document.getElementById('conv-list');if(!filteredConvs.length){el.innerHTML='<div style="text-align:center;padding:40px 20px;color:var(--text3);font-size:13px;">No conversations found</div>';return;}el.innerHTML=filteredConvs.map(function(c){var isAlert=c.category==='alerts';var badge=c.unread_count>0?'<div class="unread-badge">'+c.unread_count+'</div>':'';var dot=c.online?'<div class="online-dot"></div>':'';return'<div class="conv-item'+(c.id===currentId?' active':'')+'" onclick="openConv('+c.id+')">'+'<div class="conv-av'+(isAlert?' alert-av':'')+'" style="background:'+(isAlert?'':c.color)+'">'+ini(c.name)+dot+'</div>'+'<div class="conv-body">'+'<div class="conv-name-row"><div class="conv-name'+(c.unread_count>0?' unread':'')+'">'+esc(c.name)+'</div><div class="conv-time">'+(c.last_message_at||'')+'</div></div>'+'<div class="conv-preview-row"><div class="conv-preview">'+esc(c.last_message||'')+'</div>'+badge+'</div>'+'</div></div>';}).join('');}
+function renderConvList(){var el=document.getElementById('conv-list');if(!filteredConvs.length){el.innerHTML='<div style="text-align:center;padding:40px 20px;color:var(--text3);font-size:13px;">No conversations found</div>';return;}el.innerHTML=filteredConvs.map(function(c){var isAlert=c.category==='alerts';var badge=c.unread_count>0?'<div class="unread-badge">'+c.unread_count+'</div>':'';var dot=c.online?'<div class="online-dot"></div>':'';return'<div class="conv-item'+(c.id===currentId?' active':'')+' onclick="openConv('+c.id+')">'+'<div class="conv-av'+(isAlert?' alert-av':'')+'" style="background:'+(isAlert?'':c.color)+'">'+ini(c.name)+dot+'</div>'+'<div class="conv-body">'+'<div class="conv-name-row"><div class="conv-name'+(c.unread_count>0?' unread':'')+'">'+esc(c.name)+'</div><div class="conv-time">'+(c.last_message_at||'')+'</div></div>'+'<div class="conv-preview-row"><div class="conv-preview">'+esc(c.last_message||'')+'</div>'+badge+'</div>'+'</div></div>';}).join('');}
 async function openConv(id){currentId=id;var conv=allConvs.find(function(c){return c.id===id;});if(!conv)return;conv.unread_count=0;updateLabel();renderConvList();try{if(!demo)await fetch(API_BASE+'/messages/conversations/'+id+'/read',{method:'PATCH',headers:authH()});}catch(e){}document.getElementById('chat-empty').style.display='none';var cv=document.getElementById('chat-view');cv.style.display='flex';document.getElementById('ch-av').textContent=ini(conv.name);document.getElementById('ch-av').style.background=conv.color;document.getElementById('ch-name').textContent=conv.name;document.getElementById('ch-sub').textContent=conv.sub||catLabel(conv.category);await loadMsgs(id);document.getElementById('msg-input').focus();}
 async function loadMsgs(id){if(localMsgs[id]){renderMsgs(localMsgs[id]);return;}try{if(demo)throw new Error();var r=await fetch(API_BASE+'/messages/conversations/'+id+'/messages',{headers:authH()});if(!r.ok)throw new Error();localMsgs[id]=await r.json();}catch(e){localMsgs[id]=(DEMO_MSGS[id]||[]).map(function(m){return Object.assign({},m);});}renderMsgs(localMsgs[id]);}
 function fmtTime(t){if(typeof t==='string')return t;try{return new Date(t).toLocaleTimeString('en-AU',{hour:'2-digit',minute:'2-digit'});}catch(e){return '';}}
@@ -68,3 +68,79 @@ function closeModal(id){document.getElementById(id).classList.remove('open');}
 async function createConv(){var name=document.getElementById('new-name').value.trim();var cat=document.getElementById('new-cat').value;if(!name){document.getElementById('new-name').focus();return;}var newId=Date.now();try{if(!demo){var r=await fetch(API_BASE+'/messages/conversations',{method:'POST',headers:authH(),body:JSON.stringify({name:name,category:cat})});if(r.ok){var d=await r.json();newId=d.id;}}}catch(e){}var c={id:newId,name:name,category:cat,last_message:'',last_message_at:'Just now',unread_count:0,sub:catLabel(cat),color:convClr(newId,cat),online:false};allConvs.unshift(c);localMsgs[newId]=[];filterConvs();closeModal('modal-new');openConv(newId);}
 document.addEventListener('DOMContentLoaded',function(){var area=document.getElementById('chat-messages');if(!area)return;area.addEventListener('dragover',function(e){e.preventDefault();area.classList.add('drag-over');});area.addEventListener('dragleave',function(){area.classList.remove('drag-over');});area.addEventListener('drop',function(e){e.preventDefault();area.classList.remove('drag-over');if(e.dataTransfer.files.length)handleFiles(e.dataTransfer.files);});});
 loadConvs();
+
+// ── WebSocket real-time layer ──────────────────────────────────────────────
+// Sits on top of the existing REST code above. No UI/UX changes.
+// Handles: incoming messages from other users, online presence, conv list sync.
+(function(){
+  var proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  var ws, wsReady = false;
+
+  function connect(){
+    var token = sessionStorage.getItem('access_token') || '';
+    ws = new WebSocket(proto + '://' + location.host + '/ws?token=' + encodeURIComponent(token));
+
+    ws.onopen = function(){
+      wsReady = true;
+    };
+
+    ws.onclose = function(){
+      wsReady = false;
+      // Auto-reconnect after 3s
+      setTimeout(connect, 3000);
+    };
+
+    ws.onerror = function(){
+      wsReady = false;
+    };
+
+    ws.onmessage = function(e){
+      var msg;
+      try { msg = JSON.parse(e.data); } catch(err){ return; }
+
+      // ── new_message: someone else sent a message ──
+      if(msg.type === 'new_message'){
+        var m = msg.message;
+        var convId = msg.conversation_id;
+
+        // Skip if we sent it ourselves (already added optimistically)
+        if(m.sender_name === ME.name) return;
+
+        // Add to local cache
+        if(!localMsgs[convId]) localMsgs[convId] = [];
+        localMsgs[convId].push(m);
+
+        // Update conversation preview
+        var conv = allConvs.find(function(c){ return c.id === convId; });
+        if(conv){
+          conv.last_message = m.content || '';
+          conv.last_message_at = fmtTime(m.created_at);
+          // Only increment unread if not the open conversation
+          if(convId !== currentId) conv.unread_count = (conv.unread_count || 0) + 1;
+        }
+
+        // Re-render chat if this conversation is open
+        if(convId === currentId) renderMsgs(localMsgs[convId]);
+
+        updateLabel();
+        renderConvList();
+      }
+
+      // ── presence: update online dot ──
+      if(msg.type === 'presence'){
+        var conv = allConvs.find(function(c){ return c.id === msg.conversation_id; });
+        if(conv){
+          conv.online = msg.online;
+          renderConvList();
+        }
+      }
+
+      // ── conversations_update: new conv created by someone else ──
+      if(msg.type === 'conversations_update'){
+        if(!demo) loadConvs();
+      }
+    };
+  }
+
+  connect();
+})();
