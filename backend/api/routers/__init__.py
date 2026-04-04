@@ -20,6 +20,7 @@ from . import call
 from . import account
 from . import admin_console
 from . import center_membership
+from . import client_bookings
 
 api_router = APIRouter()
 
@@ -43,3 +44,4 @@ api_router.include_router(call.router, prefix="/call", tags=["Call"])
 api_router.include_router(account.router, prefix="/account", tags=["Account"])
 api_router.include_router(admin_console.router, prefix="/admin", tags=["Admin Console"])
 api_router.include_router(center_membership.router)
+api_router.include_router(client_bookings.router)

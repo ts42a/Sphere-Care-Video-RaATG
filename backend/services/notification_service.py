@@ -68,3 +68,40 @@ async def notify_new_message(message, admin_id: int):
             "created_at":      message.created_at.strftime("%I:%M %p"),
         }
     })
+
+async def notify_schedule_updated(admin_id: int, doctor_id: str, date: str, schedule_payload: dict):
+    await ws_manager.broadcast_schedule_update(
+        admin_id,
+        doctor_id,
+        date,
+        {
+            "type": "schedule.updated",
+            "payload": {
+                "doctorId": doctor_id,
+                "date": date,
+                "version": schedule_payload["version"],
+                "availableDates": schedule_payload["available_dates"],
+                "timeSlots": [
+                    {
+                        "id": slot.id,
+                        "label": slot.label,
+                        "available": slot.available,
+                    }
+                    for slot in schedule_payload["time_slots"]
+                ],
+            },
+        }
+    )
+
+
+async def notify_client_booking_updated(admin_id: int, booking_id: int, status: str):
+    await ws_manager.broadcast(
+        admin_id,
+        {
+            "type": "booking.updated",
+            "payload": {
+                "bookingId": booking_id,
+                "status": status,
+            },
+        }
+    )

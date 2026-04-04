@@ -1,6 +1,6 @@
 from typing import Generator
 from sqlalchemy.orm import Session
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Header
 from jose import JWTError, jwt
 
 from backend.db.session import SessionLocal
@@ -58,3 +58,27 @@ def get_admin_context_db(admin_id: int = Depends(get_current_admin_id)) -> Gener
     finally:
         db.close()
 
+def get_current_auth_context(authorization: str = Header(None)) -> dict:
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="No token provided"
+        )
+
+    token = authorization.split(" ", 1)[1]
+
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[JWT_ALGORITHM])
+    except JWTError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token"
+        )
+
+    return {
+        "email": payload.get("sub"),
+        "admin_id": payload.get("admin_id"),
+        "user_id": payload.get("user_id"),
+        "resident_id": payload.get("resident_id"),
+        "role": payload.get("role"),
+    }

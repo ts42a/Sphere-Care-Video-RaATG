@@ -489,7 +489,9 @@ def login(payload: schemas.LoginRequest, admin_id: str = None, db: Session = Dep
     # Try user login (client, staff, etc.) in single database
     master_user = db.query(models.User).filter(models.User.email == payload.email).first()
     if master_user and verify_password(payload.password, master_user.password_hash):
-        # Check staff approval status if staff
+        resolved_admin_id = 0
+        resolved_resident_id = None
+
         if master_user.global_role == "staff":
             staff_record = db.query(models.Staff).filter(models.Staff.user_id == master_user.id).first()
             if staff_record and staff_record.approval_status != "approved":
@@ -500,15 +502,24 @@ def login(payload: schemas.LoginRequest, admin_id: str = None, db: Session = Dep
                         "approval_status": staff_record.approval_status
                     }
                 )
-            staff_admin_id = staff_record.admin_id if staff_record else 0
-        else:
-            staff_admin_id = 0
+            resolved_admin_id = staff_record.admin_id if staff_record else 0
+
+        elif master_user.global_role == "client":
+            resident = db.query(models.Resident).filter(
+                models.Resident.client_user_id == master_user.id,
+                models.Resident.is_deleted == False
+            ).first()
+
+            if resident:
+                resolved_admin_id = resident.admin_id
+                resolved_resident_id = resident.id
 
         access_token = create_access_token({
             "sub": master_user.email,
-            "admin_id": staff_admin_id,
+            "admin_id": resolved_admin_id,
             "role": master_user.global_role,
             "user_id": master_user.id,
+            "resident_id": resolved_resident_id,
         })
         return {"access_token": access_token, "token_type": "bearer", "user": master_user}
 
