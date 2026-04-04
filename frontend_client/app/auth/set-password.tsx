@@ -21,7 +21,7 @@ import { spacing } from "../../src/theme/spacing";
 import { typography } from "../../src/theme/typography";
 
 export default function SetPasswordScreen() {
-  const { email } = useLocalSearchParams<{ email?: string }>();
+  const { token } = useLocalSearchParams<{ token?: string }>();
 
   const [password, setPassword] = useState("•••••••••••");
   const [confirmPassword, setConfirmPassword] = useState("•••••••••••");
@@ -37,12 +37,12 @@ export default function SetPasswordScreen() {
       setLoading(true);
 
       await authService.resetPassword({
-        email: email || "",
+        token: token || "",
         password,
         confirmPassword,
       });
 
-      router.push("./auth/password-reset-success");
+      router.push("/auth/password-reset");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Update failed");
     } finally {

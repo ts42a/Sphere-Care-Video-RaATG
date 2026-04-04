@@ -1,7 +1,7 @@
 export type AppointmentType = {
   id: string;
   title: string;
-  duration: string;
+  durationMinutes?: number;
 };
 
 export type Doctor = {
@@ -18,30 +18,31 @@ export type Doctor = {
 export type TimeSlot = {
   id: string;
   label: string;
+  available: boolean;
 };
 
 export type ScheduleResponse = {
-  doctor: Doctor;
+  doctor: {
+    id: string;
+    name: string;
+    role: string;
+  };
+  date: string;
   availableDates: string[];
   timeSlots: TimeSlot[];
+  version: number;
 };
 
-export type CreateBookingPayload = {
+export type CreateBookingInput = {
+  appointmentTypeId: string;
   doctorId: string;
-  typeId: string;
-  typeTitle: string;
-  doctorName: string;
-  doctorRole: string;
   date: string;
-  time: string;
-};
-
-export type CreateBookingResponse = {
-  bookingId: string;
+  timeSlotId: string;
 };
 
 export type BookingConfirmation = {
   bookingId: string;
+  status: string;
   doctor: {
     id: string;
     name: string;
@@ -54,5 +55,5 @@ export type BookingConfirmation = {
   date: string;
   time: string;
   room: string;
-  status: string;
+  createdAt?: string;
 };

@@ -14,6 +14,7 @@ import BottomNav from "../../src/components/BottomNav";
 import PageHeader from "../../src/components/PageHeader";
 import BookingCalendar from "../../src/components/BookingCalendar";
 import { bookingService } from "../../src/services/bookingService";
+import { wsClient } from "../../src/services/wsClient";
 import type { ScheduleResponse, TimeSlot } from "../../src/types/booking";
 
 function toDateKey(date: Date) {
@@ -34,6 +35,31 @@ function addDays(baseDate: Date, days: number) {
   return next;
 }
 
+function getNextWeekdayDateKey() {
+  const date = new Date();
+  date.setDate(date.getDate() + 1);
+
+  while (date.getDay() === 0 || date.getDay() === 6) {
+    date.setDate(date.getDate() + 1);
+  }
+
+  return toDateKey(date);
+}
+
+function normalizeRealtimeSlot(item: any): TimeSlot {
+  const label =
+    item?.label ??
+    item?.time ??
+    item?.displayTime ??
+    (item?.start && item?.end ? `${item.start} - ${item.end}` : "Unknown time");
+
+  return {
+    id: String(item?.id ?? item?.timeSlotId ?? item?.slotId ?? label),
+    label: String(label),
+    available: Boolean(item?.available ?? item?.isAvailable ?? true),
+  };
+}
+
 export default function ScheduleScreen() {
   const params = useLocalSearchParams<{
     typeId?: string;
@@ -45,51 +71,168 @@ export default function ScheduleScreen() {
   const typeTitle = params.typeTitle ?? "";
   const doctorId = params.doctorId ?? "";
 
-  const [scheduleData, setScheduleData] = useState<ScheduleResponse | null>(null);
-  const [selectedDate, setSelectedDate] = useState("");
-  const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState("");
-
+  const initialDate = useMemo(() => getNextWeekdayDateKey(), []);
   const today = useMemo(() => new Date(), []);
   const minDate = useMemo(() => toDateKey(today), [today]);
   const maxDate = useMemo(() => toDateKey(addDays(today, 28)), [today]);
 
-  const [visibleMonth, setVisibleMonth] = useState(
-    new Date(today.getFullYear(), today.getMonth(), 1)
-  );
+  const [scheduleData, setScheduleData] = useState<ScheduleResponse | null>(null);
+  const [selectedDate, setSelectedDate] = useState(initialDate);
+  const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshingTimes, setRefreshingTimes] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+  const [visibleMonth, setVisibleMonth] = useState(() => {
+    const d = parseLocalDate(initialDate);
+    return new Date(d.getFullYear(), d.getMonth(), 1);
+  });
 
   useEffect(() => {
+    if (!selectedDate) return;
+
+    const d = parseLocalDate(selectedDate);
+    setVisibleMonth(new Date(d.getFullYear(), d.getMonth(), 1));
+    setSelectedSlot(null);
+  }, [selectedDate]);
+
+  useEffect(() => {
+    if (!doctorId || !selectedDate) {
+      setLoading(false);
+      setError("Missing booking details.");
+      return;
+    }
+
+    let active = true;
+
     async function loadSchedule() {
+      const firstLoad = scheduleData === null;
+
       try {
-        setLoading(true);
+        if (firstLoad) {
+          setLoading(true);
+        } else {
+          setRefreshingTimes(true);
+        }
+
         setError("");
-        const data = await bookingService.getSchedule(doctorId, typeId);
+
+        const data = await bookingService.getSchedule(doctorId, selectedDate);
+        if (!active) return;
+
         setScheduleData(data);
 
-        const firstValidDate =
-          data.availableDates.find((date) => date >= minDate && date <= maxDate) ?? "";
-
-        setSelectedDate(firstValidDate);
-
-        if (firstValidDate) {
-          const d = new Date(firstValidDate);
-          setVisibleMonth(new Date(d.getFullYear(), d.getMonth(), 1));
+        if (
+          Array.isArray(data.availableDates) &&
+          data.availableDates.length > 0 &&
+          !data.availableDates.includes(selectedDate)
+        ) {
+          const fallbackDate = data.availableDates[0];
+          if (fallbackDate && fallbackDate !== selectedDate) {
+            setSelectedDate(fallbackDate);
+          }
         }
       } catch (err) {
-        setError("Failed to load schedule.");
+        if (active) {
+          setError("Failed to load schedule.");
+        }
       } finally {
-        setLoading(false);
+        if (active) {
+          setLoading(false);
+          setRefreshingTimes(false);
+        }
       }
     }
 
-    if (doctorId && typeId) {
-      loadSchedule();
+    loadSchedule();
+
+    return () => {
+      active = false;
+    };
+  }, [doctorId, selectedDate]);
+
+  useEffect(() => {
+    if (!doctorId || !selectedDate) return;
+
+    let unsubscribe = () => {};
+
+    async function watchSchedule() {
+      try {
+        await wsClient.connect();
+
+        wsClient.send("schedule.watch", {
+          doctorId,
+          date: selectedDate,
+        });
+
+        unsubscribe = wsClient.subscribe("schedule.updated", (payload) => {
+          const sameDoctor = payload?.doctorId === doctorId;
+          const sameDate = payload?.date === selectedDate;
+
+          if (!sameDoctor || !sameDate) return;
+
+          setScheduleData((prev) => {
+            if (!prev) return prev;
+
+            const nextVersion =
+              typeof payload?.version === "number"
+                ? payload.version
+                : Number(payload?.version ?? 0) || 0;
+
+            if (nextVersion > 0 && nextVersion <= prev.version) {
+              return prev;
+            }
+
+            const nextTimeSlots = Array.isArray(payload?.timeSlots)
+              ? payload.timeSlots.map(normalizeRealtimeSlot)
+              : prev.timeSlots;
+
+            const nextAvailableDates = Array.isArray(payload?.availableDates)
+              ? payload.availableDates.map((date: unknown) => String(date))
+              : prev.availableDates;
+
+            return {
+              ...prev,
+              date: String(payload?.date ?? prev.date),
+              availableDates: nextAvailableDates,
+              timeSlots: nextTimeSlots,
+              version: nextVersion > 0 ? nextVersion : prev.version + 1,
+            };
+          });
+        });
+      } catch (err) {
+        console.error("Failed to watch booking schedule", err);
+      }
     }
-  }, [doctorId, typeId, minDate, maxDate]);
+
+    watchSchedule();
+
+    return () => {
+      wsClient.send("schedule.unwatch", {
+        doctorId,
+        date: selectedDate,
+      });
+      unsubscribe();
+    };
+  }, [doctorId, selectedDate]);
+
+  useEffect(() => {
+    if (!selectedSlot || !scheduleData) return;
+
+    const stillValid = scheduleData.timeSlots.find(
+      (slot) => slot.id === selectedSlot.id && slot.available
+    );
+
+    if (!stillValid) {
+      setSelectedSlot(null);
+    }
+  }, [scheduleData?.timeSlots, selectedSlot, scheduleData]);
 
   const doctor = scheduleData?.doctor;
+
+  const availableSlots = useMemo(() => {
+    return scheduleData?.timeSlots ?? [];
+  }, [scheduleData?.timeSlots]);
 
   function formatDateLabel(dateString: string) {
     const date = parseLocalDate(dateString);
@@ -118,20 +261,26 @@ export default function ScheduleScreen() {
     setVisibleMonth(next);
   }
 
+  async function reloadCurrentSchedule() {
+    if (!doctorId || !selectedDate) return;
+
+    const data = await bookingService.getSchedule(doctorId, selectedDate);
+    setScheduleData(data);
+    setSelectedSlot(null);
+  }
+
   async function handleNext() {
-    if (!selectedDate || !selectedSlot || !doctorId || !typeId || !doctor) return;
+    if (!selectedDate || !selectedSlot || !doctorId || !typeId) return;
 
     try {
       setSubmitting(true);
+      setError("");
 
       const result = await bookingService.createBooking({
+        appointmentTypeId: typeId,
         doctorId,
-        typeId,
-        typeTitle,
-        doctorName: doctor.name,
-        doctorRole: doctor.role,
         date: selectedDate,
-        time: selectedSlot.label,
+        timeSlotId: selectedSlot.id,
       });
 
       router.push({
@@ -141,7 +290,20 @@ export default function ScheduleScreen() {
         },
       });
     } catch (err) {
-      setError("Failed to create booking.");
+      const message =
+        err instanceof Error ? err.message : "Failed to create booking.";
+
+      if (message.toLowerCase().includes("no longer available")) {
+        setError("This time slot is no longer available. Please choose another one.");
+
+        try {
+          await reloadCurrentSchedule();
+        } catch {
+          setError("This time slot is no longer available. Please refresh and try again.");
+        }
+      } else {
+        setError(message || "Failed to create booking.");
+      }
     } finally {
       setSubmitting(false);
     }
@@ -160,7 +322,7 @@ export default function ScheduleScreen() {
 
           {loading ? (
             <ActivityIndicator size="large" color="#46576D" />
-          ) : error ? (
+          ) : error && !doctor ? (
             <Text style={styles.errorText}>{error}</Text>
           ) : doctor ? (
             <>
@@ -168,23 +330,19 @@ export default function ScheduleScreen() {
                 <View style={styles.avatarWrap} />
                 <View style={styles.doctorInfo}>
                   <Text style={styles.doctorName}>{doctor.name}</Text>
-                  <Text style={styles.doctorRole}>
-                    {doctor.specialty || doctor.role}
-                  </Text>
-                  <Text style={styles.price}>{doctor.price}</Text>
+                  <Text style={styles.doctorRole}>{doctor.role}</Text>
+                  <Text style={styles.typeText}>{typeTitle || "Appointment"}</Text>
                 </View>
                 <View style={styles.rightInfo}>
                   <Text style={styles.dateText}>
                     {selectedDate ? formatDateLabel(selectedDate) : ""}
                   </Text>
-                  <Text style={styles.metaText}>★ {doctor.rating}</Text>
-                  <Text style={styles.metaText}>⌛ {doctor.experience}</Text>
                 </View>
               </View>
 
               <BookingCalendar
                 visibleMonth={visibleMonth}
-                availableDates={scheduleData.availableDates}
+                availableDates={scheduleData?.availableDates ?? []}
                 selectedDate={selectedDate}
                 onSelectDate={setSelectedDate}
                 onPrevMonth={() => changeMonth(-1)}
@@ -199,41 +357,60 @@ export default function ScheduleScreen() {
                   Available Times
                   {selectedDate ? ` · ${formatDateFull(selectedDate)}` : ""}
                 </Text>
+                {refreshingTimes ? (
+                  <ActivityIndicator size="small" color="#68778C" />
+                ) : null}
               </View>
 
+              {error ? <Text style={styles.inlineErrorText}>{error}</Text> : null}
+
               <View style={styles.timeGrid}>
-                {scheduleData.timeSlots.map((slot) => {
-                  const active = selectedSlot?.id === slot.id;
-                  return (
-                    <Pressable
-                      key={slot.id}
-                      style={[styles.timeBtn, active && styles.timeBtnSelected]}
-                      onPress={() => setSelectedSlot(slot)}
-                    >
-                      <Text
+                {availableSlots.length === 0 ? (
+                  <Text style={styles.emptyText}>
+                    No available time slots for this date.
+                  </Text>
+                ) : (
+                  availableSlots.map((slot) => {
+                    const active = selectedSlot?.id === slot.id;
+                    const disabled = !slot.available;
+
+                    return (
+                      <Pressable
+                        key={slot.id}
                         style={[
-                          styles.timeBtnText,
-                          active && styles.timeBtnTextSelected,
+                          styles.timeBtn,
+                          active && styles.timeBtnSelected,
+                          disabled && styles.timeBtnDisabled,
                         ]}
+                        onPress={() => setSelectedSlot(slot)}
+                        disabled={disabled}
                       >
-                        {slot.label}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
+                        <Text
+                          style={[
+                            styles.timeBtnText,
+                            active && styles.timeBtnTextSelected,
+                            disabled && styles.timeBtnTextDisabled,
+                          ]}
+                        >
+                          {slot.label}
+                        </Text>
+                      </Pressable>
+                    );
+                  })
+                )}
               </View>
 
               <View style={styles.footerRow}>
-                <Pressable
-                  style={styles.backAction}
-                  onPress={() => router.back()}
-                >
+                <Pressable style={styles.backAction} onPress={() => router.back()}>
                   <Feather name="arrow-left" size={20} color="#1D2740" />
                   <Text style={styles.backActionText}>Back</Text>
                 </Pressable>
 
                 <Pressable
-                  style={styles.nextAction}
+                  style={[
+                    styles.nextAction,
+                    (!selectedSlot || submitting) && styles.nextActionDisabled,
+                  ]}
                   onPress={handleNext}
                   disabled={!selectedSlot || submitting}
                 >
@@ -269,13 +446,6 @@ const styles = StyleSheet.create({
   topRow: {
     marginBottom: 28,
   },
-  rightWrap: {
-    position: "absolute",
-    right: 0,
-    top: 2,
-    flexDirection: "row",
-    gap: 18,
-  },
   doctorCard: {
     flexDirection: "row",
     backgroundColor: "#F1F3F6",
@@ -304,9 +474,9 @@ const styles = StyleSheet.create({
     color: "#1D2740",
     marginBottom: 8,
   },
-  price: {
+  typeText: {
     fontSize: 15,
-    color: "#1D2740",
+    color: "#5E6D81",
   },
   rightInfo: {
     alignItems: "flex-end",
@@ -315,10 +485,6 @@ const styles = StyleSheet.create({
     color: "#FF8A2B",
     fontSize: 15,
     marginBottom: 8,
-  },
-  metaText: {
-    color: "#1D2740",
-    fontSize: 14,
   },
   availableHeader: {
     flexDirection: "row",
@@ -351,6 +517,10 @@ const styles = StyleSheet.create({
     backgroundColor: "#465A72",
     borderColor: "#465A72",
   },
+  timeBtnDisabled: {
+    backgroundColor: "#F2F4F7",
+    borderColor: "#E1E6EC",
+  },
   timeBtnText: {
     fontSize: 15,
     fontWeight: "600",
@@ -359,6 +529,9 @@ const styles = StyleSheet.create({
   },
   timeBtnTextSelected: {
     color: "#FFFFFF",
+  },
+  timeBtnTextDisabled: {
+    color: "#A5AFBC",
   },
   footerRow: {
     flexDirection: "row",
@@ -389,6 +562,9 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 28,
   },
+  nextActionDisabled: {
+    opacity: 0.55,
+  },
   nextActionText: {
     color: "#FFFFFF",
     fontSize: 16,
@@ -398,5 +574,15 @@ const styles = StyleSheet.create({
   errorText: {
     color: "#D9534F",
     fontSize: 15,
+  },
+  inlineErrorText: {
+    color: "#D9534F",
+    fontSize: 14,
+    marginBottom: 14,
+  },
+  emptyText: {
+    fontSize: 15,
+    color: "#6A7487",
+    marginTop: 4,
   },
 });

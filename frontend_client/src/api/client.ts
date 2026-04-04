@@ -1,4 +1,5 @@
 import { API_BASE_URL } from "../config/api";
+import { getAccessToken } from "../services/sessionService";
 
 type RequestOptions = {
   method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
@@ -11,12 +12,13 @@ export async function request<T>(
   options: RequestOptions = {}
 ): Promise<T> {
   const { method = "GET", body, token } = options;
+  const authToken = token ?? (await getAccessToken()) ?? undefined;
 
   const response = await fetch(`${API_BASE_URL}${path}`, {
     method,
     headers: {
       "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
     },
     body: body ? JSON.stringify(body) : undefined,
   });
@@ -26,11 +28,12 @@ export async function request<T>(
 
     try {
       const errorJson = await response.json();
+
       if (typeof errorJson?.detail === "string") {
         errorMessage = errorJson.detail;
       } else if (typeof errorJson?.detail?.msg === "string") {
         errorMessage = errorJson.detail.msg;
-      } else if (errorJson?.message) {
+      } else if (typeof errorJson?.message === "string") {
         errorMessage = errorJson.message;
       }
     } catch {

@@ -7,14 +7,17 @@ import {
   ScrollView,
   ActivityIndicator,
 } from "react-native";
-import { Feather, Ionicons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
-import BottomNav from "../../src/components/BottomNav";
 import PageHeader from "../../src/components/PageHeader";
-
 import { bookingService } from "../../src/services/bookingService";
 import type { AppointmentType } from "../../src/types/booking";
+
+function formatDuration(durationMinutes?: number) {
+  if (!durationMinutes) return "30 min";
+  return `${durationMinutes} min`;
+}
 
 export default function BookingScreen() {
   const [appointmentTypes, setAppointmentTypes] = useState<AppointmentType[]>([]);
@@ -28,7 +31,7 @@ export default function BookingScreen() {
         setError("");
         const data = await bookingService.getAppointmentTypes();
         setAppointmentTypes(data);
-      } catch (err) {
+      } catch {
         setError("Failed to load appointment types.");
       } finally {
         setLoading(false);
@@ -46,7 +49,7 @@ export default function BookingScreen() {
       >
         <View style={styles.screen}>
           <View style={styles.topRow}>
-            <PageHeader title="Booking" />
+            <PageHeader title="Booking" showBack={false} />
           </View>
 
           <View style={styles.heroCard}>
@@ -85,15 +88,15 @@ export default function BookingScreen() {
                   </View>
 
                   <Text style={styles.typeTitle}>{item.title}</Text>
-                  <Text style={styles.typeDuration}>{item.duration}</Text>
+                  <Text style={styles.typeDuration}>
+                    {formatDuration(item.durationMinutes)}
+                  </Text>
                 </Pressable>
               ))}
             </View>
           )}
         </View>
       </ScrollView>
-
-      <BottomNav active="booking" />
     </SafeAreaView>
   );
 }
@@ -113,13 +116,6 @@ const styles = StyleSheet.create({
   },
   topRow: {
     marginBottom: 28,
-  },
-  rightWrap: {
-    position: "absolute",
-    right: 0,
-    top: 2,
-    flexDirection: "row",
-    gap: 18,
   },
   heroCard: {
     borderRadius: 24,

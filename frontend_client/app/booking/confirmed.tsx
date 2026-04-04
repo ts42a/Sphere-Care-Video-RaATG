@@ -15,6 +15,7 @@ import * as Calendar from "expo-calendar";
 import BottomNav from "../../src/components/BottomNav";
 import PageHeader from "../../src/components/PageHeader";
 import { bookingService } from "../../src/services/bookingService";
+import { wsClient } from "../../src/services/wsClient";
 import type { BookingConfirmation } from "../../src/types/booking";
 
 export default function ConfirmedScreen() {
@@ -37,7 +38,7 @@ export default function ConfirmedScreen() {
         setError("");
         const data = await bookingService.getBookingConfirmation(bookingId);
         setConfirmation(data);
-      } catch (err) {
+      } catch {
         setError("Failed to load booking confirmation.");
       } finally {
         setLoading(false);
@@ -45,11 +46,41 @@ export default function ConfirmedScreen() {
     }
 
     if (bookingId) {
-        loadConfirmation();
+      loadConfirmation();
     } else {
-        setLoading(false);
-        setError("Missing booking ID.");
+      setLoading(false);
+      setError("Missing booking ID.");
     }
+  }, [bookingId]);
+
+  useEffect(() => {
+    if (!bookingId) return;
+
+    let unsubscribe = () => {};
+
+    async function watchBookingUpdates() {
+      try {
+        await wsClient.connect();
+        unsubscribe = wsClient.subscribe("booking.updated", async (payload) => {
+          if (payload?.bookingId !== bookingId) return;
+
+          try {
+            const latest = await bookingService.getBookingConfirmation(bookingId);
+            setConfirmation(latest);
+          } catch (err) {
+            console.error("Failed to refresh booking confirmation", err);
+          }
+        });
+      } catch (err) {
+        console.error("Failed to subscribe booking updates", err);
+      }
+    }
+
+    watchBookingUpdates();
+
+    return () => {
+      unsubscribe();
+    };
   }, [bookingId]);
 
   function buildDateRange(dateString: string, timeRange: string) {
@@ -131,7 +162,7 @@ export default function ConfirmedScreen() {
       });
 
       Alert.alert("Success", "Appointment added to your calendar.");
-    } catch (err) {
+    } catch {
       Alert.alert("Error", "Unable to add this booking to calendar.");
     }
   }
@@ -189,7 +220,7 @@ export default function ConfirmedScreen() {
                     <Text style={styles.infoLine}>{confirmation.time}</Text>
                     <Text style={styles.roomLine}>{confirmation.room}</Text>
                     <Text style={styles.statusLine}>
-                      Status: {confirmation.status} ✓
+                      Status: {confirmation.status}
                     </Text>
                   </View>
                 </View>
@@ -214,9 +245,9 @@ export default function ConfirmedScreen() {
                 <Text style={styles.primaryBtnText}>Add to Calendar</Text>
               </Pressable>
 
-              <Pressable style={styles.secondaryBtn}>
+              <Pressable style={styles.secondaryBtn} onPress={() => router.push("/notifications") }>
                 <Feather name="bell" size={20} color="#425266" />
-                <Text style={styles.secondaryBtnText}>Set Reminder</Text>
+                <Text style={styles.secondaryBtnText}>Open Notifications</Text>
               </Pressable>
             </>
           ) : null}
@@ -244,13 +275,6 @@ const styles = StyleSheet.create({
   topRow: {
     marginBottom: 30,
   },
-  rightWrap: {
-    position: "absolute",
-    right: 0,
-    top: 2,
-    flexDirection: "row",
-    gap: 18,
-  },
   successWrap: {
     alignItems: "center",
     marginBottom: 28,
@@ -259,53 +283,53 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: "#1EBE83",
-    justifyContent: "center",
+    backgroundColor: "#1E9E63",
     alignItems: "center",
-    marginBottom: 18,
+    justifyContent: "center",
+    marginBottom: 14,
   },
   successTitle: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: "700",
-    color: "#1D2740",
+    color: "#425266",
     marginBottom: 8,
   },
   successSubtitle: {
-    fontSize: 16,
-    color: "#6A7A90",
+    fontSize: 15,
+    color: "#6D7A88",
     textAlign: "center",
   },
   detailCard: {
     backgroundColor: "#FFFFFF",
+    borderRadius: 24,
     borderWidth: 1,
-    borderColor: "#DCE2E8",
-    borderRadius: 22,
+    borderColor: "#E1E6EC",
     padding: 20,
     marginBottom: 18,
   },
   detailHeader: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 20,
+    marginBottom: 18,
+    gap: 10,
   },
   detailTitle: {
-    marginLeft: 12,
     fontSize: 18,
     fontWeight: "700",
-    color: "#1D2740",
+    color: "#425266",
   },
   detailBody: {
     flexDirection: "row",
-    alignItems: "flex-start",
+    alignItems: "center",
   },
   avatarWrap: {
-    width: 74,
-    height: 74,
-    borderRadius: 37,
+    width: 72,
+    height: 72,
+    borderRadius: 36,
     backgroundColor: "#3E5167",
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 18,
+    marginRight: 16,
   },
   detailTextWrap: {
     flex: 1,
@@ -314,81 +338,82 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: "700",
     color: "#1D2740",
-    marginBottom: 2,
+    marginBottom: 4,
   },
   doctorRole: {
-    fontSize: 15,
-    color: "#667892",
-    marginBottom: 14,
+    fontSize: 14,
+    color: "#5E6D81",
+    marginBottom: 10,
   },
   infoLine: {
-    fontSize: 16,
-    color: "#1D2740",
-    marginBottom: 8,
+    fontSize: 15,
+    color: "#425266",
+    marginBottom: 4,
   },
   roomLine: {
     fontSize: 15,
-    color: "#6A7A90",
-    marginBottom: 10,
+    color: "#425266",
+    marginBottom: 6,
   },
   statusLine: {
     fontSize: 15,
-    color: "#14B97A",
-    fontWeight: "500",
+    color: "#1E9E63",
+    fontWeight: "600",
   },
   noteCard: {
     backgroundColor: "#FFFFFF",
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: "#DCE2E8",
-    borderRadius: 22,
-    padding: 20,
-    marginBottom: 26,
+    borderColor: "#E1E6EC",
+    padding: 18,
+    marginBottom: 18,
   },
   noteHeader: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 14,
+    marginBottom: 10,
+    gap: 8,
   },
   noteTitle: {
-    marginLeft: 10,
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#1D2740",
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#425266",
   },
   noteText: {
-    fontSize: 16,
-    color: "#6A7A90",
-    lineHeight: 23,
+    fontSize: 14,
+    color: "#6A7487",
+    lineHeight: 20,
   },
   primaryBtn: {
-    backgroundColor: "#465A72",
+    backgroundColor: "#0D1633",
     borderRadius: 16,
-    paddingVertical: 18,
+    paddingVertical: 16,
     alignItems: "center",
     justifyContent: "center",
     flexDirection: "row",
-    marginBottom: 18,
+    gap: 10,
+    marginBottom: 12,
   },
   primaryBtnText: {
     color: "#FFFFFF",
     fontSize: 16,
-    fontWeight: "600",
-    marginLeft: 10,
+    fontWeight: "700",
   },
   secondaryBtn: {
-    borderWidth: 1.5,
-    borderColor: "#46576D",
+    backgroundColor: "#FFFFFF",
     borderRadius: 16,
-    paddingVertical: 18,
+    paddingVertical: 16,
     alignItems: "center",
     justifyContent: "center",
     flexDirection: "row",
+    gap: 10,
+    borderWidth: 1,
+    borderColor: "#D8DDE4",
   },
   secondaryBtnText: {
     color: "#425266",
     fontSize: 16,
     fontWeight: "600",
-    marginLeft: 10,
   },
   errorText: {
     color: "#D9534F",

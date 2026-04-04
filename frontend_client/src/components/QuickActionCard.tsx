@@ -8,6 +8,7 @@ type QuickActionCardProps = {
   variant: "purple" | "mint";
   icon: React.ReactNode;
   onPress?: () => void;
+  reverseTextOrder?: boolean;
 };
 
 export default function QuickActionCard({
@@ -16,6 +17,7 @@ export default function QuickActionCard({
   variant,
   icon,
   onPress,
+  reverseTextOrder = false,
 }: QuickActionCardProps) {
   return (
     <Pressable
@@ -26,8 +28,17 @@ export default function QuickActionCard({
       onPress={onPress}
     >
       <View style={styles.quickCardText}>
-        <Text style={styles.quickSmallTitle}>{smallTitle}</Text>
-        <Text style={styles.quickBigTitle}>{bigTitle}</Text>
+        {reverseTextOrder ? (
+          <>
+            <Text style={styles.quickBigTitle}>{bigTitle}</Text>
+            <Text style={styles.quickSmallTitle}>{smallTitle}</Text>
+          </>
+        ) : (
+          <>
+            <Text style={styles.quickSmallTitle}>{smallTitle}</Text>
+            <Text style={styles.quickBigTitle}>{bigTitle}</Text>
+          </>
+        )}
       </View>
 
       <View style={styles.quickCardIcon}>{icon}</View>

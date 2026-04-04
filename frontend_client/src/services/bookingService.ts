@@ -1,10 +1,12 @@
 import {
+  cancelBooking,
   createBooking,
   getAppointmentTypes,
   getBookingConfirmation,
   getDoctorsByType,
   getSchedule,
 } from "../api/booking";
+import { watchBookingSchedule } from "./bookingRealtimeService";
 
 export const bookingService = {
   getAppointmentTypes,
@@ -12,4 +14,6 @@ export const bookingService = {
   getSchedule,
   createBooking,
   getBookingConfirmation,
+  cancelBooking,
+  watchSchedule: watchBookingSchedule,
 };

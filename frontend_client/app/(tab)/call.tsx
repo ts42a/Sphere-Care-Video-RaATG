@@ -10,9 +10,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { Feather, MaterialIcons, Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
-
-import BottomNav from "../../src/components/BottomNav";
+import { router, Stack } from "expo-router";
 import PageHeader from "../../src/components/PageHeader";
 import { callService } from "../../src/services/callService";
 import type { CallContact, CallSummary } from "../../src/types/call";
@@ -73,13 +71,13 @@ export default function CallCenterScreen() {
   }, [summary]);
 
   return (
-    <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.container}>
       <ScrollView
         style={styles.content}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <PageHeader title="Call Center" />
+        <PageHeader title="Call Center" showBack={false} />
 
         <View style={styles.summaryCard}>
           <View style={styles.summaryTop}>
@@ -203,8 +201,6 @@ export default function CallCenterScreen() {
           </View>
         )}
       </ScrollView>
-
-      <BottomNav active="call" />
     </SafeAreaView>
   );
 }
@@ -229,7 +225,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingTop: spacing.xl,
     paddingHorizontal: spacing.xxl,
-    paddingBottom: spacing.xxxl,
+    paddingBottom: 8,
   },
   summaryCard: {
     borderRadius: 24,

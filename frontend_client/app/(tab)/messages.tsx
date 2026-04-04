@@ -9,10 +9,8 @@ import {
   ScrollView,
   ActivityIndicator,
 } from "react-native";
-import { router } from "expo-router";
+import { router, Stack } from "expo-router";
 import { Feather } from "@expo/vector-icons";
-
-import BottomNav from "../../src/components/BottomNav";
 import PageHeader from "../../src/components/PageHeader";
 import { messageService } from "../../src/services/messageService";
 import type { ConversationItem } from "../../src/types/message";
@@ -50,10 +48,10 @@ export default function MessageListScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.container}>
       <View style={styles.inner}>
         <View style={styles.headerWrap}>
-          <PageHeader title="Messages" />
+          <PageHeader title="Messages" showBack={false} />
           <Text style={styles.subtitle}>{items.length} conversations</Text>
         </View>
 
@@ -126,9 +124,7 @@ export default function MessageListScreen() {
             ))}
           </ScrollView>
         )}
-      </View>
-
-      <BottomNav active="message" />
+      </View> 
     </SafeAreaView>
   );
 }

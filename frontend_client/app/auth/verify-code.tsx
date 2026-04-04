@@ -43,7 +43,7 @@ export default function VerifyCodeScreen() {
 
       router.push({
         pathname: "/auth/set-password",
-        params: { email: email || "" },
+        params: { token: code },
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Verification failed");

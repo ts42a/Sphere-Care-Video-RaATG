@@ -4,10 +4,10 @@ import type { ApiItemResponse, ApiListResponse } from "../types/api";
 import type {
   AppointmentType,
   BookingConfirmation,
-  CreateBookingPayload,
-  CreateBookingResponse,
+  CreateBookingInput,
   Doctor,
   ScheduleResponse,
+  TimeSlot,
 } from "../types/booking";
 
 let latestBooking: BookingConfirmation | null = null;
@@ -24,17 +24,16 @@ function toDateKey(date: Date) {
   return `${year}-${month}-${day}`;
 }
 
-function generateAvailableDates(weeksAhead = 4): string[] {
+function generateAvailableDates(daysAhead = 28): string[] {
   const results: string[] = [];
   const today = new Date();
-  const totalDays = weeksAhead * 7;
 
-  for (let i = 1; i <= totalDays; i++) {
+  for (let i = 1; i <= daysAhead; i++) {
     const d = new Date(today);
     d.setDate(today.getDate() + i);
 
-    const day = d.getDay();
-    const isWeekend = day === 0 || day === 6;
+    const weekday = d.getDay();
+    const isWeekend = weekday === 0 || weekday === 6;
 
     if (!isWeekend) {
       results.push(toDateKey(d));
@@ -44,20 +43,180 @@ function generateAvailableDates(weeksAhead = 4): string[] {
   return results;
 }
 
+function unwrapList<T>(response: T[] | ApiListResponse<T>): T[] {
+  if (Array.isArray(response)) {
+    return response;
+  }
+
+  if (response && Array.isArray(response.data)) {
+    return response.data;
+  }
+
+  return [];
+}
+
+function unwrapItem<T>(response: T | ApiItemResponse<T>): T {
+  if (
+    response &&
+    typeof response === "object" &&
+    "data" in response &&
+    (response as ApiItemResponse<T>).data !== undefined
+  ) {
+    return (response as ApiItemResponse<T>).data;
+  }
+
+  return response as T;
+}
+
+function normalizeAppointmentType(item: any): AppointmentType {
+  return {
+    id: String(item?.id ?? ""),
+    title: String(item?.title ?? item?.name ?? "Appointment"),
+    durationMinutes:
+      typeof item?.durationMinutes === "number"
+        ? item.durationMinutes
+        : typeof item?.duration_minutes === "number"
+        ? item.duration_minutes
+        : typeof item?.duration === "number"
+        ? item.duration
+        : typeof item?.duration === "string"
+        ? Number.parseInt(item.duration, 10) || undefined
+        : undefined,
+  };
+}
+
+function normalizeDoctor(item: any): Doctor {
+  return {
+    id: String(item?.id ?? ""),
+    name: String(item?.name ?? "Unknown Doctor"),
+    role: String(item?.role ?? item?.specialty ?? "General Practitioner"),
+    available: Boolean(item?.available ?? item?.isAvailable ?? true),
+    rating:
+      typeof item?.rating === "number"
+        ? item.rating
+        : Number(item?.rating ?? 0) || 0,
+    experience: String(item?.experience ?? "N/A"),
+    price: String(item?.price ?? "N/A"),
+    specialty:
+      typeof item?.specialty === "string" ? item.specialty : undefined,
+  };
+}
+
+function normalizeTimeSlot(item: any): TimeSlot {
+  const label =
+    item?.label ??
+    item?.time ??
+    item?.displayTime ??
+    (item?.start && item?.end ? `${item.start} - ${item.end}` : "Unknown time");
+
+  return {
+    id: String(item?.id ?? item?.timeSlotId ?? item?.slotId ?? label),
+    label: String(label),
+    available: Boolean(item?.available ?? item?.isAvailable ?? true),
+  };
+}
+
+function normalizeSchedule(item: any): ScheduleResponse {
+  const rawDoctor = item?.doctor ?? item?.provider ?? {};
+  const rawDates = Array.isArray(item?.availableDates)
+    ? item.availableDates
+    : Array.isArray(item?.available_dates)
+    ? item.available_dates
+    : Array.isArray(item?.dates)
+    ? item.dates
+    : generateAvailableDates();
+
+  const rawSlots = Array.isArray(item?.timeSlots)
+    ? item.timeSlots
+    : Array.isArray(item?.time_slots)
+    ? item.time_slots
+    : Array.isArray(item?.slots)
+    ? item.slots
+    : [];
+
+  return {
+    doctor: {
+      id: String(rawDoctor?.id ?? ""),
+      name: String(rawDoctor?.name ?? "Unknown Doctor"),
+      role: String(
+        rawDoctor?.role ?? rawDoctor?.specialty ?? "General Practitioner"
+      ),
+    },
+    date: String(item?.date ?? rawDates[0] ?? ""),
+    availableDates: rawDates.map((date: unknown) => String(date)),
+    timeSlots: rawSlots.map(normalizeTimeSlot),
+    version:
+      typeof item?.version === "number"
+        ? item.version
+        : Number(item?.version ?? 1) || 1,
+  };
+}
+
+function normalizeBookingConfirmation(item: any): BookingConfirmation {
+  return {
+    bookingId: String(item?.bookingId ?? item?.booking_id ?? item?.id ?? ""),
+    status: String(item?.status ?? "confirmed"),
+    doctor: {
+      id: String(item?.doctor?.id ?? item?.doctorId ?? item?.doctor_id ?? ""),
+      name: String(
+        item?.doctor?.name ?? item?.doctorName ?? item?.doctor_name ?? "Unknown Doctor"
+      ),
+      role: String(
+        item?.doctor?.role ?? item?.doctorRole ?? item?.doctor_role ?? "General Practitioner"
+      ),
+    },
+    appointmentType: {
+      id: String(
+        item?.appointmentType?.id ??
+          item?.appointment_type?.id ??
+          item?.appointmentTypeId ??
+          item?.appointment_type_id ??
+          item?.typeId ??
+          ""
+      ),
+      title: String(
+        item?.appointmentType?.title ??
+          item?.appointment_type?.title ??
+          item?.appointmentTypeTitle ??
+          item?.appointment_type_title ??
+          item?.typeTitle ??
+          "Appointment"
+      ),
+    },
+    date: String(item?.date ?? ""),
+    time: String(item?.time ?? item?.timeLabel ?? item?.time_label ?? ""),
+    room: String(item?.room ?? item?.location ?? "TBC"),
+    createdAt:
+      typeof item?.createdAt === "string"
+        ? item.createdAt
+        : typeof item?.created_at === "string"
+        ? item.created_at
+        : undefined,
+  };
+}
+
+function buildMockTimeSlots(): TimeSlot[] {
+  return [
+    { id: "slot-0900", label: "9:00 AM - 9:30 AM", available: true },
+    { id: "slot-0930", label: "9:30 AM - 10:00 AM", available: true },
+    { id: "slot-1030", label: "10:30 AM - 11:00 AM", available: true },
+    { id: "slot-1100", label: "11:00 AM - 11:30 AM", available: true },
+  ];
+}
+
 async function getMockAppointmentTypes(): Promise<AppointmentType[]> {
   await wait(200);
 
   return [
-    { id: "general-checkup", title: "General Check up", duration: "30 min" },
-    { id: "follow-up", title: "Follow up Visit", duration: "30 min" },
-    { id: "consultation", title: "Consultation Check up", duration: "30 min" },
-    { id: "lab-test", title: "LAB Test", duration: "30 min" },
-    { id: "review-med", title: "Review Med", duration: "30 min" },
-    { id: "vaccination", title: "Vaccination", duration: "30 min" },
+    { id: "general-checkup", title: "General Check Up", durationMinutes: 30 },
+    { id: "follow-up", title: "Follow Up", durationMinutes: 20 },
+    { id: "consultation", title: "Consultation", durationMinutes: 30 },
   ];
 }
 
-async function getMockDoctorsByType(_typeId: string): Promise<Doctor[]> {
+async function getMockDoctorsByType(
+  _appointmentTypeId: string
+): Promise<Doctor[]> {
   await wait(200);
 
   return [
@@ -75,11 +234,11 @@ async function getMockDoctorsByType(_typeId: string): Promise<Doctor[]> {
       id: "doc-2",
       name: "Dr. Emily Ross",
       role: "General Practitioner",
-      available: false,
+      available: true,
       rating: 4.6,
       experience: "10 years exp",
       price: "$130/h",
-      specialty: "General Care",
+      specialty: "Family Care",
     },
     {
       id: "doc-3",
@@ -116,22 +275,25 @@ async function getMockDoctorsByType(_typeId: string): Promise<Doctor[]> {
 
 async function getMockSchedule(
   doctorId: string,
-  typeId: string
+  date: string
 ): Promise<ScheduleResponse> {
   await wait(200);
 
-  const doctors = await getMockDoctorsByType(typeId);
+  const doctors = await getMockDoctorsByType("general-checkup");
   const doctor = doctors.find((item) => item.id === doctorId) ?? doctors[0];
+  const availableDates = generateAvailableDates();
+  const resolvedDate = date || availableDates[0] || "";
 
   return {
-    doctor,
-    availableDates: generateAvailableDates(4),
-    timeSlots: [
-      { id: "slot-1", label: "9:00 AM - 9:30 AM" },
-      { id: "slot-2", label: "9:30 AM - 10:00 AM" },
-      { id: "slot-3", label: "10:30 AM - 11:00 AM" },
-      { id: "slot-4", label: "11:00 AM - 11:30 AM" },
-    ],
+    doctor: {
+      id: doctor.id,
+      name: doctor.name,
+      role: doctor.role,
+    },
+    date: resolvedDate,
+    availableDates,
+    timeSlots: buildMockTimeSlots(),
+    version: 1,
   };
 }
 
@@ -140,78 +302,113 @@ export async function getAppointmentTypes(): Promise<AppointmentType[]> {
     return getMockAppointmentTypes();
   }
 
-  const response = await request<ApiListResponse<AppointmentType>>("/appointments/types");
-  return response.data;
+  const response = await request<
+    AppointmentType[] | ApiListResponse<AppointmentType>
+  >("/client/bookings/types");
+
+  return unwrapList(response).map(normalizeAppointmentType);
 }
 
-export async function getDoctorsByType(typeId: string): Promise<Doctor[]> {
+export async function getDoctorsByType(
+  appointmentTypeId: string
+): Promise<Doctor[]> {
   if (USE_MOCK_API) {
-    return getMockDoctorsByType(typeId);
+    return getMockDoctorsByType(appointmentTypeId);
   }
 
-  const query = typeId ? `?typeId=${encodeURIComponent(typeId)}` : "";
-  const response = await request<ApiListResponse<Doctor>>(`/appointments/doctors${query}`);
-  return response.data;
+  const query = new URLSearchParams({
+    appointmentTypeId,
+  }).toString();
+
+  const response = await request<Doctor[] | ApiListResponse<Doctor>>(
+    `/client/bookings/doctors?${query}`
+  );
+
+  return unwrapList(response).map(normalizeDoctor);
 }
 
 export async function getSchedule(
   doctorId: string,
-  typeId: string
+  date: string
 ): Promise<ScheduleResponse> {
   if (USE_MOCK_API) {
-    return getMockSchedule(doctorId, typeId);
+    return getMockSchedule(doctorId, date);
   }
 
-  const query = new URLSearchParams({ doctorId, typeId }).toString();
-  const response = await request<ApiItemResponse<ScheduleResponse>>(
-    `/appointments/schedule?${query}`
-  );
-  return response.data;
+  const query = new URLSearchParams({ doctorId, date }).toString();
+
+  const response = await request<
+    ScheduleResponse | ApiItemResponse<ScheduleResponse>
+  >(`/client/bookings/schedule?${query}`);
+
+  return normalizeSchedule(unwrapItem(response));
 }
 
 export async function createBooking(
-  payload: CreateBookingPayload
-): Promise<CreateBookingResponse> {
+  input: CreateBookingInput
+): Promise<BookingConfirmation> {
   if (!USE_MOCK_API) {
-    const response = await request<ApiItemResponse<CreateBookingResponse>>("/appointments/book", {
+    const response = await request<
+      BookingConfirmation | ApiItemResponse<BookingConfirmation>
+    >("/client/bookings/", {
       method: "POST",
-      body: payload,
+      body: {
+        appointment_type_id: input.appointmentTypeId,
+        doctor_id: input.doctorId,
+        date: input.date,
+        time_slot_id: input.timeSlotId,
+      },
     });
-    return response.data;
+
+    return normalizeBookingConfirmation(unwrapItem(response));
   }
 
   await wait(200);
 
-  const bookingId = `booking-${Date.now()}`;
+  const doctors = await getMockDoctorsByType(input.appointmentTypeId);
+  const doctor = doctors.find((item) => item.id === input.doctorId) ?? doctors[0];
 
-  latestBooking = {
-    bookingId,
+  const types = await getMockAppointmentTypes();
+  const appointmentType =
+    types.find((item) => item.id === input.appointmentTypeId) ?? types[0];
+
+  const schedule = await getMockSchedule(input.doctorId, input.date);
+  const selectedSlot =
+    schedule.timeSlots.find((slot) => slot.id === input.timeSlotId) ??
+    schedule.timeSlots[0];
+
+  const booking: BookingConfirmation = {
+    bookingId: `booking-${Date.now()}`,
+    status: "confirmed",
     doctor: {
-      id: payload.doctorId,
-      name: payload.doctorName,
-      role: payload.doctorRole,
+      id: doctor.id,
+      name: doctor.name,
+      role: doctor.role,
     },
     appointmentType: {
-      id: payload.typeId,
-      title: payload.typeTitle,
+      id: appointmentType.id,
+      title: appointmentType.title,
     },
-    date: payload.date,
-    time: payload.time,
+    date: input.date,
+    time: selectedSlot?.label ?? "",
     room: "Room 203 - Main Care Unit",
-    status: "Confirmed",
+    createdAt: new Date().toISOString(),
   };
 
-  return { bookingId };
+  latestBooking = booking;
+
+  return booking;
 }
 
 export async function getBookingConfirmation(
   bookingId: string
 ): Promise<BookingConfirmation> {
   if (!USE_MOCK_API) {
-    const response = await request<ApiItemResponse<BookingConfirmation>>(
-      `/appointments/${bookingId}`
-    );
-    return response.data;
+    const response = await request<
+      BookingConfirmation | ApiItemResponse<BookingConfirmation>
+    >(`/client/bookings/${bookingId}`);
+
+    return normalizeBookingConfirmation(unwrapItem(response));
   }
 
   await wait(200);
@@ -221,4 +418,38 @@ export async function getBookingConfirmation(
   }
 
   return latestBooking;
+}
+
+export async function cancelBooking(
+  bookingId: string
+): Promise<{ bookingId: string; status: string }> {
+  if (!USE_MOCK_API) {
+    const response = await request<
+      { bookingId: string; status: string } |
+      ApiItemResponse<{ bookingId: string; status: string }>
+    >(`/client/bookings/${bookingId}/cancel`, {
+      method: "PATCH",
+    });
+
+    const data = unwrapItem(response);
+
+    return {
+      bookingId: String((data as any)?.bookingId ?? (data as any)?.booking_id ?? bookingId),
+      status: String((data as any)?.status ?? "cancelled"),
+    };
+  }
+
+  await wait(200);
+
+  if (latestBooking?.bookingId === bookingId) {
+    latestBooking = {
+      ...latestBooking,
+      status: "cancelled",
+    };
+  }
+
+  return {
+    bookingId,
+    status: "cancelled",
+  };
 }
