@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { router, useFocusEffect, Stack } from "expo-router";
 import { Ionicons, Feather } from "@expo/vector-icons";
 import {
@@ -46,6 +46,14 @@ export default function HomeScreen() {
       loadHomeData();
     }, [])
   );
+
+  useEffect(() => {
+    const unsubscribe = notificationService.subscribe((_, unread) => {
+      setNotificationCount(unread || 0);
+    });
+
+    return unsubscribe;
+  }, []);
 
   const tasks = [
     {

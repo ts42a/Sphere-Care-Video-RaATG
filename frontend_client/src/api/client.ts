@@ -13,6 +13,7 @@ export async function request<T>(
 ): Promise<T> {
   const { method = "GET", body, token } = options;
   const authToken = token ?? (await getAccessToken()) ?? undefined;
+  console.log("API request", path, "has token:", !!authToken);
 
   const response = await fetch(`${API_BASE_URL}${path}`, {
     method,

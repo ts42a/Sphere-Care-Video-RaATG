@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   View,
@@ -10,76 +10,142 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
-import { router, useLocalSearchParams } from "expo-router";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { Feather, Ionicons, MaterialIcons } from "@expo/vector-icons";
 
-import { callService } from "../../src/services/callService";
 import { messageService } from "../../src/services/messageService";
-import type { ChatMessage } from "../../src/types/message";
-import type { CallContact } from "../../src/types/call";
+import { wsClient } from "../../src/services/wsClient";
+import type { ChatMessage, ConversationItem, NewMessageEvent } from "../../src/types/message";
 import { typography } from "../../src/theme/typography";
 
 export default function MessageChatScreen() {
   const { contactId } = useLocalSearchParams<{ contactId: string }>();
+  const scrollRef = useRef<ScrollView | null>(null);
 
-  const [contact, setContact] = useState<CallContact | null>(null);
+  const [conversation, setConversation] = useState<ConversationItem | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
 
-  useEffect(() => {
-    if (contactId) {
-      loadInitialData(contactId);
-    }
-  }, [contactId]);
+  const conversationId = useMemo(() => contactId ?? "", [contactId]);
 
-  useEffect(() => {
-    if (!contactId) return;
+  const scrollToBottom = useCallback(() => {
+    requestAnimationFrame(() => {
+      scrollRef.current?.scrollToEnd({ animated: true });
+    });
+  }, []);
 
-    const interval = setInterval(() => {
-      refreshMessages(contactId);
-    }, 3000);
+  const appendMessage = useCallback((incoming: ChatMessage) => {
+    setMessages((current) => {
+      if (current.some((item) => item.id === incoming.id)) {
+        return current;
+      }
 
-    return () => clearInterval(interval);
-  }, [contactId]);
+      return [...current, incoming];
+    });
+  }, []);
 
-  async function loadInitialData(id: string) {
+  const loadInitialData = useCallback(async (id: string) => {
+    if (!id) return;
+
     try {
-      const [contactData, messageData] = await Promise.all([
-        callService.getContactById(id),
+      const [conversationData, messageData] = await Promise.all([
+        messageService.getConversationById(id),
         messageService.getMessages(id),
       ]);
 
-      setContact(contactData);
+      setConversation({
+        ...conversationData,
+        unread: 0,
+      });
       setMessages(messageData);
+      await messageService.markConversationRead(id);
+      scrollToBottom();
     } catch (error) {
       console.error("Failed to load chat data", error);
     }
-  }
+  }, [scrollToBottom]);
 
-  async function refreshMessages(id: string) {
-    try {
-      const latest = await messageService.getMessages(id);
-      setMessages(latest);
-    } catch (error) {
-      console.error("Failed to refresh messages", error);
+  useEffect(() => {
+    if (conversationId) {
+      loadInitialData(conversationId);
     }
-  }
+  }, [conversationId, loadInitialData]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!conversationId) return;
+
+      messageService.markConversationRead(conversationId).catch((error) => {
+        console.error("Failed to mark conversation read", error);
+      });
+    }, [conversationId])
+  );
+
+  useEffect(() => {
+    if (!conversationId) return;
+
+    const unsubscribe = wsClient.subscribe<NewMessageEvent>("new_message", async (event) => {
+      if (String(event.conversation_id) !== conversationId) {
+        return;
+      }
+
+      const incoming = messageService.mapRealtimeMessageEvent(event);
+      appendMessage(incoming);
+      setConversation((current) => {
+        if (!current) return current;
+
+        return {
+          ...current,
+          preview: incoming.text,
+          time: incoming.time,
+          unread: 0,
+        };
+      });
+
+      try {
+        await messageService.markConversationRead(conversationId);
+      } catch (error) {
+        console.error("Failed to update read state", error);
+      }
+
+      scrollToBottom();
+    });
+
+    return unsubscribe;
+  }, [appendMessage, conversationId, scrollToBottom]);
+
+  useEffect(() => {
+    if (messages.length > 0) {
+      scrollToBottom();
+    }
+  }, [messages, scrollToBottom]);
 
   async function handleSend() {
     const trimmed = input.trim();
 
-    if (!trimmed || !contactId) return;
+    if (!trimmed || !conversationId) return;
 
     try {
-      const newMessage = await messageService.sendMessage(contactId, trimmed);
-      setMessages((prev) => [...prev, newMessage]);
+      const newMessage = await messageService.sendMessage(conversationId, trimmed);
+      appendMessage(newMessage);
+      setConversation((current) => {
+        if (!current) return current;
+
+        return {
+          ...current,
+          preview: newMessage.text,
+          time: newMessage.time,
+          unread: 0,
+        };
+      });
       setInput("");
+      scrollToBottom();
     } catch (error) {
       console.error("Failed to send message", error);
     }
   }
 
-  const isOnline = contact?.online ?? false;
+  const isOnline = conversation?.online ?? false;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -95,14 +161,14 @@ export default function MessageChatScreen() {
           <View
             style={[
               styles.avatar,
-              { backgroundColor: contact?.avatarColor ?? "#3F7BF0" },
+              { backgroundColor: conversation?.avatarColor ?? "#3F7BF0" },
             ]}
           >
-            <Text style={styles.avatarText}>{contact?.initials ?? "DR"}</Text>
+            <Text style={styles.avatarText}>{conversation?.initials ?? "SC"}</Text>
           </View>
 
           <View style={styles.contactMeta}>
-            <Text style={styles.contactName}>{contact?.name ?? "Loading..."}</Text>
+            <Text style={styles.contactName}>{conversation?.name ?? "Loading..."}</Text>
             <View style={styles.onlineRow}>
               <View
                 style={[
@@ -111,33 +177,17 @@ export default function MessageChatScreen() {
                 ]}
               />
               <Text style={styles.onlineText}>
-                {isOnline ? "Online" : "Offline"}
+                {isOnline ? "Online" : conversation?.role ?? "Conversation"}
               </Text>
             </View>
           </View>
 
           <View style={styles.headerActions}>
-            <Pressable
-              onPress={() =>
-                contact?.id &&
-                router.push({
-                  pathname: "/call/audio/[contactId]",
-                  params: { contactId: contact.id },
-                })
-              }
-            >
+            <Pressable>
               <Feather name="phone-call" size={24} color="#5E6878" />
             </Pressable>
 
-            <Pressable
-              onPress={() =>
-                contact?.id &&
-                router.push({
-                  pathname: "/call/video/[contactId]",
-                  params: { contactId: contact.id },
-                })
-              }
-            >
+            <Pressable>
               <Feather name="video" size={24} color="#5E6878" />
             </Pressable>
 
@@ -148,6 +198,7 @@ export default function MessageChatScreen() {
         </View>
 
         <ScrollView
+          ref={scrollRef}
           style={styles.thread}
           contentContainerStyle={styles.threadContent}
           showsVerticalScrollIndicator={false}
@@ -161,7 +212,8 @@ export default function MessageChatScreen() {
                   </View>
 
                   <Text style={styles.doctorMeta}>
-                    {msg.time}   {msg.name}
+                    {msg.time}
+                    {msg.name ? `   ${msg.name}` : ""}
                   </Text>
                 </>
               ) : (

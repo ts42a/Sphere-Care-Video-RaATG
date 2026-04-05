@@ -1,7 +1,7 @@
 import { WS_BASE_URL } from "../config/ws";
 import { getAccessToken } from "./sessionService";
 
-type WsHandler = (payload: any) => void;
+type WsHandler<T = any> = (payload: T) => void;
 type OpenHandler = () => void;
 
 class WSClient {
@@ -23,7 +23,12 @@ class WSClient {
     }
 
     const token = await getAccessToken();
-    const url = `${WS_BASE_URL}?token=${encodeURIComponent(token ?? "")}`;
+
+    if (!token) {
+      return;
+    }
+
+    const url = `${WS_BASE_URL}?token=${encodeURIComponent(token)}`;
 
     this.manuallyClosed = false;
     this.connectPromise = new Promise<void>((resolve, reject) => {
@@ -31,7 +36,7 @@ class WSClient {
       this.socket = socket;
 
       socket.onopen = () => {
-        console.log("WebSocket connected");
+        console.log("WS connected:", url);
         this.flushQueue();
         this.openHandlers.forEach((handler) => handler());
         this.connectPromise = null;
@@ -39,15 +44,18 @@ class WSClient {
       };
 
       socket.onmessage = (event) => {
+        console.log("WS message received:",event.data);
         try {
           const message = JSON.parse(event.data);
           const type = message?.type;
-          const payload = message?.payload;
 
           if (!type) return;
 
+          const normalizedPayload =
+            message?.payload !== undefined ? message.payload : message;
+
           const listeners = this.handlers.get(type);
-          listeners?.forEach((handler) => handler(payload));
+          listeners?.forEach((handler) => handler(normalizedPayload));
         } catch (error) {
           console.error("WebSocket message parse error", error);
         }
@@ -58,7 +66,7 @@ class WSClient {
       };
 
       socket.onclose = () => {
-        console.log("WebSocket disconnected");
+        console.log("WS closed:", event.code, event.reason);
         this.socket = null;
 
         if (this.connectPromise) {
@@ -106,16 +114,16 @@ class WSClient {
     this.socket.send(message);
   }
 
-  subscribe(type: string, handler: WsHandler) {
+  subscribe<T = any>(type: string, handler: WsHandler<T>) {
     const currentHandlers = this.handlers.get(type) ?? new Set<WsHandler>();
-    currentHandlers.add(handler);
+    currentHandlers.add(handler as WsHandler);
     this.handlers.set(type, currentHandlers);
 
     return () => {
       const listeners = this.handlers.get(type);
       if (!listeners) return;
 
-      listeners.delete(handler);
+      listeners.delete(handler as WsHandler);
 
       if (listeners.size === 0) {
         this.handlers.delete(type);

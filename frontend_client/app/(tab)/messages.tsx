@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   View,
@@ -9,11 +9,12 @@ import {
   ScrollView,
   ActivityIndicator,
 } from "react-native";
-import { router, Stack } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import { Feather } from "@expo/vector-icons";
 import PageHeader from "../../src/components/PageHeader";
 import { messageService } from "../../src/services/messageService";
-import type { ConversationItem } from "../../src/types/message";
+import { wsClient } from "../../src/services/wsClient";
+import type { ConversationItem, NewMessageEvent } from "../../src/types/message";
 import { typography } from "../../src/theme/typography";
 
 export default function MessageListScreen() {
@@ -21,23 +22,9 @@ export default function MessageListScreen() {
   const [items, setItems] = useState<ConversationItem[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadMessages("");
-  }, []);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      loadMessages(query);
-    }, 220);
-
-    return () => clearTimeout(timer);
-  }, [query]);
-
-  async function loadMessages(search: string) {
+  const loadMessages = useCallback(async (search: string) => {
     try {
-      if (!items.length) {
-        setLoading(true);
-      }
+      setLoading((current) => current && items.length === 0);
       const data = await messageService.getConversations(search);
       setItems(data);
     } catch (error) {
@@ -45,10 +32,56 @@ export default function MessageListScreen() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [items.length]);
+
+  useEffect(() => {
+    loadMessages("");
+  }, [loadMessages]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadMessages(query);
+    }, [loadMessages, query])
+  );
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      loadMessages(query);
+    }, 220);
+
+    return () => clearTimeout(timer);
+  }, [loadMessages, query]);
+
+  useEffect(() => {
+    const unsubscribe = wsClient.subscribe<NewMessageEvent>("new_message", (event) => {
+      const incomingMessage = messageService.mapRealtimeMessageEvent(event);
+      const conversationId = String(event.conversation_id);
+
+      setItems((current) => {
+        const existing = current.find((item) => item.contactId === conversationId);
+
+        if (!existing) {
+          loadMessages(query);
+          return current;
+        }
+
+        const nextItem: ConversationItem = {
+          ...existing,
+          preview: incomingMessage.text,
+          time: incomingMessage.time,
+          unread: incomingMessage.sender === "me" ? existing.unread : existing.unread + 1,
+        };
+
+        const rest = current.filter((item) => item.contactId !== conversationId);
+        return [nextItem, ...rest];
+      });
+    });
+
+    return unsubscribe;
+  }, [loadMessages, query]);
 
   return (
-      <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.inner}>
         <View style={styles.headerWrap}>
           <PageHeader title="Messages" showBack={false} />
@@ -90,7 +123,9 @@ export default function MessageListScreen() {
                 <View
                   style={[
                     styles.avatar,
-                    { backgroundColor: item.avatarColor },
+                    {
+                      backgroundColor: item.avatarColor,
+                    },
                   ]}
                 >
                   <Text style={styles.avatarText}>{item.initials}</Text>
@@ -124,7 +159,7 @@ export default function MessageListScreen() {
             ))}
           </ScrollView>
         )}
-      </View> 
+      </View>
     </SafeAreaView>
   );
 }

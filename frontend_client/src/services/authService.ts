@@ -6,6 +6,8 @@ import {
   resetPassword,
 } from "../api/auth";
 import { clearSession, saveSession } from "./sessionService";
+import { wsClient } from "./wsClient";
+import { notificationService } from "./notificationService";
 
 export const authService = {
   async login(email: string, password: string) {
@@ -168,6 +170,8 @@ export const authService = {
   },
 
   async logout() {
+    wsClient.disconnect();
+    notificationService.resetRealtime();
     await clearSession();
     return { success: true };
   },

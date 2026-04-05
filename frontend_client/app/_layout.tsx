@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { Stack, usePathname, useRouter } from "expo-router";
 import { ActivityIndicator, View } from "react-native";
 import { getAccessToken } from "../src/services/sessionService";
+import { wsClient } from "../src/services/wsClient";
+import { notificationService } from "../src/services/notificationService";
 
 export default function RootLayout() {
   const router = useRouter();
@@ -19,8 +21,17 @@ export default function RootLayout() {
       const isAuthPage = currentPath.startsWith("/auth");
 
       if (!token && !isAuthPage) {
+        wsClient.disconnect();
+        notificationService.resetRealtime();
         router.replace("/auth/login");
         return;
+      }
+
+      if (token) {
+        wsClient.connect().catch((error) => {
+          console.error("Failed to connect WebSocket", error);
+        });
+        notificationService.initializeRealtime();
       }
 
       if (token && isAuthPage) {
@@ -51,7 +62,7 @@ export default function RootLayout() {
 
   return (
     <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen name="(tab)" options={{ headerShown: false }} />
     </Stack>
   );
 }
