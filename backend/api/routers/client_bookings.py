@@ -217,6 +217,7 @@ async def create_client_booking(
     db.add(new_booking)
     db.commit()
     db.refresh(new_booking)
+    new_booking.resident = resident
 
     schedule_payload = build_schedule_payload(db, int(admin_id), booking.doctor_id, booking.date)
     await notification_service.notify_schedule_updated(
@@ -226,6 +227,7 @@ async def create_client_booking(
         schedule_payload=schedule_payload,
     )
 
+    await notification_service.notify_booking_created(new_booking, int(admin_id), db=db)
     await notification_service.notify_client_booking_updated(
         admin_id=int(admin_id),
         booking_id=new_booking.id,
@@ -280,6 +282,14 @@ async def cancel_client_booking(
     db.commit()
     db.refresh(booking)
 
+    resident = db.query(models.Resident).filter(
+        models.Resident.id == booking.resident_id,
+        models.Resident.admin_id == admin_id,
+        models.Resident.is_deleted == False,
+    ).first()
+    if resident:
+        booking.resident = resident
+
     doctor = next((d for d in get_doctors() if d["name"] == booking.doctor_name), None)
     doctor_id = doctor["id"] if doctor else "unknown"
 
@@ -297,6 +307,7 @@ async def cancel_client_booking(
         schedule_payload=schedule_payload,
     )
 
+    await notification_service.notify_booking_updated(booking, int(admin_id), db=db)
     await notification_service.notify_client_booking_updated(
         admin_id=int(admin_id),
         booking_id=booking.id,
