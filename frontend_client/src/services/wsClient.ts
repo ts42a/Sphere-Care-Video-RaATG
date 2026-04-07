@@ -1,7 +1,7 @@
 import { WS_BASE_URL } from "../config/ws";
 import { getAccessToken } from "./sessionService";
 
-type WsHandler<T = any> = (payload: T) => void;
+type WsHandler = (payload: any) => void;
 type OpenHandler = () => void;
 
 class WSClient {
@@ -23,9 +23,8 @@ class WSClient {
     }
 
     const token = await getAccessToken();
-
     if (!token) {
-      return;
+      throw new Error("No token available for WebSocket connection");
     }
 
     const url = `${WS_BASE_URL}?token=${encodeURIComponent(token)}`;
@@ -44,16 +43,13 @@ class WSClient {
       };
 
       socket.onmessage = (event) => {
-        console.log("WS message received:",event.data);
+        console.log("WS raw message:", event.data);
         try {
           const message = JSON.parse(event.data);
           const type = message?.type;
-
           if (!type) return;
 
-          const normalizedPayload =
-            message?.payload !== undefined ? message.payload : message;
-
+          const normalizedPayload = message?.payload !== undefined ? message.payload : message;
           const listeners = this.handlers.get(type);
           listeners?.forEach((handler) => handler(normalizedPayload));
         } catch (error) {
@@ -65,7 +61,7 @@ class WSClient {
         console.error("WebSocket error", error);
       };
 
-      socket.onclose = () => {
+      socket.onclose = (event) => {
         console.log("WS closed:", event.code, event.reason);
         this.socket = null;
 
@@ -114,16 +110,16 @@ class WSClient {
     this.socket.send(message);
   }
 
-  subscribe<T = any>(type: string, handler: WsHandler<T>) {
+  subscribe(type: string, handler: WsHandler) {
     const currentHandlers = this.handlers.get(type) ?? new Set<WsHandler>();
-    currentHandlers.add(handler as WsHandler);
+    currentHandlers.add(handler);
     this.handlers.set(type, currentHandlers);
 
     return () => {
       const listeners = this.handlers.get(type);
       if (!listeners) return;
 
-      listeners.delete(handler as WsHandler);
+      listeners.delete(handler);
 
       if (listeners.size === 0) {
         this.handlers.delete(type);

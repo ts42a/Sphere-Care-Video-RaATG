@@ -21,7 +21,7 @@ def _fmt(n: models.Notification) -> schemas.NotificationResponse:
         created_at=n.created_at,
     )
 
-@router.get("", response_model=list[schemas.NotificationResponse], include_in_schema=False)
+
 @router.get("/", response_model=list[schemas.NotificationResponse])
 def get_notifications(
     category: Optional[str] = Query(None, description="appointment | alert | reminder"),
@@ -65,7 +65,7 @@ def get_priority_alerts(
     )
     return [_fmt(n) for n in rows]
 
-@router.post("", response_model=schemas.NotificationResponse, status_code=status.HTTP_201_CREATED, include_in_schema=False)
+
 @router.post("/", response_model=schemas.NotificationResponse, status_code=status.HTTP_201_CREATED)
 def create_notification(
     notification_in: schemas.NotificationCreate,

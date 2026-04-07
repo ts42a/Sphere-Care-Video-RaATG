@@ -1,17 +1,15 @@
 import {
+  fetchConversation,
   fetchConversations,
-  fetchConversationById,
   fetchMessages,
   createMessage,
   markConversationRead,
-  mapRealtimeMessageEvent,
 } from "../api/message";
 
 export const messageService = {
+  getConversation: fetchConversation,
   getConversations: fetchConversations,
-  getConversationById: fetchConversationById,
   getMessages: fetchMessages,
   sendMessage: createMessage,
   markConversationRead,
-  mapRealtimeMessageEvent,
 };

@@ -9,6 +9,7 @@ from backend.api.routers import api_router
 from backend.api.routers.ws import router as ws_router  # ── NEW ──
 from backend.db.base import Base
 from backend.db.session import engine
+from backend.db.runtime_migrations import run_runtime_migrations
 from backend import models  # noqa: F401
 
 
@@ -16,6 +17,7 @@ from backend import models  # noqa: F401
 async def lifespan(app: FastAPI):
     # Create all tables from ORM metadata (no-op if they already exist)
     Base.metadata.create_all(bind=engine)
+    run_runtime_migrations(engine)
     # Seed test data when DB is fresh (no-op if data already exists)
     from backend.db.seed import seed_database
     seed_database()

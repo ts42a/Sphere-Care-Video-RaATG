@@ -1,9 +1,10 @@
-# backend/services/notification_service.py
-# Was empty — now pushes WebSocket events
-
 from __future__ import annotations
+
+from datetime import datetime
 from typing import Optional
+
 from sqlalchemy.orm import Session
+
 from backend import models
 from backend.ws.ws_manager import ws_manager
 
@@ -152,7 +153,12 @@ async def notify_alert_created(alert, admin_id: int):
     })
 
 
-async def notify_new_message(message, admin_id: int):
+async def notify_new_message(message, admin_id: int, deliveries: Optional[dict[str, dict]] = None):
+    if deliveries:
+        await ws_manager.broadcast_many(deliveries)
+        return
+
+    created_at = getattr(message, "created_at", None)
     await ws_manager.broadcast(admin_id, {
         "type": "new_message",
         "conversation_id": message.conversation_id,
@@ -161,11 +167,21 @@ async def notify_new_message(message, admin_id: int):
             "conversation_id": message.conversation_id,
             "sender_name": message.sender_name,
             "sender_role": message.sender_role or "",
+            "sender_user_id": message.sender_user_id,
+            "sender_participant_type": getattr(message, "sender_participant_type", "user"),
             "content": message.content,
             "is_self": message.is_self,
-            "created_at": message.created_at.strftime("%I:%M %p"),
+            "created_at": created_at.isoformat() if isinstance(created_at, datetime) else str(created_at),
         }
     })
+
+
+async def notify_conversation_changed(admin_id: int, deliveries: Optional[dict[str, dict]] = None):
+    payload = {"type": "conversations_update"}
+    if deliveries:
+        await ws_manager.broadcast_many({actor_key: payload for actor_key in deliveries.keys()})
+        return
+    await ws_manager.broadcast(admin_id, payload)
 
 
 async def notify_schedule_updated(admin_id: int, doctor_id: str, date: str, schedule_payload: dict):
