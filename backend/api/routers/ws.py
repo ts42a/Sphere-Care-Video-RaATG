@@ -1,10 +1,8 @@
-# backend/api/routers/ws.py
-# NEW FILE — WebSocket endpoint, matches your exact router style
-
 import json
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
-from backend.ws.ws_manager import ws_manager
+from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect
+
 from backend.core.security import decode_access_token
+from backend.ws.ws_manager import ws_manager
 
 router = APIRouter(tags=["WebSocket"])
 
@@ -14,14 +12,12 @@ async def websocket_endpoint(
     websocket: WebSocket,
     token: str = Query(...),
 ):
-    try:
-        payload = decode_access_token(token)
-        admin_id = int(payload.get("admin_id") or 0)
-    except Exception:
+    payload = decode_access_token(token)
+    if not payload:
         await websocket.close(code=4001)
         return
 
-    await ws_manager.connect(websocket, admin_id)
+    admin_id, actor_key = await ws_manager.connect(websocket, payload)
 
     try:
         while True:
@@ -48,4 +44,4 @@ async def websocket_endpoint(
                     ws_manager.unwatch_schedule(admin_id, doctor_id, date, websocket)
 
     except WebSocketDisconnect:
-        ws_manager.disconnect(websocket, admin_id)
+        ws_manager.disconnect(websocket, admin_id, actor_key)

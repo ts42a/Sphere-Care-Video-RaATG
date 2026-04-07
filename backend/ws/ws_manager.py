@@ -1,44 +1,98 @@
-from typing import Dict, List, Tuple
-from fastapi import WebSocket
+from collections import defaultdict
+from typing import Dict, List, Optional, Set, Tuple
 import json
+
+from fastapi import WebSocket
 
 
 class WSManager:
     def __init__(self):
         self.connections: Dict[int, List[WebSocket]] = {}
+        self.actor_connections: Dict[str, List[WebSocket]] = {}
+        self.socket_index: Dict[int, tuple[int, Optional[str]]] = {}
         self.schedule_watchers: Dict[Tuple[int, str, str], List[WebSocket]] = {}
 
-    async def connect(self, websocket: WebSocket, admin_id: int):
+    def _actor_key_from_payload(self, payload: dict) -> Optional[str]:
+        role = payload.get("role")
+        user_id = payload.get("user_id")
+
+        if role == "admin" and user_id:
+            return f"admin:{int(user_id)}"
+        if user_id:
+            return f"user:{int(user_id)}"
+        return None
+
+    async def connect(self, websocket: WebSocket, auth_payload: dict):
         await websocket.accept()
+        admin_id = int(auth_payload.get("admin_id") or 0)
+        actor_key = self._actor_key_from_payload(auth_payload)
+
         if admin_id not in self.connections:
             self.connections[admin_id] = []
         self.connections[admin_id].append(websocket)
 
-    def disconnect(self, websocket: WebSocket, admin_id: int):
+        if actor_key:
+            if actor_key not in self.actor_connections:
+                self.actor_connections[actor_key] = []
+            self.actor_connections[actor_key].append(websocket)
+
+        self.socket_index[id(websocket)] = (admin_id, actor_key)
+        return admin_id, actor_key
+
+    def disconnect(self, websocket: WebSocket, admin_id: Optional[int] = None, actor_key: Optional[str] = None):
+        if admin_id is None or actor_key is None:
+            admin_id, actor_key = self.socket_index.pop(id(websocket), (admin_id or 0, actor_key))
+        else:
+            self.socket_index.pop(id(websocket), None)
+
         if admin_id in self.connections:
-            self.connections[admin_id] = [
-                ws for ws in self.connections[admin_id] if ws != websocket
-            ]
+            self.connections[admin_id] = [ws for ws in self.connections[admin_id] if ws != websocket]
+            if not self.connections[admin_id]:
+                del self.connections[admin_id]
+
+        if actor_key and actor_key in self.actor_connections:
+            self.actor_connections[actor_key] = [ws for ws in self.actor_connections[actor_key] if ws != websocket]
+            if not self.actor_connections[actor_key]:
+                del self.actor_connections[actor_key]
 
         for key in list(self.schedule_watchers.keys()):
-            self.schedule_watchers[key] = [
-                ws for ws in self.schedule_watchers[key] if ws != websocket
-            ]
+            self.schedule_watchers[key] = [ws for ws in self.schedule_watchers[key] if ws != websocket]
             if not self.schedule_watchers[key]:
                 del self.schedule_watchers[key]
 
-    async def broadcast(self, admin_id: int, data: dict):
-        if admin_id not in self.connections:
-            return
+    async def _broadcast_to_sockets(self, sockets: List[WebSocket], data: dict):
         payload = json.dumps(data, default=str)
-        dead = []
-        for ws in self.connections[admin_id]:
+        dead: List[WebSocket] = []
+        for ws in list(sockets):
             try:
                 await ws.send_text(payload)
             except Exception:
                 dead.append(ws)
+
         for ws in dead:
-            self.connections[admin_id].remove(ws)
+            self.disconnect(ws)
+
+    async def broadcast(self, admin_id: int, data: dict):
+        sockets = self.connections.get(admin_id, [])
+        if not sockets:
+            return
+        await self._broadcast_to_sockets(sockets, data)
+
+    async def broadcast_actor(self, actor_key: str, data: dict):
+        sockets = self.actor_connections.get(actor_key, [])
+        if not sockets:
+            return
+        await self._broadcast_to_sockets(sockets, data)
+
+    async def broadcast_many(self, deliveries: dict[str, dict]):
+        sent_to_socket_ids: Set[int] = set()
+        for actor_key, data in deliveries.items():
+            sockets = self.actor_connections.get(actor_key, [])
+            unique_sockets = [ws for ws in sockets if id(ws) not in sent_to_socket_ids]
+            if not unique_sockets:
+                continue
+            await self._broadcast_to_sockets(unique_sockets, data)
+            sent_to_socket_ids.update(id(ws) for ws in unique_sockets)
 
     async def watch_schedule(self, admin_id: int, doctor_id: str, date: str, websocket: WebSocket):
         key = (admin_id, doctor_id, date)
@@ -51,26 +105,16 @@ class WSManager:
         key = (admin_id, doctor_id, date)
         if key not in self.schedule_watchers:
             return
-        self.schedule_watchers[key] = [
-            ws for ws in self.schedule_watchers[key] if ws != websocket
-        ]
+        self.schedule_watchers[key] = [ws for ws in self.schedule_watchers[key] if ws != websocket]
         if not self.schedule_watchers[key]:
             del self.schedule_watchers[key]
 
     async def broadcast_schedule_update(self, admin_id: int, doctor_id: str, date: str, data: dict):
         key = (admin_id, doctor_id, date)
-        payload = json.dumps(data, default=str)
         watchers = self.schedule_watchers.get(key, [])
-        dead = []
-
-        for ws in watchers:
-            try:
-                await ws.send_text(payload)
-            except Exception:
-                dead.append(ws)
-
-        for ws in dead:
-            self.unwatch_schedule(admin_id, doctor_id, date, ws)
+        if not watchers:
+            return
+        await self._broadcast_to_sockets(list(watchers), data)
 
 
 ws_manager = WSManager()
