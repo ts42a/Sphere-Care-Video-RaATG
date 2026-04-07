@@ -1,13 +1,15 @@
-var ME = { name: 'Sarah Chen', role: 'Senior Carer' };
-
-// Pull name/role from session if available
-(function () {
+function getCurrentActor() {
   try {
     var u = JSON.parse(sessionStorage.getItem('user') || '{}');
-    if (u.full_name) ME.name = u.full_name;
-    if (u.role || u.global_role) ME.role = u.role || u.global_role;
-  } catch (_) {}
-})();
+    var name = u.full_name || u.name || sessionStorage.getItem('spherecare_user_name') || 'Me';
+    var role = u.role || u.global_role || sessionStorage.getItem('spherecare_role') || 'staff';
+    var id = u.id || u.user_id || null;
+    return { name: name, role: role, id: id };
+  } catch (e) {
+    return { name: 'Me', role: 'staff', id: null };
+  }
+}
+var ME = getCurrentActor();
 
 function authH() { var h = { 'Content-Type': 'application/json' }; var t = sessionStorage.getItem('access_token'); if (t) h['Authorization'] = 'Bearer ' + t; return h; }
 function authHF() { var h = {}; var t = sessionStorage.getItem('access_token'); if (t) h['Authorization'] = 'Bearer ' + t; return h; }
@@ -26,13 +28,13 @@ var DEMO_CONVS = [
 var DEMO_MSGS = {
   1: [
     { id: 1, conversation_id: 1, sender_name: 'Sarah Chen', sender_role: 'Senior Carer', content: "Hi team! Mrs. Johnson in room 204 is asking for her afternoon medication. Can someone check on her?", is_self: 'false', created_at: '9:30 AM' },
-    { id: 2, conversation_id: 1, sender_name: 'Me', sender_role: 'Senior Carer', content: "Perfect, I'll check on her in 10 minutes", is_self: 'true', created_at: '9:32 AM' },
+    { id: 2, conversation_id: 1, sender_name: 'Me', sender_role: 'Senior Carer', content: "Perfect, I'll check on her in 10 minutes", is_self: true, created_at: '9:32 AM' },
     { id: 3, conversation_id: 1, sender_name: 'Mike Roberts', sender_role: 'Nurse', content: "Thanks! I've also updated her care plan with the new medication schedule.", is_self: 'false', created_at: '10:15 AM' }
   ],
   2: [{ id: 4, conversation_id: 2, sender_name: 'Sarah Chen', sender_role: 'Senior Carer', content: "Can you help me with Mrs. Johnson's medication schedule?", is_self: 'false', created_at: '11:15 AM' }],
   3: [
     { id: 5, conversation_id: 3, sender_name: 'Linda Pham', sender_role: 'Carer', content: "Daily care report for Dorothy Williams completed. All vitals stable.", is_self: 'false', created_at: '3:00 PM' },
-    { id: 6, conversation_id: 3, sender_name: 'Me', sender_role: 'Senior Carer', content: "Thank you! I've reviewed the report.", is_self: 'true', created_at: '3:05 PM' }
+    { id: 6, conversation_id: 3, sender_name: 'Me', sender_role: 'Senior Carer', content: "Thank you! I've reviewed the report.", is_self: true, created_at: '3:05 PM' }
   ],
   4: [{ id: 7, conversation_id: 4, sender_name: 'Night Team', sender_role: 'Carer', content: "All residents sleeping peacefully. No incidents to report.", is_self: 'false', created_at: '10:00 PM' }],
   5: [{ id: 8, conversation_id: 5, sender_name: 'System', sender_role: 'Admin', content: "Fire drill scheduled for tomorrow at 2 PM. All staff please be prepared.", is_self: 'false', created_at: '2 days ago' }],
@@ -234,7 +236,7 @@ async function sendMessage() {
 
   for (var i = 0; i < filesToSend.length; i++) {
     var f = filesToSend[i];
-    var tempMsg = { id: Date.now() + Math.random(), conversation_id: currentId, sender_name: ME.name, sender_role: ME.role, content: '', is_self: 'true', created_at: now, fileHtml: localFileBubble(f) };
+    var tempMsg = { id: Date.now() + Math.random(), conversation_id: currentId, sender_name: ME.name, sender_role: ME.role, content: '', is_self: true, created_at: now, fileHtml: localFileBubble(f) };
     localMsgs[currentId].push(tempMsg);
     try {
       if (!demo) {
@@ -245,7 +247,7 @@ async function sendMessage() {
           var info = await res.json();
           tempMsg.fileHtml = makeFileBubble(info.filename, info.url);
           var mc = '[file] ' + info.filename + ' | ' + info.url;
-          await fetch(API_BASE + '/messages/conversations/' + currentId + '/messages', { method: 'POST', headers: authH(), body: JSON.stringify({ conversation_id: currentId, sender_name: ME.name, sender_role: ME.role, content: mc, is_self: 'true' }) });
+          await fetch(API_BASE + '/messages/conversations/' + currentId + '/messages', { method: 'POST', headers: authH(), body: JSON.stringify({ conversation_id: currentId, sender_name: ME.name, sender_role: ME.role, content: mc, is_self: true }) });
         }
       }
     } catch (e) {}
@@ -257,12 +259,12 @@ async function sendMessage() {
   }
 
   if (content) {
-    var msg = { id: Date.now(), conversation_id: currentId, sender_name: ME.name, sender_role: ME.role, content: content, is_self: 'true', created_at: now };
+    var msg = { id: Date.now(), conversation_id: currentId, sender_name: ME.name, sender_role: ME.role, content: content, is_self: true, created_at: now };
     localMsgs[currentId].push(msg);
     var conv1 = allConvs.find(function (c) { return c.id === currentId; });
     if (conv1) { conv1.last_message = content; conv1.last_message_at = now; }
     try {
-      if (!demo) await fetch(API_BASE + '/messages/conversations/' + currentId + '/messages', { method: 'POST', headers: authH(), body: JSON.stringify({ conversation_id: currentId, sender_name: ME.name, sender_role: ME.role, content: content, is_self: 'true' }) });
+      if (!demo) await fetch(API_BASE + '/messages/conversations/' + currentId + '/messages', { method: 'POST', headers: authH(), body: JSON.stringify({ conversation_id: currentId, sender_name: ME.name, sender_role: ME.role, content: content, is_self: true }) });
     } catch (e) {}
   }
 
@@ -322,6 +324,7 @@ document.addEventListener('DOMContentLoaded', function () {
   area.addEventListener('drop', function (e) { e.preventDefault(); area.classList.remove('drag-over'); if (e.dataTransfer.files.length) handleFiles(e.dataTransfer.files); });
 });
 
+ME = getCurrentActor();
 loadConvs();
 
 // ════════════════════════════════════════════════════════════
@@ -483,30 +486,95 @@ function endCall() {
 (function () {
   var proto = location.protocol === 'https:' ? 'wss' : 'ws';
   var ws;
+
+  function resolveWsBase() {
+    if (typeof API_BASE === 'string' && /^https?:/i.test(API_BASE)) {
+      return API_BASE.replace(/^http/i, 'ws').replace(/\/api\/v1\/?$/, '');
+    }
+    return proto + '://' + location.host;
+  }
+
+  function dedupePush(convId, message) {
+    if (!localMsgs[convId]) localMsgs[convId] = [];
+    var exists = localMsgs[convId].some(function (item) {
+      if (message.id != null && item.id != null) return String(item.id) === String(message.id);
+      return String(item.created_at || '') === String(message.created_at || '') &&
+        String(item.sender_name || '') === String(message.sender_name || '') &&
+        String(item.content || '') === String(message.content || '');
+    });
+    if (!exists) localMsgs[convId].push(message);
+  }
+
+  function looksSelf(message) {
+    if (!message) return false;
+    if (message.is_self === true || message.is_self === 'true') return true;
+    if (ME && ME.id != null && message.sender_user_id != null && String(ME.id) === String(message.sender_user_id)) return true;
+    return false;
+  }
+
   function connect() {
     var token = sessionStorage.getItem('access_token') || '';
-    ws = new WebSocket(proto + '://' + location.host + '/ws?token=' + encodeURIComponent(token));
-    ws.onopen  = function () {};
-    ws.onclose = function () { setTimeout(connect, 3000); };
+    ws = new WebSocket(resolveWsBase() + '/ws?token=' + encodeURIComponent(token));
+
+    ws.onopen = function () {
+      ME = getCurrentActor();
+    };
+
+    ws.onclose = function () {
+      setTimeout(connect, 3000);
+    };
+
     ws.onerror = function () {};
+
     ws.onmessage = function (e) {
-      var msg; try { msg = JSON.parse(e.data); } catch (err) { return; }
+      var msg;
+      try { msg = JSON.parse(e.data); } catch (err) { return; }
+
       if (msg.type === 'new_message') {
-        var m = msg.message, convId = msg.conversation_id;
-        if (m.sender_name === ME.name) return;
-        if (!localMsgs[convId]) localMsgs[convId] = [];
-        localMsgs[convId].push(m);
-        var conv = allConvs.find(function (c) { return c.id === convId; });
-        if (conv) { conv.last_message = m.content || ''; conv.last_message_at = fmtTime(m.created_at); if (convId !== currentId) conv.unread_count = (conv.unread_count || 0) + 1; }
-        if (convId === currentId) renderMsgs(localMsgs[convId]);
-        updateLabel(); renderConvList();
+        var m = msg.message || msg;
+        var convId = Number(msg.conversation_id || m.conversation_id);
+        var isSelf = looksSelf(m);
+
+        if (isSelf) return;
+
+        dedupePush(convId, m);
+
+        var conv = allConvs.find(function (c) { return Number(c.id) === convId; });
+        if (!conv) {
+          if (!demo) loadConvs();
+          return;
+        }
+
+        conv.last_message = m.content || '';
+        conv.last_message_at = fmtTime(m.created_at);
+        if (convId !== currentId) {
+          conv.unread_count = (conv.unread_count || 0) + 1;
+        }
+
+        if (convId === currentId) {
+          renderMsgs(localMsgs[convId]);
+          if (!demo) {
+            fetch(API_BASE + '/messages/conversations/' + currentId + '/read', { method: 'PATCH', headers: authH() }).catch(function () {});
+          }
+        }
+
+        updateLabel();
+        renderConvList();
       }
+
       if (msg.type === 'presence') {
-        var conv = allConvs.find(function (c) { return c.id === msg.conversation_id; });
-        if (conv) { conv.online = msg.online; renderConvList(); }
+        var conv2 = allConvs.find(function (c) { return Number(c.id) === Number(msg.conversation_id); });
+        if (conv2) {
+          conv2.online = msg.online;
+          renderConvList();
+        }
       }
-      if (msg.type === 'conversations_update') { if (!demo) loadConvs(); }
+
+      if (msg.type === 'conversations_update') {
+        if (!demo) loadConvs();
+      }
     };
   }
+
   connect();
 })();
