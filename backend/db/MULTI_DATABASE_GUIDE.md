@@ -235,14 +235,14 @@ If you have an existing single database and want to migrate to per-admin databas
 
 ## Key Points
 
-### ✅ Do's:
+## Do's:
 - Always set `admin_id` when creating records (Staff, Resident, etc.)
 - Use the appropriate database session for each admin
 - Initialize database when creating new admin account
 - Store admin_id in JWT token for automatic session management
 - Use uploads/ subfolder structure for file storage
 
-### ❌ Don'ts:
+### Don'ts:
 - Don't use the default SessionLocal for queries that need admin isolation
 - Don't forget to set admin_id on new records
 - Don't share database sessions between admins
