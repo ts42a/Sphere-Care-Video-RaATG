@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   View,
@@ -10,115 +10,106 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
-import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
-import { Feather, Ionicons, MaterialIcons } from "@expo/vector-icons";
+import { router, useLocalSearchParams } from "expo-router";
+import { Feather, Ionicons } from "@expo/vector-icons";
 
+import { mapRealtimeMessage } from "../../src/api/message";
 import { messageService } from "../../src/services/messageService";
 import { wsClient } from "../../src/services/wsClient";
-import type { ChatMessage, ConversationItem, NewMessageEvent } from "../../src/types/message";
+import type { ChatMessage, ConversationItem } from "../../src/types/message";
 import { typography } from "../../src/theme/typography";
 
 export default function MessageChatScreen() {
-  const { contactId } = useLocalSearchParams<{ contactId: string }>();
-  const scrollRef = useRef<ScrollView | null>(null);
+  const params = useLocalSearchParams<{
+    contactId: string;
+    name?: string;
+    initials?: string;
+    avatarColor?: string;
+    role?: string;
+  }>();
+
+  const conversationId = params.contactId;
 
   const [conversation, setConversation] = useState<ConversationItem | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
 
-  const conversationId = useMemo(() => contactId ?? "", [contactId]);
-
-  const scrollToBottom = useCallback(() => {
-    requestAnimationFrame(() => {
-      scrollRef.current?.scrollToEnd({ animated: true });
-    });
-  }, []);
-
-  const appendMessage = useCallback((incoming: ChatMessage) => {
-    setMessages((current) => {
-      if (current.some((item) => item.id === incoming.id)) {
-        return current;
-      }
-
-      return [...current, incoming];
-    });
-  }, []);
-
-  const loadInitialData = useCallback(async (id: string) => {
-    if (!id) return;
-
-    try {
-      const [conversationData, messageData] = await Promise.all([
-        messageService.getConversationById(id),
-        messageService.getMessages(id),
-      ]);
-
-      setConversation({
-        ...conversationData,
-        unread: 0,
-      });
-      setMessages(messageData);
-      await messageService.markConversationRead(id);
-      scrollToBottom();
-    } catch (error) {
-      console.error("Failed to load chat data", error);
-    }
-  }, [scrollToBottom]);
-
   useEffect(() => {
     if (conversationId) {
       loadInitialData(conversationId);
     }
-  }, [conversationId, loadInitialData]);
-
-  useFocusEffect(
-    useCallback(() => {
-      if (!conversationId) return;
-
-      messageService.markConversationRead(conversationId).catch((error) => {
-        console.error("Failed to mark conversation read", error);
-      });
-    }, [conversationId])
-  );
+  }, [conversationId]);
 
   useEffect(() => {
     if (!conversationId) return;
 
-    const unsubscribe = wsClient.subscribe<NewMessageEvent>("new_message", async (event) => {
-      if (String(event.conversation_id) !== conversationId) {
-        return;
-      }
+    let unsubscribeMessage = () => {};
+    let unsubscribeConversation = () => {};
 
-      const incoming = messageService.mapRealtimeMessageEvent(event);
-      appendMessage(incoming);
-      setConversation((current) => {
-        if (!current) return current;
+    wsClient
+      .connect()
+      .then(() => {
+        unsubscribeMessage = wsClient.subscribe("new_message", async (payload) => {
+          const payloadConversationId = String(payload?.conversation_id ?? payload?.message?.conversation_id ?? "");
+          if (payloadConversationId !== conversationId) return;
 
-        return {
-          ...current,
-          preview: incoming.text,
-          time: incoming.time,
-          unread: 0,
-        };
+          const chatMessage = mapRealtimeMessage(payload?.message ?? payload);
+          if (!chatMessage) return;
+
+          setMessages((prev) => {
+            if (prev.some((item) => item.id === chatMessage.id)) {
+              return prev;
+            }
+            return [...prev, chatMessage];
+          });
+
+          if (chatMessage.sender !== "me") {
+            await messageService.markConversationRead(conversationId).catch(() => {});
+          }
+        });
+
+        unsubscribeConversation = wsClient.subscribe("conversations_update", async () => {
+          const latest = await messageService.getConversation(conversationId);
+          if (latest) setConversation(latest);
+        });
+      })
+      .catch((error) => {
+        console.error("Failed to connect chat realtime", error);
       });
 
-      try {
-        await messageService.markConversationRead(conversationId);
-      } catch (error) {
-        console.error("Failed to update read state", error);
-      }
+    return () => {
+      unsubscribeMessage();
+      unsubscribeConversation();
+    };
+  }, [conversationId]);
 
-      scrollToBottom();
-    });
+  async function loadInitialData(id: string) {
+    try {
+      const [conversationData, messageData] = await Promise.all([
+        messageService.getConversation(id),
+        messageService.getMessages(id),
+      ]);
 
-    return unsubscribe;
-  }, [appendMessage, conversationId, scrollToBottom]);
-
-  useEffect(() => {
-    if (messages.length > 0) {
-      scrollToBottom();
+      setConversation(
+        conversationData || {
+          id,
+          name: params.name || "Conversation",
+          role: params.role || "Conversation",
+          category: "direct",
+          preview: "",
+          time: "",
+          unread: 0,
+          online: false,
+          initials: params.initials || "CH",
+          avatarColor: params.avatarColor || "#3F7BF0",
+        }
+      );
+      setMessages(messageData);
+      await messageService.markConversationRead(id).catch(() => {});
+    } catch (error) {
+      console.error("Failed to load chat data", error);
     }
-  }, [messages, scrollToBottom]);
+  }
 
   async function handleSend() {
     const trimmed = input.trim();
@@ -127,25 +118,31 @@ export default function MessageChatScreen() {
 
     try {
       const newMessage = await messageService.sendMessage(conversationId, trimmed);
-      appendMessage(newMessage);
-      setConversation((current) => {
-        if (!current) return current;
-
-        return {
-          ...current,
-          preview: newMessage.text,
-          time: newMessage.time,
-          unread: 0,
-        };
+      setMessages((prev) => {
+        if (prev.some((item) => item.id === newMessage.id)) {
+          return prev;
+        }
+        return [...prev, newMessage];
       });
+      setConversation((prev) =>
+        prev
+          ? {
+              ...prev,
+              preview: newMessage.text,
+              time: newMessage.time,
+            }
+          : prev
+      );
       setInput("");
-      scrollToBottom();
     } catch (error) {
       console.error("Failed to send message", error);
     }
   }
 
-  const isOnline = conversation?.online ?? false;
+  const headerName = useMemo(() => conversation?.name || params.name || "Conversation", [conversation?.name, params.name]);
+  const headerInitials = useMemo(() => conversation?.initials || params.initials || "CH", [conversation?.initials, params.initials]);
+  const headerRole = useMemo(() => conversation?.role || params.role || "Conversation", [conversation?.role, params.role]);
+  const avatarColor = conversation?.avatarColor || params.avatarColor || "#3F7BF0";
 
   return (
     <SafeAreaView style={styles.container}>
@@ -158,39 +155,25 @@ export default function MessageChatScreen() {
             <Feather name="arrow-left" size={28} color="#4D5B6B" />
           </Pressable>
 
-          <View
-            style={[
-              styles.avatar,
-              { backgroundColor: conversation?.avatarColor ?? "#3F7BF0" },
-            ]}
-          >
-            <Text style={styles.avatarText}>{conversation?.initials ?? "SC"}</Text>
+          <View style={[styles.avatar, { backgroundColor: avatarColor }]}> 
+            <Text style={styles.avatarText}>{headerInitials}</Text>
           </View>
 
           <View style={styles.contactMeta}>
-            <Text style={styles.contactName}>{conversation?.name ?? "Loading..."}</Text>
+            <Text style={styles.contactName}>{headerName}</Text>
             <View style={styles.onlineRow}>
-              <View
-                style={[
-                  styles.onlineDot,
-                  { opacity: isOnline ? 1 : 0.35 },
-                ]}
-              />
-              <Text style={styles.onlineText}>
-                {isOnline ? "Online" : conversation?.role ?? "Conversation"}
-              </Text>
+              <View style={styles.onlineDot} />
+              <Text style={styles.onlineText}>{headerRole}</Text>
             </View>
           </View>
 
           <View style={styles.headerActions}>
-            <Pressable>
-              <Feather name="phone-call" size={24} color="#5E6878" />
+            <Pressable disabled style={styles.iconBtnDisabled}>
+              <Feather name="phone-call" size={24} color="#A8AFBA" />
             </Pressable>
-
-            <Pressable>
-              <Feather name="video" size={24} color="#5E6878" />
+            <Pressable disabled style={styles.iconBtnDisabled}>
+              <Feather name="video" size={24} color="#A8AFBA" />
             </Pressable>
-
             <Pressable>
               <Ionicons name="information-circle" size={24} color="#5E6878" />
             </Pressable>
@@ -198,22 +181,20 @@ export default function MessageChatScreen() {
         </View>
 
         <ScrollView
-          ref={scrollRef}
           style={styles.thread}
           contentContainerStyle={styles.threadContent}
           showsVerticalScrollIndicator={false}
         >
           {messages.map((msg) => (
             <View key={msg.id} style={styles.messageBlock}>
-              {msg.sender === "doctor" ? (
+              {msg.sender === "other" ? (
                 <>
-                  <View style={styles.doctorBubble}>
-                    <Text style={styles.doctorBubbleText}>{msg.text}</Text>
+                  <View style={styles.otherBubble}>
+                    <Text style={styles.otherBubbleText}>{msg.text}</Text>
                   </View>
 
-                  <Text style={styles.doctorMeta}>
-                    {msg.time}
-                    {msg.name ? `   ${msg.name}` : ""}
+                  <Text style={styles.otherMeta}>
+                    {msg.time}{msg.name ? `   ${msg.name}` : ""}
                   </Text>
                 </>
               ) : (
@@ -224,11 +205,7 @@ export default function MessageChatScreen() {
 
                   <View style={styles.meMetaRow}>
                     <Text style={styles.meMeta}>{msg.time}</Text>
-                    <MaterialIcons
-                      name="done-all"
-                      size={18}
-                      color="#1EB980"
-                    />
+                    <Ionicons name="checkmark-done" size={18} color="#1EB980" />
                   </View>
                 </>
               )}
@@ -238,11 +215,7 @@ export default function MessageChatScreen() {
 
         <View style={styles.inputRow}>
           <Pressable style={styles.attachBtn}>
-            <MaterialIcons
-              name="chat-bubble-outline"
-              size={22}
-              color="#6B7482"
-            />
+            <Feather name="paperclip" size={22} color="#6B7482" />
           </Pressable>
 
           <TextInput
@@ -317,6 +290,9 @@ const styles = StyleSheet.create({
     gap: 16,
     marginLeft: 10,
   },
+  iconBtnDisabled: {
+    opacity: 0.5,
+  },
   thread: {
     flex: 1,
     paddingHorizontal: 20,
@@ -328,18 +304,18 @@ const styles = StyleSheet.create({
   messageBlock: {
     marginBottom: 18,
   },
-  doctorBubble: {
+  otherBubble: {
     maxWidth: "86%",
     backgroundColor: "#ECECEF",
     borderRadius: 20,
     paddingHorizontal: 18,
     paddingVertical: 16,
   },
-  doctorBubbleText: {
+  otherBubbleText: {
     ...typography.body,
     lineHeight: 24,
   },
-  doctorMeta: {
+  otherMeta: {
     ...typography.subText,
     fontSize: 13,
     marginTop: 8,
