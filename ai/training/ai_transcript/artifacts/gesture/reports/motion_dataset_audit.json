@@ -2,14 +2,16 @@
   "task": "motion",
   "labels_version": "labels_v1",
   "source": "manifest",
-  "total_labels": 2,
-  "total_files_seen": 4,
-  "valid_samples": 4,
+  "total_labels": 4,
+  "total_files_seen": 15,
+  "valid_samples": 15,
   "class_counts": {
-    "ME": 2,
-    "YOU": 2
+    "HELLO": 4,
+    "HELP": 4,
+    "SEEYOULATER": 3,
+    "YES": 4
   },
   "low_count_labels": [],
   "min_samples_per_class_target": 1,
-  "class_balance_ratio": 1.0
+  "class_balance_ratio": 0.75
 }

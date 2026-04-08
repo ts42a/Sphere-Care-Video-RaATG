@@ -22,6 +22,8 @@ from label_spec import load_label_spec
 ROOT = Path(__file__).resolve().parent
 LEGACY_MOTION_FEATURE_DIM = 63
 MOTION_FEATURE_DIM = 126
+POSE_FEATURE_DIM = 21
+MOTION_FEATURE_DIM_WITH_POSE = MOTION_FEATURE_DIM + POSE_FEATURE_DIM
 LABEL_SPEC = load_label_spec()
 MIN_VALIDATION_SAMPLES = 8
 
@@ -48,10 +50,13 @@ def _group_for_sample(path: Path, manifest_idx: dict[str, dict[str, Any]]) -> st
 def _upgrade_motion_seq(seq: np.ndarray) -> np.ndarray:
     if seq.ndim != 2:
         raise ValueError(f"Expected 2D motion tensor, got shape {seq.shape}")
-    if seq.shape[1] == MOTION_FEATURE_DIM:
+    if seq.shape[1] == MOTION_FEATURE_DIM_WITH_POSE:
         return seq.astype(np.float32)
+    if seq.shape[1] == MOTION_FEATURE_DIM:
+        zeros = np.zeros((seq.shape[0], POSE_FEATURE_DIM), dtype=np.float32)
+        return np.concatenate([seq.astype(np.float32), zeros], axis=1)
     if seq.shape[1] == LEGACY_MOTION_FEATURE_DIM:
-        zeros = np.zeros((seq.shape[0], LEGACY_MOTION_FEATURE_DIM), dtype=np.float32)
+        zeros = np.zeros((seq.shape[0], LEGACY_MOTION_FEATURE_DIM + POSE_FEATURE_DIM), dtype=np.float32)
         return np.concatenate([seq.astype(np.float32), zeros], axis=1)
     raise ValueError(f"Unsupported motion feature dim: {seq.shape[1]}")
 
@@ -61,7 +66,7 @@ def _fixed_seq_and_length(seq: np.ndarray, seq_len: int) -> tuple[np.ndarray, in
     valid_len = int(min(len(upgraded), seq_len))
     fixed = upgraded[:seq_len]
     if fixed.shape[0] < seq_len:
-        pad = np.zeros((seq_len - fixed.shape[0], MOTION_FEATURE_DIM), dtype=np.float32)
+        pad = np.zeros((seq_len - fixed.shape[0], MOTION_FEATURE_DIM_WITH_POSE), dtype=np.float32)
         fixed = np.vstack([fixed, pad])
     return fixed.astype(np.float32), max(valid_len, 1)
 
@@ -313,9 +318,15 @@ def predict_sequence_probs(bundle: dict[str, Any], seq: np.ndarray) -> np.ndarra
     return probs
 
 
-def _init_model(candidate: CandidateConfig, num_classes: int, device: torch.device) -> MotionGRUClassifier:
+def _init_model(
+    candidate: CandidateConfig,
+    num_classes: int,
+    device: torch.device,
+    *,
+    input_dim: int,
+) -> MotionGRUClassifier:
     return MotionGRUClassifier(
-        input_dim=MOTION_FEATURE_DIM,
+        input_dim=int(input_dim),
         hidden_dim=candidate.hidden_dim,
         num_layers=candidate.num_layers,
         dropout=candidate.dropout,
@@ -336,7 +347,7 @@ def _fit_model(
 ) -> dict[str, Any]:
     _seed_everything(seed)
     device = torch.device(_device_name())
-    model = _init_model(candidate, num_classes, device)
+    model = _init_model(candidate, num_classes, device, input_dim=int(X_train.shape[2]))
     criterion = nn.CrossEntropyLoss(weight=_class_weights(y_train, num_classes).to(device))
     optimizer = torch.optim.AdamW(model.parameters(), lr=candidate.learning_rate)
     train_loader = _make_loader(X_train, y_train, lengths_train, batch_size=batch_size, shuffle=True)
@@ -381,7 +392,7 @@ def _score_candidate(
 ) -> dict[str, Any]:
     _seed_everything(seed)
     device = torch.device(_device_name())
-    model = _init_model(candidate, num_classes, device)
+    model = _init_model(candidate, num_classes, device, input_dim=int(X_train.shape[2]))
     criterion = nn.CrossEntropyLoss(weight=_class_weights(y_train, num_classes).to(device))
     optimizer = torch.optim.AdamW(model.parameters(), lr=candidate.learning_rate)
     train_loader = _make_loader(X_train, y_train, lengths_train, batch_size=batch_size, shuffle=True)
@@ -590,7 +601,7 @@ def run_motion_gru_experiment(
         "model_state_dict": copy.deepcopy(final_fit["state"]),
         "model_name": candidate.name,
         "model_backend": "torch_gru",
-        "feature_dim": MOTION_FEATURE_DIM,
+        "feature_dim": int(X.shape[2]),
         "seq_len": int(X.shape[1]),
         "num_classes": len(labels),
         "hidden_dim": candidate.hidden_dim,
@@ -601,7 +612,7 @@ def run_motion_gru_experiment(
     return {
         "model_name": candidate.name,
         "model_backend": "torch_gru",
-        "feature_dim": MOTION_FEATURE_DIM,
+        "feature_dim": int(X.shape[2]),
         "search": {
             "cv_name": "validation_holdout",
             "cv_folds": 1,

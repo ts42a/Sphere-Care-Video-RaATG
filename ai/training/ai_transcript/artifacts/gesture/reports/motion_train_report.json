@@ -1,30 +1,34 @@
 {
   "task": "motion",
-  "created_at": "2026-04-08T03:37:27.280277+00:00",
+  "created_at": "2026-04-08T13:17:44.672153+00:00",
   "labels_version": "labels_v1",
   "dataset_audit": {
     "task": "motion",
     "labels_version": "labels_v1",
     "source": "manifest",
-    "total_labels": 2,
-    "total_files_seen": 4,
-    "valid_samples": 4,
+    "total_labels": 4,
+    "total_files_seen": 15,
+    "valid_samples": 15,
     "class_counts": {
-      "ME": 2,
-      "YOU": 2
+      "HELLO": 4,
+      "HELP": 4,
+      "SEEYOULATER": 3,
+      "YES": 4
     },
     "low_count_labels": [],
     "min_samples_per_class_target": 1,
-    "class_balance_ratio": 1.0
+    "class_balance_ratio": 0.75
   },
   "dataset_shape": [
-    4,
+    15,
     10,
-    126
+    147
   ],
   "labels": [
-    "ME",
-    "YOU"
+    "HELLO",
+    "HELP",
+    "SEEYOULATER",
+    "YES"
   ],
   "args": {
     "seed": 42,
@@ -65,7 +69,7 @@
           "learning_rate": 0.001,
           "best_epoch": 30,
           "best_val_macro_f1": 1.0,
-          "used_validation": false
+          "used_validation": true
         },
         {
           "model_name": "gru_base",
@@ -75,63 +79,97 @@
           "learning_rate": 0.001,
           "best_epoch": 30,
           "best_val_macro_f1": 1.0,
-          "used_validation": false
+          "used_validation": true
         }
       ]
     },
     "metrics": {
-      "accuracy": 1.0,
-      "macro_f1": 1.0,
-      "weighted_f1": 1.0,
+      "accuracy": 0.6666666666666666,
+      "macro_f1": 0.5555555555555555,
+      "weighted_f1": 0.5555555555555555,
       "classification_report": {
-        "YOU": {
+        "HELLO": {
+          "precision": 0.5,
+          "recall": 1.0,
+          "f1-score": 0.6666666666666666,
+          "support": 1.0
+        },
+        "HELP": {
           "precision": 1.0,
           "recall": 1.0,
           "f1-score": 1.0,
           "support": 1.0
         },
-        "accuracy": 1.0,
-        "macro avg": {
-          "precision": 1.0,
-          "recall": 1.0,
-          "f1-score": 1.0,
+        "SEEYOULATER": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1-score": 0.0,
           "support": 1.0
+        },
+        "accuracy": 0.6666666666666666,
+        "macro avg": {
+          "precision": 0.5,
+          "recall": 0.6666666666666666,
+          "f1-score": 0.5555555555555555,
+          "support": 3.0
         },
         "weighted avg": {
-          "precision": 1.0,
-          "recall": 1.0,
-          "f1-score": 1.0,
-          "support": 1.0
+          "precision": 0.5,
+          "recall": 0.6666666666666666,
+          "f1-score": 0.5555555555555555,
+          "support": 3.0
         }
       },
       "confusion_matrix": {
         "labels": [
-          "ME",
-          "YOU"
+          "HELLO",
+          "HELP",
+          "SEEYOULATER",
+          "YES"
         ],
         "matrix": [
           [
+            1,
+            0,
             0,
             0
           ],
           [
             0,
-            1
+            1,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0
           ]
         ]
       },
       "test_class_counts": {
-        "YOU": 1
+        "HELLO": 1,
+        "HELP": 1,
+        "SEEYOULATER": 1
       }
     },
     "split": {
       "split_mode": "stratified_holdout",
       "held_out_groups": [],
-      "train_size": 3,
-      "test_size": 1,
+      "train_size": 12,
+      "test_size": 3,
       "train_class_counts": {
-        "ME": 2,
-        "YOU": 1
+        "HELLO": 3,
+        "HELP": 3,
+        "SEEYOULATER": 2,
+        "YES": 4
       }
     }
   },
@@ -140,16 +178,16 @@
     "min_test_support_per_class": 1,
     "max_confusion_rate_allowed": 0.45,
     "observed": {
-      "macro_f1": 1.0,
+      "macro_f1": 0.5555555555555555,
       "min_test_support_per_class": 1,
-      "max_confusion_rate": 0.0
+      "max_confusion_rate": 1.0
     },
     "checks": {
-      "macro_f1": true,
+      "macro_f1": false,
       "min_support": true,
-      "max_confusion_rate": true
+      "max_confusion_rate": false
     },
-    "passed": true
+    "passed": false
   },
   "artifacts": {
     "model_path": "C:\\Users\\tonmo\\.cursor\\projects\\Sphere-Care-Video-RaATG\\ai\\training\\ai_transcript\\artifacts\\gesture\\motion_model.pt",

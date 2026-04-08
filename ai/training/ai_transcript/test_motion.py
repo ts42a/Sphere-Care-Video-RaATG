@@ -15,6 +15,7 @@ from dataset_builder import (
     MOTION_NUM_HANDS,
     MOTION_PREBUFFER_FRAMES,
     MOTION_START_ENERGY,
+    create_pose_detector,
     extract_motion_features,
     motion_energy,
 )
@@ -155,6 +156,7 @@ def main():
 
     print("Loaded motion labels:", labels)
     detector = create_detector(num_hands=MOTION_NUM_HANDS)
+    pose_detector = create_pose_detector()
     cap = cv2.VideoCapture(0)
     if not cap.isOpened():
         raise RuntimeError("Could not open webcam.")
@@ -201,12 +203,18 @@ def main():
             rgb = np.ascontiguousarray(rgb)
             mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
             res = detector.detect(mp_image)
+            pose_res = pose_detector.detect(mp_image)
+            pose_lms = pose_res.pose_landmarks[0] if getattr(pose_res, "pose_landmarks", None) else None
             current_pred = last_segment_pred
             current_conf = last_segment_conf
             energy = 0.0
 
             if res.hand_landmarks:
-                vec = extract_motion_features(res.hand_landmarks)
+                vec = extract_motion_features(res.hand_landmarks, pose_lms)
+                if vec.shape[0] > feature_dim:
+                    vec = vec[:feature_dim]
+                elif vec.shape[0] < feature_dim:
+                    vec = np.concatenate([vec, np.zeros(feature_dim - vec.shape[0], dtype=np.float32)], axis=0)
                 prebuffer.append(vec)
                 energy = motion_energy(vec, last_vec)
                 is_active = energy >= (MOTION_KEEPALIVE_ENERGY if in_motion else MOTION_START_ENERGY)
@@ -325,6 +333,8 @@ def main():
         cv2.destroyAllWindows()
         if hasattr(detector, "close"):
             detector.close()
+        if hasattr(pose_detector, "close"):
+            pose_detector.close()
 
 if __name__ == "__main__":
     main()

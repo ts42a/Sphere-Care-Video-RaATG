@@ -1,5 +1,5 @@
 {
-  "created_at": "2026-04-08T03:37:21.937407+00:00",
+  "created_at": "2026-04-08T13:17:42.190418+00:00",
   "mode": "motion",
   "labels_version": "labels_v1",
   "args": {
@@ -23,6 +23,6 @@
   "motion": {
     "dataset_audit_path": "C:\\Users\\tonmo\\.cursor\\projects\\Sphere-Care-Video-RaATG\\ai\\training\\ai_transcript\\artifacts\\gesture\\reports\\motion_dataset_audit.json",
     "train_report_path": "C:\\Users\\tonmo\\.cursor\\projects\\Sphere-Care-Video-RaATG\\ai\\training\\ai_transcript\\artifacts\\gesture\\reports\\motion_train_report.json",
-    "quality_gate_passed": true
+    "quality_gate_passed": false
   }
 }

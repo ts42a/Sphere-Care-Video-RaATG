@@ -35,7 +35,7 @@ ARTIFACTS_DIR.mkdir(parents=True, exist_ok=True)
 REPORTS_DIR.mkdir(parents=True, exist_ok=True)
 
 FEATURE_DIM = 63
-MOTION_FEATURE_DIMS = {63, 126}
+MOTION_FEATURE_DIMS = {63, 126, 147}
 LABEL_SPEC = load_label_spec()
 
 
