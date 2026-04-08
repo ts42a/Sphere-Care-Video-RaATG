@@ -1,6 +1,5 @@
 # Multi-Database Architecture Overview
-
-## System Architecture Diagram
+# System Architecture Diagram
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -318,10 +317,10 @@ Result: ✓ SECURE - Request parameter ignored, JWT token used
 - ✓ Better disk I/O distribution
 
 ### Trade-offs
-- ⚠️ More database files to manage
-- ⚠️ Backups must handle multiple databases
-- ⚠️ Slightly more complex deployment
-- ⚠️ Folder structure must be maintained
+- More database files to manage
+- Backups must handle multiple databases
+- Slightly more complex deployment
+- Folder structure must be maintained
 
 ## Scaling Strategy
 

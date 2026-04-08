@@ -1,4 +1,5 @@
 # test.py - Webcam test for ASL static model (e.g. A, B, C...)
+import argparse
 import json
 import time
 import urllib.request
@@ -21,14 +22,27 @@ ARTIFACTS_DIR = ROOT / "artifacts" / "gesture"
 MODEL_DIR = ROOT / "models"
 MODEL_PATH = ARTIFACTS_DIR / "static_model.joblib"
 LABELS_PATH = ARTIFACTS_DIR / "static_labels.json"
+CALIBRATION_PATH = ARTIFACTS_DIR / "decoder_calibration.json"
 MODEL_URL = (
     "https://storage.googleapis.com/mediapipe-models/hand_landmarker/"
     "hand_landmarker/float16/1/hand_landmarker.task"
 )
 
-CONFIDENCE_THRESHOLD = 0.60
-HISTORY_SIZE = 8
-APPEND_COOLDOWN = 1.0
+DEFAULT_CONFIDENCE_THRESHOLD = 0.60
+DEFAULT_HISTORY_SIZE = 8
+DEFAULT_APPEND_COOLDOWN = 1.0
+DEFAULT_STABLE_MIN_VOTES = 6
+
+
+def _load_calibration_defaults() -> dict:
+    if not CALIBRATION_PATH.exists():
+        return {}
+    with open(CALIBRATION_PATH, "r", encoding="utf-8") as f:
+        try:
+            payload = json.load(f)
+        except json.JSONDecodeError:
+            return {}
+    return payload.get("static", {}) if isinstance(payload, dict) else {}
 
 def get_hand_model_path() -> str:
     MODEL_DIR.mkdir(parents=True, exist_ok=True)
@@ -80,6 +94,24 @@ def majority_vote(items):
     return Counter(items).most_common(1)[0][0]
 
 def main():
+    cal = _load_calibration_defaults()
+    parser = argparse.ArgumentParser(description="Realtime static ASL webcam test.")
+    parser.add_argument(
+        "--threshold", type=float, default=float(cal.get("confidence_threshold", DEFAULT_CONFIDENCE_THRESHOLD))
+    )
+    parser.add_argument("--history-size", type=int, default=int(cal.get("history_size", DEFAULT_HISTORY_SIZE)))
+    parser.add_argument(
+        "--append-cooldown",
+        type=float,
+        default=float(cal.get("append_cooldown_seconds", DEFAULT_APPEND_COOLDOWN)),
+    )
+    parser.add_argument(
+        "--stable-min-votes", type=int, default=int(cal.get("stable_min_votes", DEFAULT_STABLE_MIN_VOTES))
+    )
+    args = parser.parse_args()
+    if args.stable_min_votes > args.history_size:
+        args.stable_min_votes = args.history_size
+
     if not MODEL_PATH.exists():
         raise FileNotFoundError(f"Model not found: {MODEL_PATH}")
     if not LABELS_PATH.exists():
@@ -88,6 +120,30 @@ def main():
     with open(LABELS_PATH, "r", encoding="utf-8") as f:
         meta = json.load(f)
     labels = meta.get("labels", [])
+    schema_version = str(meta.get("schema_version", "")).strip()
+    task = str(meta.get("task", "")).strip()
+    if not schema_version:
+        print("[WARN] legacy labels metadata detected (no schema_version).")
+        print("       Re-run training to regenerate labels metadata with schema_version=gesture_labels_v2.")
+    elif schema_version != "gesture_labels_v2":
+        raise RuntimeError("Labels metadata schema_version must be 'gesture_labels_v2'.")
+    if task and task != "static":
+        raise RuntimeError("Labels metadata task must be 'static'.")
+    feature_dim = int(meta.get("feature_dim", 63))
+    if feature_dim != 63:
+        raise RuntimeError(f"Unsupported feature_dim in labels metadata: {feature_dim}")
+    input_vector_dim = int(meta.get("input_vector_dim", feature_dim))
+    if input_vector_dim != feature_dim:
+        raise RuntimeError(
+            f"Invalid input_vector_dim in labels metadata: {input_vector_dim}, expected {feature_dim}"
+        )
+
+    model_features = getattr(model, "n_features_in_", None)
+    if model_features is not None and int(model_features) != input_vector_dim:
+        raise RuntimeError(
+            f"Model input dimension mismatch: model expects {model_features}, metadata says {input_vector_dim}"
+        )
+
     print("Loaded labels:", labels)
     detector = create_detector(num_hands=1)
     cap = cv2.VideoCapture(0)
@@ -95,7 +151,7 @@ def main():
         raise RuntimeError("Could not open webcam.")
     win = "ASL Test - Multi Class"
     cv2.namedWindow(win, cv2.WINDOW_NORMAL)
-    pred_history = deque(maxlen=HISTORY_SIZE)
+    pred_history = deque(maxlen=args.history_size)
     text_buffer = ""
     last_append_time = 0.0
     print("Press Q or ESC to quit. \nPress C to clear text buffer. \nPress SPACE to add current stable prediction manually. ")
@@ -121,7 +177,7 @@ def main():
                     probs = model.predict_proba(vec)[0]
                     best_idx = int(np.argmax(probs))
                     current_conf = float(probs[best_idx])
-                    if current_conf >= CONFIDENCE_THRESHOLD:
+                    if current_conf >= args.threshold:
                         current_pred = str(pred)
                     else:
                         current_pred = "UNKNOWN"
@@ -135,9 +191,9 @@ def main():
             # auto-append only if stable and not UNKNOWN
             if (
                 smoothed_pred not in ("NO_HAND", "UNKNOWN")
-                and (now - last_append_time) > APPEND_COOLDOWN
-                and len(pred_history) == HISTORY_SIZE
-                and list(pred_history).count(smoothed_pred) >= 6
+                and (now - last_append_time) > args.append_cooldown
+                and len(pred_history) == args.history_size
+                and list(pred_history).count(smoothed_pred) >= args.stable_min_votes
             ):
                 text_buffer += smoothed_pred
                 last_append_time = now

@@ -6,63 +6,37 @@ You need these installed on your computer before starting:
 - **Node.js 18+** — https://nodejs.org/
 - **PostgreSQL** — will be installed via terminal in step 2
 
----
-
 # 2. Database Setup (PostgreSQL)
-
-### Install PostgreSQL
-
-Run this command to install PostgreSQL:
-
-```powershell
+install PostgreSQL:
 winget install PostgreSQL.PostgreSQL.17 --accept-package-agreements --accept-source-agreements
-```
-
-### Add PostgreSQL to PATH
-
-```powershell
 $pgPath = "C:\Program Files\PostgreSQL\17\bin"
 [Environment]::SetEnvironmentVariable("Path", $env:Path + ";$pgPath", "User")
 $env:Path += ";$pgPath"
-```
 
-Restart your terminal after this step.
-
-### Create the Database
+Restart your terminal after this step
 
 During installation, PostgreSQL asks you to set a password. Use `postgres`.
 
 Then run this to create the database:
-
-```powershell
 psql -U postgres -c "CREATE DATABASE sphere_care;"
-```
 
 > The app connects to `postgresql://postgres:postgres@localhost:5432/sphere_care` by default.
 > You can change this by creating a `.env` file in the project root with:
-> ```
 > DATABASE_URL=postgresql://postgres:YOUR_PASSWORD@localhost:5432/sphere_care
-> ```
 
----
 
 # 3. Python Setup
 
-### Create a virtual environment (first time only)
-
-```powershell
+Create a virtual environment (first time only)
 python -m venv .venv
-```
 
-### Activate the virtual environment
 
-```powershell
+Activate the virtual environment
 .venv\Scripts\Activate.ps1
-```
 
-### Install Python packages
 
-```powershell
+Install Python packages
+
 pip install -r requirements.txt
 ```
 
