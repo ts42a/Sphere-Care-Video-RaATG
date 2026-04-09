@@ -1,15 +1,13 @@
-function getCurrentActor() {
+var ME = { name: 'Sarah Chen', role: 'Senior Carer' };
+
+// Pull name/role from session if available
+(function () {
   try {
     var u = JSON.parse(sessionStorage.getItem('user') || '{}');
-    var name = u.full_name || u.name || sessionStorage.getItem('spherecare_user_name') || 'Me';
-    var role = u.role || u.global_role || sessionStorage.getItem('spherecare_role') || 'staff';
-    var id = u.id || u.user_id || null;
-    return { name: name, role: role, id: id };
-  } catch (e) {
-    return { name: 'Me', role: 'staff', id: null };
-  }
-}
-var ME = getCurrentActor();
+    if (u.full_name) ME.name = u.full_name;
+    if (u.role || u.global_role) ME.role = u.role || u.global_role;
+  } catch (_) {}
+})();
 
 function authH() { var h = { 'Content-Type': 'application/json' }; var t = sessionStorage.getItem('access_token'); if (t) h['Authorization'] = 'Bearer ' + t; return h; }
 function authHF() { var h = {}; var t = sessionStorage.getItem('access_token'); if (t) h['Authorization'] = 'Bearer ' + t; return h; }
@@ -28,13 +26,13 @@ var DEMO_CONVS = [
 var DEMO_MSGS = {
   1: [
     { id: 1, conversation_id: 1, sender_name: 'Sarah Chen', sender_role: 'Senior Carer', content: "Hi team! Mrs. Johnson in room 204 is asking for her afternoon medication. Can someone check on her?", is_self: 'false', created_at: '9:30 AM' },
-    { id: 2, conversation_id: 1, sender_name: 'Me', sender_role: 'Senior Carer', content: "Perfect, I'll check on her in 10 minutes", is_self: true, created_at: '9:32 AM' },
+    { id: 2, conversation_id: 1, sender_name: 'Me', sender_role: 'Senior Carer', content: "Perfect, I'll check on her in 10 minutes", is_self: 'true', created_at: '9:32 AM' },
     { id: 3, conversation_id: 1, sender_name: 'Mike Roberts', sender_role: 'Nurse', content: "Thanks! I've also updated her care plan with the new medication schedule.", is_self: 'false', created_at: '10:15 AM' }
   ],
   2: [{ id: 4, conversation_id: 2, sender_name: 'Sarah Chen', sender_role: 'Senior Carer', content: "Can you help me with Mrs. Johnson's medication schedule?", is_self: 'false', created_at: '11:15 AM' }],
   3: [
     { id: 5, conversation_id: 3, sender_name: 'Linda Pham', sender_role: 'Carer', content: "Daily care report for Dorothy Williams completed. All vitals stable.", is_self: 'false', created_at: '3:00 PM' },
-    { id: 6, conversation_id: 3, sender_name: 'Me', sender_role: 'Senior Carer', content: "Thank you! I've reviewed the report.", is_self: true, created_at: '3:05 PM' }
+    { id: 6, conversation_id: 3, sender_name: 'Me', sender_role: 'Senior Carer', content: "Thank you! I've reviewed the report.", is_self: 'true', created_at: '3:05 PM' }
   ],
   4: [{ id: 7, conversation_id: 4, sender_name: 'Night Team', sender_role: 'Carer', content: "All residents sleeping peacefully. No incidents to report.", is_self: 'false', created_at: '10:00 PM' }],
   5: [{ id: 8, conversation_id: 5, sender_name: 'System', sender_role: 'Admin', content: "Fire drill scheduled for tomorrow at 2 PM. All staff please be prepared.", is_self: 'false', created_at: '2 days ago' }],
@@ -169,10 +167,10 @@ function renderMsgs(msgs, hl) {
   if (!msgs.length) { el.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text3);font-size:13px;">No messages yet. Say hello!</div>'; return; }
   var html = '<div class="date-div">Today</div>';
   msgs.forEach(function (m, i) {
-    var isSelf = m.is_self === 'true' || m.is_self === true;
+    var isSelf = m.is_self === true || m.is_self === 'true';
     var clr = isSelf ? '#2ec4b6' : senderClr(m.sender_name);
     var t = fmtTime(m.created_at);
-    var showName = !isSelf && (i === 0 || msgs[i - 1].sender_name !== m.sender_name || msgs[i - 1].is_self === 'true');
+    var showName = !isSelf && (i === 0 || msgs[i - 1].sender_name !== m.sender_name || msgs[i - 1].is_self === true || msgs[i - 1].is_self === 'true');
     var tick = isSelf ? '<span class="tick"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>' : '';
     var bubbleHtml;
     if (m.fileHtml) {
@@ -247,7 +245,7 @@ async function sendMessage() {
           var info = await res.json();
           tempMsg.fileHtml = makeFileBubble(info.filename, info.url);
           var mc = '[file] ' + info.filename + ' | ' + info.url;
-          await fetch(API_BASE + '/messages/conversations/' + currentId + '/messages', { method: 'POST', headers: authH(), body: JSON.stringify({ conversation_id: currentId, sender_name: ME.name, sender_role: ME.role, content: mc, is_self: true }) });
+          await fetch(API_BASE + '/messages/conversations/' + currentId + '/messages', { method: 'POST', headers: authH(), body: JSON.stringify({ conversation_id: currentId, sender_name: ME.name, sender_role: ME.role, content: mc, is_self: true, message_type: 'text' }) });
         }
       }
     } catch (e) {}
@@ -264,7 +262,7 @@ async function sendMessage() {
     var conv1 = allConvs.find(function (c) { return c.id === currentId; });
     if (conv1) { conv1.last_message = content; conv1.last_message_at = now; }
     try {
-      if (!demo) await fetch(API_BASE + '/messages/conversations/' + currentId + '/messages', { method: 'POST', headers: authH(), body: JSON.stringify({ conversation_id: currentId, sender_name: ME.name, sender_role: ME.role, content: content, is_self: true }) });
+      if (!demo) await fetch(API_BASE + '/messages/conversations/' + currentId + '/messages', { method: 'POST', headers: authH(), body: JSON.stringify({ conversation_id: currentId, sender_name: ME.name, sender_role: ME.role, content: content, is_self: true, message_type: 'text' }) });
     } catch (e) {}
   }
 
@@ -324,7 +322,6 @@ document.addEventListener('DOMContentLoaded', function () {
   area.addEventListener('drop', function (e) { e.preventDefault(); area.classList.remove('drag-over'); if (e.dataTransfer.files.length) handleFiles(e.dataTransfer.files); });
 });
 
-ME = getCurrentActor();
 loadConvs();
 
 // ════════════════════════════════════════════════════════════
@@ -354,10 +351,151 @@ async function _L1_capture(type) {
 
 // ── Layer 2: AI Processing — reserved ─────────────────────────
 // Connect AI gateway here (transcription / sentiment / keywords)
+// ── Layer 2: ASL AI Detection ─────────────────────────────────
+// Captures frames from the video element → POST to /api/v1/ai/asl/detect
+// Backend: MediaPipe extracts landmarks → trained classifier → returns letter
+var _aslCanvas  = null;
+var _aslCtx     = null;
+var _aslLoop    = null;
+var _aslSentence = '';
+var _aslHoldLetter = '';
+var _aslHoldCount  = 0;
+var ASL_HOLD_FRAMES = 18;   // frames to hold before confirming letter
+var ASL_INTERVAL_MS = 180;  // ms between detections (~5 fps to avoid spam)
+var ASL_MIN_CONF    = 0.65;
+
 function _L2_aiPipeline(stream) {
-  // TODO: pipe stream.getAudioTracks() to AI service
-  // TODO: pipe stream.getVideoTracks() to vision model
-  return stream; // pass through for now
+  // Only run for video calls with a real stream
+  if (!stream || !stream.getVideoTracks().length) return stream;
+
+  // Offscreen canvas for frame capture
+  _aslCanvas = document.createElement('canvas');
+  _aslCanvas.width  = 320;
+  _aslCanvas.height = 240;
+  _aslCtx = _aslCanvas.getContext('2d');
+
+  // Show ASL subtitle box in overlay
+  _aslSentence   = '';
+  _aslHoldLetter = '';
+  _aslHoldCount  = 0;
+  _injectAslSubtitle();
+
+  // Start detection loop
+  _aslLoop = setInterval(_aslDetectFrame, ASL_INTERVAL_MS);
+
+  return stream;
+}
+
+function _injectAslSubtitle() {
+  var el = document.getElementById('call-overlay');
+  if (!el) return;
+  var box = document.createElement('div');
+  box.id = 'asl-subtitle-box';
+  box.style.cssText = 'position:absolute;top:16px;left:50%;transform:translateX(-50%);z-index:5;background:rgba(0,0,0,0.62);backdrop-filter:blur(6px);border-radius:12px;padding:10px 20px;min-width:200px;max-width:80%;text-align:center;';
+  box.innerHTML =
+    '<div style="font-size:11px;color:rgba(255,255,255,0.55);margin-bottom:4px;letter-spacing:.5px;">ASL DETECTION</div>' +
+    '<div id="asl-live-letter" style="font-size:40px;font-weight:500;color:#fff;line-height:1;min-width:40px;display:inline-block;">—</div>' +
+    '<div id="asl-live-conf"   style="font-size:11px;color:#9fe1cb;margin-top:2px;"></div>' +
+    '<div id="asl-live-text"   style="font-size:14px;color:#fff;margin-top:6px;letter-spacing:2px;min-height:20px;word-break:break-all;"></div>' +
+    '<div style="display:flex;gap:6px;margin-top:8px;justify-content:center;">' +
+      '<button onclick="_aslClear()" style="font-size:11px;padding:3px 10px;background:rgba(255,255,255,0.12);border:0.5px solid rgba(255,255,255,0.2);border-radius:6px;color:#fff;cursor:pointer;">Clear</button>' +
+      '<button onclick="_aslSpace()" style="font-size:11px;padding:3px 10px;background:rgba(255,255,255,0.12);border:0.5px solid rgba(255,255,255,0.2);border-radius:6px;color:#fff;cursor:pointer;">Space</button>' +
+    '</div>';
+  el.appendChild(box);
+}
+
+function _aslClear() { _aslSentence=''; _aslUpdateText(); }
+function _aslSpace() { _aslSentence+=' '; _aslUpdateText(); }
+function _aslUpdateText() {
+  var el = document.getElementById('asl-live-text');
+  if (el) el.textContent = _aslSentence || '…';
+}
+
+async function _aslDetectFrame() {
+  if (!_call.active || _call.type !== 'video') { _aslStopLoop(); return; }
+  var video = document.getElementById('call-main-video');
+  if (!video || !video.videoWidth) return;
+
+  // Draw frame to offscreen canvas
+  _aslCtx.drawImage(video, 0, 0, _aslCanvas.width, _aslCanvas.height);
+  var b64 = _aslCanvas.toDataURL('image/jpeg', 0.7).split(',')[1];
+
+  try {
+    var token = sessionStorage.getItem('access_token') || '';
+    var res = await fetch(API_BASE + '/asl/detect', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify({ image_b64: b64 })
+    });
+    if (!res.ok) return;
+    var data = await res.json();
+
+    // Update letter display
+    var letterEl = document.getElementById('asl-live-letter');
+    var confEl   = document.getElementById('asl-live-conf');
+    if (letterEl) letterEl.textContent = data.hand_detected && data.letter ? data.letter : '—';
+    if (confEl)   confEl.textContent   = data.hand_detected && data.letter ? Math.round(data.confidence * 100) + '%' : '';
+
+    // Hold-to-confirm logic
+    if (data.hand_detected && data.letter && data.confidence >= ASL_MIN_CONF) {
+      if (data.letter === _aslHoldLetter) {
+        _aslHoldCount++;
+        if (_aslHoldCount >= ASL_HOLD_FRAMES) {
+          _aslSentence += data.letter;
+          _aslUpdateText();
+          _aslHoldCount  = 0;
+          _aslHoldLetter = '';
+        }
+      } else {
+        _aslHoldLetter = data.letter;
+        _aslHoldCount  = 1;
+      }
+    } else {
+      _aslHoldCount  = 0;
+      _aslHoldLetter = '';
+    }
+
+    // Draw landmarks on video canvas if returned
+    if (data.landmarks && data.landmarks.length) {
+      _aslDrawLandmarks(data.landmarks, video.videoWidth, video.videoHeight);
+    }
+
+  } catch (e) { /* silent fail — don't interrupt call */ }
+}
+
+function _aslDrawLandmarks(landmarks, vw, vh) {
+  var canvas = document.getElementById('call-overlay');
+  if (!canvas) return;
+  // Find or create a small overlay canvas
+  var c = document.getElementById('asl-lm-canvas');
+  if (!c) {
+    c = document.createElement('canvas');
+    c.id = 'asl-lm-canvas';
+    c.style.cssText = 'position:absolute;inset:0;pointer-events:none;z-index:3;';
+    canvas.appendChild(c);
+  }
+  c.width  = canvas.offsetWidth  || 640;
+  c.height = canvas.offsetHeight || 480;
+  var ctx = c.getContext('2d');
+  ctx.clearRect(0, 0, c.width, c.height);
+  ctx.fillStyle = 'rgba(56,189,248,0.8)';
+  ctx.strokeStyle = 'rgba(56,189,248,0.5)';
+  ctx.lineWidth = 1.5;
+  landmarks.forEach(function(lm) {
+    var x = lm[0] * c.width;
+    var y = lm[1] * c.height;
+    ctx.beginPath();
+    ctx.arc(x, y, 4, 0, Math.PI * 2);
+    ctx.fill();
+  });
+}
+
+function _aslStopLoop() {
+  if (_aslLoop) { clearInterval(_aslLoop); _aslLoop = null; }
+  var box = document.getElementById('asl-subtitle-box');
+  if (box) box.remove();
+  var lmc = document.getElementById('asl-lm-canvas');
+  if (lmc) lmc.remove();
 }
 
 // ── Layer 3: Display overlay ──────────────────────────────────
@@ -477,6 +615,7 @@ function callToggleSpeaker() {
 function endCall() {
   if (_call.stream) { _call.stream.getTracks().forEach(function (t) { t.stop(); }); _call.stream = null; }
   clearInterval(_call.timer);
+  _aslStopLoop();  // ── stop ASL detection
   _call.active = false; _call.type = null; _call.seconds = 0;
   var el = document.getElementById('call-overlay');
   if (el) { el.style.display = 'none'; el.innerHTML = ''; }
@@ -486,95 +625,30 @@ function endCall() {
 (function () {
   var proto = location.protocol === 'https:' ? 'wss' : 'ws';
   var ws;
-
-  function resolveWsBase() {
-    if (typeof API_BASE === 'string' && /^https?:/i.test(API_BASE)) {
-      return API_BASE.replace(/^http/i, 'ws').replace(/\/api\/v1\/?$/, '');
-    }
-    return proto + '://' + location.host;
-  }
-
-  function dedupePush(convId, message) {
-    if (!localMsgs[convId]) localMsgs[convId] = [];
-    var exists = localMsgs[convId].some(function (item) {
-      if (message.id != null && item.id != null) return String(item.id) === String(message.id);
-      return String(item.created_at || '') === String(message.created_at || '') &&
-        String(item.sender_name || '') === String(message.sender_name || '') &&
-        String(item.content || '') === String(message.content || '');
-    });
-    if (!exists) localMsgs[convId].push(message);
-  }
-
-  function looksSelf(message) {
-    if (!message) return false;
-    if (message.is_self === true || message.is_self === 'true') return true;
-    if (ME && ME.id != null && message.sender_user_id != null && String(ME.id) === String(message.sender_user_id)) return true;
-    return false;
-  }
-
   function connect() {
     var token = sessionStorage.getItem('access_token') || '';
-    ws = new WebSocket(resolveWsBase() + '/ws?token=' + encodeURIComponent(token));
-
-    ws.onopen = function () {
-      ME = getCurrentActor();
-    };
-
-    ws.onclose = function () {
-      setTimeout(connect, 3000);
-    };
-
+    ws = new WebSocket(proto + '://' + location.host + '/ws?token=' + encodeURIComponent(token));
+    ws.onopen  = function () {};
+    ws.onclose = function () { setTimeout(connect, 3000); };
     ws.onerror = function () {};
-
     ws.onmessage = function (e) {
-      var msg;
-      try { msg = JSON.parse(e.data); } catch (err) { return; }
-
+      var msg; try { msg = JSON.parse(e.data); } catch (err) { return; }
       if (msg.type === 'new_message') {
-        var m = msg.message || msg;
-        var convId = Number(msg.conversation_id || m.conversation_id);
-        var isSelf = looksSelf(m);
-
-        if (isSelf) return;
-
-        dedupePush(convId, m);
-
-        var conv = allConvs.find(function (c) { return Number(c.id) === convId; });
-        if (!conv) {
-          if (!demo) loadConvs();
-          return;
-        }
-
-        conv.last_message = m.content || '';
-        conv.last_message_at = fmtTime(m.created_at);
-        if (convId !== currentId) {
-          conv.unread_count = (conv.unread_count || 0) + 1;
-        }
-
-        if (convId === currentId) {
-          renderMsgs(localMsgs[convId]);
-          if (!demo) {
-            fetch(API_BASE + '/messages/conversations/' + currentId + '/read', { method: 'PATCH', headers: authH() }).catch(function () {});
-          }
-        }
-
-        updateLabel();
-        renderConvList();
+        var m = msg.message, convId = msg.conversation_id;
+        if (m.sender_name === ME.name) return;
+        if (!localMsgs[convId]) localMsgs[convId] = [];
+        localMsgs[convId].push(m);
+        var conv = allConvs.find(function (c) { return c.id === convId; });
+        if (conv) { conv.last_message = m.content || ''; conv.last_message_at = fmtTime(m.created_at); if (convId !== currentId) conv.unread_count = (conv.unread_count || 0) + 1; }
+        if (convId === currentId) renderMsgs(localMsgs[convId]);
+        updateLabel(); renderConvList();
       }
-
       if (msg.type === 'presence') {
-        var conv2 = allConvs.find(function (c) { return Number(c.id) === Number(msg.conversation_id); });
-        if (conv2) {
-          conv2.online = msg.online;
-          renderConvList();
-        }
+        var conv = allConvs.find(function (c) { return c.id === msg.conversation_id; });
+        if (conv) { conv.online = msg.online; renderConvList(); }
       }
-
-      if (msg.type === 'conversations_update') {
-        if (!demo) loadConvs();
-      }
+      if (msg.type === 'conversations_update') { if (!demo) loadConvs(); }
     };
   }
-
   connect();
 })();

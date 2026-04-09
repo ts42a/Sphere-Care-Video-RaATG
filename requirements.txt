@@ -27,3 +27,11 @@ aiofiles
 
 # Environment & config
 pydantic-settings
+
+# ASL Gesture Recognition
+numpy
+opencv-python
+mediapipe
+joblib
+scikit-learn
+Pillow
