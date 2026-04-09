@@ -58,7 +58,7 @@ MOTION_CAPTURE_SECONDS = 16.0
 MIN_SEQ_VALID_FRAMES = 8
 MOTION_NUM_HANDS = 2
 MOTION_POSE_LANDMARKS = [0, 11, 12, 13, 14, 15, 16]  # nose, shoulders, elbows, wrists
-MOTION_PREBUFFER_FRAMES = 4
+MOTION_PREBUFFER_FRAMES = 2
 MOTION_IDLE_HISTORY = 48
 MOTION_END_IDLE_FRAMES = 4
 MOTION_START_ENERGY = 0.020
@@ -73,19 +73,26 @@ MOTION_START_WINDOW_DELTA = 0.010
 MOTION_STOP_VAR_WINDOW = 6
 MOTION_STOP_VAR_THRESHOLD = 0.00006
 MOTION_LONG_MAX_FRAMES = 96
-MOTION_BURST_END_IDLE_FRAMES = 12
+MOTION_BURST_END_IDLE_FRAMES = 6
 MOTION_SAVE_PREROLL_FRAMES = 2
+# live_motion_test/runner.py (py test_motion.py): drop first N frames before GRU (0 = safest; try 2 if trims match).
+MOTION_LIVE_ONSET_SKIP_FRAMES = 0
+# live_motion_test/runner.py: do not count low-energy idle toward segment end until this many frames captured.
+MOTION_LIVE_MIN_FRAMES_BEFORE_IDLE = 3
 MOTION_DUPLICATE_SIMILARITY = 0.985
 MOTION_DUPLICATE_COMPARE_LIMIT = 24
-MOTION_BURST_TARGET_REPS = 4
-MOTION_BURST_SAVE_TOP_K = 2
+MOTION_BURST_TARGET_REPS = 8
+MOTION_BURST_SAVE_TOP_K = 5
 MOTION_REVIEW_KEYS = "S save / R retry / D discard / Q cancel"
+# After each burst segment: save full tensor by default; E opens detailed trim UI.
+MOTION_SEGMENT_REVIEW_KEYS = "S save FULL clip (no trim) | E trim editor | X skip | Q cancel"
 SESSION_CONTEXT_FIELDS = [
     ("location", "Location"),
     ("camera_type", "Camera type"),
     ("lighting", "Lighting"),
     ("background", "Background"),
     ("dominant_hand", "Dominant hand"),
+    ("expected_hands", "Expected hands for this session"),
 ]
 SESSION_CONTEXT_DEFAULTS = {
     "location": "indoor_room",
@@ -93,6 +100,7 @@ SESSION_CONTEXT_DEFAULTS = {
     "lighting": "bright_even",
     "background": "plain_wall",
     "dominant_hand": "right",
+    "expected_hands": "either",
     "notes": "none",
 }
 SESSION_CONTEXT_EXAMPLES = {
@@ -101,6 +109,7 @@ SESSION_CONTEXT_EXAMPLES = {
     "lighting": "bright_even / daylight_window / dim",
     "background": "plain_wall / curtain / cluttered_room",
     "dominant_hand": "right / left",
+    "expected_hands": "1 / 2 / either (1=one-hand signs, 2=two-hand like SEEYOULATER, either=any)",
     "notes": "standing_1m_from_camera",
 }
 HAND_CONNECTIONS_FALLBACK = [
@@ -141,11 +150,19 @@ def ensure_label_folder(base: Path, label: str) -> Path:
     folder.mkdir(parents=True, exist_ok=True)
     return folder
 
-def draw_text(img, lines, x=10, y=30, gap=28):
+def draw_text(
+    img,
+    lines,
+    x=10,
+    y=30,
+    gap=28,
+    color: tuple[int, int, int] | list[tuple[int, int, int]] = (255, 255, 255),
+):
     for i, line in enumerate(lines):
+        c = color[i] if isinstance(color, list) else color
         cv2.putText(
             img, line, (x, y + i * gap),
-            cv2.FONT_HERSHEY_SIMPLEX, 0.75, (255, 255, 255), 2, cv2.LINE_AA
+            cv2.FONT_HERSHEY_SIMPLEX, 0.75, c, 2, cv2.LINE_AA
         )
 
 
@@ -164,14 +181,19 @@ def wait_for_enter_to_start(*, cap, win: str, title: str, hint: str) -> bool:
             return False
 
 
-def create_detector(num_hands=1):
+def create_detector(
+    num_hands: int = 1,
+    *,
+    min_hand_detection_confidence: float = 0.6,
+    min_tracking_confidence: float = 0.6,
+):
     model_path = get_hand_model_path()
     base_options = mp_tasks.BaseOptions(model_asset_path=model_path)
     options = vision.HandLandmarkerOptions(
         base_options=base_options,
         num_hands=num_hands,
-        min_hand_detection_confidence=0.6,
-        min_tracking_confidence=0.6,
+        min_hand_detection_confidence=float(min_hand_detection_confidence),
+        min_tracking_confidence=float(min_tracking_confidence),
     )
     return vision.HandLandmarker.create_from_options(options)
 
@@ -357,6 +379,35 @@ def suggest_motion_segments(
     return candidates
 
 
+def normalize_expected_hands(value: str) -> str:
+    """Session / manifest token: 1 | 2 | either."""
+    v = (value or "").strip().lower()
+    if v in ("1", "one", "single", "1-hand", "1hand", "1_hand"):
+        return "1"
+    if v in ("2", "two", "both", "2-hand", "2hand", "2_hand", "dual"):
+        return "2"
+    return "either"
+
+
+def motion_hand_qc_warnings(qc: dict, *, expected_hands: str) -> list[str]:
+    """Soft checks vs session expected_hands + pose visibility (does not block save)."""
+    exp = normalize_expected_hands(expected_hands)
+    two = float(qc.get("two_hand_ratio", 0.0))
+    pose_r = float(qc.get("pose_body_ratio", 0.0))
+    out: list[str] = []
+    if pose_r < 0.42 and int(qc.get("feature_dim", 0)) >= 147:
+        out.append("Body/pose channel often near-zero — check upper body in frame and lighting.")
+    if exp == "1":
+        if two > 0.38:
+            out.append("Session expects 1-hand signs but both hand slots are often active — possible stray second hand.")
+    elif exp == "2":
+        if two < 0.38:
+            out.append("Session expects 2-hand signs but both hands overlap rarely — widen shot or hold both hands in view.")
+    if not bool(qc.get("qc_passed", False)):
+        out.append("Motion QC flag not passed — consider retry or trim (E).")
+    return out[:10]
+
+
 def motion_qc_summary(
     seq: np.ndarray,
     *,
@@ -374,9 +425,21 @@ def motion_qc_summary(
             "peak_energy": 0.0,
             "mean_energy": 0.0,
             "qc_passed": False,
+            "pose_body_ratio": 0.0,
         }
-    left_norm = np.linalg.norm(seq[:, :63], axis=1)
-    right_norm = np.linalg.norm(seq[:, 63:], axis=1)
+    n_dim = int(seq.shape[1])
+    left_norm = np.linalg.norm(seq[:, :63], axis=1) if n_dim >= 63 else np.zeros(len(seq), dtype=np.float32)
+    if n_dim >= 126:
+        right_norm = np.linalg.norm(seq[:, 63:126], axis=1)
+    elif n_dim > 63:
+        right_norm = np.linalg.norm(seq[:, 63:n_dim], axis=1)
+    else:
+        right_norm = np.zeros(len(seq), dtype=np.float32)
+    if n_dim >= 147:
+        pose_norm = np.linalg.norm(seq[:, 126:147], axis=1)
+        pose_body_ratio = float((pose_norm > 1e-4).mean())
+    else:
+        pose_body_ratio = 0.0
     two_hand_frames = ((left_norm > 1e-6) & (right_norm > 1e-6)).sum()
     any_hand_frames = ((left_norm > 1e-6) | (right_norm > 1e-6)).sum()
     peak_energy = float(max(energies) if energies else 0.0)
@@ -403,6 +466,7 @@ def motion_qc_summary(
         "right_hand_ratio": float((right_norm > 1e-6).mean()),
         "two_hand_ratio": float(two_hand_frames / max(len(seq), 1)),
         "hand_visible_ratio": float(any_hand_frames / max(len(seq), 1)),
+        "pose_body_ratio": float(pose_body_ratio),
         "trim_start_frames": int(trim_info.get("trim_start", 0)),
         "trim_end_frames": int(trim_info.get("trim_end", 0)),
         "qc_score": round(
@@ -544,6 +608,35 @@ def draw_hand_landmarks(frame, hand_landmarks_list) -> None:
             cv2.circle(frame, (x, y), 3, color, -1, cv2.LINE_AA)
 
 
+def draw_motion_pose_overlay(frame: np.ndarray, pose_landmarks) -> None:
+    """
+    Draw nose + shoulders + elbows + wrists used in extract_motion_features (MOTION_POSE_LANDMARKS).
+    Cyan lines so they read clearly under green/orange hand skeletons.
+    """
+    if not pose_landmarks:
+        return
+    need = max(MOTION_POSE_LANDMARKS) + 1
+    try:
+        n = len(pose_landmarks)
+    except TypeError:
+        return
+    if n < need:
+        return
+    h, w = frame.shape[:2]
+    pts: list[tuple[int, int]] = []
+    for i in MOTION_POSE_LANDMARKS:
+        lm = pose_landmarks[i]
+        pts.append((int(lm.x * w), int(lm.y * h)))
+    # Same topology as _draw_pose_context (7 nodes in MOTION_POSE_LANDMARKS order)
+    edges = [(1, 2), (0, 1), (0, 2), (1, 3), (3, 5), (2, 4), (4, 6)]
+    color = (255, 255, 0)  # BGR yellow/cyan-ish; visible on most backgrounds
+    for a, b in edges:
+        if 0 <= a < len(pts) and 0 <= b < len(pts):
+            cv2.line(frame, pts[a], pts[b], color, 2, cv2.LINE_AA)
+    for p in pts:
+        cv2.circle(frame, p, 4, color, -1, cv2.LINE_AA)
+
+
 def _draw_vec_hand(frame: np.ndarray, hand_vec: np.ndarray, origin: tuple[int, int], size: int, color: tuple[int, int, int]) -> None:
     if hand_vec.shape[0] != 63:
         return
@@ -682,16 +775,17 @@ def edit_motion_segment(
     seq: np.ndarray,
     qc: dict,
     preview_frames: list[np.ndarray] | None = None,
+    expected_hands: str = "either",
 ) -> tuple[str, np.ndarray, dict]:
     if seq.ndim != 2 or len(seq) < MIN_SEQ_VALID_FRAMES:
         return "skip", seq, {"trim_start": 0, "trim_end": 0}
     trim_start = 0
     trim_end = 0
     max_trim = max(len(seq) - MIN_SEQ_VALID_FRAMES, 0)
-    plot_w, plot_h = 920, 620
+    plot_w, plot_h = 920, 720
     margin_l, margin_t = 40, 110
     plot_inner_w, plot_inner_h = 800, 260
-    status = "Left/Right or A/D: start | [/] or J/L: end | T type trim | S save | X skip | Q cancel"
+    status = "TRIM EDITOR (optional) — A/D or arrows: start | J/L or [/]: end | T typed trim | S save | X skip | Q cancel"
     while True:
         if trim_start < 0:
             trim_start = 0
@@ -732,11 +826,25 @@ def edit_motion_segment(
             f"Trim start/end: {trim_start}/{trim_end}",
             f"Max editable trim: {max_trim}",
             f"QC score (pre-edit): {qc.get('qc_score', 0.0):.1f}",
+            f"Expected hands (session): {normalize_expected_hands(expected_hands)}",
             "Reference photos: start1 / start2 / mid / end",
             status,
         ]
-        draw_text(canvas, lines, x=10, y=28, gap=24)
-        draw_frame_strip_preview(canvas, trimmed_preview_frames, x=50, y=390, w=820, h=200)
+        trim_qc = motion_qc_summary(
+            trimmed,
+            raw_seq_len=len(seq),
+            energies=energies,
+            start_threshold=float(qc.get("start_threshold", MOTION_START_ENERGY)),
+            keep_threshold=float(qc.get("keep_threshold", MOTION_KEEPALIVE_ENERGY)),
+            trim_info={"trim_start": int(trim_start), "trim_end": int(trim_end)},
+        )
+        warn_lines = [f"QC note: {w}" for w in motion_hand_qc_warnings(trim_qc, expected_hands=expected_hands)[:4]]
+        draw_text(canvas, lines, x=10, y=28, gap=22)
+        warn_y = 28 + len(lines) * 22 + 4
+        if warn_lines:
+            draw_text(canvas, warn_lines, x=10, y=warn_y, gap=20, color=(80, 180, 255))
+        strip_y = margin_t + plot_inner_h + 8 + len(warn_lines) * 20 + 12
+        draw_frame_strip_preview(canvas, trimmed_preview_frames, x=50, y=int(strip_y), w=820, h=200)
         cv2.imshow(win, canvas)
         key = cv2.waitKeyEx(0)
         key_low = key & 0xFF
@@ -764,6 +872,73 @@ def edit_motion_segment(
             return "skip", trimmed, {"trim_start": int(trim_start), "trim_end": int(trim_end)}
         elif key_low in (27, ord("q"), ord("Q")):
             return "cancel", trimmed, {"trim_start": int(trim_start), "trim_end": int(trim_end)}
+
+
+def review_or_edit_motion_segment(
+    *,
+    win: str,
+    label: str,
+    seq: np.ndarray,
+    qc: dict,
+    preview_frames: list[np.ndarray] | None = None,
+    expected_hands: str = "either",
+) -> tuple[str, np.ndarray, dict]:
+    """
+    Post-capture step: default is saving the full suggested segment (trim 0,0) for real-world parity
+    with live testing. Press E to open the full trim editor (photo strip + energy plot) when needed.
+    """
+    if seq.ndim != 2 or len(seq) < MIN_SEQ_VALID_FRAMES:
+        return "skip", seq, {"trim_start": 0, "trim_end": 0, "review_decision": "too_short"}
+
+    pv = list(preview_frames) if preview_frames else []
+    exp_disp = normalize_expected_hands(expected_hands)
+    plot_w, plot_h = 920, 640
+    while True:
+        canvas = np.zeros((plot_h, plot_w, 3), dtype=np.uint8)
+        lines = [
+            f"SEGMENT READY: {label}",
+            f"Frames: {len(seq)} | QC (pre-save): {qc.get('qc_score', 0.0):.1f}",
+            f"Two-hand: {qc.get('two_hand_ratio', 0.0):.2f} | Pose body: {qc.get('pose_body_ratio', 0.0):.2f}",
+            f"Expected hands (session): {exp_disp}",
+            MOTION_SEGMENT_REVIEW_KEYS,
+            "Full clip keeps approach/idle like live webcam (better train/test match).",
+        ]
+        warn_lines = [f"QC note: {w}" for w in motion_hand_qc_warnings(qc, expected_hands=expected_hands)[:5]]
+        draw_text(canvas, lines, x=10, y=26, gap=22)
+        main_block_end = 26 + len(lines) * 22
+        if warn_lines:
+            warn_y = main_block_end + 8
+            draw_text(canvas, warn_lines, x=10, y=warn_y, gap=20, color=(80, 180, 255))
+            strip_y = warn_y + len(warn_lines) * 20 + 12
+        else:
+            strip_y = 300
+        strip_h = max(120, min(220, plot_h - strip_y - 14))
+        draw_frame_strip_preview(canvas, pv, x=50, y=int(strip_y), w=820, h=int(strip_h))
+        cv2.imshow(win, canvas)
+        key = cv2.waitKey(0) & 0xFF
+        if key in (ord("s"), ord("S")):
+            return (
+                "save",
+                seq,
+                {"trim_start": 0, "trim_end": 0, "review_decision": "full_clip_save"},
+            )
+        if key in (ord("e"), ord("E")):
+            action, edited_seq, edit_info = edit_motion_segment(
+                win=win,
+                label=label,
+                seq=seq,
+                qc=qc,
+                preview_frames=preview_frames,
+                expected_hands=expected_hands,
+            )
+            ei = dict(edit_info)
+            if action == "save":
+                ei.setdefault("review_decision", "manual_trim_save")
+            return action, edited_seq, ei
+        if key in (ord("x"), ord("X")):
+            return "skip", seq, {"trim_start": 0, "trim_end": 0, "review_decision": "skipped"}
+        if key in (27, ord("q"), ord("Q")):
+            return "cancel", seq, {"trim_start": 0, "trim_end": 0, "review_decision": "cancelled"}
 
 
 def pick_best_k_by_centroid(samples: list[np.ndarray], k: int) -> list[np.ndarray]:
@@ -936,7 +1111,11 @@ def capture_motion(
     if not cap.isOpened():
         raise RuntimeError("Webcam not opened. Try VideoCapture(0) or VideoCapture(1) if you have multiple cameras.")
 
-    detector = create_detector(num_hands=MOTION_NUM_HANDS)
+    detector = create_detector(
+        num_hands=MOTION_NUM_HANDS,
+        min_hand_detection_confidence=0.5,
+        min_tracking_confidence=0.5,
+    )
     pose_detector = create_pose_detector()
     win = f"MOTION CAPTURE: {label}"
     cv2.namedWindow(win, cv2.WINDOW_NORMAL)
@@ -989,6 +1168,9 @@ def capture_motion(
     in_motion = False
     active_streak = 0
     visible_streak = 0
+    hands_in_frame = 0
+    second_hand_active = False
+    pose_active = False
     idle_streak = 0
     last_vec: np.ndarray | None = None
     stop_capture = False
@@ -998,8 +1180,11 @@ def capture_motion(
     accepted_qc_scores: list[float] = []
     recent_signatures = load_recent_motion_signatures(folder)
     candidate_segments: list[dict] = []
+    session_target_saves = max(1, int(MOTION_BURST_SAVE_TOP_K))
     start = time.time()
-    end = start + MOTION_CAPTURE_SECONDS
+    expected_hands_raw = (session_context or {}).get(
+        "expected_hands", SESSION_CONTEXT_DEFAULTS.get("expected_hands", "either")
+    )
 
     def flush_active_sequence(*, reason: str) -> None:
         nonlocal active_sequence, active_energies, sample_id, saved, reviewed, discarded, retried
@@ -1072,167 +1257,201 @@ def capture_motion(
         filtered_frames = 0
         low_var_window.clear()
 
-    while time.time() < end:
-        current_start_threshold, current_keep_threshold = adaptive_motion_thresholds(idle_energies)
-        ok, frame = cap.read()
-        if not ok:
-            break
-        frame = cv2.flip(frame, 1)
+    while saved < session_target_saves and not stop_capture:
+        candidate_segments = []
+        round_start = time.time()
+        round_end = round_start + MOTION_CAPTURE_SECONDS
+        while time.time() < round_end:
+            current_start_threshold, current_keep_threshold = adaptive_motion_thresholds(idle_energies)
+            ok, frame = cap.read()
+            if not ok:
+                stop_capture = True
+                break
+            frame = cv2.flip(frame, 1)
 
-        rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        rgb = np.ascontiguousarray(rgb)
-        mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
-        res = detector.detect(mp_image)
-        pose_res = pose_detector.detect(mp_image)
-        pose_lms = pose_res.pose_landmarks[0] if getattr(pose_res, "pose_landmarks", None) else None
-        draw_hand_landmarks(frame, getattr(res, "hand_landmarks", None))
-        energy = 0.0
-        active_now = False
+            rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            rgb = np.ascontiguousarray(rgb)
+            mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
+            res = detector.detect(mp_image)
+            pose_res = pose_detector.detect(mp_image)
+            pose_lms = pose_res.pose_landmarks[0] if getattr(pose_res, "pose_landmarks", None) else None
+            draw_hand_landmarks(frame, getattr(res, "hand_landmarks", None))
+            draw_motion_pose_overlay(frame, pose_lms)
+            energy = 0.0
+            active_now = False
+            hands_in_frame = len(getattr(res, "hand_landmarks", []) or [])
+            second_hand_active = False
+            pose_active = False
 
-        if res.hand_landmarks:
-            detected_frames += 1
-            visible_streak += 1
-            vec = extract_motion_features(res.hand_landmarks, pose_lms)
-            prebuffer.append(vec)
-            prebuffer_preview_frames.append(frame.copy())
-            start_window.append(vec)
-            energy = motion_energy(vec, last_vec)
-            window_delta = motion_window_delta(start_window)
-            started_now = False
-            if not in_motion and energy < current_start_threshold:
-                idle_energies.append(energy)
-            active_now = energy >= (current_keep_threshold if in_motion else current_start_threshold)
-            subtle_active = (not in_motion) and window_delta >= MOTION_START_WINDOW_DELTA
-            visible_active = (not in_motion) and visible_streak >= MOTION_VISIBLE_START_STREAK
-            active_now = active_now or subtle_active or visible_active
-            if active_now:
-                active_streak += 1
-                idle_streak = 0
+            if res.hand_landmarks:
+                detected_frames += 1
+                visible_streak += 1
+                vec = extract_motion_features(res.hand_landmarks, pose_lms)
+                left_slot = float(np.linalg.norm(vec[:63])) > 1e-6
+                right_slot = float(np.linalg.norm(vec[63:126])) > 1e-6
+                second_hand_active = bool(left_slot and right_slot)
+                pose_active = bool(float(np.linalg.norm(vec[126:147])) > 1e-4)
+                prebuffer.append(vec)
+                prebuffer_preview_frames.append(frame.copy())
+                start_window.append(vec)
+                energy = motion_energy(vec, last_vec)
+                window_delta = motion_window_delta(start_window)
+                started_now = False
+                if not in_motion and energy < current_start_threshold:
+                    idle_energies.append(energy)
+                active_now = energy >= (current_keep_threshold if in_motion else current_start_threshold)
+                subtle_active = (not in_motion) and window_delta >= MOTION_START_WINDOW_DELTA
+                # Do not start segments only from visibility; require measured motion.
+                active_now = active_now or subtle_active
+                if active_now:
+                    active_streak += 1
+                    idle_streak = 0
+                else:
+                    active_streak = 0
+                    if in_motion:
+                        idle_streak += 1
+                if not in_motion and active_streak >= 2:
+                    in_motion = True
+                    active_sequence = list(prebuffer)
+                    active_energies = [0.0] * max(len(prebuffer) - 1, 0) + [energy]
+                    active_preview_frames = list(prebuffer_preview_frames)
+                    started_now = True
+                if in_motion and not started_now:
+                    active_sequence.append(vec)
+                    active_energies.append(energy)
+                    active_preview_frames.append(frame.copy())
+                    if energy < MOTION_MIN_FRAME_DELTA:
+                        filtered_frames += 1
+                    low_var_window.append(energy)
+                    if len(active_sequence) >= MOTION_LONG_MAX_FRAMES:
+                        flush_active_sequence(reason="max_frames")
+                    elif idle_streak >= MOTION_BURST_END_IDLE_FRAMES:
+                        flush_active_sequence(reason="idle_timeout")
+                last_vec = vec
             else:
-                active_streak = 0
+                visible_streak = 0
                 if in_motion:
                     idle_streak += 1
-            if not in_motion and active_streak >= 2:
-                in_motion = True
-                active_sequence = list(prebuffer)
-                active_energies = [0.0] * max(len(prebuffer) - 1, 0) + [energy]
-                active_preview_frames = list(prebuffer_preview_frames)
-                started_now = True
-            if in_motion and not started_now:
-                active_sequence.append(vec)
-                active_energies.append(energy)
-                active_preview_frames.append(frame.copy())
-                if energy < MOTION_MIN_FRAME_DELTA:
-                    filtered_frames += 1
-                low_var_window.append(energy)
-                if len(active_sequence) >= MOTION_LONG_MAX_FRAMES:
-                    flush_active_sequence(reason="max_frames")
-                elif idle_streak >= MOTION_BURST_END_IDLE_FRAMES:
-                    flush_active_sequence(reason="idle_timeout")
-            last_vec = vec
-        else:
-            visible_streak = 0
-            if in_motion:
-                idle_streak += 1
-                if idle_streak >= MOTION_BURST_END_IDLE_FRAMES:
-                    flush_active_sequence(reason="hand_lost")
-            active_streak = 0
-            last_vec = None
+                    if idle_streak >= MOTION_BURST_END_IDLE_FRAMES:
+                        flush_active_sequence(reason="hand_lost")
+                active_streak = 0
+                last_vec = None
+                second_hand_active = False
+                pose_active = False
 
-        draw_text(frame, [
-            f"MOTION: {label}",
-            f"Detected frames: {detected_frames}",
-            f"Energy: {energy:.3f}",
-            f"Window delta: {motion_window_delta(start_window):.3f}",
-            f"Start/Keep: {current_start_threshold:.3f} / {current_keep_threshold:.3f}",
-            f"Visible streak: {visible_streak}",
-            f"In motion: {'YES' if in_motion else 'NO'}",
-            f"Long tensor frames: {len(active_sequence)}",
-            f"Filtered low-move: {filtered_frames}",
-            f"Burst reps/target: {len(candidate_segments)}/{MOTION_BURST_TARGET_REPS}",
-            f"Saved/Retry/Drop: {saved}/{retried}/{discarded}",
-            "ESC/Q cancel"
-        ])
-        cv2.imshow(win, frame)
-        if (cv2.waitKey(1) & 0xFF) in (27, ord("q")):
-            break
-        if stop_capture:
-            break
-        if len(candidate_segments) >= MOTION_BURST_TARGET_REPS:
-            break
+            draw_text(frame, [
+                f"MOTION: {label}",
+                f"Detected frames: {detected_frames}",
+                f"Hands detected now: {hands_in_frame} | Both slots active: {'YES' if second_hand_active else 'NO'}",
+                f"Pose context active: {'YES' if pose_active else 'NO'}",
+                f"Energy: {energy:.3f}",
+                f"Window delta: {motion_window_delta(start_window):.3f}",
+                f"Start/Keep: {current_start_threshold:.3f} / {current_keep_threshold:.3f}",
+                f"Visible streak: {visible_streak}",
+                f"In motion: {'YES' if in_motion else 'NO'}",
+                f"Long tensor frames: {len(active_sequence)}",
+                f"Filtered low-move: {filtered_frames}",
+                f"Burst reps/target: {len(candidate_segments)}/{MOTION_BURST_TARGET_REPS}",
+                f"Saved/Target: {saved}/{session_target_saves} | Retry/Drop: {retried}/{discarded}",
+                "ESC/Q cancel"
+            ])
+            cv2.imshow(win, frame)
+            if (cv2.waitKey(1) & 0xFF) in (27, ord("q")):
+                stop_capture = True
+                break
+            if stop_capture:
+                break
+            if len(candidate_segments) >= MOTION_BURST_TARGET_REPS:
+                break
 
-    if active_sequence and not stop_capture:
-        flush_active_sequence(reason="capture_end")
+        if active_sequence and not stop_capture:
+            flush_active_sequence(reason="capture_end")
 
-    selected_segments = select_best_motion_candidates(candidate_segments, MOTION_BURST_SAVE_TOP_K)
-    for seg in selected_segments:
-        qc = dict(seg["qc"])
-        action, edited_seq, edit_info = edit_motion_segment(
-            win=win,
-            label=label,
-            seq=seg["seq"],
-            qc=qc,
-            preview_frames=list(seg.get("preview_frames", [])),
-        )
-        if action == "cancel":
-            stop_capture = True
-            break
-        if action == "skip":
-            discarded += 1
-            continue
-        original_seq = align_motion_feature_dim(seg["seq"].astype(np.float32))
-        trim_start = int(edit_info.get("trim_start", 0))
-        trim_end = int(edit_info.get("trim_end", 0))
-        save_start = max(0, trim_start - MOTION_SAVE_PREROLL_FRAMES)
-        save_end = max(save_start + MIN_SEQ_VALID_FRAMES, len(original_seq) - trim_end)
-        edited_seq = align_motion_feature_dim(original_seq[save_start:save_end].astype(np.float32))
-        if len(edited_seq) < MIN_SEQ_VALID_FRAMES:
-            discarded += 1
-            continue
-        derived_energies = [motion_energy(edited_seq[i], edited_seq[i - 1]) for i in range(1, len(edited_seq))]
-        qc_update = motion_qc_summary(
-            edited_seq,
-            raw_seq_len=int(qc.get("raw_seq_len", len(seg["seq"]))),
-            energies=derived_energies,
-            start_threshold=float(qc.get("start_threshold", MOTION_START_ENERGY)),
-            keep_threshold=float(qc.get("keep_threshold", MOTION_KEEPALIVE_ENERGY)),
-            trim_info={"trim_start": int(save_start), "trim_end": int(trim_end)},
-        )
-        qc_update["duplicate_similarity"] = float(seg.get("duplicate_similarity", 0.0))
-        qc_update["duplicate_warning"] = bool(qc.get("duplicate_warning", False))
-        qc_update["filtered_frames"] = int(qc.get("filtered_frames", 0))
-        qc_update["motion_vector_preview"] = motion_vector_preview(edited_seq)
-        qc_update["save_preroll_frames"] = int(trim_start - save_start)
-        qc = qc_update
-        out = folder / f"{label}_{session_id}_{sample_id:04d}.npz"
-        np.savez(str(out), seq=edited_seq)
-        append_sample_manifest(
-            {
-                "sample_path": str(out.relative_to(ROOT)).replace("\\", "/"),
-                "task": "motion",
-                "label": label,
-                "source": "custom_capture",
-                "domain": "custom",
-                "signer_id": signer_id,
-                "session_id": session_id,
-                "capture_reason": str(seg.get("capture_reason", "burst_selected")),
-                "raw_seq_len": int(qc["raw_seq_len"]),
-                "feature_dim": int(qc["feature_dim"]),
-                "num_hands": MOTION_NUM_HANDS,
-                "review_decision": "manual_trim_save",
-                "duplicate_similarity": float(seg.get("duplicate_similarity", 0.0)),
-                "qc": qc,
-                "capture_context": session_context or {},
-            },
-            dataset_kind="custom",
-        )
-        saved += 1
-        sample_id += 1
-        accepted_lengths.append(int(qc["trimmed_seq_len"]))
-        accepted_qc_scores.append(float(qc["qc_score"]))
-        recent_signatures.append(seg["signature"])
-        if len(recent_signatures) > MOTION_DUPLICATE_COMPARE_LIMIT:
-            recent_signatures = recent_signatures[-MOTION_DUPLICATE_COMPARE_LIMIT:]
+        remaining = max(0, session_target_saves - saved)
+        selected_segments = select_best_motion_candidates(candidate_segments, max(remaining, MOTION_BURST_SAVE_TOP_K))
+        for seg in selected_segments:
+            qc = dict(seg["qc"])
+            action, edited_seq, edit_info = review_or_edit_motion_segment(
+                win=win,
+                label=label,
+                seq=seg["seq"],
+                qc=qc,
+                preview_frames=list(seg.get("preview_frames", [])),
+                expected_hands=expected_hands_raw,
+            )
+            if action == "cancel":
+                stop_capture = True
+                break
+            if action == "skip":
+                discarded += 1
+                continue
+            original_seq = align_motion_feature_dim(seg["seq"].astype(np.float32))
+            trim_start = int(edit_info.get("trim_start", 0))
+            trim_end = int(edit_info.get("trim_end", 0))
+            save_start = max(0, trim_start - MOTION_SAVE_PREROLL_FRAMES)
+            save_end = max(save_start + MIN_SEQ_VALID_FRAMES, len(original_seq) - trim_end)
+            edited_seq = align_motion_feature_dim(original_seq[save_start:save_end].astype(np.float32))
+            if len(edited_seq) < MIN_SEQ_VALID_FRAMES:
+                discarded += 1
+                continue
+            derived_energies = [motion_energy(edited_seq[i], edited_seq[i - 1]) for i in range(1, len(edited_seq))]
+            qc_update = motion_qc_summary(
+                edited_seq,
+                raw_seq_len=int(qc.get("raw_seq_len", len(seg["seq"]))),
+                energies=derived_energies,
+                start_threshold=float(qc.get("start_threshold", MOTION_START_ENERGY)),
+                keep_threshold=float(qc.get("keep_threshold", MOTION_KEEPALIVE_ENERGY)),
+                trim_info={"trim_start": int(save_start), "trim_end": int(trim_end)},
+            )
+            qc_update["duplicate_similarity"] = float(seg.get("duplicate_similarity", 0.0))
+            qc_update["duplicate_warning"] = bool(qc.get("duplicate_warning", False))
+            qc_update["filtered_frames"] = int(qc.get("filtered_frames", 0))
+            qc_update["motion_vector_preview"] = motion_vector_preview(edited_seq)
+            qc_update["save_preroll_frames"] = int(trim_start - save_start)
+            qc_warnings = motion_hand_qc_warnings(qc_update, expected_hands=expected_hands_raw)
+            qc_update["qc_warnings"] = qc_warnings
+            qc_update["expected_hands"] = normalize_expected_hands(expected_hands_raw)
+            qc = qc_update
+            out = folder / f"{label}_{session_id}_{sample_id:04d}.npz"
+            np.savez(str(out), seq=edited_seq)
+            if qc_warnings:
+                for w in qc_warnings:
+                    print(f"  [QC] {w}")
+            append_sample_manifest(
+                {
+                    "sample_path": str(out.relative_to(ROOT)).replace("\\", "/"),
+                    "task": "motion",
+                    "label": label,
+                    "source": "custom_capture",
+                    "domain": "custom",
+                    "signer_id": signer_id,
+                    "session_id": session_id,
+                    "capture_reason": str(seg.get("capture_reason", "burst_selected")),
+                    "raw_seq_len": int(qc["raw_seq_len"]),
+                    "feature_dim": int(qc["feature_dim"]),
+                    "num_hands": MOTION_NUM_HANDS,
+                    "review_decision": str(edit_info.get("review_decision", "manual_trim_save")),
+                    "duplicate_similarity": float(seg.get("duplicate_similarity", 0.0)),
+                    "expected_hands": normalize_expected_hands(expected_hands_raw),
+                    "qc_warnings": qc_warnings,
+                    "qc_warning_count": len(qc_warnings),
+                    "qc_passed": bool(qc.get("qc_passed", False)),
+                    "qc": qc,
+                    "capture_context": session_context or {},
+                },
+                dataset_kind="custom",
+            )
+            saved += 1
+            sample_id += 1
+            accepted_lengths.append(int(qc["trimmed_seq_len"]))
+            accepted_qc_scores.append(float(qc["qc_score"]))
+            recent_signatures.append(seg["signature"])
+            if len(recent_signatures) > MOTION_DUPLICATE_COMPARE_LIMIT:
+                recent_signatures = recent_signatures[-MOTION_DUPLICATE_COMPARE_LIMIT:]
+            if saved >= session_target_saves:
+                break
+        if saved < session_target_saves and not stop_capture:
+            print(f"[INFO] Saved {saved}/{session_target_saves}. Continuing capture for remaining clips...")
 
     cap.release()
     cv2.destroyAllWindows()
@@ -1259,6 +1478,7 @@ def capture_motion(
         "avg_seq_len": float(np.mean(accepted_lengths)) if accepted_lengths else 0.0,
         "avg_qc_score": float(np.mean(accepted_qc_scores)) if accepted_qc_scores else 0.0,
         "num_hands": MOTION_NUM_HANDS,
+        "expected_hands": normalize_expected_hands(expected_hands_raw),
         "segmentation": {
             "prebuffer_frames": MOTION_PREBUFFER_FRAMES,
             "idle_history": MOTION_IDLE_HISTORY,

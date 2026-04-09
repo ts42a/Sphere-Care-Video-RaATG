@@ -30,6 +30,7 @@
   ],
   "motion_labels": [
     "HELP",
+    "HELLO",
     "WATER",
     "FOOD",
     "MEDICINE",
@@ -44,6 +45,7 @@
     "THANKYOU",
     "PLEASE",
     "SORRY",
+    "SEEYOULATER",
     "ONE",
     "HOT",
     "COLD",
