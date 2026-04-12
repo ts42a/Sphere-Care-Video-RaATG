@@ -3,15 +3,21 @@ import {
   fetchCallContacts,
   fetchCallSummary,
   fetchTranscript,
-  createAudioCall,
-  createVideoCall,
+  startCall,
+  muteCall,
+  endCall,
+  stopCall,
+  fetchCurrentCall,
 } from "../api/call";
 
 export const callService = {
   getSummary: fetchCallSummary,
   getContacts: fetchCallContacts,
   getContactById: fetchCallContactById,
+  startCall,
+  getCurrentCall: fetchCurrentCall,
   getTranscript: fetchTranscript,
-  startAudioCall: createAudioCall,
-  startVideoCall: createVideoCall,
+  muteCall,
+  endCall,
+  stopCall,
 };

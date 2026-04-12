@@ -1,93 +1,147 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   View,
   Text,
   StyleSheet,
   Pressable,
-  ScrollView,
   ActivityIndicator,
+  Animated,
+  PanResponder,
+  Dimensions,
 } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
-import { Feather, MaterialIcons, AntDesign } from "@expo/vector-icons";
+import { Feather, MaterialIcons, Ionicons } from "@expo/vector-icons";
 
 import { callService } from "../../../src/services/callService";
+import { miniCallService } from "../../../src/services/miniCallService";
+import { useCallSession } from "../../../src/hooks/useCallSession";
+import { useAiTranscript } from "../../../src/hooks/useAiTranscript";
+import { useRtcEngine } from "../../../src/hooks/useRtcEngine";
+import { mockRtcEngine } from "../../../src/services/rtc/mockRtcEngine";
 import type { CallContact } from "../../../src/types/call";
+import CallHeader from "../../../src/components/call/CallHeader";
+import CallParticipantCard from "../../../src/components/call/CallParticipantCard";
+import TranscriptPanel from "../../../src/components/call/TranscriptPanel";
 import { colors } from "../../../src/theme/colors";
 import { spacing } from "../../../src/theme/spacing";
 import { typography } from "../../../src/theme/typography";
 
+type VideoLayoutMode = "remote_focus" | "local_focus" | "split";
+
+function getNextLayout(mode: VideoLayoutMode): VideoLayoutMode {
+  if (mode === "remote_focus") return "local_focus";
+  if (mode === "local_focus") return "split";
+  return "remote_focus";
+}
+
 export default function VideoCallScreen() {
   const { contactId } = useLocalSearchParams<{ contactId: string }>();
-  const [isConnected, setIsConnected] = useState(true);
-  const [callSeconds, setCallSeconds] = useState(0);
   const [contact, setContact] = useState<CallContact | null>(null);
-  const [transcriptLines, setTranscriptLines] = useState<string[]>([]);
-  const [expanded, setExpanded] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [contactLoading, setContactLoading] = useState(true);
+  const [contactError, setContactError] = useState("");
 
-  useEffect(() => {
-    if (contactId) {
-      loadInitialData(contactId);
-      callService.startVideoCall(contactId).catch((error) => {
-        console.error("Failed to start video call", error);
-      });
-    }
-  }, [contactId]);
+  const [expanded, setExpanded] = useState(false);
+  const [layoutMode, setLayoutMode] = useState<VideoLayoutMode>("remote_focus");
 
   useEffect(() => {
     if (!contactId) return;
 
-    const interval = setInterval(() => {
-      refreshTranscript(contactId);
-    }, 4000);
+    async function loadContact() {
+      try {
+        setContactLoading(true);
+        setContactError("");
+        const data = await callService.getContactById(contactId);
+        setContact(data);
+      } catch (err) {
+        setContactError(err instanceof Error ? err.message : "Unable to load contact");
+      } finally {
+        setContactLoading(false);
+      }
+    }
 
-    return () => clearInterval(interval);
+    loadContact();
   }, [contactId]);
 
-  useEffect(() => {
-    if (!isConnected) return;
+  const {
+    session,
+    loading,
+    error: sessionError,
+    formattedDuration,
+    muted,
+    transcribing,
+    toggleMute,
+    stopTranscribing,
+    endCurrentCall,
+  } = useCallSession(contact, "video");
 
-    const timer = setInterval(() => {
-      setCallSeconds((prev) => prev + 1);
-    }, 1000);
+  const {
+    items: transcriptItems,
+    transcribing: liveTranscribing,
+  } = useAiTranscript(
+    session?.callId,
+    Boolean(session?.transcribing)
+  );
 
-    return () => clearInterval(timer);
-  }, [isConnected]);
+  const rtc = useRtcEngine(
+    mockRtcEngine,
+    session && contact
+      ? {
+          callId: String(session.callId),
+          mode: "video",
+          localUserId: session.patient.name,
+          remoteUserId: contact.id,
+        }
+      : undefined
+  );
 
-  function formatCallTime(totalSeconds: number) {
-    const minutes = Math.floor(totalSeconds / 60);
-    const seconds = totalSeconds % 60;
+  const isLocalVideoOn = rtc.snapshot.local.videoEnabled;
+  const isRemoteVideoOn = rtc.snapshot.remote.videoEnabled;
+  const cameraFacing = rtc.snapshot.local.cameraFacing;
 
-    return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
-  }
+  const error = contactError || sessionError || rtc.error;
 
-  async function loadInitialData(id: string) {
-    try {
-      setLoading(true);
-      const [contactData, transcriptData] = await Promise.all([
-        callService.getContactById(id),
-        callService.getTranscript(id),
-      ]);
-      setContact(contactData);
-      setTranscriptLines(transcriptData);
-    } catch (error) {
-      console.error("Failed to load video call data", error);
-    } finally {
-      setLoading(false);
-    }
-  }
+  const latestTranscript = useMemo(() => {
+    if (!transcribing) return "AI transcript is paused.";
+    if (transcriptItems.length === 0) return "Listening for transcript...";
+    const last = transcriptItems[transcriptItems.length - 1];
+    return `${last.speaker}: ${last.content}`;
+  }, [transcribing, transcriptItems]);
 
-  async function refreshTranscript(id: string) {
-    try {
-      const transcriptData = await callService.getTranscript(id);
-      setTranscriptLines(transcriptData);
-    } catch (error) {
-      console.error("Failed to refresh transcript", error);
-    }
-  }
+  const screen = Dimensions.get("window");
+  const dockWidth = 190;
+  const dockInitialX = screen.width - dockWidth - 16;
+  const dockInitialY = screen.height - 285;
 
-  if (loading || !contact) {
+  const dockPosition = useRef(
+    new Animated.ValueXY({ x: dockInitialX, y: dockInitialY })
+  ).current;
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+
+      onPanResponderGrant: () => {
+        dockPosition.setOffset({
+          x: (dockPosition.x as any)._value,
+          y: (dockPosition.y as any)._value,
+        });
+        dockPosition.setValue({ x: 0, y: 0 });
+      },
+
+      onPanResponderMove: Animated.event(
+        [null, { dx: dockPosition.x, dy: dockPosition.y }],
+        { useNativeDriver: false }
+      ),
+
+      onPanResponderRelease: () => {
+        dockPosition.flattenOffset();
+      },
+    })
+  ).current;
+
+  if (contactLoading || loading || rtc.joining) {
     return (
       <SafeAreaView style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={colors.surface} />
@@ -95,122 +149,295 @@ export default function VideoCallScreen() {
     );
   }
 
+  if (!contact || !session) {
+    return (
+      <SafeAreaView style={styles.loadingContainer}>
+        <Text style={styles.errorText}>{error || "Unable to start video call."}</Text>
+        <Pressable style={styles.backToListBtn} onPress={() => router.replace("/call")}>
+          <Text style={styles.backToListText}>Back to call center</Text>
+        </Pressable>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.topbar}>
-        <View style={styles.timerWrap}>
-          <View style={styles.redDot} />
-          <Text style={styles.callTime}>{formatCallTime(callSeconds)}</Text>
-        </View>
+      <View style={styles.stage}>
+        {layoutMode === "split" ? (
+          <View style={styles.splitStage}>
+            <VideoSurface
+              title={contact.name}
+              subtitle={contact.specialty}
+              isVideoOn={isRemoteVideoOn}
+              initials={contact.initials}
+              avatarColor={contact.avatarColor}
+              dark
+              topLabel="Remote video"
+            />
 
-        <View style={styles.aiPill}>
-          <Text style={styles.aiPillText}>AI Transcribing</Text>
-        </View>
-      </View>
+            <View style={styles.splitDivider} />
 
-      <Text style={styles.smallName}>{contact.name}</Text>
-      <Text style={styles.quality}>HD Quality</Text>
-
-      <View style={styles.mainProfile}>
-        <View
-          style={[
-            styles.mainAvatar,
-            { backgroundColor: contact.avatarColor },
-          ]}
-        >
-          <Text style={styles.mainAvatarText}>{contact.initials}</Text>
-        </View>
-
-        <Text style={styles.mainName}>{contact.name}</Text>
-        <Text style={styles.mainRole}>{contact.specialty}</Text>
-      </View>
-
-      <View
-        style={[
-          styles.transcriptPanel,
-          expanded ? styles.transcriptExpanded : null,
-        ]}
-      >
-        <View style={styles.transcriptHeader}>
-          <View style={styles.transcriptTitleRow}>
-            <MaterialIcons name="smart-toy" size={24} color="#2E3340" />
-            <Text style={styles.transcriptTitle}>AI Live Transcript</Text>
-            <View style={styles.liveDot} />
+            <VideoSurface
+              title="You"
+              subtitle={cameraFacing === "front" ? "Front camera" : "Back camera"}
+              isVideoOn={isLocalVideoOn}
+              initials={session.patient.initials}
+              avatarColor="#4C6EF5"
+              dark
+              topLabel="Local video"
+            />
           </View>
+        ) : (
+          <View style={styles.fullStage}>
+            <VideoSurface
+              title={layoutMode === "remote_focus" ? contact.name : "You"}
+              subtitle={
+                layoutMode === "remote_focus"
+                  ? contact.specialty
+                  : cameraFacing === "front"
+                  ? "Front camera"
+                  : "Back camera"
+              }
+              isVideoOn={layoutMode === "remote_focus" ? isRemoteVideoOn : isLocalVideoOn}
+              initials={layoutMode === "remote_focus" ? contact.initials : session.patient.initials}
+              avatarColor={layoutMode === "remote_focus" ? contact.avatarColor : "#4C6EF5"}
+              dark
+              topLabel={layoutMode === "remote_focus" ? "Remote video" : "Local video"}
+            />
 
-          <View style={styles.transcriptActions}>
-            <Pressable>
-              <Feather name="copy" size={20} color="#727B89" />
-            </Pressable>
-            <Pressable>
-              <Feather name="download" size={20} color="#727B89" />
-            </Pressable>
-            <Pressable onPress={() => setExpanded((prev) => !prev)}>
-              <AntDesign
-                name={expanded ? "down" : "up"}
-                size={18}
-                color="#727B89"
+            <View style={styles.floatingPreview}>
+              <VideoSurface
+                title={layoutMode === "remote_focus" ? "You" : contact.name}
+                subtitle={
+                  layoutMode === "remote_focus"
+                    ? cameraFacing === "front"
+                      ? "Front camera"
+                      : "Back camera"
+                    : contact.specialty
+                }
+                isVideoOn={layoutMode === "remote_focus" ? isLocalVideoOn : isRemoteVideoOn}
+                initials={layoutMode === "remote_focus" ? session.patient.initials : contact.initials}
+                avatarColor={layoutMode === "remote_focus" ? "#4C6EF5" : contact.avatarColor}
+                dark
+                compact
+                iconOnlyWhenOff={layoutMode === "remote_focus"}
+                topLabel={layoutMode === "remote_focus" ? "You" : contact.name}
               />
-            </Pressable>
+            </View>
           </View>
+        )}
+
+        <View style={styles.topOverlay}>
+          <CallHeader
+            time={formattedDuration}
+            aiEnabled={transcribing}
+            dark
+            onBack={() => router.back()}
+          />
         </View>
 
-        <ScrollView
-          style={styles.transcriptBody}
-          showsVerticalScrollIndicator={false}
-        >
-          {transcriptLines.map((line, index) => (
-            <View key={`${line}-${index}`} style={styles.transcriptBubble}>
-              <Text style={styles.transcriptText}>{line}</Text>
-            </View>
-          ))}
-        </ScrollView>
-      </View>
+        <View style={styles.topRightActions}>
+          <Pressable
+            style={styles.cornerIconBtn}
+            onPress={() => setLayoutMode((prev) => getNextLayout(prev))}
+          >
+            <MaterialIcons name="splitscreen" size={18} color={colors.surface} />
+          </Pressable>
 
-      <View style={styles.bottomControls}>
-        <ControlItem
-          label="Mute"
-          icon={<Feather name="mic" size={28} color={colors.surface} />}
-          onPress={() => {}}
-        />
+          <Pressable
+            style={styles.cornerIconBtn}
+            onPress={() => {
+              miniCallService.setState({
+                active: true,
+                minimized: true,
+                mode: "video",
+                contactId: contact.id,
+                contactName: contact.name,
+              });
+              router.replace("/call");
+            }}
+          >
+            <MaterialIcons
+              name="picture-in-picture-alt"
+              size={18}
+              color={colors.surface}
+            />
+          </Pressable>
+        </View>
 
-        <ControlItem
-          label="End"
-          center
-          icon={<Feather name="phone" size={28} color={colors.surface} />}
-          onPress={() => router.replace("/call")}
-        />
+        {expanded ? (
+          <View style={styles.expandedTranscriptWrap}>
+            <TranscriptPanel
+              items={transcriptItems}
+              transcribing={transcribing}
+              expanded={expanded}
+              onToggleExpanded={() => setExpanded(false)}
+              containerStyle={styles.transcriptExpandedPanel}
+            />
+          </View>
+        ) : (
+          <Animated.View
+            style={[
+              styles.transcriptDock,
+              {
+                transform: dockPosition.getTranslateTransform(),
+              },
+            ]}
+            {...panResponder.panHandlers}
+          >
+            <Pressable onPress={() => setExpanded(true)}>
+              <View style={styles.transcriptDockHeader}>
+                <View style={styles.transcriptDockTitleRow}>
+                  <MaterialIcons name="smart-toy" size={16} color={colors.surface} />
+                  <Text style={styles.transcriptDockTitle}>AI Transcript</Text>
+                </View>
+                <Feather name="chevron-up" size={16} color="#DCE3FF" />
+              </View>
 
-        <ControlItem
-          label="Stop"
-          icon={<Feather name="video" size={28} color={colors.surface} />}
-          onPress={() => {}}
-        />
+              <Text style={styles.transcriptDockText} numberOfLines={1}>
+                {latestTranscript}
+              </Text>
+            </Pressable>
+          </Animated.View>
+        )}
+
+        <View style={styles.bottomOverlay}>
+          <View style={styles.bottomControls}>
+            <VideoActionButton
+              label="Mute"
+              icon={
+                <Feather
+                  name={muted ? "mic-off" : "mic"}
+                  size={22}
+                  color={colors.surface}
+                />
+              }
+              onPress={async () => {
+                await rtc.setMuted(!muted);
+                await toggleMute();
+              }}
+            />
+
+            <VideoActionButton
+              label="Camera"
+              icon={
+                <Feather
+                  name={isLocalVideoOn ? "video" : "video-off"}
+                  size={22}
+                  color={colors.surface}
+                />
+              }
+              onPress={() => rtc.setCameraEnabled(!isLocalVideoOn)}
+            />
+
+            <VideoActionButton
+              label="End"
+              danger
+              icon={<Feather name="phone" size={24} color={colors.surface} />}
+              onPress={async () => {
+                await rtc.leaveCall();
+                await endCurrentCall();
+                router.replace("/call");
+              }}
+            />
+
+            <VideoActionButton
+              label="Flip"
+              icon={
+                <Ionicons
+                  name="camera-reverse-outline"
+                  size={22}
+                  color={colors.surface}
+                />
+              }
+              onPress={() => rtc.switchCamera()}
+            />
+
+            <VideoActionButton
+              label={transcribing ? "Stop AI" : "AI Off"}
+              icon={<MaterialIcons name="smart-toy" size={22} color={colors.surface} />}
+              onPress={stopTranscribing}
+            />
+          </View>
+        </View>
       </View>
     </SafeAreaView>
   );
 }
 
-function ControlItem({
+function VideoSurface({
+  title,
+  subtitle,
+  isVideoOn,
+  initials,
+  avatarColor,
+  dark,
+  compact = false,
+  topLabel,
+  iconOnlyWhenOff = false,
+}: {
+  title: string;
+  subtitle: string;
+  isVideoOn: boolean;
+  initials: string;
+  avatarColor: string;
+  dark?: boolean;
+  compact?: boolean;
+  topLabel: string;
+  iconOnlyWhenOff?: boolean;
+}) {
+  if (!isVideoOn && compact && iconOnlyWhenOff) {
+    return (
+      <View style={styles.previewOffOnly}>
+        <Feather name="video-off" size={22} color={colors.surface} />
+      </View>
+    );
+  }
+
+  if (isVideoOn) {
+    return (
+      <View style={[styles.videoSurface, compact ? styles.videoSurfaceCompact : null]}>
+        <Text style={[styles.videoTopLabel, compact ? styles.videoTopLabelCompact : null]}>
+          {topLabel}
+        </Text>
+      </View>
+    );
+  }
+
+  return (
+    <View style={[styles.videoFallbackSurface, compact ? styles.videoFallbackCompact : null]}>
+      <CallParticipantCard
+        initials={initials}
+        name={title}
+        subtitle={`${subtitle} • Camera off`}
+        avatarColor={avatarColor}
+        dark={dark}
+        large={!compact}
+      />
+    </View>
+  );
+}
+
+function VideoActionButton({
   label,
   icon,
   onPress,
-  center,
+  danger,
 }: {
   label: string;
-  icon: React.ReactNode;
+  icon: ReactNode;
   onPress: () => void;
-  center?: boolean;
+  danger?: boolean;
 }) {
   return (
-    <View style={styles.controlItem}>
+    <View style={styles.actionItem}>
       <Pressable
         onPress={onPress}
-        style={center ? styles.endButton : styles.controlButton}
+        style={[styles.actionButton, danger ? styles.actionButtonDanger : null]}
       >
         {icon}
       </Pressable>
-      <Text style={styles.controlLabel}>{label}</Text>
+      <Text style={styles.actionLabel}>{label}</Text>
     </View>
   );
 }
@@ -221,170 +448,199 @@ const styles = StyleSheet.create({
     backgroundColor: "#081936",
     justifyContent: "center",
     alignItems: "center",
+    paddingHorizontal: spacing.xxl,
+  },
+  errorText: {
+    ...typography.body,
+    color: colors.surface,
+    textAlign: "center",
+    marginBottom: spacing.lg,
+  },
+  backToListBtn: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    borderRadius: 999,
+  },
+  backToListText: {
+    color: colors.surface,
+    fontWeight: "700",
   },
   container: {
     flex: 1,
     backgroundColor: "#081936",
-    paddingHorizontal: 18,
-    paddingTop: 8,
   },
-  topbar: {
+  stage: {
+    flex: 1,
+    position: "relative",
+    backgroundColor: "#081936",
+  },
+  fullStage: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  splitStage: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "#081936",
+  },
+  splitDivider: {
+    height: 2,
+    backgroundColor: "rgba(255,255,255,0.08)",
+  },
+  videoSurface: {
+    flex: 1,
+    backgroundColor: "#17315C",
+    justifyContent: "flex-end",
+  },
+  videoSurfaceCompact: {
+    backgroundColor: "#29467C",
+  },
+  videoTopLabel: {
+    color: colors.surface,
+    fontSize: 14,
+    fontWeight: "700",
+    paddingHorizontal: 14,
+    paddingBottom: 14,
+  },
+  videoTopLabelCompact: {
+    fontSize: 12,
+    paddingHorizontal: 10,
+    paddingBottom: 10,
+  },
+  videoFallbackSurface: {
+    flex: 1,
+    backgroundColor: "#12284E",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 24,
+  },
+  videoFallbackCompact: {
+    paddingHorizontal: 10,
+  },
+  previewOffOnly: {
+    flex: 1,
+    backgroundColor: "#1A2F56",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  floatingPreview: {
+    position: "absolute",
+    top: 98,
+    left: 14,
+    width: 104,
+    height: 148,
+    borderRadius: 18,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.16)",
+    backgroundColor: "#1A2F56",
+  },
+  topOverlay: {
+    position: "absolute",
+    top: 8,
+    left: 14,
+    right: 14,
+    zIndex: 20,
+  },
+  topRightActions: {
+    position: "absolute",
+    top: 58,
+    right: 14,
+    flexDirection: "row",
+    gap: 8,
+    zIndex: 21,
+  },
+  cornerIconBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: "rgba(0,0,0,0.28)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  transcriptDock: {
+    position: "absolute",
+    width: 190,
+    borderRadius: 18,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    backgroundColor: "rgba(0,0,0,0.34)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.12)",
+    zIndex: 22,
+  },
+  transcriptDockHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: spacing.xl,
+    marginBottom: 6,
   },
-  timerWrap: {
+  transcriptDockTitleRow: {
     flexDirection: "row",
     alignItems: "center",
+    gap: 6,
   },
-  redDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: colors.danger,
-    marginRight: 10,
-  },
-  callTime: {
-    ...typography.body,
-    color: "#6C7482",
-    fontSize: 16,
-  },
-  aiPill: {
-    paddingHorizontal: 18,
-    paddingVertical: 10,
-    borderRadius: 999,
-    backgroundColor: "#DCE3FF",
-  },
-  aiPillText: {
-    fontSize: 16,
-    color: "#2F3441",
-    fontWeight: "500",
-  },
-  smallName: {
-    ...typography.body,
+  transcriptDockTitle: {
     color: colors.surface,
-    fontSize: 18,
-    marginBottom: spacing.xs,
-  },
-  quality: {
-    ...typography.body,
-    fontSize: 16,
-    color: "#00E05A",
-    marginBottom: 42,
-  },
-  mainProfile: {
-    alignItems: "center",
-    marginBottom: spacing.xxxl,
-  },
-  mainAvatar: {
-    width: 190,
-    height: 190,
-    borderRadius: 95,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: spacing.xxxl,
-  },
-  mainAvatarText: {
-    color: colors.surface,
-    fontSize: 52,
+    fontSize: 12,
     fontWeight: "700",
   },
-  mainName: {
-    ...typography.pageTitle,
-    color: colors.surface,
-    marginBottom: spacing.sm,
+  transcriptDockText: {
+    color: "#DCE3FF",
+    fontSize: 12,
+    lineHeight: 16,
   },
-  mainRole: {
-    ...typography.body,
-    color: "#C9CED8",
+  expandedTranscriptWrap: {
+    position: "absolute",
+    left: 14,
+    right: 14,
+    bottom: 108,
+    zIndex: 25,
   },
-  transcriptPanel: {
-    backgroundColor: colors.surface,
-    borderRadius: 24,
-    paddingTop: 18,
-    paddingBottom: 12,
-    paddingHorizontal: 16,
-    height: 220,
-    marginTop: "auto",
+  transcriptExpandedPanel: {
+    height: 260,
   },
-  transcriptExpanded: {
-    height: 400,
-  },
-  transcriptHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingBottom: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  transcriptTitleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  transcriptTitle: {
-    ...typography.cardTitle,
-    color: "#2E3340",
-    fontSize: 18,
-    marginLeft: 10,
-  },
-  liveDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: "#35C85A",
-    marginLeft: 12,
-  },
-  transcriptActions: {
-    flexDirection: "row",
-    gap: 14,
-    alignItems: "center",
-  },
-  transcriptBody: {
-    paddingTop: 16,
-  },
-  transcriptBubble: {
-    backgroundColor: "#EEF7F0",
-    borderRadius: 18,
-    padding: 16,
-    marginBottom: spacing.md,
-  },
-  transcriptText: {
-    ...typography.body,
-    color: "#2F3441",
-    lineHeight: 26,
+  bottomOverlay: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingHorizontal: 10,
+    paddingBottom: 10,
+    zIndex: 20,
   },
   bottomControls: {
-    paddingTop: 18,
-    paddingBottom: 24,
     flexDirection: "row",
-    justifyContent: "space-around",
-    alignItems: "center",
+    justifyContent: "space-between",
+    alignItems: "flex-end",
+    backgroundColor: "rgba(0,0,0,0.18)",
+    paddingHorizontal: 6,
+    paddingTop: 10,
+    paddingBottom: 6,
+    borderRadius: 24,
   },
-  controlItem: {
+  actionItem: {
     alignItems: "center",
+    flex: 1,
   },
-  controlButton: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: "rgba(255,255,255,0.16)",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 10,
-  },
-  endButton: {
-    width: 74,
-    height: 74,
-    borderRadius: 37,
-    backgroundColor: "#EF2626",
+  actionButton: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: "rgba(255,255,255,0.14)",
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 10,
+    marginBottom: 8,
   },
-  controlLabel: {
-    color: colors.surface,
-    fontSize: 16,
+  actionButtonDanger: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    backgroundColor: colors.danger,
+  },
+  actionLabel: {
+    color: "#DCE3FF",
+    fontSize: 12,
+    fontWeight: "600",
+    textAlign: "center",
   },
 });

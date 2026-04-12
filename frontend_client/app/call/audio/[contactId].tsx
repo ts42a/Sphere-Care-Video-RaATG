@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   View,
@@ -11,58 +11,105 @@ import { router, useLocalSearchParams } from "expo-router";
 import { Feather, MaterialIcons, Ionicons } from "@expo/vector-icons";
 
 import { callService } from "../../../src/services/callService";
+import { miniCallService } from "../../../src/services/miniCallService";
+import { useCallSession } from "../../../src/hooks/useCallSession";
+import { useAiTranscript } from "../../../src/hooks/useAiTranscript";
+import { useRtcEngine } from "../../../src/hooks/useRtcEngine";
+import { mockRtcEngine } from "../../../src/services/rtc/mockRtcEngine";
 import type { CallContact } from "../../../src/types/call";
+import CallHeader from "../../../src/components/call/CallHeader";
+import TranscriptPanel from "../../../src/components/call/TranscriptPanel";
+import CallParticipantCard from "../../../src/components/call/CallParticipantCard";
+import CallControls, {
+  type CallControlItem,
+} from "../../../src/components/call/CallControls";
 import { colors } from "../../../src/theme/colors";
 import { spacing } from "../../../src/theme/spacing";
 import { typography } from "../../../src/theme/typography";
 
+function getConnectionLabel(state: string) {
+  switch (state) {
+    case "connecting":
+      return "Connecting";
+    case "reconnecting":
+      return "Reconnecting";
+    case "connected":
+      return "Excellent connection";
+    case "ended":
+      return "Call ended";
+    case "disconnected":
+      return "Disconnected";
+    default:
+      return "Connecting";
+  }
+}
+
 export default function AudioCallScreen() {
   const { contactId } = useLocalSearchParams<{ contactId: string }>();
-  const [isConnected, setIsConnected] = useState(true);
-  const [callSeconds, setCallSeconds] = useState(0);
   const [contact, setContact] = useState<CallContact | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [muted, setMuted] = useState(false);
+  const [contactLoading, setContactLoading] = useState(true);
+  const [contactError, setContactError] = useState("");
   const [speakerOn, setSpeakerOn] = useState(true);
+  const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
-    if (contactId) {
-      loadContact(contactId);
-      callService.startAudioCall(contactId).catch((error) => {
-        console.error("Failed to start audio call", error);
-      });
+    if (!contactId) return;
+
+    async function loadContact() {
+      try {
+        setContactLoading(true);
+        setContactError("");
+        const data = await callService.getContactById(contactId);
+        setContact(data);
+      } catch (err) {
+        setContactError(err instanceof Error ? err.message : "Unable to load contact");
+      } finally {
+        setContactLoading(false);
+      }
     }
+
+    loadContact();
   }, [contactId]);
-  useEffect(() => {
-    if (!isConnected) return;
 
-    const timer = setInterval(() => {
-      setCallSeconds((prev) => prev + 1);
-    }, 1000);
+  const {
+    session,
+    loading,
+    error: sessionError,
+    formattedDuration,
+    muted,
+    transcribing,
+    toggleMute,
+    stopTranscribing,
+    endCurrentCall,
+  } = useCallSession(contact, "audio");
 
-    return () => clearInterval(timer);
-  }, [isConnected]);
+  const {
+    items: transcriptItems,
+    transcribing: liveTranscribing,
+  } = useAiTranscript(
+    session?.callId,
+    Boolean(session?.transcribing)
+  );
 
-  function formatCallTime(totalSeconds: number) {
-    const minutes = Math.floor(totalSeconds / 60);
-    const seconds = totalSeconds % 60;
+  const rtc = useRtcEngine(
+    mockRtcEngine,
+    session && contact
+      ? {
+          callId: String(session.callId),
+          mode: "audio",
+          localUserId: session.patient.name,
+          remoteUserId: contact.id,
+        }
+      : undefined
+  );
 
-    return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
-  }
+  const error = contactError || sessionError || rtc.error;
+  const connectionLabel = useMemo(
+    () => getConnectionLabel(rtc.snapshot.connectionState),
+    [rtc.snapshot.connectionState]
+  );
 
-  async function loadContact(id: string) {
-    try {
-      setLoading(true);
-      const data = await callService.getContactById(id);
-      setContact(data);
-    } catch (error) {
-      console.error("Failed to load contact", error);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  if (loading || !contact) {
+  if (contactLoading || loading || rtc.joining) {
     return (
       <SafeAreaView style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={colors.primary} />
@@ -70,124 +117,180 @@ export default function AudioCallScreen() {
     );
   }
 
+  if (!contact || !session) {
+    return (
+      <SafeAreaView style={styles.loadingContainer}>
+        <Text style={styles.errorText}>{error || "Unable to start call."}</Text>
+        <Pressable style={styles.backToListBtn} onPress={() => router.replace("/call")}>
+          <Text style={styles.backToListText}>Back to call center</Text>
+        </Pressable>
+      </SafeAreaView>
+    );
+  }
+
+  const audioMainControls: CallControlItem[] = [
+    {
+      key: "mute",
+      label: "Mute",
+      active: muted,
+      icon: (
+        <Feather
+          name={muted ? "mic-off" : "mic"}
+          size={22}
+          color={colors.icon}
+        />
+      ),
+      onPress: async () => {
+        await rtc.setMuted(!muted);
+        await toggleMute();
+      },
+    },
+    {
+      key: "speaker",
+      label: "Speaker",
+      active: speakerOn,
+      icon: (
+        <Feather
+          name={speakerOn ? "volume-2" : "volume-x"}
+          size={22}
+          color={colors.icon}
+        />
+      ),
+      onPress: () => setSpeakerOn((prev) => !prev),
+    },
+    {
+      key: "video",
+      label: "Video",
+      icon: <Feather name="video" size={22} color={colors.icon} />,
+      onPress: () =>
+        router.replace({
+          pathname: "/call/video/[contactId]",
+          params: { contactId: contact.id },
+        }),
+    },
+    {
+      key: "ai",
+      label: transcribing ? "Stop AI" : "AI Off",
+      active: transcribing,
+      icon: <MaterialIcons name="smart-toy" size={22} color={colors.icon} />,
+      onPress: stopTranscribing,
+    },
+  ];
+
+  const audioBottomControls: CallControlItem[] = [
+    {
+      key: "dialpad",
+      label: "",
+      icon: <MaterialIcons name="dialpad" size={22} color={colors.icon} />,
+      onPress: () => {},
+    },
+    {
+      key: "end",
+      label: "",
+      danger: true,
+      icon: <Feather name="phone" size={26} color="#FFFFFF" />,
+      onPress: async () => {
+        await rtc.leaveCall();
+        await endCurrentCall();
+        router.replace("/call");
+      },
+    },
+    {
+      key: "message",
+      label: "",
+      icon: (
+        <Ionicons
+          name="chatbubble-ellipses-outline"
+          size={20}
+          color={colors.icon}
+        />
+      ),
+      onPress: () =>
+        router.push({
+          pathname: "/messages/[contactId]",
+          params: { contactId: contact.id },
+        }),
+    },
+  ];
+
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.topbar}>
-        <Pressable onPress={() => router.back()}>
-          <Feather name="arrow-left" size={26} color={colors.icon} />
-        </Pressable>
-
-        <Text style={styles.callTime}>{formatCallTime(callSeconds)}</Text>
-
-        <Pressable>
-          <Feather name="more-vertical" size={24} color={colors.icon} />
-        </Pressable>
-      </View>
+      <CallHeader
+        time={formattedDuration}
+        aiEnabled={transcribing}
+        onBack={() => router.back()}
+        onMinimize={() => {
+          miniCallService.setState({
+            active: true,
+            minimized: true,
+            mode: "audio",
+            contactId: contact.id,
+            contactName: contact.name,
+          });
+          router.replace("/call");
+        }}
+      />
 
       <View style={styles.content}>
-        <View style={styles.avatarWrap}>
-          <View
-            style={[
-              styles.avatarCircle,
-              { backgroundColor: contact.avatarColor || "#D9D9D9" },
-            ]}
-          >
-            <Text style={styles.avatarText}>{contact.initials}</Text>
-          </View>
-          <View style={styles.onlineDot} />
-        </View>
-
-        <Text style={styles.name}>{contact.name}</Text>
-        <Text style={styles.role}>{contact.specialty}</Text>
-
-        <View style={styles.statusPill}>
-          <Text style={styles.statusText}>Connected</Text>
-        </View>
-
-        <View style={styles.grid}>
-          <ControlCard
-            label="Mute"
-            active={muted}
-            icon={
-              <Feather
-                name={muted ? "mic-off" : "mic"}
-                size={24}
-                color={colors.icon}
-              />
-            }
-            onPress={() => setMuted((prev) => !prev)}
-          />
-          <ControlCard
-            label="Speaker"
-            active={speakerOn}
-            icon={
-              <Feather
-                name={speakerOn ? "volume-2" : "volume-x"}
-                size={24}
-                color={colors.icon}
-              />
-            }
-            onPress={() => setSpeakerOn((prev) => !prev)}
-          />
-          <ControlCard
-            label="Video"
-            icon={<Feather name="video" size={24} color={colors.icon} />}
-            onPress={() =>
-              router.replace({
-                pathname: "/call/video/[contactId]",
-                params: { contactId: contact.id },
-              })
-            }
-          />
-          <ControlCard
-            label="Add"
-            icon={
-              <Ionicons name="person-add-outline" size={24} color={colors.icon} />
-            }
-            onPress={() => {}}
+        <View style={styles.hero}>
+          <CallParticipantCard
+            initials={contact.initials}
+            name={contact.name}
+            subtitle={contact.specialty}
+            status={session.consultationStatus}
+            avatarColor={contact.avatarColor}
+            showOnlineDot
           />
         </View>
+
+        <View style={styles.mainControlsWrap}>
+          <CallControls items={audioMainControls} layout="grid" />
+        </View>
+
+        <TranscriptPanel
+          items={transcriptItems}
+          transcribing={transcribing}
+          expanded={expanded}
+          onToggleExpanded={() => setExpanded((prev) => !prev)}
+          containerStyle={[
+            styles.transcriptPanel,
+            expanded ? styles.transcriptPanelExpanded : null,
+          ]}
+        />
 
         <View style={styles.connectionWrap}>
-          <MaterialIcons name="graphic-eq" size={28} color={colors.success} />
-          <Text style={styles.connectionText}>Excellent connection</Text>
-        </View>
-        <View style={styles.bottomActions}>
-          <Pressable style={styles.leftActionBtn}>
-            <MaterialIcons name="dialpad" size={24} color={colors.icon} />
-          </Pressable>
-
-          <Pressable
-            style={styles.endBtn}
-            onPress={() => router.replace("/call")}
+          <MaterialIcons
+            name={
+              rtc.snapshot.connectionState === "connected"
+                ? "graphic-eq"
+                : rtc.snapshot.connectionState === "ended"
+                ? "call-end"
+                : "wifi-tethering"
+            }
+            size={22}
+            color={
+              rtc.snapshot.connectionState === "ended"
+                ? colors.danger
+                : colors.success
+            }
+          />
+          <Text
+            style={[
+              styles.connectionText,
+              rtc.snapshot.connectionState === "ended"
+                ? styles.connectionTextEnded
+                : null,
+            ]}
           >
-            <Feather name="phone" size={28} color="#FFFFFF" />
-          </Pressable>
+            {connectionLabel}
+          </Text>
+        </View>
+
+        <View style={styles.bottomActions}>
+          <CallControls items={audioBottomControls} layout="row" />
         </View>
       </View>
     </SafeAreaView>
-  );
-}
-
-function ControlCard({
-  label,
-  icon,
-  onPress,
-  active,
-}: {
-  label: string;
-  icon: React.ReactNode;
-  onPress: () => void;
-  active?: boolean;
-}) {
-  return (
-    <Pressable
-      style={[styles.controlCard, active ? styles.controlCardActive : null]}
-      onPress={onPress}
-    >
-      {icon}
-      <Text style={styles.controlLabel}>{label}</Text>
-    </Pressable>
   );
 }
 
@@ -197,151 +300,74 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     justifyContent: "center",
     alignItems: "center",
+    paddingHorizontal: spacing.xxl,
+  },
+  errorText: {
+    ...typography.body,
+    color: colors.textSecondary,
+    textAlign: "center",
+    marginBottom: spacing.lg,
+  },
+  backToListBtn: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    borderRadius: 999,
+  },
+  backToListText: {
+    color: colors.surface,
+    fontWeight: "700",
   },
   container: {
     flex: 1,
     backgroundColor: colors.background,
-    paddingTop: 6,
-    paddingHorizontal: spacing.xxl,
-  },
-  topbar: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 14,
-  },
-  callTime: {
-    ...typography.body,
-    color: "#6C7482",
-    fontSize: 16,
+    paddingTop: 4,
+    paddingHorizontal: 20,
   },
   content: {
     flex: 1,
-    justifyContent: "space-between",
-    paddingBottom: 14,
+    paddingBottom: 10,
+    position: "relative",
+    paddingTop: 10,
   },
-  avatarWrap: {
+  hero: {
     alignItems: "center",
-    justifyContent: "center",
-    marginTop: 4,
-    marginBottom: 14,
+    marginBottom: 12,
   },
-  avatarCircle: {
-    width: 150,
-    height: 150,
-    borderRadius: 75,
-    alignItems: "center",
-    justifyContent: "center",
+  mainControlsWrap: {
+    marginBottom: 16,
   },
-  avatarText: {
-    fontSize: 40,
-    fontWeight: "700",
-    color: colors.surface,
-  },
-  onlineDot: {
-    position: "absolute",
-    right: 98,
-    bottom: 6,
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: "#2BC35A",
-    borderWidth: 4,
-    borderColor: colors.background,
-  },
-  name: {
-    textAlign: "center",
-    ...typography.pageTitle,
-    color: colors.textPrimary,
-    marginBottom: 4,
-    fontSize: 22,
-  },
-  role: {
-    textAlign: "center",
-    ...typography.body,
-    color: "#6E7685",
+  transcriptPanel: {
+    height: 130,
     marginBottom: 10,
-    fontSize: 14,
   },
-  statusPill: {
-    alignSelf: "center",
-    paddingHorizontal: 18,
-    paddingVertical: 8,
-    borderRadius: 999,
-    backgroundColor: "#E5F4EA",
-    marginBottom: 18,
-  },
-  statusText: {
-    color: "#25A34C",
-    fontSize: 15,
-    fontWeight: "500",
-  },
-  grid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-    rowGap: 14,
-    marginBottom: 18,
-  },
-  controlCard: {
-    width: "47%",
-    height: 98,
-    borderRadius: 20,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.borderStrong,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 10,
-  },
-  controlCardActive: {
-    backgroundColor: "#F2F8FF",
-  },
-  controlLabel: {
-    ...typography.body,
-    color: "#586474",
-    fontSize: 16,
+  transcriptPanelExpanded: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: "58%",
+    marginBottom: 0,
+    zIndex: 20,
+    elevation: 12,
   },
   connectionWrap: {
     flexDirection: "row",
-    justifyContent: "center",
     alignItems: "center",
-    gap: spacing.xs,
-    marginBottom: 18,
+    justifyContent: "center",
+    marginBottom: 10,
+    gap: 6,
   },
   connectionText: {
-    ...typography.body,
-    fontSize: 16,
+    ...typography.subText,
     color: colors.success,
+    fontSize: 13,
+  },
+  connectionTextEnded: {
+    color: colors.danger,
   },
   bottomActions: {
-    height: 92,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 4,
-    position: "relative",
-  },
-  leftActionBtn: {
-    position: "absolute",
-    left: 40,
-    width: 68,
-    height: 68,
-    borderRadius: 34,
-    backgroundColor: "#ECEDEF",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  endBtn: {
-    width: 84,
-    height: 84,
-    borderRadius: 42,
-    backgroundColor: "#EF2626",
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.18,
-    shadowRadius: 12,
-    elevation: 8,
+    marginTop: "auto",
+    paddingTop: 4,
   },
 });

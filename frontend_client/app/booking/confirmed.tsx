@@ -12,7 +12,6 @@ import { Feather, Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import * as Calendar from "expo-calendar";
-import BottomNav from "../../src/components/BottomNav";
 import PageHeader from "../../src/components/PageHeader";
 import { bookingService } from "../../src/services/bookingService";
 import { wsClient } from "../../src/services/wsClient";
@@ -253,8 +252,6 @@ export default function ConfirmedScreen() {
           ) : null}
         </View>
       </ScrollView>
-
-      <BottomNav active="booking" />
     </SafeAreaView>
   );
 }

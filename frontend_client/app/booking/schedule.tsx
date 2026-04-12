@@ -10,7 +10,6 @@ import {
 import { Feather } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
-import BottomNav from "../../src/components/BottomNav";
 import PageHeader from "../../src/components/PageHeader";
 import BookingCalendar from "../../src/components/BookingCalendar";
 import { bookingService } from "../../src/services/bookingService";
@@ -424,8 +423,6 @@ export default function ScheduleScreen() {
           ) : null}
         </View>
       </ScrollView>
-
-      <BottomNav active="booking" />
     </SafeAreaView>
   );
 }

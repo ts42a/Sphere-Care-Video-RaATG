@@ -31,12 +31,17 @@ export default function BookingScreen() {
         setError("");
         const data = await bookingService.getAppointmentTypes();
         setAppointmentTypes(data);
-      } catch {
-        setError("Failed to load appointment types.");
-      } finally {
-        setLoading(false);
+        } catch (err) {
+          console.error("Failed to load appointment types", err);
+          setError(
+            err instanceof Error
+              ? err.message
+              : "Failed to load appointment types."
+          );
+        } finally {
+          setLoading(false);
+        }
       }
-    }
 
     loadAppointmentTypes();
   }, []);
