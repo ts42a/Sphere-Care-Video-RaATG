@@ -142,9 +142,7 @@ html,body{height:100%;font-family:'Inter', sans-serif;background:var(--bg);color
 .ctx-item.danger{color:var(--red);}
 .ctx-item svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;}
 
-/* ══════════════════════════════════════════════
-   CALL OVERLAY — 3 Layer Architecture
-   ══════════════════════════════════════════════ */
+/*CALL OVERLAY — 3 Layer Architecture */
 .call-overlay{position:fixed;inset:0;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding-bottom:48px;font-family:'Inter',sans-serif;animation:callFadeIn .25s ease;}
 @keyframes callFadeIn{from{opacity:0;}to{opacity:1;}}
 .call-audio-bg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;}
@@ -169,3 +167,7 @@ html,body{height:100%;font-family:'Inter', sans-serif;background:var(--bg);color
 .call-btn--on{background:rgba(255,255,255,0.9)!important;color:#0f172a!important;}
 .call-btn--end{width:68px;height:68px;background:#ef4444!important;box-shadow:0 4px 20px rgba(239,68,68,0.5);}
 .call-btn--end:hover{background:#dc2626!important;transform:scale(1.1);}
+
+/* Transcript panel positioning fix */
+.call-overlay { position: fixed !important; }
+#transcript-panel { position: absolute !important; bottom: 100px !important; left: 50% !important; transform: translateX(-50%) !important; z-index: 99 !important; }
