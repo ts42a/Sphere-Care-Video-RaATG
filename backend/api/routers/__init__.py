@@ -11,6 +11,20 @@ from . import alerts
 from . import dashboard
 from . import analytics
 from . import notifications
+from fastapi import APIRouter
+
+from . import health
+from . import auth
+from . import oauth
+from . import password_reset
+from . import residents
+from . import bookings
+from . import client_bookings
+from . import staff
+from . import alerts
+from . import dashboard
+from . import analytics
+from . import notifications
 from . import messages
 from . import records
 from . import cameras
@@ -20,7 +34,7 @@ from . import call
 from . import account
 from . import admin_console
 from . import center_membership
-from . import asl                          # ── NEW ──
+from . import asl
 
 api_router = APIRouter()
 
@@ -30,6 +44,7 @@ api_router.include_router(oauth.router, prefix="/oauth", tags=["OAuth"])
 api_router.include_router(password_reset.router, prefix="/password", tags=["Password Reset"])
 api_router.include_router(residents.router, prefix="/residents", tags=["Residents"])
 api_router.include_router(bookings.router, prefix="/bookings", tags=["Bookings"])
+api_router.include_router(client_bookings.router)
 api_router.include_router(staff.router, prefix="/staff", tags=["Staff"])
 api_router.include_router(alerts.router, prefix="/alerts", tags=["Alerts"])
 api_router.include_router(dashboard.router, prefix="/dashboard", tags=["Dashboard"])
@@ -44,4 +59,4 @@ api_router.include_router(call.router, prefix="/call", tags=["Call"])
 api_router.include_router(account.router, prefix="/account", tags=["Account"])
 api_router.include_router(admin_console.router, prefix="/admin", tags=["Admin Console"])
 api_router.include_router(center_membership.router)
-api_router.include_router(asl.router, prefix="/asl", tags=["ASL"])  # ── NEW ──
+api_router.include_router(asl.router, prefix="/asl", tags=["ASL"])
