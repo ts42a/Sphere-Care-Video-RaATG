@@ -360,9 +360,12 @@ var _aslLoop    = null;
 var _aslSentence = '';
 var _aslHoldLetter = '';
 var _aslHoldCount  = 0;
-var ASL_HOLD_FRAMES = 18;   // frames to hold before confirming letter
-var ASL_INTERVAL_MS = 180;  // ms between detections (~5 fps to avoid spam)
-var ASL_MIN_CONF    = 0.65;
+var ASL_HOLD_FRAMES   = 18;
+var ASL_INTERVAL_MS   = 180;
+var ASL_STATIC_CONF   = 0.70;
+var ASL_MOTION_CONF   = 0.76;
+var ASL_MOTION_SEQLEN = 10;
+var _aslMotionSeq     = [];
 
 function _L2_aiPipeline(stream) {
   // Only run for video calls with a real stream
@@ -378,7 +381,8 @@ function _L2_aiPipeline(stream) {
   _aslSentence   = '';
   _aslHoldLetter = '';
   _aslHoldCount  = 0;
-  _injectAslSubtitle();
+  _aslMotionSeq  = [];
+  // subtitle injected after _L3_showOverlay to avoid innerHTML wipe
 
   // Start detection loop
   _aslLoop = setInterval(_aslDetectFrame, ASL_INTERVAL_MS);
@@ -386,29 +390,177 @@ function _L2_aiPipeline(stream) {
   return stream;
 }
 
+// ── Transcript panel — shared by both modes ──────────────────
+// Panel layout:
+//   TOP:    Mode tabs  [🎤 Speech] [👋 ASL]
+//   MIDDLE: Live transcript text
+//   BOTTOM: [Clear] [Space] (ASL only)
+
+var _transcriptMode = 'speech';   // 'speech' | 'asl'
+var _speechRec      = null;
+var _speechFinal    = '';
+var _speechInterim  = '';
+
 function _injectAslSubtitle() {
   var el = document.getElementById('call-overlay');
   if (!el) return;
+  if (document.getElementById('transcript-panel')) return;
   var box = document.createElement('div');
-  box.id = 'asl-subtitle-box';
-  box.style.cssText = 'position:absolute;top:16px;left:50%;transform:translateX(-50%);z-index:5;background:rgba(0,0,0,0.62);backdrop-filter:blur(6px);border-radius:12px;padding:10px 20px;min-width:200px;max-width:80%;text-align:center;';
+  box.id = 'transcript-panel';
+  box.style.cssText = [
+    'position:absolute;bottom:100px;left:50%;transform:translateX(-50%);z-index:99;',
+    'background:rgba(0,0,0,0.80);backdrop-filter:blur(8px);',
+    'border-radius:14px;padding:12px 16px;min-width:300px;max-width:90%;',
+    'font-family:Inter,sans-serif;box-sizing:border-box;',
+  ].join('');
+
   box.innerHTML =
-    '<div style="font-size:11px;color:rgba(255,255,255,0.55);margin-bottom:4px;letter-spacing:.5px;">ASL DETECTION</div>' +
-    '<div id="asl-live-letter" style="font-size:40px;font-weight:500;color:#fff;line-height:1;min-width:40px;display:inline-block;">—</div>' +
-    '<div id="asl-live-conf"   style="font-size:11px;color:#9fe1cb;margin-top:2px;"></div>' +
-    '<div id="asl-live-text"   style="font-size:14px;color:#fff;margin-top:6px;letter-spacing:2px;min-height:20px;word-break:break-all;"></div>' +
-    '<div style="display:flex;gap:6px;margin-top:8px;justify-content:center;">' +
-      '<button onclick="_aslClear()" style="font-size:11px;padding:3px 10px;background:rgba(255,255,255,0.12);border:0.5px solid rgba(255,255,255,0.2);border-radius:6px;color:#fff;cursor:pointer;">Clear</button>' +
-      '<button onclick="_aslSpace()" style="font-size:11px;padding:3px 10px;background:rgba(255,255,255,0.12);border:0.5px solid rgba(255,255,255,0.2);border-radius:6px;color:#fff;cursor:pointer;">Space</button>' +
-    '</div>';
+    // Mode tabs
+    '<div style="display:flex;gap:6px;margin-bottom:10px;justify-content:center;">' +
+      '<button id="tab-speech" onclick="_switchTranscriptMode(&quot;speech&quot;)" style="' +
+        'font-size:12px;padding:4px 14px;border-radius:20px;cursor:pointer;border:none;' +
+        'background:rgba(56,189,248,0.9);color:#0f172a;font-weight:700;">🎤 Speech</button>' +
+      '<button id="tab-asl" onclick="_switchTranscriptMode(&quot;asl&quot;)" style="' +
+        'font-size:12px;padding:4px 14px;border-radius:20px;cursor:pointer;border:none;' +
+        'background:rgba(255,255,255,0.15);color:#fff;">👋 ASL</button>' +
+    '</div>' +
+    // Live text area
+    '<div id="transcript-live" style="' +
+      'font-size:14px;color:#fff;line-height:1.55;min-height:40px;max-height:100px;' +
+      'overflow-y:auto;text-align:center;word-break:break-word;"></div>' +
+    // ASL detail row (letter + confidence)
+    '<div id="asl-detail-row" style="display:none;margin-top:6px;text-align:center;">' +
+      '<span id="asl-live-letter" style="font-size:36px;font-weight:700;color:#fff;line-height:1;">—</span>' +
+      '<span id="asl-live-conf" style="font-size:11px;color:#9fe1cb;margin-left:8px;"></span>' +
+    '</div>' +
+    // ASL controls
+    '<div id="asl-controls" style="display:none;gap:6px;margin-top:8px;justify-content:center;">' +
+      '<button onclick="_aslToggleGesture()" id="asl-mode-btn" style="' +
+        'font-size:11px;padding:3px 10px;background:rgba(56,189,248,0.25);' +
+        'border:0.5px solid rgba(56,189,248,0.4);border-radius:6px;color:#38bdf8;cursor:pointer;">Static A-Z</button>' +
+      '<button onclick="_aslClear()" style="' +
+        'font-size:11px;padding:3px 10px;background:rgba(255,255,255,0.12);' +
+        'border:0.5px solid rgba(255,255,255,0.2);border-radius:6px;color:#fff;cursor:pointer;">Clear</button>' +
+      '<button onclick="_aslSpace()" style="' +
+        'font-size:11px;padding:3px 10px;background:rgba(255,255,255,0.12);' +
+        'border:0.5px solid rgba(255,255,255,0.2);border-radius:6px;color:#fff;cursor:pointer;">Space</button>' +
+    '</div>' +
+    // Speech status
+    '<div id="speech-status" style="font-size:11px;color:rgba(255,255,255,0.5);text-align:center;margin-top:6px;">Listening…</div>';
+
   el.appendChild(box);
+
+  // Start in speech mode by default
+  _switchTranscriptMode('speech');
 }
 
-function _aslClear() { _aslSentence=''; _aslUpdateText(); }
-function _aslSpace() { _aslSentence+=' '; _aslUpdateText(); }
+function _switchTranscriptMode(mode) {
+  _transcriptMode = mode;
+
+  // Update tab styles
+  var ts = document.getElementById('tab-speech');
+  var ta = document.getElementById('tab-asl');
+  if (ts) { ts.style.background = mode==='speech' ? 'rgba(56,189,248,0.9)' : 'rgba(255,255,255,0.15)'; ts.style.color = mode==='speech' ? '#0f172a' : '#fff'; }
+  if (ta) { ta.style.background = mode==='asl'    ? 'rgba(56,189,248,0.9)' : 'rgba(255,255,255,0.15)'; ta.style.color = mode==='asl'    ? '#0f172a' : '#fff'; }
+
+  var aslDetail = document.getElementById('asl-detail-row');
+  var aslCtrl   = document.getElementById('asl-controls');
+  var spStatus  = document.getElementById('speech-status');
+
+  if (mode === 'speech') {
+    if (aslDetail) aslDetail.style.display = 'none';
+    if (aslCtrl)   aslCtrl.style.display   = 'none';
+    if (spStatus)  spStatus.style.display  = 'block';
+    _startSpeechRecognition();
+  } else {
+    if (aslDetail) aslDetail.style.display = 'block';
+    if (aslCtrl)   aslCtrl.style.display   = 'flex';
+    if (spStatus)  spStatus.style.display  = 'none';
+    _stopSpeechRecognition();
+    _updateTranscriptLive(_aslSentence || '…');
+  }
+}
+
+// ── Speech Recognition (Web Speech API) ──────────────────────
+function _startSpeechRecognition() {
+  _stopSpeechRecognition();
+  var SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRec) {
+    var el = document.getElementById('speech-status');
+    if (el) el.textContent = 'Speech recognition not supported in this browser.';
+    return;
+  }
+  _speechRec = new SpeechRec();
+  _speechRec.continuous     = true;
+  _speechRec.interimResults = true;
+  _speechRec.lang           = 'en-AU';
+
+  _speechRec.onstart = function() {
+    var el = document.getElementById('speech-status');
+    if (el) el.textContent = '🔴 Listening…';
+  };
+
+  _speechRec.onresult = function(e) {
+    _speechInterim = '';
+    for (var i = e.resultIndex; i < e.results.length; i++) {
+      if (e.results[i].isFinal) {
+        _speechFinal += e.results[i][0].transcript + ' ';
+      } else {
+        _speechInterim += e.results[i][0].transcript;
+      }
+    }
+    // Show final (white) + interim (grey)
+    var el = document.getElementById('transcript-live');
+    if (el) el.innerHTML =
+      '<span style="color:#fff;">' + esc(_speechFinal) + '</span>' +
+      '<span style="color:rgba(255,255,255,0.5);">' + esc(_speechInterim) + '</span>';
+  };
+
+  _speechRec.onerror = function(e) {
+    var el = document.getElementById('speech-status');
+    if (el) el.textContent = e.error === 'not-allowed' ? 'Mic permission denied.' : 'Error: ' + e.error;
+  };
+
+  _speechRec.onend = function() {
+    // Auto-restart if still in speech mode and call active
+    if (_transcriptMode === 'speech' && _call.active) {
+      try { _speechRec.start(); } catch(e) {}
+    }
+  };
+
+  try { _speechRec.start(); } catch(e) {}
+}
+
+function _stopSpeechRecognition() {
+  if (_speechRec) {
+    try { _speechRec.stop(); } catch(e) {}
+    _speechRec = null;
+  }
+}
+
+function _updateTranscriptLive(text) {
+  var el = document.getElementById('transcript-live');
+  if (el) el.textContent = text;
+}
+
+// ── ASL helpers ───────────────────────────────────────────────
+function _aslClear() {
+  _aslSentence=''; _aslMotionSeq=[];
+  if (_transcriptMode === 'asl') _updateTranscriptLive('…');
+}
+function _aslSpace() {
+  _aslSentence+=' ';
+  if (_transcriptMode === 'asl') _updateTranscriptLive(_aslSentence);
+}
+var _aslMode = 'static';
+function _aslToggleGesture() {
+  _aslMode = _aslMode === 'static' ? 'motion' : 'static';
+  _aslMotionSeq = []; _aslHoldCount = 0; _aslHoldLetter = '';
+  var btn = document.getElementById('asl-mode-btn');
+  if (btn) { btn.textContent = _aslMode === 'static' ? 'Static A-Z' : 'Motion Words'; btn.style.color = _aslMode === 'static' ? '#38bdf8' : '#9fe1cb'; }
+}
 function _aslUpdateText() {
-  var el = document.getElementById('asl-live-text');
-  if (el) el.textContent = _aslSentence || '…';
+  if (_transcriptMode === 'asl') _updateTranscriptLive(_aslSentence || '…');
 }
 
 async function _aslDetectFrame() {
@@ -425,10 +577,18 @@ async function _aslDetectFrame() {
     var res = await fetch(API_BASE + '/asl/detect', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-      body: JSON.stringify({ image_b64: b64 })
+      body: JSON.stringify({ image_b64: b64, mode: _aslMode, motion_seq: _aslMode === 'motion' ? _aslMotionSeq : null })
     });
     if (!res.ok) return;
     var data = await res.json();
+
+    // Accumulate motion sequence frames
+    if (_aslMode === 'motion' && data.current_frame_features) {
+      _aslMotionSeq.push(data.current_frame_features);
+      if (_aslMotionSeq.length > ASL_MOTION_SEQLEN) _aslMotionSeq.shift();
+    }
+
+    var confThreshold = _aslMode === 'static' ? ASL_STATIC_CONF : ASL_MOTION_CONF;
 
     // Update letter display
     var letterEl = document.getElementById('asl-live-letter');
@@ -437,12 +597,21 @@ async function _aslDetectFrame() {
     if (confEl)   confEl.textContent   = data.hand_detected && data.letter ? Math.round(data.confidence * 100) + '%' : '';
 
     // Hold-to-confirm logic
-    if (data.hand_detected && data.letter && data.confidence >= ASL_MIN_CONF) {
+    if (data.hand_detected && data.letter && data.confidence >= confThreshold) {
       if (data.letter === _aslHoldLetter) {
         _aslHoldCount++;
         if (_aslHoldCount >= ASL_HOLD_FRAMES) {
-          _aslSentence += data.letter;
+          if (_aslMode === 'motion') {
+            if (_aslSentence) _aslSentence += ' ';
+            _aslSentence += data.letter;
+            _aslMotionSeq = [];
+          } else {
+            _aslSentence += data.letter;
+          }
           _aslUpdateText();
+          // also update letter display
+          var lEl = document.getElementById('asl-live-letter');
+          if (lEl) lEl.textContent = data.letter;
           _aslHoldCount  = 0;
           _aslHoldLetter = '';
         }
@@ -507,7 +676,8 @@ async function _beginCall(type) {
   _call.active = true; _call.type = type; _call.muted = false; _call.videoOff = false; _call.seconds = 0;
   var stream = await _L1_capture(type); // Layer 1
   _L2_aiPipeline(stream);               // Layer 2
-  _L3_showOverlay(type, stream);        // Layer 3
+  _L3_showOverlay(type, stream);        // Layer 3 — renders overlay HTML
+  _injectAslSubtitle(); // inject AFTER overlay rendered (both audio + video)
   _startTimer();
 }
 
@@ -615,7 +785,8 @@ function callToggleSpeaker() {
 function endCall() {
   if (_call.stream) { _call.stream.getTracks().forEach(function (t) { t.stop(); }); _call.stream = null; }
   clearInterval(_call.timer);
-  _aslStopLoop();  // ── stop ASL detection
+  _stopSpeechRecognition();  // ── stop speech recognition
+  _aslStopLoop();            // ── stop ASL detection
   _call.active = false; _call.type = null; _call.seconds = 0;
   var el = document.getElementById('call-overlay');
   if (el) { el.style.display = 'none'; el.innerHTML = ''; }
