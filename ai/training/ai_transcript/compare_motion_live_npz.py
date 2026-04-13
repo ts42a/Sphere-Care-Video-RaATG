@@ -1,6 +1,15 @@
-# Compare a saved motion .npz (training-time layout) to a live segment from the webcam
-# using the same feature extraction and segmentation rules as test_motion.py.
+"""
+Compare a saved motion .npz (training-time layout) to a live segment from the webcam
+using the same feature extraction and segmentation rules as test_motion.py.
 
+Usage:
+  py compare_motion_live_npz.py --npz dataset/raw_custom/motion/YES/YES_....npz
+  py compare_motion_live_npz.py --npz path/to/sample.npz --live
+
+Reference-only prints stats + model prediction. With --live, perform a sign; when the
+segment ends (same idle / max-frames rules as test_motion), stats print again and
+differences vs the reference are shown. Press Q/ESC to quit.
+"""
 from __future__ import annotations
 
 import argparse
