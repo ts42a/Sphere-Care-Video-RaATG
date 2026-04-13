@@ -4,6 +4,8 @@ Single default architecture for **admin <-> client**, **client <-> client (gated
 
 ## 1. Decisions
 
+| Topic | Decision |
+|-------|----------|
 | Media plane | **WebRTC through LiveKit SFU**. Do not build raw browser-only P2P for production. |
 | Signaling/control | **FastAPI + existing WebSocket** for ring / accept / decline / cancel / timeout / end. |
 | Media signaling | **LiveKit** handles SDP, ICE, and media transport. App WebSocket is not a custom WebRTC signaling replacement. |
