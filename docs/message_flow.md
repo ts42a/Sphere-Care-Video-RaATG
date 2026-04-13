@@ -86,7 +86,7 @@ Sphere Care uses **one PostgreSQL database** (`DATABASE_URL` in backend config).
 | **`conversation_participants`** | Who is in each thread; access and read state. |
 | **`message_delivery_receipts`** | Optional per-recipient **delivered/read** timestamps for a `messages.id` and a participant row. |
 | **`message_outbox`** | Queue for **WebSocket fan-out** (JSON payload), not a second copy of the chat text. |
-ORM: `backend/models/message.py`.
+
 
 
 
