@@ -52,6 +52,7 @@
           <button class="hdr-btn" onclick="startVideoCall()"><span class="tooltip">Video Call</span><svg viewBox="0 0 24 24"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg></button>
           <button class="hdr-btn" onclick="toggleMsgSearch()"><span class="tooltip">Search</span><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></button>
           <button class="hdr-btn" onclick="markCurrentUnread()"><span class="tooltip">Mark unread</span><svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></button>
+          <button class="hdr-btn" onclick="showMembersModal()"><span class="tooltip">Members</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></button>
           <button class="hdr-btn" onclick="showCtx(event)"><span class="tooltip">More</span><svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="12" cy="19" r="1" fill="currentColor"/></svg></button>
         </div>
       </div>
@@ -63,6 +64,13 @@
       </div>
       <div class="chat-messages" id="chat-messages"></div>
       <div class="chat-input-area">
+        <div id="reply-bar" style="display:none;align-items:center;gap:10px;padding:8px 14px 0;border-top:1.5px solid var(--border);">
+          <div style="flex:1;background:#f0fdfa;border-left:3px solid var(--teal);border-radius:6px;padding:5px 10px;">
+            <div id="reply-bar-name" style="font-size:11px;font-weight:700;color:var(--teal);"></div>
+            <div id="reply-bar-text" style="font-size:12px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:300px;"></div>
+          </div>
+          <button onclick="cancelReply()" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:20px;padding:0 4px;">×</button>
+        </div>
         <div class="file-preview-strip" id="file-preview-strip"></div>
         <input type="file" id="file-input" multiple accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv" style="display:none" onchange="handleFiles(this.files)"/>
         <div class="input-row">
@@ -85,24 +93,69 @@
 </div>
 </div>
 <div class="overlay" id="modal-new" onclick="if(event.target===this)closeModal('modal-new')">
-  <div class="sc-modal">
-    <div class="mhdr"><h3>New Conversation</h3><button class="mclose" onclick="closeModal('modal-new')">x</button></div>
-    <div class="mbody">
+  <div class="sc-modal" style="min-width:360px;max-width:460px;">
+    <div class="mhdr">
+      <h3 id="new-modal-title">New Conversation</h3>
+      <button class="mclose" onclick="closeModal('modal-new')">×</button>
+    </div>
+    <!-- Tab switcher -->
+    <div style="display:flex;gap:0;border-bottom:1.5px solid var(--border);padding:0 22px;">
+      <button id="tab-team" onclick="switchNewTab('team')" style="background:none;border:none;border-bottom:2.5px solid #0f172a;padding:10px 16px;font-size:13px;font-weight:700;cursor:pointer;color:#0f172a;margin-bottom:-1.5px;">Team Chat</button>
+      <button id="tab-resident" onclick="switchNewTab('resident')" style="background:none;border:none;border-bottom:2.5px solid transparent;padding:10px 16px;font-size:13px;font-weight:500;cursor:pointer;color:#94a3b8;margin-bottom:-1.5px;">Add Resident</button>
+    </div>
+    <!-- Team tab -->
+    <div id="new-tab-team" class="mbody">
       <label class="flabel">Conversation Name *</label>
       <input class="finput" id="new-name" placeholder="e.g. Night Shift Team" onkeydown="if(event.key==='Enter')createConv()"/>
-      <label class="flabel">Category *</label>
-      <select class="fsel" id="new-cat"><option value="team">Team</option><option value="resident">Resident</option><option value="alerts">Alerts</option></select>
+      <label class="flabel">Category</label>
+      <select class="fsel" id="new-cat">
+        <option value="team">Team</option>
+        <option value="alerts">Alerts</option>
+      </select>
+      <div id="new-team-error" style="display:none;color:#ef4444;font-size:12px;margin-top:4px;padding:8px;background:#fee2e2;border-radius:8px;"></div>
+    </div>
+    <!-- Resident tab -->
+    <div id="new-tab-resident" class="mbody" style="display:none;text-align:center;">
+      <div style="font-size:32px;margin-bottom:12px;">🔗</div>
+      <p style="font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:18px;">
+        Enter the <strong>Account ID</strong> of a client registered on the Sphere Care mobile app.
+      </p>
+      <label class="flabel" style="text-align:left;display:block;letter-spacing:.8px;font-size:11px;">CLIENT ACCOUNT ID</label>
+      <input class="finput" id="new-account-id" placeholder="e.g. ACC-47291038"
+        style="text-transform:uppercase;font-weight:700;font-size:15px;letter-spacing:1px;text-align:center;"
+        onkeydown="if(event.key==='Enter')createConv()"/>
+      <p style="font-size:11px;color:var(--text3);margin-top:4px;">Find this in <strong>Settings → Account</strong> on the mobile app.</p>
+      <div id="new-modal-error" style="display:none;color:#ef4444;font-size:12px;margin-top:8px;padding:8px;background:#fee2e2;border-radius:8px;"></div>
     </div>
     <div class="mfooter">
       <button class="btn btn-outline" onclick="closeModal('modal-new')">Cancel</button>
-      <button class="btn btn-primary" onclick="createConv()">Create</button>
+      <button class="btn btn-primary" id="new-modal-submit" onclick="createConv()">Create</button>
     </div>
   </div>
 </div>
 <div class="ctx" id="ctx">
-  <div class="ctx-item" onclick="markCurrentRead();hideCtx()"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Mark as read</div>
-  <div class="ctx-item" onclick="markCurrentUnread();hideCtx()"><svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>Mark as unread</div>
-  <div class="ctx-item danger" onclick="deleteConv();hideCtx()"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>Delete conversation</div>
+  <div class="ctx-item" onclick="markCurrentRead();hideCtx()">
+    <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Mark as read
+  </div>
+  <div class="ctx-item" onclick="markCurrentUnread();hideCtx()">
+    <svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>Mark as unread
+  </div>
+  <div class="ctx-item" id="mute-conv-btn" onclick="toggleMuteConv();hideCtx()">
+    <svg viewBox="0 0 24 24"><line x1="1" y1="1" x2="23" y2="23"/><path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"/><path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>🔕 Mute
+  </div>
+  <div class="ctx-item" onclick="showNotificationSettings();hideCtx()">
+    <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>Notification settings
+  </div>
+  <div class="ctx-item" onclick="showReadReceipts();hideCtx()">
+    <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>Read receipts
+  </div>
+  <div class="ctx-item" onclick="exportConv();hideCtx()">
+    <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Export history
+  </div>
+  <div class="ctx-divider"></div>
+  <div class="ctx-item danger" onclick="deleteConv();hideCtx()">
+    <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>Delete conversation
+  </div>
 </div>
 
 
