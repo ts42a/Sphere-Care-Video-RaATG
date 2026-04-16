@@ -21,7 +21,20 @@ async def lifespan(app: FastAPI):
     # Seed test data when DB is fresh (no-op if data already exists)
     from backend.db.seed import seed_database
     seed_database()
+
+    # Start message outbox processor (fan-out queue)
+    import asyncio
+    from backend.outbox.outbox_processor import run_outbox_processor
+    outbox_task = asyncio.create_task(run_outbox_processor(interval=0.5))
+
     yield
+
+    # Shutdown outbox processor
+    outbox_task.cancel()
+    try:
+        await outbox_task
+    except asyncio.CancelledError:
+        pass
 
 
 app = FastAPI(
