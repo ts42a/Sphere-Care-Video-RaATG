@@ -217,3 +217,15 @@ html,body{height:100%;font-family:'Inter', sans-serif;background:var(--bg);color
 /* Transcript panel positioning fix */
 .call-overlay { position: fixed !important; }
 #transcript-panel { position: absolute !important; bottom: 100px !important; left: 50% !important; transform: translateX(-50%) !important; z-index: 99 !important; }
+
+/* Conversation ctx menu divider */
+.ctx-divider { height: 1px; background: var(--border); margin: 4px 0; }
+
+/* ── Delivery status ticks ── */
+.tick--sent svg { stroke: var(--text3); }
+.tick--read svg { stroke: var(--teal); }
+.tick--read { display: inline-flex; }
+
+/* ── Seen count ── */
+.seen-count { font-size: 10px; color: var(--teal); cursor: pointer; margin-right: 4px; font-weight: 600; }
+.seen-count:hover { text-decoration: underline; }
