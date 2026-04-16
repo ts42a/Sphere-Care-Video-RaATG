@@ -9,7 +9,7 @@ from backend.models.booking import Booking
 from backend.models.staff import Staff
 from backend.models.alert import Alert
 from backend.models.notification import Notification, NotificationRecipient
-from backend.models.message import Conversation, ConversationParticipant, Message
+from backend.models.message import Conversation, ConversationParticipant, Message, MessageRead, NotificationPreference, MessageDeliveryReceipt, MessageOutbox
 from backend.models.record import Record
 from backend.models.ai_insight import AiInsight
 from backend.models.camera import Camera, CameraAlert
