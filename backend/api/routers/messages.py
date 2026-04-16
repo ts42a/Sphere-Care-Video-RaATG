@@ -550,8 +550,462 @@ async def send_message(
     db.refresh(conversation)
 
     deliveries = _delivery_payload_for_message(message, conversation)
+
+    # Write to outbox for reliable fan-out (processor sends via WS with retries)
+    _enqueue_outbox(db, message, conversation, deliveries)
+
+    # Also do immediate direct push for low-latency delivery
+    # (outbox handles retries if WS is temporarily unavailable)
     await notification_service.notify_new_message(message, conversation.admin_id, deliveries=deliveries)
     if deliveries:
         await notification_service.notify_conversation_changed(conversation.admin_id, deliveries=deliveries)
 
     return _format_message(message, actor_type, actor_id)
+# ════════════════════════════════════════════════════════════════
+# NEW ENDPOINTS — messaging features
+# ════════════════════════════════════════════════════════════════
+
+# ── 1. Mute / unmute conversation ────────────────────────────────
+from pydantic import BaseModel as _BM
+
+class MuteRequest(_BM):
+    muted: bool
+
+@router.patch("/conversations/{conversation_id}/mute")
+def mute_conversation(
+    conversation_id: int,
+    payload: MuteRequest,
+    db: Session = Depends(get_db),
+    auth: dict = Depends(get_current_auth_context),
+):
+    """Mute or unmute notifications for a conversation."""
+    conversation, participant, actor_type, actor_id = _ensure_conversation_access(db, conversation_id, auth)
+    participant.notifications_muted = payload.muted
+    db.commit()
+    return {"conversation_id": conversation_id, "muted": payload.muted}
+
+
+# ── 2. Edit a message ─────────────────────────────────────────────
+class MessageEditRequest(_BM):
+    content: str
+
+@router.patch("/conversations/{conversation_id}/messages/{message_id}", response_model=schemas.MessageResponse)
+def edit_message(
+    conversation_id: int,
+    message_id: int,
+    payload: MessageEditRequest,
+    db: Session = Depends(get_db),
+    auth: dict = Depends(get_current_auth_context),
+):
+    """Edit a message (only sender can edit)."""
+    conversation, participant, actor_type, actor_id = _ensure_conversation_access(db, conversation_id, auth)
+    message = db.query(models.Message).filter(
+        models.Message.id == message_id,
+        models.Message.conversation_id == conversation_id,
+    ).first()
+    if not message:
+        raise HTTPException(status_code=404, detail="Message not found.")
+    if message.sender_user_id != actor_id:
+        raise HTTPException(status_code=403, detail="You can only edit your own messages.")
+    message.content = payload.content.strip()
+    message.message_type = "text"
+    db.commit()
+    db.refresh(message)
+    return _format_message(message, actor_type, actor_id)
+
+
+# ── 3. Delete a message ───────────────────────────────────────────
+@router.delete("/conversations/{conversation_id}/messages/{message_id}", status_code=204)
+def delete_message(
+    conversation_id: int,
+    message_id: int,
+    db: Session = Depends(get_db),
+    auth: dict = Depends(get_current_auth_context),
+):
+    """Delete (recall) a message (only sender can delete)."""
+    conversation, participant, actor_type, actor_id = _ensure_conversation_access(db, conversation_id, auth)
+    message = db.query(models.Message).filter(
+        models.Message.id == message_id,
+        models.Message.conversation_id == conversation_id,
+    ).first()
+    if not message:
+        raise HTTPException(status_code=404, detail="Message not found.")
+    if message.sender_user_id != actor_id:
+        raise HTTPException(status_code=403, detail="You can only delete your own messages.")
+    db.delete(message)
+    db.commit()
+
+
+# ── 4. Read receipts — who has seen the conversation ─────────────
+@router.get("/conversations/{conversation_id}/read-receipts")
+def get_read_receipts(
+    conversation_id: int,
+    db: Session = Depends(get_db),
+    auth: dict = Depends(get_current_auth_context),
+):
+    """Return last_read_at for each participant."""
+    conversation, _, _, _ = _ensure_conversation_access(db, conversation_id, auth)
+    return [
+        {
+            "participant_id": p.id,
+            "display_name": p.display_name,
+            "participant_type": p.participant_type,
+            "last_read_at": p.last_read_at.isoformat() if p.last_read_at else None,
+        }
+        for p in conversation.participants
+    ]
+
+
+# ── 5. Export conversation history ───────────────────────────────
+from fastapi.responses import PlainTextResponse
+
+@router.get("/conversations/{conversation_id}/export", response_class=PlainTextResponse)
+def export_conversation(
+    conversation_id: int,
+    db: Session = Depends(get_db),
+    auth: dict = Depends(get_current_auth_context),
+):
+    """Export full conversation as plain text."""
+    conversation, _, actor_type, actor_id = _ensure_conversation_access(db, conversation_id, auth)
+    messages = (
+        db.query(models.Message)
+        .filter(models.Message.conversation_id == conversation_id)
+        .order_by(models.Message.created_at.asc())
+        .all()
+    )
+    lines = [f"=== {conversation.name} ===", f"Exported: {_now_utc().strftime('%Y-%m-%d %H:%M UTC')}", ""]
+    for m in messages:
+        ts = m.created_at.strftime("%Y-%m-%d %H:%M") if m.created_at else ""
+        lines.append(f"[{ts}] {m.sender_name}: {m.content}")
+    return "\n".join(lines)
+
+
+# ── 6. Add participant to conversation ────────────────────────────
+class AddParticipantRequest(_BM):
+    user_id: int
+    participant_type: str = "user"
+    display_name: str
+    role: str = ""
+
+@router.post("/conversations/{conversation_id}/participants", response_model=schemas.ConversationParticipantResponse)
+def add_participant(
+    conversation_id: int,
+    payload: AddParticipantRequest,
+    db: Session = Depends(get_db),
+    auth: dict = Depends(get_current_auth_context),
+):
+    """Add a member to a group conversation (admin/owner only)."""
+    conversation, participant, actor_type, actor_id = _ensure_conversation_access(db, conversation_id, auth)
+    # Check caller is owner/admin of the conversation
+    if participant.role not in ("owner", "admin"):
+        raise HTTPException(status_code=403, detail="Only group owners or admins can add members.")
+    # Check not already a participant
+    existing = db.query(models.ConversationParticipant).filter(
+        models.ConversationParticipant.conversation_id == conversation_id,
+        models.ConversationParticipant.user_id == payload.user_id,
+    ).first()
+    if existing:
+        raise HTTPException(status_code=409, detail="User is already a participant.")
+    new_p = models.ConversationParticipant(
+        conversation_id=conversation_id,
+        user_id=payload.user_id,
+        participant_type=payload.participant_type,
+        display_name=payload.display_name,
+        role=payload.role or "member",
+    )
+    db.add(new_p)
+    db.commit()
+    db.refresh(new_p)
+    return schemas.ConversationParticipantResponse.model_validate(new_p)
+
+
+# ── 7. Remove participant from conversation ───────────────────────
+@router.delete("/conversations/{conversation_id}/participants/{participant_id}", status_code=204)
+def remove_participant(
+    conversation_id: int,
+    participant_id: int,
+    db: Session = Depends(get_db),
+    auth: dict = Depends(get_current_auth_context),
+):
+    """Remove a member from a group conversation (admin/owner or self-leave)."""
+    conversation, caller_participant, actor_type, actor_id = _ensure_conversation_access(db, conversation_id, auth)
+    target = db.query(models.ConversationParticipant).filter(
+        models.ConversationParticipant.id == participant_id,
+        models.ConversationParticipant.conversation_id == conversation_id,
+    ).first()
+    if not target:
+        raise HTTPException(status_code=404, detail="Participant not found.")
+    # Allow self-leave OR owner/admin removing others
+    is_self = target.user_id == actor_id
+    is_admin = caller_participant.role in ("owner", "admin")
+    if not is_self and not is_admin:
+        raise HTTPException(status_code=403, detail="Only group owners or admins can remove members.")
+    db.delete(target)
+    db.commit()
+
+
+# ── 8. Update participant role (owner/admin management) ──────────
+class UpdateParticipantRoleRequest(_BM):
+    role: str  # "owner" | "admin" | "member"
+
+@router.patch("/conversations/{conversation_id}/participants/{participant_id}/role")
+def update_participant_role(
+    conversation_id: int,
+    participant_id: int,
+    payload: UpdateParticipantRoleRequest,
+    db: Session = Depends(get_db),
+    auth: dict = Depends(get_current_auth_context),
+):
+    """Change a participant's role (only owner can do this)."""
+    conversation, caller_participant, _, _ = _ensure_conversation_access(db, conversation_id, auth)
+    if caller_participant.role != "owner":
+        raise HTTPException(status_code=403, detail="Only the group owner can change roles.")
+    target = db.query(models.ConversationParticipant).filter(
+        models.ConversationParticipant.id == participant_id,
+        models.ConversationParticipant.conversation_id == conversation_id,
+    ).first()
+    if not target:
+        raise HTTPException(status_code=404, detail="Participant not found.")
+    allowed_roles = {"owner", "admin", "member"}
+    if payload.role not in allowed_roles:
+        raise HTTPException(status_code=400, detail=f"Role must be one of: {allowed_roles}")
+    target.role = payload.role
+    db.commit()
+    return {"participant_id": participant_id, "role": payload.role}
+
+
+# ── 9. Block / unblock a user ─────────────────────────────────────
+# Uses a simple in-memory block list per admin session for now.
+# For production, add a BlockList model to the DB.
+_block_list: dict[int, set[int]] = {}  # { admin_id: {blocked_user_id, ...} }
+
+class BlockRequest(_BM):
+    user_id: int
+
+@router.post("/block")
+def block_user(
+    payload: BlockRequest,
+    auth: dict = Depends(get_current_auth_context),
+):
+    """Block a user — their messages will be hidden."""
+    admin_id = auth.get("admin_id") or 0
+    if admin_id not in _block_list:
+        _block_list[admin_id] = set()
+    _block_list[admin_id].add(payload.user_id)
+    return {"blocked_user_id": payload.user_id, "status": "blocked"}
+
+@router.delete("/block/{user_id}")
+def unblock_user(
+    user_id: int,
+    auth: dict = Depends(get_current_auth_context),
+):
+    """Unblock a previously blocked user."""
+    admin_id = auth.get("admin_id") or 0
+    if admin_id in _block_list:
+        _block_list[admin_id].discard(user_id)
+    return {"user_id": user_id, "status": "unblocked"}
+
+@router.get("/block")
+def get_blocked_users(
+    auth: dict = Depends(get_current_auth_context),
+):
+    """List all blocked user IDs."""
+    admin_id = auth.get("admin_id") or 0
+    return {"blocked_users": list(_block_list.get(admin_id, set()))}
+
+
+# ════════════════════════════════════════════════════════════════
+# NEW ENDPOINTS using new model fields
+# ════════════════════════════════════════════════════════════════
+
+# ── Real soft-delete (uses is_deleted field) ──────────────────
+@router.delete("/conversations/{conversation_id}/messages/{message_id}/soft", status_code=204)
+def soft_delete_message(
+    conversation_id: int,
+    message_id: int,
+    db: Session = Depends(get_db),
+    auth: dict = Depends(get_current_auth_context),
+):
+    """Soft-delete a message — marks is_deleted=True, content replaced with placeholder."""
+    conversation, participant, actor_type, actor_id = _ensure_conversation_access(db, conversation_id, auth)
+    message = db.query(models.Message).filter(
+        models.Message.id == message_id,
+        models.Message.conversation_id == conversation_id,
+    ).first()
+    if not message:
+        raise HTTPException(status_code=404, detail="Message not found.")
+    if message.sender_user_id != actor_id:
+        raise HTTPException(status_code=403, detail="You can only delete your own messages.")
+    message.is_deleted = True
+    message.content = "[Message deleted]"
+    db.commit()
+
+
+# ── Real edit (uses edited_at field) ──────────────────────────
+@router.patch("/conversations/{conversation_id}/messages/{message_id}/edit", response_model=schemas.MessageResponse)
+def edit_message_v2(
+    conversation_id: int,
+    message_id: int,
+    payload: MessageEditRequest,
+    db: Session = Depends(get_db),
+    auth: dict = Depends(get_current_auth_context),
+):
+    """Edit a message — updates content and sets edited_at timestamp."""
+    from datetime import timezone, datetime
+    conversation, participant, actor_type, actor_id = _ensure_conversation_access(db, conversation_id, auth)
+    message = db.query(models.Message).filter(
+        models.Message.id == message_id,
+        models.Message.conversation_id == conversation_id,
+        models.Message.is_deleted == False,
+    ).first()
+    if not message:
+        raise HTTPException(status_code=404, detail="Message not found.")
+    if message.sender_user_id != actor_id:
+        raise HTTPException(status_code=403, detail="You can only edit your own messages.")
+    message.content = payload.content.strip()
+    message.edited_at = datetime.now(timezone.utc)
+    db.commit()
+    db.refresh(message)
+    return _format_message(message, actor_type, actor_id)
+
+
+# ── Mark message as read (per-message read receipts) ─────────
+class MarkReadRequest(_BM):
+    display_name: str = ""
+    participant_type: str = "user"
+
+@router.post("/conversations/{conversation_id}/messages/{message_id}/read", status_code=204)
+def mark_message_read(
+    conversation_id: int,
+    message_id: int,
+    payload: MarkReadRequest,
+    db: Session = Depends(get_db),
+    auth: dict = Depends(get_current_auth_context),
+):
+    """Record that a specific user has read a specific message (upsert)."""
+    from datetime import timezone, datetime
+    conversation, participant, actor_type, actor_id = _ensure_conversation_access(db, conversation_id, auth)
+
+    existing = db.query(models.MessageRead).filter(
+        models.MessageRead.message_id == message_id,
+        models.MessageRead.user_id == actor_id,
+        models.MessageRead.participant_type == actor_type,
+    ).first()
+
+    if existing:
+        existing.read_at = datetime.now(timezone.utc)
+    else:
+        db.add(models.MessageRead(
+            message_id=message_id,
+            conversation_id=conversation_id,
+            user_id=actor_id,
+            participant_type=actor_type,
+            display_name=payload.display_name or (participant.display_name if participant else ""),
+            read_at=datetime.now(timezone.utc),
+        ))
+    db.commit()
+
+
+# ── Get per-message read receipts ─────────────────────────────
+@router.get("/conversations/{conversation_id}/messages/{message_id}/read-receipts")
+def get_message_read_receipts(
+    conversation_id: int,
+    message_id: int,
+    db: Session = Depends(get_db),
+    auth: dict = Depends(get_current_auth_context),
+):
+    """Who has read a specific message and when."""
+    _ensure_conversation_access(db, conversation_id, auth)
+    reads = db.query(models.MessageRead).filter(
+        models.MessageRead.message_id == message_id,
+    ).order_by(models.MessageRead.read_at.asc()).all()
+    return [
+        {
+            "user_id": r.user_id,
+            "display_name": r.display_name,
+            "participant_type": r.participant_type,
+            "read_at": r.read_at.isoformat() if r.read_at else None,
+        }
+        for r in reads
+    ]
+
+
+# ── Notification preferences ──────────────────────────────────
+class NotificationPrefRequest(_BM):
+    muted: bool = False
+    mute_until: str = None          # ISO datetime string or null
+    mention_only: bool = False
+    push_enabled: bool = True
+
+@router.put("/conversations/{conversation_id}/notification-preferences")
+def set_notification_preferences(
+    conversation_id: int,
+    payload: NotificationPrefRequest,
+    db: Session = Depends(get_db),
+    auth: dict = Depends(get_current_auth_context),
+):
+    """Set notification preferences for a conversation (upsert)."""
+    from datetime import timezone, datetime
+    _, _, actor_type, actor_id = _ensure_conversation_access(db, conversation_id, auth)
+
+    pref = db.query(models.NotificationPreference).filter(
+        models.NotificationPreference.user_id == actor_id,
+        models.NotificationPreference.participant_type == actor_type,
+        models.NotificationPreference.conversation_id == conversation_id,
+    ).first()
+
+    mute_until = None
+    if payload.mute_until:
+        try:
+            mute_until = datetime.fromisoformat(payload.mute_until)
+        except Exception:
+            pass
+
+    if pref:
+        pref.muted = payload.muted
+        pref.mute_until = mute_until
+        pref.mention_only = payload.mention_only
+        pref.push_enabled = payload.push_enabled
+        pref.updated_at = datetime.now(timezone.utc)
+    else:
+        pref = models.NotificationPreference(
+            user_id=actor_id,
+            participant_type=actor_type,
+            conversation_id=conversation_id,
+            muted=payload.muted,
+            mute_until=mute_until,
+            mention_only=payload.mention_only,
+            push_enabled=payload.push_enabled,
+        )
+        db.add(pref)
+
+    db.commit()
+    return {
+        "conversation_id": conversation_id,
+        "muted": pref.muted,
+        "mute_until": pref.mute_until.isoformat() if pref.mute_until else None,
+        "mention_only": pref.mention_only,
+        "push_enabled": pref.push_enabled,
+    }
+
+@router.get("/conversations/{conversation_id}/notification-preferences")
+def get_notification_preferences(
+    conversation_id: int,
+    db: Session = Depends(get_db),
+    auth: dict = Depends(get_current_auth_context),
+):
+    """Get current notification preferences for a conversation."""
+    _, _, actor_type, actor_id = _ensure_conversation_access(db, conversation_id, auth)
+    pref = db.query(models.NotificationPreference).filter(
+        models.NotificationPreference.user_id == actor_id,
+        models.NotificationPreference.participant_type == actor_type,
+        models.NotificationPreference.conversation_id == conversation_id,
+    ).first()
+    if not pref:
+        return {"muted": False, "mute_until": None, "mention_only": False, "push_enabled": True}
+    return {
+        "muted": pref.muted,
+        "mute_until": pref.mute_until.isoformat() if pref.mute_until else None,
+        "mention_only": pref.mention_only,
+        "push_enabled": pref.push_enabled,
+    }
