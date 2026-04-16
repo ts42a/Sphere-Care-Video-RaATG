@@ -52,6 +52,7 @@ class MessageCreate(BaseModel):
     content: str
     message_type: str = "text"
     is_self: bool = False
+    client_message_id: Optional[str] = None  # for deduplication on retry
 
 
 class MessageResponse(BaseModel):
@@ -64,6 +65,56 @@ class MessageResponse(BaseModel):
     content: str
     message_type: str
     is_self: bool
+    is_deleted: bool = False
+    edited_at: Optional[datetime] = None
+    client_message_id: Optional[str] = None  # echo back for dedup
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+# ── NEW: Message read receipt response ──────────────────────────
+class MessageReadResponse(BaseModel):
+    id: int
+    message_id: int
+    conversation_id: int
+    user_id: int
+    participant_type: str
+    display_name: str
+    read_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+# ── NEW: Notification preference schemas ────────────────────────
+class NotificationPreferenceCreate(BaseModel):
+    muted: bool = False
+    mute_until: Optional[datetime] = None
+    mention_only: bool = False
+    push_enabled: bool = True
+
+
+class NotificationPreferenceResponse(BaseModel):
+    id: int
+    user_id: int
+    participant_type: str
+    conversation_id: Optional[int] = None
+    muted: bool
+    mute_until: Optional[datetime] = None
+    mention_only: bool
+    push_enabled: bool
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+# ── NEW: Block list schemas ──────────────────────────────────────
+class BlockUserRequest(BaseModel):
+    user_id: int
+
+
+class BlockedUserResponse(BaseModel):
+    user_id: int
+    display_name: Optional[str] = None
+    blocked_at: Optional[datetime] = None
