@@ -44,6 +44,7 @@ class ResidentUpdate(BaseModel):
 class ResidentResponse(BaseModel):
     id: int
     unique_code: str
+    client_user_id: Optional[int] = None
     full_name: str
     preferred_name: Optional[str] = None
     age: Optional[int] = None
