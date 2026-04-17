@@ -24,3 +24,4 @@ from backend.models.care_task import CareTask
 from backend.models.consent_document import ConsentDocument
 from backend.models.attachment import Attachment
 from backend.models.audit_log import AuditLog
+from backend.models.call import Call, CallParticipant, CallEvent
