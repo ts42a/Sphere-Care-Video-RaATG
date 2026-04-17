@@ -87,6 +87,7 @@ async function loadConvs() {
           // Check if conv already exists in loaded list
           var exists = allConvs.find(function(c) { return c.name === convName && c.category === 'resident'; });
           if (!exists) {
+            // Try to create conv in backend
             try {
               var cr = await fetch(API_BASE + '/messages/conversations', {
                 method: 'POST', headers: authH(),
@@ -98,20 +99,6 @@ async function loadConvs() {
                   last_message: cd.last_message || '', last_message_at: cd.last_message_at || '',
                   unread_count: 0, sub: res.room ? 'Room ' + res.room : 'Resident',
                   color: CAT_CLR.resident, online: false });
-                // Add resident as participant so they appear in Members
-                if (res.id) {
-                  try {
-                    await fetch(API_BASE + '/messages/conversations/' + cd.id + '/participants', {
-                      method: 'POST', headers: authH(),
-                      body: JSON.stringify({
-                        user_id: res.id,
-                        participant_type: 'resident',
-                        display_name: res.full_name,
-                        role: 'resident'
-                      })
-                    });
-                  } catch(e) {}
-                }
               }
             } catch(e) {}
           }
@@ -437,77 +424,17 @@ async function deleteConv() {
   filterConvs();
 }
 
-var _newTab = 'team';
-
-function switchNewTab(tab) {
-  _newTab = tab;
-  document.getElementById('new-tab-team').style.display     = tab === 'team'     ? 'block' : 'none';
-  document.getElementById('new-tab-resident').style.display = tab === 'resident' ? 'block' : 'none';
-  var tTeam = document.getElementById('tab-team');
-  var tRes  = document.getElementById('tab-resident');
-  if (tTeam) { tTeam.style.borderBottomColor = tab === 'team' ? '#0f172a' : 'transparent'; tTeam.style.color = tab === 'team' ? '#0f172a' : '#94a3b8'; tTeam.style.fontWeight = tab === 'team' ? '700' : '500'; }
-  if (tRes)  { tRes.style.borderBottomColor  = tab === 'resident' ? '#0f172a' : 'transparent'; tRes.style.color  = tab === 'resident' ? '#0f172a' : '#94a3b8'; tRes.style.fontWeight = tab === 'resident' ? '700' : '500'; }
-  var btn = document.getElementById('new-modal-submit');
-  if (btn) btn.textContent = tab === 'resident' ? 'Send Invitation' : 'Create';
-  setTimeout(function() {
-    var f = tab === 'team' ? document.getElementById('new-name') : document.getElementById('new-account-id');
-    if (f) f.focus();
-  }, 80);
-}
-
 function openNewModal() {
-  _newTab = 'team';
-  var f = document.getElementById('new-name'); if (f) f.value = '';
-  var f2 = document.getElementById('new-account-id'); if (f2) f2.value = '';
-  var err1 = document.getElementById('new-modal-error'); if (err1) { err1.textContent=''; err1.style.display='none'; }
-  var err2 = document.getElementById('new-team-error'); if (err2) { err2.textContent=''; err2.style.display='none'; }
-  switchNewTab('team');
+  var f = document.getElementById('new-account-id');
+  if (f) f.value = '';
+  var err = document.getElementById('new-modal-error');
+  if (err) { err.textContent=''; err.style.display='none'; }
   document.getElementById('modal-new').classList.add('open');
-  setTimeout(function(){ var f3 = document.getElementById('new-name'); if(f3) f3.focus(); }, 80);
+  setTimeout(function () { var f2 = document.getElementById('new-account-id'); if(f2) f2.focus(); }, 80);
 }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 
 async function createConv() {
-  if (_newTab === 'team') {
-    await _createTeamConv();
-  } else {
-    await _createResidentConv();
-  }
-}
-
-async function _createTeamConv() {
-  var name = (document.getElementById('new-name') || {}).value;
-  name = (name || '').trim();
-  var cat  = (document.getElementById('new-cat') || {}).value || 'team';
-  var errEl = document.getElementById('new-team-error');
-  if (!name) {
-    if (errEl) { errEl.textContent = 'Please enter a conversation name.'; errEl.style.display='block'; }
-    return;
-  }
-  var btn = document.getElementById('new-modal-submit');
-  if (btn) { btn.textContent = 'Creating…'; btn.disabled = true; }
-  var newId = Date.now();
-  try {
-    if (!demo) {
-      var r = await fetch(API_BASE + '/messages/conversations', {
-        method: 'POST', headers: authH(),
-        body: JSON.stringify({ name: name, category: cat })
-      });
-      if (r.ok) { var d = await r.json(); newId = d.id; }
-    }
-  } catch(e) {}
-  var c = { id: newId, name: name, category: cat,
-    last_message: '', last_message_at: 'Just now', unread_count: 0,
-    sub: catLabel(cat), color: convClr(newId, cat), online: false };
-  allConvs.unshift(c);
-  localMsgs[newId] = [];
-  filterConvs();
-  closeModal('modal-new');
-  openConv(newId);
-  if (btn) { btn.textContent = 'Create'; btn.disabled = false; }
-}
-
-async function _createResidentConv() {
   var accountId = (document.getElementById('new-account-id') || {}).value;
   accountId = (accountId || '').trim().toUpperCase();
   var errEl = document.getElementById('new-modal-error');
@@ -518,11 +445,14 @@ async function _createResidentConv() {
   var btn = document.getElementById('new-modal-submit');
   if (btn) { btn.textContent = 'Sending…'; btn.disabled = true; }
   try {
+    // Send invitation — same API as residents page
     var invRes = await fetch(API_BASE + '/center-membership/admin/invite', {
       method: 'POST', headers: authH(),
       body: JSON.stringify({ account_id: accountId })
     });
     var invData = await invRes.json();
+
+    // Extract error message from detail object or string
     if (!invRes.ok) {
       var errMsg = 'Invalid Account ID.';
       if (invData) {
@@ -534,7 +464,11 @@ async function _createResidentConv() {
       if (btn) { btn.textContent = 'Send Invitation'; btn.disabled = false; }
       return;
     }
+
+    // Get client name from response
     var clientName = invData.user_full_name || accountId;
+
+    // Create conversation for this resident
     var newId = Date.now();
     var convName = 'Resident Care: ' + clientName;
     try {
@@ -542,20 +476,13 @@ async function _createResidentConv() {
         method: 'POST', headers: authH(),
         body: JSON.stringify({ name: convName, category: 'resident' })
       });
-      if (convRes.ok) {
-        var cd = await convRes.json();
-        newId = cd.id;
-        try {
-          await fetch(API_BASE + '/messages/conversations/' + cd.id + '/participants', {
-            method: 'POST', headers: authH(),
-            body: JSON.stringify({ user_id: invData.user_id || 0, participant_type: 'client', display_name: clientName, role: 'resident' })
-          });
-        } catch(e) {}
-      }
+      if (convRes.ok) { var cd = await convRes.json(); newId = cd.id; }
     } catch(e) {}
+
     var c = { id: newId, name: convName, category: 'resident',
       last_message: 'Invitation sent', last_message_at: 'Just now',
-      unread_count: 0, sub: 'Resident Care', color: CAT_CLR.resident, online: false };
+      unread_count: 0, sub: 'Resident Care',
+      color: CAT_CLR.resident, online: false };
     allConvs.unshift(c);
     localMsgs[newId] = [];
     filterConvs();
@@ -594,6 +521,17 @@ loadConvs();
 // ════════════════════════════════════════════════════════════
 
 var _call = { active: false, type: null, stream: null, muted: false, videoOff: false, timer: null, seconds: 0 };
+var _activeCallId    = null;
+var _outgoingCallId  = null;
+var _pendingCallKind = null;
+var _callerJoinPayload = null;
+
+function _getMyUserId() {
+  try {
+    var u = JSON.parse(sessionStorage.getItem('user') || '{}');
+    return u.id || u.user_id || u.admin_id || null;
+  } catch(e) { return null; }
+}
 
 // ── Layer 1: Capture raw media ────────────────────────────────
 async function _L1_capture(type) {
@@ -928,16 +866,118 @@ function _aslStopLoop() {
 }
 
 // ── Layer 3: Display overlay ──────────────────────────────────
-function startAudioCall() { if (currentId) _beginCall('audio'); }
-function startVideoCall()  { if (currentId) _beginCall('video'); }
+function startAudioCall() { if (currentId) _initiateCall('audio'); }
+function startVideoCall()  { if (currentId) _initiateCall('video'); }
+
+async function _initiateCall(type) {
+  if (_call.active || _outgoingCallId) return;
+  _pendingCallKind = type;
+
+  // Resolve callee_user_id from resident's client_user_id
+  var calleeUserId = null;
+  var conv = allConvs.find(function(c){ return c.id === currentId; });
+
+  try {
+    if (conv && conv.name && conv.name.startsWith('Resident Care: ')) {
+      var residentName = conv.name.replace('Resident Care: ', '').trim();
+      var rr = await fetch(API_BASE + '/residents/', { headers: authH() });
+      if (rr.ok) {
+        var residents = await rr.json();
+        var match = residents.find(function(r) {
+          return (r.full_name || '') === residentName;
+        });
+        if (match && match.client_user_id) {
+          calleeUserId = match.client_user_id;
+        } else if (match && !match.client_user_id) {
+          showToast('This resident has not linked a mobile account yet');
+          _pendingCallKind = null;
+          return;
+        }
+      }
+    }
+    // Team/staff conversation — try members endpoint
+    if (!calleeUserId) {
+      var myId = _getMyUserId();
+      var mr = await fetch(API_BASE + '/messages/conversations/' + currentId + '/members', { headers: authH() });
+      if (mr.ok) {
+        var members = await mr.json();
+        var other = members.find(function(m) {
+          return String(m.user_id || m.id) !== String(myId);
+        });
+        if (other) calleeUserId = other.user_id || other.id;
+      }
+    }
+  } catch(e) {}
+
+  if (!calleeUserId) {
+    showToast('Cannot start call: recipient not found');
+    _pendingCallKind = null;
+    return;
+  }
+
+  _showCallingOverlay(type, conv ? conv.name : '');
+
+  try {
+    var r = await fetch(API_BASE + '/calls', {
+      method: 'POST', headers: authH(),
+      body: JSON.stringify({ callee_user_id: calleeUserId, kind: type })
+    });
+    if (!r.ok) {
+      var err = await r.json().catch(function(){ return {}; });
+      _dismissCallingOverlay();
+      showToast(err.detail || 'Failed to start call');
+      _pendingCallKind = null;
+      return;
+    }
+    var data = await r.json();
+    _outgoingCallId = data.call_id;
+    _callerJoinPayload = data.join_payload || null;
+  } catch(e) {
+    _dismissCallingOverlay();
+    showToast('Network error starting call');
+    _pendingCallKind = null;
+  }
+}
+
+function _showCallingOverlay(type, name) {
+  var existing = document.getElementById('calling-overlay');
+  if (existing) existing.remove();
+  var ov = document.createElement('div');
+  ov.id = 'calling-overlay';
+  ov.style.cssText = 'position:fixed;inset:0;z-index:999998;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.65);';
+  ov.innerHTML =
+    '<div style="background:#1e2025;border-radius:20px;padding:36px 32px;min-width:300px;text-align:center;color:#fff;">' +
+      '<div style="font-size:52px;margin-bottom:14px;animation:pulse 1s infinite;">' + (type === 'video' ? '📹' : '📞') + '</div>' +
+      '<div style="font-size:18px;font-weight:800;margin-bottom:4px;">Calling…</div>' +
+      '<div style="font-size:13px;color:rgba(255,255,255,0.55);margin-bottom:28px;">' + esc(name || '') + '</div>' +
+      '<button onclick="_cancelOutgoingCall()" style="width:56px;height:56px;border-radius:50%;background:#ef4444;border:none;cursor:pointer;font-size:24px;" title="Cancel">📵</button>' +
+    '</div>';
+  document.body.appendChild(ov);
+}
+
+function _dismissCallingOverlay() {
+  var el = document.getElementById('calling-overlay');
+  if (el) el.remove();
+}
+
+async function _cancelOutgoingCall() {
+  var cid = _outgoingCallId;
+  _outgoingCallId = null;
+  _pendingCallKind = null;
+  _dismissCallingOverlay();
+  if (!cid) return;
+  try {
+    await fetch(API_BASE + '/calls/' + cid + '/cancel', { method: 'POST', headers: authH() });
+  } catch(e) {}
+}
 
 async function _beginCall(type) {
   if (_call.active) return;
   _call.active = true; _call.type = type; _call.muted = false; _call.videoOff = false; _call.seconds = 0;
-  var stream = await _L1_capture(type); // Layer 1
-  _L2_aiPipeline(stream);               // Layer 2
-  _L3_showOverlay(type, stream);        // Layer 3 — renders overlay HTML
-  _injectAslSubtitle(); // inject AFTER overlay rendered (both audio + video)
+  var stream = await _L1_capture(type);
+  _L2_aiPipeline(stream);
+  _L3_showOverlay(type, stream);
+  _injectAslSubtitle();
   _startTimer();
 }
 
@@ -1042,14 +1082,13 @@ function callToggleSpeaker() {
   if (b) b.classList.toggle('call-btn--on');
 }
 
-function endCall() {
-  if (_call.stream) { _call.stream.getTracks().forEach(function (t) { t.stop(); }); _call.stream = null; }
-  clearInterval(_call.timer);
-  _stopSpeechRecognition();  // ── stop speech recognition
-  _aslStopLoop();            // ── stop ASL detection
-  _call.active = false; _call.type = null; _call.seconds = 0;
-  var el = document.getElementById('call-overlay');
-  if (el) { el.style.display = 'none'; el.innerHTML = ''; }
+async function endCall() {
+  var cid = _activeCallId;
+  _activeCallId = null;
+  if (cid) {
+    try { await fetch(API_BASE + '/calls/' + cid + '/end', { method: 'POST', headers: authH() }); } catch(e) {}
+  }
+  _teardownCallMedia();
 }
 
 // ════════════════════════════════════════════════════
@@ -1408,135 +1447,99 @@ async function showMembersModal() {
   overlay.onclick = function(e){ if(e.target===overlay) overlay.remove(); };
 
   var modal = document.createElement('div');
-  modal.style.cssText = 'background:#fff;border-radius:16px;padding:24px;min-width:360px;max-width:480px;width:92%;max-height:80vh;display:flex;flex-direction:column;gap:16px;';
+  modal.style.cssText = 'background:#fff;border-radius:16px;padding:24px;min-width:360px;max-width:480px;width:92%;max-height:80vh;display:flex;flex-direction:column;gap:14px;';
 
-  // ── Header ──
+  // Header
   var hdr = document.createElement('div');
   hdr.style.cssText = 'display:flex;justify-content:space-between;align-items:center;';
-  var h3 = document.createElement('h3');
-  h3.style.cssText = 'font-size:15px;font-weight:800;margin:0;';
-  h3.textContent = 'Members (' + participants.length + ')';
-  var xBtn = document.createElement('button');
-  xBtn.textContent = '×';
-  xBtn.style.cssText = 'background:none;border:none;cursor:pointer;font-size:22px;color:#94a3b8;line-height:1;';
-  xBtn.onclick = function(){ overlay.remove(); };
-  hdr.appendChild(h3); hdr.appendChild(xBtn);
-  modal.appendChild(hdr);
+  var h3 = document.createElement('h3'); h3.style.cssText = 'font-size:15px;font-weight:800;margin:0;'; h3.textContent = 'Members (' + participants.length + ')';
+  var xBtn = document.createElement('button'); xBtn.textContent = '×'; xBtn.style.cssText = 'background:none;border:none;cursor:pointer;font-size:22px;color:#94a3b8;line-height:1;'; xBtn.onclick = function(){ overlay.remove(); };
+  hdr.appendChild(h3); hdr.appendChild(xBtn); modal.appendChild(hdr);
 
-  // ── Add member row (Account ID) ──
-  var addRow = document.createElement('div');
-  addRow.style.cssText = 'display:flex;gap:8px;align-items:center;';
+  // Add member input
+  var addWrap = document.createElement('div');
+  var addRow = document.createElement('div'); addRow.style.cssText = 'display:flex;gap:8px;';
   var addInput = document.createElement('input');
   addInput.placeholder = 'Account ID (e.g. ACC-47291038)';
-  addInput.style.cssText = 'flex:1;padding:8px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;text-transform:uppercase;font-weight:600;letter-spacing:.5px;';
+  addInput.style.cssText = 'flex:1;padding:8px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;text-transform:uppercase;font-weight:600;letter-spacing:.5px;outline:none;';
   var addBtn = document.createElement('button');
   addBtn.textContent = 'Add';
-  addBtn.style.cssText = 'padding:8px 16px;background:#0f172a;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;white-space:nowrap;';
-  var addErr = document.createElement('div');
-  addErr.style.cssText = 'font-size:11px;color:#ef4444;margin-top:4px;display:none;';
+  addBtn.style.cssText = 'padding:8px 16px;background:#0f172a;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;';
+  var addErr = document.createElement('div'); addErr.style.cssText = 'font-size:11px;color:#ef4444;margin-top:4px;display:none;';
 
   addBtn.onclick = async function() {
     var accountId = addInput.value.trim().toUpperCase();
     if (!accountId) return;
-    addBtn.textContent = '...'; addBtn.disabled = true;
-    addErr.style.display = 'none';
+    addBtn.textContent = '...'; addBtn.disabled = true; addErr.style.display = 'none';
     try {
-      // Step 1: invite via center-membership
-      var invRes = await fetch(API_BASE + '/center-membership/admin/invite', {
-        method: 'POST', headers: authH(),
-        body: JSON.stringify({ account_id: accountId })
+      var invRes = await fetch(API_BASE.replace('/messages','') + '/center-membership/admin/invite', {
+        method: 'POST', headers: authH(), body: JSON.stringify({ account_id: accountId })
       });
       var invData = await invRes.json();
       if (!invRes.ok) {
-        var errMsg = (invData && (typeof invData.detail === 'string' ? invData.detail : invData.detail && invData.detail.msg)) || 'Invalid Account ID';
-        addErr.textContent = errMsg; addErr.style.display = 'block';
-        addBtn.textContent = 'Add'; addBtn.disabled = false; return;
+        addErr.textContent = (typeof invData.detail === 'string' ? invData.detail : (invData.detail && invData.detail.msg) || 'Invalid Account ID');
+        addErr.style.display = 'block'; addBtn.textContent = 'Add'; addBtn.disabled = false; return;
       }
-      // Step 2: add as participant
       var addRes = await fetch(API_BASE + '/messages/conversations/' + currentId + '/participants', {
         method: 'POST', headers: authH(),
-        body: JSON.stringify({
-          user_id: invData.user_id || 0,
-          participant_type: 'client',
-          display_name: invData.user_full_name || accountId,
-          role: 'member'
-        })
+        body: JSON.stringify({ user_id: invData.user_id || 0, participant_type: 'client', display_name: invData.user_full_name || accountId, role: 'member' })
       });
       if (!addRes.ok) {
-        var addData = await addRes.json();
-        addErr.textContent = addData.detail || 'Failed to add member';
-        addErr.style.display = 'block';
+        var ad = await addRes.json();
+        addErr.textContent = ad.detail || 'Failed to add'; addErr.style.display = 'block';
         addBtn.textContent = 'Add'; addBtn.disabled = false; return;
       }
       showToast((invData.user_full_name || accountId) + ' added');
-      overlay.remove();
-      showMembersModal(); // refresh
-    } catch(e) {
-      addErr.textContent = 'Network error'; addErr.style.display = 'block';
-      addBtn.textContent = 'Add'; addBtn.disabled = false;
-    }
+      overlay.remove(); showMembersModal();
+    } catch(e) { addErr.textContent = 'Network error'; addErr.style.display = 'block'; addBtn.textContent = 'Add'; addBtn.disabled = false; }
   };
 
-  var addWrap = document.createElement('div');
-  addWrap.appendChild(addRow); addWrap.appendChild(addErr);
   addRow.appendChild(addInput); addRow.appendChild(addBtn);
+  addWrap.appendChild(addRow); addWrap.appendChild(addErr);
   modal.appendChild(addWrap);
 
-  // ── Divider ──
-  var div = document.createElement('div');
-  div.style.cssText = 'height:1px;background:#f1f5f9;margin:0 -4px;';
-  modal.appendChild(div);
+  // Divider
+  var divEl = document.createElement('div'); divEl.style.cssText = 'height:1px;background:#f1f5f9;';
+  modal.appendChild(divEl);
 
-  // ── Members list ──
-  var list = document.createElement('div');
-  list.style.cssText = 'overflow-y:auto;display:flex;flex-direction:column;gap:2px;';
+  // Members list
+  var list = document.createElement('div'); list.style.cssText = 'overflow-y:auto;display:flex;flex-direction:column;gap:2px;';
   var colors = ['#2ec4b6','#7c3aed','#ef4444','#f59e0b','#3b82f6','#10b981'];
 
   if (!participants.length) {
-    var empty = document.createElement('div');
-    empty.style.cssText = 'text-align:center;padding:24px;color:#94a3b8;font-size:13px;';
-    empty.textContent = 'No members yet';
+    var empty = document.createElement('div'); empty.style.cssText = 'text-align:center;padding:24px;color:#94a3b8;font-size:13px;'; empty.textContent = 'No members yet';
     list.appendChild(empty);
   } else {
     participants.forEach(function(p) {
       var av = (p.display_name||'?').split(' ').map(function(w){return w[0]||'';}).join('').toUpperCase().slice(0,2);
       var clr = colors[Math.abs(p.user_id||0) % colors.length];
       var row = document.createElement('div');
-      row.style.cssText = 'display:flex;align-items:center;gap:12px;padding:10px 8px;border-radius:10px;transition:background .1s;';
+      row.style.cssText = 'display:flex;align-items:center;gap:12px;padding:10px 8px;border-radius:10px;';
       row.onmouseover = function(){ this.style.background='#f8fafc'; };
-      row.onmouseout  = function(){ this.style.background='transparent'; };
+      row.onmouseout  = function(){ this.style.background=''; };
 
       var avEl = document.createElement('div');
       avEl.style.cssText = 'width:38px;height:38px;border-radius:50%;background:' + clr + ';display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff;flex-shrink:0;';
       avEl.textContent = av;
 
-      var info = document.createElement('div');
-      info.style.cssText = 'flex:1;min-width:0;';
-      info.innerHTML = '<div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + esc(p.display_name) + '</div>' +
-        '<div style="font-size:11px;color:#94a3b8;">' + (p.role||'member') + ' · ' + p.participant_type + '</div>';
+      var info = document.createElement('div'); info.style.cssText = 'flex:1;min-width:0;';
+      info.innerHTML = '<div style="font-size:13px;font-weight:600;">' + esc(p.display_name) + '</div><div style="font-size:11px;color:#94a3b8;">' + (p.role||'member') + ' · ' + p.participant_type + '</div>';
 
-      var removeBtn = document.createElement('button');
-      removeBtn.textContent = 'Remove';
-      removeBtn.style.cssText = 'padding:5px 10px;border:1.5px solid #fee2e2;background:#fff;color:#ef4444;border-radius:6px;cursor:pointer;font-size:11px;font-weight:600;white-space:nowrap;flex-shrink:0;';
-      removeBtn.onmouseover = function(){ this.style.background='#fee2e2'; };
-      removeBtn.onmouseout  = function(){ this.style.background='#fff'; };
-      removeBtn.onclick = async function() {
-        if (!confirm('Remove ' + p.display_name + ' from this conversation?')) return;
+      var rmBtn = document.createElement('button');
+      rmBtn.textContent = 'Remove';
+      rmBtn.style.cssText = 'padding:5px 10px;border:1.5px solid #fee2e2;background:#fff;color:#ef4444;border-radius:6px;cursor:pointer;font-size:11px;font-weight:600;flex-shrink:0;';
+      rmBtn.onmouseover = function(){ this.style.background='#fee2e2'; };
+      rmBtn.onmouseout  = function(){ this.style.background='#fff'; };
+      rmBtn.onclick = async function() {
+        if (!confirm('Remove ' + p.display_name + '?')) return;
         try {
-          var res = await fetch(API_BASE + '/messages/conversations/' + currentId + '/participants/' + p.id, {
-            method: 'DELETE', headers: authH()
-          });
-          if (res.ok || res.status === 204) {
-            showToast(p.display_name + ' removed');
-            overlay.remove();
-            showMembersModal();
-          } else {
-            showToast('Failed to remove member');
-          }
+          var res = await fetch(API_BASE + '/messages/conversations/' + currentId + '/participants/' + p.id, { method: 'DELETE', headers: authH() });
+          if (res.ok || res.status === 204) { showToast(p.display_name + ' removed'); overlay.remove(); showMembersModal(); }
+          else showToast('Failed to remove');
         } catch(e) { showToast('Network error'); }
       };
 
-      row.appendChild(avEl); row.appendChild(info); row.appendChild(removeBtn);
+      row.appendChild(avEl); row.appendChild(info); row.appendChild(rmBtn);
       list.appendChild(row);
     });
   }
@@ -1544,6 +1547,150 @@ async function showMembersModal() {
   modal.appendChild(list);
   overlay.appendChild(modal);
   document.body.appendChild(overlay);
+}
+
+// ── Incoming call UI ─────────────────────────────────────────────────────
+var _incomingCallId = null;
+
+function _showIncomingCall(msg) {
+  _incomingCallId = msg.call_id;
+  var existing = document.getElementById('incoming-call-overlay');
+  if (existing) existing.remove();
+
+  var overlay = document.createElement('div');
+  overlay.id = 'incoming-call-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:999999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.6);';
+
+  var box = document.createElement('div');
+  box.style.cssText = 'background:#1e2025;border-radius:20px;padding:32px 28px;min-width:300px;text-align:center;color:#fff;';
+
+  var kindIcon = msg.kind === 'video' ? '📹' : '📞';
+  var callerName = msg.caller_user_id ? 'User #' + msg.caller_user_id : 'Unknown';
+
+  box.innerHTML =
+    '<div style="font-size:48px;margin-bottom:16px;animation:pulse 1s infinite;">' + kindIcon + '</div>' +
+    '<div style="font-size:18px;font-weight:800;margin-bottom:6px;">Incoming ' + (msg.kind||'Audio') + ' Call</div>' +
+    '<div style="font-size:13px;color:rgba(255,255,255,0.6);margin-bottom:28px;">from ' + callerName + '</div>' +
+    '<div style="display:flex;gap:16px;justify-content:center;">' +
+      '<button id="decline-call-btn" style="width:56px;height:56px;border-radius:50%;background:#ef4444;border:none;cursor:pointer;font-size:24px;" title="Decline">📵</button>' +
+      '<button id="accept-call-btn" style="width:56px;height:56px;border-radius:50%;background:#22c55e;border:none;cursor:pointer;font-size:24px;" title="Accept">📞</button>' +
+    '</div>';
+
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+
+  box.querySelector('#accept-call-btn').onclick = function() { _acceptCall(msg.call_id, msg.kind); };
+  box.querySelector('#decline-call-btn').onclick = function() { _declineCall(msg.call_id); };
+
+  // Auto-dismiss after TTL
+  setTimeout(function(){ _dismissIncomingCall(msg.call_id, ''); }, 62000);
+}
+
+function _dismissIncomingCall(callId, reason) {
+  var el = document.getElementById('incoming-call-overlay');
+  if (el) el.remove();
+  if (reason) showToast(reason);
+  _incomingCallId = null;
+}
+
+async function _acceptCall(callId, kind) {
+  _dismissIncomingCall(callId, '');
+  try {
+    var r = await fetch(API_BASE + '/calls/' + callId + '/accept', {
+      method: 'POST', headers: authH()
+    });
+    if (r.ok) {
+      var data = await r.json();
+      _activeCallId = callId;
+      await _beginCall(kind || 'audio');
+      // Connect to LiveKit with callee token
+      if (data.join_payload && data.join_payload.access_token) {
+        _lkConnect(data.join_payload.livekit_url, data.join_payload.access_token, kind);
+      }
+    } else {
+      showToast('Failed to accept call');
+    }
+  } catch(e) { showToast('Failed to accept call'); }
+}
+
+async function _declineCall(callId) {
+  _dismissIncomingCall(callId, '');
+  try {
+    await fetch(API_BASE + '/calls/' + callId + '/decline', {
+      method: 'POST', headers: authH()
+    });
+  } catch(e) {}
+}
+
+function _endActiveCall() {
+  _activeCallId = null;
+  _teardownCallMedia();
+}
+
+function _teardownCallMedia() {
+  // Disconnect LiveKit room
+  if (_lkRoom) {
+    try { _lkRoom.disconnect(); } catch(e) {}
+    _lkRoom = null;
+  }
+  if (_call.stream) { _call.stream.getTracks().forEach(function(t){ t.stop(); }); _call.stream = null; }
+  clearInterval(_call.timer);
+  _stopSpeechRecognition();
+  _aslStopLoop();
+  _call.active = false; _call.type = null; _call.seconds = 0;
+  var el = document.getElementById('call-overlay');
+  if (el) { el.style.display = 'none'; el.innerHTML = ''; }
+}
+
+// ── LiveKit integration ───────────────────────────────────────
+var _lkRoom = null;
+
+async function _lkConnect(lkUrl, token, type) {
+  if (!lkUrl || !token) return;
+  if (typeof LivekitClient === 'undefined') return;
+  try {
+    var room = new LivekitClient.Room({
+      adaptiveStream: true,
+      dynacast: true,
+    });
+    _lkRoom = room;
+
+    // Handle remote participants
+    room.on(LivekitClient.RoomEvent.TrackSubscribed, function(track, publication, participant) {
+      if (track.kind === LivekitClient.Track.Kind.Video) {
+        var el = document.getElementById('call-main-video');
+        if (el) track.attach(el);
+      }
+      if (track.kind === LivekitClient.Track.Kind.Audio) {
+        var audioEl = track.attach();
+        document.body.appendChild(audioEl);
+      }
+    });
+
+    room.on(LivekitClient.RoomEvent.TrackUnsubscribed, function(track) {
+      track.detach();
+    });
+
+    room.on(LivekitClient.RoomEvent.Disconnected, function() {
+      _endActiveCall();
+    });
+
+    await room.connect(lkUrl, token);
+
+    // Publish local tracks
+    if (type === 'video') {
+      await room.localParticipant.enableCameraAndMicrophone();
+      var camTrack = room.localParticipant.getTrackPublication(LivekitClient.Track.Source.Camera);
+      if (camTrack && camTrack.track) {
+        var pipEl = document.getElementById('call-pip-video');
+        if (pipEl) camTrack.track.attach(pipEl);
+      }
+    } else {
+      await room.localParticipant.setMicrophoneEnabled(true);
+    }
+  } catch(e) {
+    console.warn('LiveKit connect failed:', e);
+  }
 }
 
 // ── WebSocket real-time layer ──────────────────────────────────────────────
@@ -1572,16 +1719,43 @@ async function showMembersModal() {
         var conv = allConvs.find(function (c) { return c.id === msg.conversation_id; });
         if (conv) { conv.online = msg.online; renderConvList(); }
       }
-      // message.receipt — update delivery tick in real time
+      // ── Call events ──
+      if (msg.type === 'call.invite') { _showIncomingCall(msg); }
+      if (msg.type === 'call.canceled') {
+        _dismissIncomingCall(msg.call_id, 'Call canceled');
+        if (msg.call_id === _outgoingCallId) { _outgoingCallId = null; _dismissCallingOverlay(); }
+      }
+      if (msg.type === 'call.timeout') {
+        _dismissIncomingCall(msg.call_id, 'Call timed out');
+        if (msg.call_id === _outgoingCallId) { _outgoingCallId = null; _dismissCallingOverlay(); showToast('Call timed out'); }
+      }
+      if (msg.type === 'call.declined') {
+        if (msg.call_id === _outgoingCallId) { _outgoingCallId = null; _dismissCallingOverlay(); showToast('Call declined'); }
+        else { showToast('Call declined'); _endActiveCall(); }
+      }
+      if (msg.type === 'call.ended') { showToast('Call ended'); _endActiveCall(); }
+      if (msg.type === 'call.accepted') {
+        // Caller side: callee accepted — start media
+        if (msg.call_id === _outgoingCallId) {
+          _activeCallId = _outgoingCallId;
+          _outgoingCallId = null;
+          _dismissCallingOverlay();
+          _beginCall(_pendingCallKind || 'audio').then(function() {
+            // Connect caller to LiveKit using stored join payload
+            if (_callerJoinPayload && _callerJoinPayload.access_token) {
+              _lkConnect(_callerJoinPayload.livekit_url, _callerJoinPayload.access_token, _pendingCallKind || 'audio');
+            }
+            _pendingCallKind = null;
+          });
+        }
+      }
+      // message.receipt
       if (msg.type === 'message.receipt') {
         var mid = msg.message_id;
         var cur = msgDelivery[mid] || 'sent';
-        // Only upgrade status, never downgrade
         if (msg.status === 'read' || (msg.status === 'delivered' && cur === 'sent')) {
           msgDelivery[mid] = msg.status;
-          if (msg.conversation_id === currentId) {
-            renderMsgs(localMsgs[currentId] || []);
-          }
+          if (msg.conversation_id === currentId) renderMsgs(localMsgs[currentId] || []);
         }
       }
       if (msg.type === 'conversations_update') { if (!demo) loadConvs(); }
