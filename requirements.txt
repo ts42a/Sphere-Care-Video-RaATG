@@ -12,31 +12,16 @@ python-jose[cryptography]
 httpx
 pytest
 pytest-asyncio
-
-# WebSocket support
 websockets
-
-# Async support
 anyio
-
-# Date/time utilities
 python-dateutil
-
-# File upload handling
 aiofiles
-
-# Environment & config
 pydantic-settings
-
-# ASL Gesture Recognition
 numpy
 opencv-python
 mediapipe
 joblib
 scikit-learn
 Pillow
-
-# LiveKit — media plane + token minting + agent
 livekit
 livekit-api
-livekit-agents[openai]>=0.12
