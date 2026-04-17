@@ -35,3 +35,8 @@ mediapipe
 joblib
 scikit-learn
 Pillow
+
+# LiveKit — media plane + token minting + agent
+livekit
+livekit-api
+livekit-agents[openai]>=0.12
