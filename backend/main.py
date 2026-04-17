@@ -6,6 +6,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from backend.api.routers import api_router
+from backend.api.routers.call import router as calls_router, expire_timed_out_calls
 from backend.api.routers.ws import router as ws_router  # ── NEW ──
 from backend.db.base import Base
 from backend.db.session import engine
@@ -27,12 +28,29 @@ async def lifespan(app: FastAPI):
     from backend.outbox.outbox_processor import run_outbox_processor
     outbox_task = asyncio.create_task(run_outbox_processor(interval=0.5))
 
+    # Start call timeout worker (checks every 5s)
+    async def _call_timeout_loop():
+        while True:
+            try:
+                from backend.db.session import SessionLocal
+                db = SessionLocal()
+                try:
+                    await expire_timed_out_calls(db)
+                finally:
+                    db.close()
+            except Exception:
+                pass
+            await asyncio.sleep(5)
+    call_timeout_task = asyncio.create_task(_call_timeout_loop())
+
     yield
 
     # Shutdown outbox processor
     outbox_task.cancel()
+    call_timeout_task.cancel()
     try:
         await outbox_task
+        await call_timeout_task
     except asyncio.CancelledError:
         pass
 
@@ -88,4 +106,5 @@ def health():
     return {"status": "ok"}
 
 app.include_router(api_router, prefix="/api/v1")
+app.include_router(calls_router, prefix="/api/v1")
 app.include_router(ws_router)
