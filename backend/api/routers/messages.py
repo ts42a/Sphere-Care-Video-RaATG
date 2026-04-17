@@ -550,12 +550,6 @@ async def send_message(
     db.refresh(conversation)
 
     deliveries = _delivery_payload_for_message(message, conversation)
-
-    # Write to outbox for reliable fan-out (processor sends via WS with retries)
-    _enqueue_outbox(db, message, conversation, deliveries)
-
-    # Also do immediate direct push for low-latency delivery
-    # (outbox handles retries if WS is temporarily unavailable)
     await notification_service.notify_new_message(message, conversation.admin_id, deliveries=deliveries)
     if deliveries:
         await notification_service.notify_conversation_changed(conversation.admin_id, deliveries=deliveries)
@@ -694,11 +688,13 @@ def add_participant(
     db: Session = Depends(get_db),
     auth: dict = Depends(get_current_auth_context),
 ):
-    """Add a member to a group conversation (admin/owner only)."""
+    """Add a member to a group conversation (admin users or conv owner/admin)."""
     conversation, participant, actor_type, actor_id = _ensure_conversation_access(db, conversation_id, auth)
-    # Check caller is owner/admin of the conversation
-    if participant.role not in ("owner", "admin"):
-        raise HTTPException(status_code=403, detail="Only group owners or admins can add members.")
+    # Allow if: system admin OR conversation owner/admin
+    is_system_admin = (actor_type == "admin")
+    is_conv_admin = participant and participant.role in ("owner", "admin")
+    if not is_system_admin and not is_conv_admin:
+        raise HTTPException(status_code=403, detail="Only admins can add members.")
     # Check not already a participant
     existing = db.query(models.ConversationParticipant).filter(
         models.ConversationParticipant.conversation_id == conversation_id,
@@ -720,6 +716,29 @@ def add_participant(
 
 
 # ── 7. Remove participant from conversation ───────────────────────
+@router.get("/conversations/{conversation_id}/participants")
+def list_participants(
+    conversation_id: int,
+    db: Session = Depends(get_db),
+    auth: dict = Depends(get_current_auth_context),
+):
+    """List all participants in a conversation."""
+    conversation, _, _, _ = _ensure_conversation_access(db, conversation_id, auth)
+    return [
+        {
+            "id": p.id,
+            "user_id": p.user_id,
+            "display_name": p.display_name,
+            "participant_type": p.participant_type,
+            "role": p.role,
+            "joined_at": p.joined_at.isoformat() if p.joined_at else None,
+            "last_read_at": p.last_read_at.isoformat() if p.last_read_at else None,
+            "notifications_muted": p.notifications_muted,
+        }
+        for p in conversation.participants
+    ]
+
+
 @router.delete("/conversations/{conversation_id}/participants/{participant_id}", status_code=204)
 def remove_participant(
     conversation_id: int,
@@ -735,11 +754,12 @@ def remove_participant(
     ).first()
     if not target:
         raise HTTPException(status_code=404, detail="Participant not found.")
-    # Allow self-leave OR owner/admin removing others
+    # Allow self-leave OR system admin OR conv owner/admin
     is_self = target.user_id == actor_id
-    is_admin = caller_participant.role in ("owner", "admin")
-    if not is_self and not is_admin:
-        raise HTTPException(status_code=403, detail="Only group owners or admins can remove members.")
+    is_system_admin = (actor_type == "admin")
+    is_conv_admin = caller_participant and caller_participant.role in ("owner", "admin")
+    if not is_self and not is_system_admin and not is_conv_admin:
+        raise HTTPException(status_code=403, detail="Only admins can remove members.")
     db.delete(target)
     db.commit()
 

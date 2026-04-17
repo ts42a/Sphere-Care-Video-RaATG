@@ -1,354 +1,418 @@
-from datetime import datetime, timezone
-from typing import List, Literal, Optional
+"""
+/api/v1/calls — Full call state machine.
+LiveKit token minting is stubbed — fill in when LIVEKIT_* env vars are set.
+"""
+import json
+import uuid
+from datetime import datetime, timezone, timedelta
+from typing import Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
+from sqlalchemy.orm import Session
 
+from backend.api.deps import get_db
+from backend.api.routers.auth import _get_current_user
+from backend import models
 from backend.ws.ws_manager import ws_manager
 
-router = APIRouter(tags=["Call"])
+router = APIRouter(prefix="/calls", tags=["Calls"])
+
+INVITE_TTL_SECONDS = 60  # 1 minute ringing timeout
 
 
-class TranscriptItem(BaseModel):
-    id: int
-    speaker: str
-    role: Literal["doctor", "patient", "ai"]
-    content: str
-    created_at: str
+# ── Helpers ──────────────────────────────────────────────────────────────────
 
-
-class CallParticipant(BaseModel):
-    name: str
-    role: str
-    initials: str
-
-
-class CurrentCallResponse(BaseModel):
-    call_id: int
-    mode: Literal["audio", "video"]
-    started_at: str
-    duration: str
-    doctor: CallParticipant
-    patient: CallParticipant
-    consultation_status: str
-    transcribing: bool
-    transcript: List[TranscriptItem]
-
-
-class StartCallRequest(BaseModel):
-    doctor_name: str
-    patient_name: str
-    patient_initials: str = "PT"
-    doctor_initials: str = "DR"
-    mode: Literal["audio", "video"] = "audio"
-
-
-class AddTranscriptRequest(BaseModel):
-    speaker: str
-    role: Literal["doctor", "patient", "ai"]
-    content: str
-
-
-class ToggleTranscribingRequest(BaseModel):
-    transcribing: bool
-
-
-class CallControlResponse(BaseModel):
-    message: str
-    call_id: int
-    muted: Optional[bool] = None
-    transcribing: Optional[bool] = None
-    ended: Optional[bool] = None
-
-
-def now_utc() -> datetime:
+def _now() -> datetime:
     return datetime.now(timezone.utc)
 
+def _gen_room_id() -> str:
+    return "room_" + uuid.uuid4().hex
 
-def iso_now() -> str:
-    return now_utc().isoformat()
+def _get_org_id(current_user) -> int:
+    if isinstance(current_user, models.Admin):
+        return int(current_user.organization_id)
+    if hasattr(current_user, 'global_role'):
+        # Staff — get org via admin
+        return int(getattr(current_user, 'organization_id', 0) or 0)
+    return 0
 
+def _get_user_id(current_user) -> int:
+    return int(current_user.id)
 
-def parse_iso(dt_str: str) -> datetime:
-    return datetime.fromisoformat(dt_str)
+def _get_role(current_user) -> str:
+    if isinstance(current_user, models.Admin):
+        return "admin"
+    return getattr(current_user, 'global_role', 'staff') or 'staff'
 
+def _mint_livekit_token(room_id: str, identity: str, display_name: str) -> Optional[str]:
+    """
+    Stub — returns None until LIVEKIT_* env vars are configured.
+    Replace with: from livekit import api; ...
+    """
+    import os
+    lk_key = os.getenv("LIVEKIT_API_KEY")
+    lk_secret = os.getenv("LIVEKIT_API_SECRET")
+    if not lk_key or not lk_secret:
+        return None
+    try:
+        from livekit.api import AccessToken, VideoGrants
+        token = (
+            AccessToken(lk_key, lk_secret)
+            .with_identity(identity)
+            .with_name(display_name)
+            .with_grants(VideoGrants(room_join=True, room=room_id))
+            .with_ttl(timedelta(minutes=15))
+            .to_jwt()
+        )
+        return token
+    except Exception:
+        return None
 
-def format_duration_from_started_at(
-    started_at: str,
-    ended: bool = False,
-    ended_at: Optional[str] = None,
-) -> str:
-    start_dt = parse_iso(started_at)
+def _livekit_url() -> Optional[str]:
+    import os
+    return os.getenv("LIVEKIT_URL")
 
-    if ended and ended_at:
-        end_dt = parse_iso(ended_at)
-    else:
-        end_dt = now_utc()
+def _add_event(db: Session, call_id: int, event_type: str, actor_id: Optional[int] = None, meta: dict = None):
+    db.add(models.CallEvent(
+        call_id=call_id,
+        event_type=event_type,
+        actor_user_id=actor_id,
+        event_data=json.dumps(meta) if meta else None,
+    ))
 
-    total_seconds = max(0, int((end_dt - start_dt).total_seconds()))
-    minutes = total_seconds // 60
-    seconds = total_seconds % 60
-    return f"{minutes:02d}:{seconds:02d}"
-
-
-mock_call = {
-    "call_id": 1,
-    "mode": "audio",
-    "started_at": iso_now(),
-    "ended_at": None,
-    "doctor": {
-        "name": "Dr. Sarah Wilson",
-        "role": "Cardiologist",
-        "initials": "SW",
-    },
-    "patient": {
-        "name": "Client User",
-        "role": "Patient",
-        "initials": "CU",
-    },
-    "consultation_status": "Consultation in progress",
-    "transcribing": True,
-    "muted": False,
-    "ended": False,
-    "transcript": [
-        {
-            "id": 1,
-            "speaker": "Patient",
-            "role": "patient",
-            "content": "It's more of a dull ache, especially after I've been sitting for long periods. Sometimes it radiates down to my lower back.",
-            "created_at": "2026-03-13T09:30:00+00:00",
-        },
-        {
-            "id": 2,
-            "speaker": "Doctor",
-            "role": "doctor",
-            "content": "I understand. Can you describe the intensity on a scale of 1 to 10? And when did you first notice this discomfort?",
-            "created_at": "2026-03-13T09:30:15+00:00",
-        },
-        {
-            "id": 3,
-            "speaker": "Patient",
-            "role": "patient",
-            "content": "I'd say it's around a 6 most days, but it can spike to an 8 when I'm stressed or after long work sessions.",
-            "created_at": "2026-03-13T09:30:35+00:00",
-        },
-    ],
-}
-
-
-def build_current_call_response() -> dict:
-    duration = format_duration_from_started_at(
-        mock_call["started_at"],
-        ended=mock_call["ended"],
-        ended_at=mock_call["ended_at"],
-    )
-
-    return {
-        "call_id": mock_call["call_id"],
-        "mode": mock_call["mode"],
-        "started_at": mock_call["started_at"],
-        "duration": duration,
-        "doctor": mock_call["doctor"],
-        "patient": mock_call["patient"],
-        "consultation_status": mock_call["consultation_status"],
-        "transcribing": mock_call["transcribing"],
-        "transcript": mock_call["transcript"],
+async def _ws_broadcast_call_event(call: models.Call, event_type: str, extra: dict = None):
+    """Notify both caller and callee via WS."""
+    payload = {
+        "type": event_type,
+        "call_id": call.id,
+        "state": call.state,
+        "kind": call.kind,
+        "room_id": call.room_id,
+        "timestamp": _now().isoformat(),
+        **(extra or {}),
     }
+    for uid in [call.created_by_user_id, call.callee_user_id]:
+        if uid:
+            actor_key = f"admin:{uid}" if False else f"user:{uid}"
+            await ws_manager.broadcast_actor(actor_key, payload)
+            # Also try admin key
+            await ws_manager.broadcast_actor(f"admin:{uid}", payload)
 
 
-async def broadcast_call_connection_state(call_id: int, state: str):
-    await ws_manager.broadcast_call(
-        str(call_id),
-        {
-            "type": "call_connection_state",
-            "payload": {
-                "call_id": str(call_id),
-                "state": state,
-            },
-        },
-    )
+# ── Schemas ───────────────────────────────────────────────────────────────────
+
+class StartCallRequest(BaseModel):
+    callee_user_id: int
+    kind: str = "audio"  # "audio" | "video"
+
+class JoinPayload(BaseModel):
+    call_id: int
+    room_id: str
+    livekit_url: Optional[str] = None
+    access_token: Optional[str] = None
+    expires_at: str
+    state: str
+
+class CallResponse(BaseModel):
+    call_id: int
+    room_id: str
+    state: str
+    kind: str
+    caller_user_id: int
+    callee_user_id: int
+    invite_expires_at: str
+    started_at: Optional[str] = None
+    ended_at: Optional[str] = None
+    livekit_url: Optional[str] = None
+    join_payload: Optional[JoinPayload] = None
 
 
-async def broadcast_call_ended(call_id: int):
-    await ws_manager.broadcast_call(
-        str(call_id),
-        {
-            "type": "call_ended",
-            "payload": {
-                "call_id": str(call_id),
-            },
-        },
-    )
-
-
-async def broadcast_call_remote_media(call_id: int, audio_enabled: bool, video_enabled: bool):
-    await ws_manager.broadcast_call(
-        str(call_id),
-        {
-            "type": "call_remote_media_updated",
-            "payload": {
-                "call_id": str(call_id),
-                "audio_enabled": audio_enabled,
-                "video_enabled": video_enabled,
-                "camera_facing": "front",
-            },
-        },
+def _fmt_call(call: models.Call, join_payload: Optional[JoinPayload] = None) -> CallResponse:
+    return CallResponse(
+        call_id=call.id,
+        room_id=call.room_id,
+        state=call.state,
+        kind=call.kind,
+        caller_user_id=call.created_by_user_id,
+        callee_user_id=call.callee_user_id,
+        invite_expires_at=call.invite_expires_at.isoformat(),
+        started_at=call.started_at.isoformat() if call.started_at else None,
+        ended_at=call.ended_at.isoformat() if call.ended_at else None,
+        livekit_url=call.livekit_url,
+        join_payload=join_payload,
     )
 
 
-async def broadcast_call_transcript_updated(call_id: int, item: dict):
-    await ws_manager.broadcast_call(
-        str(call_id),
-        {
-            "type": "call_transcript_updated",
-            "payload": {
-                "call_id": str(call_id),
-                "item": item,
-            },
-        },
+# ── Endpoints ─────────────────────────────────────────────────────────────────
+
+@router.post("", response_model=CallResponse)
+async def start_call(
+    payload: StartCallRequest,
+    current_user=Depends(_get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Start a call — creates ringing invite, returns caller join payload."""
+    caller_id = _get_user_id(current_user)
+    caller_role = _get_role(current_user)
+    org_id = _get_org_id(current_user)
+
+    if caller_id == payload.callee_user_id:
+        raise HTTPException(status_code=400, detail="Cannot call yourself.")
+
+    # Check callee not already in active call
+    active = db.query(models.Call).filter(
+        models.Call.callee_user_id == payload.callee_user_id,
+        models.Call.state == "active",
+    ).first()
+    if active:
+        raise HTTPException(status_code=409, detail="Callee is busy.")
+
+    # Check no pending ringing invite
+    ringing = db.query(models.Call).filter(
+        models.Call.callee_user_id == payload.callee_user_id,
+        models.Call.state == "ringing",
+    ).first()
+    if ringing:
+        raise HTTPException(status_code=409, detail="Callee already has a pending invite.")
+
+    room_id = _gen_room_id()
+    expires_at = _now() + timedelta(seconds=INVITE_TTL_SECONDS)
+
+    # Mint caller token (stub if no LiveKit)
+    caller_identity = f"usr_{caller_id}"
+    caller_token = _mint_livekit_token(room_id, caller_identity, str(caller_id))
+
+    call = models.Call(
+        org_id=org_id,
+        room_id=room_id,
+        state="ringing",
+        kind=payload.kind,
+        created_by_user_id=caller_id,
+        callee_user_id=payload.callee_user_id,
+        invite_expires_at=expires_at,
+        livekit_url=_livekit_url(),
+        caller_token=caller_token,
     )
+    db.add(call)
+    db.flush()
 
+    # Add participants
+    db.add(models.CallParticipant(
+        call_id=call.id, user_id=caller_id, role_at_call_time=caller_role,
+        livekit_identity=caller_identity,
+    ))
+    db.add(models.CallParticipant(
+        call_id=call.id, user_id=payload.callee_user_id, role_at_call_time="callee",
+        livekit_identity=f"usr_{payload.callee_user_id}",
+    ))
 
-async def broadcast_call_transcribing_updated(call_id: int, transcribing: bool):
-    await ws_manager.broadcast_call(
-        str(call_id),
-        {
-            "type": "call_transcribing_updated",
-            "payload": {
-                "call_id": str(call_id),
-                "transcribing": transcribing,
-            },
-        },
+    _add_event(db, call.id, "invite_sent", caller_id, {"kind": payload.kind})
+    db.commit()
+    db.refresh(call)
+
+    # Notify callee via WS
+    await _ws_broadcast_call_event(call, "call.invite", {
+        "caller_user_id": caller_id,
+        "kind": payload.kind,
+        "expires_at": expires_at.isoformat(),
+    })
+
+    join = JoinPayload(
+        call_id=call.id,
+        room_id=room_id,
+        livekit_url=call.livekit_url,
+        access_token=caller_token,
+        expires_at=expires_at.isoformat(),
+        state="ringing",
     )
+    return _fmt_call(call, join)
 
 
-@router.get("/current", response_model=CurrentCallResponse)
-async def get_current_call():
-    return build_current_call_response()
+@router.get("/{call_id}", response_model=CallResponse)
+def get_call(
+    call_id: int,
+    current_user=Depends(_get_current_user),
+    db: Session = Depends(get_db),
+):
+    call = db.query(models.Call).filter(models.Call.id == call_id).first()
+    if not call:
+        raise HTTPException(status_code=404, detail="Call not found.")
+    return _fmt_call(call)
 
 
-@router.post("/start", response_model=CurrentCallResponse)
-async def start_call(payload: StartCallRequest):
-    mock_call["call_id"] += 1
-    mock_call["mode"] = payload.mode
-    mock_call["started_at"] = iso_now()
-    mock_call["ended_at"] = None
-    mock_call["doctor"] = {
-        "name": payload.doctor_name,
-        "role": "Doctor",
-        "initials": payload.doctor_initials,
-    }
-    mock_call["patient"] = {
-        "name": payload.patient_name,
-        "role": "Patient",
-        "initials": payload.patient_initials,
-    }
-    mock_call["consultation_status"] = "Consultation in progress"
-    mock_call["transcribing"] = True
-    mock_call["muted"] = False
-    mock_call["ended"] = False
-    mock_call["transcript"] = []
+@router.post("/{call_id}/accept", response_model=CallResponse)
+async def accept_call(
+    call_id: int,
+    current_user=Depends(_get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Accept a ringing invite — issues callee token, transitions to active."""
+    callee_id = _get_user_id(current_user)
+    callee_role = _get_role(current_user)
 
-    await broadcast_call_connection_state(mock_call["call_id"], "connected")
-    await broadcast_call_remote_media(
-        mock_call["call_id"],
-        audio_enabled=True,
-        video_enabled=payload.mode == "video",
+    call = db.query(models.Call).filter(models.Call.id == call_id).first()
+    if not call:
+        raise HTTPException(status_code=404, detail="Call not found.")
+    if call.callee_user_id != callee_id:
+        raise HTTPException(status_code=403, detail="Not the callee for this call.")
+    if call.state != "ringing":
+        raise HTTPException(status_code=409, detail=f"Call is already {call.state}.")
+    if _now() > call.invite_expires_at:
+        call.state = "timeout"
+        _add_event(db, call.id, "timeout")
+        db.commit()
+        raise HTTPException(status_code=410, detail="Invite has expired.")
+
+    # Mint callee token
+    callee_identity = f"usr_{callee_id}"
+    callee_token = _mint_livekit_token(call.room_id, callee_identity, str(callee_id))
+
+    # Update participant
+    p = db.query(models.CallParticipant).filter(
+        models.CallParticipant.call_id == call_id,
+        models.CallParticipant.user_id == callee_id,
+    ).first()
+    if p:
+        p.joined_at = _now()
+        p.callee_token = callee_token
+
+    call.state = "active"
+    call.accepted_by_user_id = callee_id
+    call.started_at = _now()
+    _add_event(db, call.id, "accepted", callee_id)
+    db.commit()
+    db.refresh(call)
+
+    await _ws_broadcast_call_event(call, "call.accepted", {"callee_user_id": callee_id})
+
+    join = JoinPayload(
+        call_id=call.id,
+        room_id=call.room_id,
+        livekit_url=call.livekit_url,
+        access_token=callee_token,
+        expires_at=call.invite_expires_at.isoformat(),
+        state="active",
     )
-
-    return build_current_call_response()
-
-
-@router.get("/{call_id}/transcript", response_model=List[TranscriptItem])
-async def get_call_transcript(call_id: int):
-    if call_id != mock_call["call_id"]:
-        raise HTTPException(status_code=404, detail="Call not found")
-
-    return mock_call["transcript"]
+    return _fmt_call(call, join)
 
 
-@router.post("/{call_id}/transcript", response_model=TranscriptItem)
-async def add_transcript(call_id: int, payload: AddTranscriptRequest):
-    if call_id != mock_call["call_id"]:
-        raise HTTPException(status_code=404, detail="Call not found")
+@router.post("/{call_id}/decline", response_model=CallResponse)
+async def decline_call(
+    call_id: int,
+    current_user=Depends(_get_current_user),
+    db: Session = Depends(get_db),
+):
+    callee_id = _get_user_id(current_user)
+    call = db.query(models.Call).filter(models.Call.id == call_id).first()
+    if not call:
+        raise HTTPException(status_code=404, detail="Call not found.")
+    if call.callee_user_id != callee_id:
+        raise HTTPException(status_code=403, detail="Not the callee.")
+    if call.state != "ringing":
+        raise HTTPException(status_code=409, detail=f"Call is {call.state}, cannot decline.")
 
-    new_item = {
-        "id": len(mock_call["transcript"]) + 1,
-        "speaker": payload.speaker,
-        "role": payload.role,
-        "content": payload.content,
-        "created_at": iso_now(),
-    }
+    call.state = "declined"
+    call.ended_at = _now()
+    call.end_reason = "declined"
+    _add_event(db, call.id, "declined", callee_id)
+    db.commit()
+    db.refresh(call)
 
-    mock_call["transcript"].append(new_item)
-    await broadcast_call_transcript_updated(call_id, new_item)
-    return new_item
-
-
-@router.patch("/{call_id}/transcribing", response_model=CallControlResponse)
-async def toggle_transcribing(call_id: int, payload: ToggleTranscribingRequest):
-    if call_id != mock_call["call_id"]:
-        raise HTTPException(status_code=404, detail="Call not found")
-
-    mock_call["transcribing"] = payload.transcribing
-    await broadcast_call_transcribing_updated(call_id, mock_call["transcribing"])
-
-    return {
-        "message": "Transcribing updated successfully",
-        "call_id": call_id,
-        "transcribing": mock_call["transcribing"],
-    }
+    await _ws_broadcast_call_event(call, "call.declined", {"callee_user_id": callee_id})
+    return _fmt_call(call)
 
 
-@router.post("/{call_id}/mute", response_model=CallControlResponse)
-async def mute_call(call_id: int):
-    if call_id != mock_call["call_id"]:
-        raise HTTPException(status_code=404, detail="Call not found")
+@router.post("/{call_id}/cancel", response_model=CallResponse)
+async def cancel_call(
+    call_id: int,
+    current_user=Depends(_get_current_user),
+    db: Session = Depends(get_db),
+):
+    caller_id = _get_user_id(current_user)
+    call = db.query(models.Call).filter(models.Call.id == call_id).first()
+    if not call:
+        raise HTTPException(status_code=404, detail="Call not found.")
+    if call.created_by_user_id != caller_id:
+        raise HTTPException(status_code=403, detail="Not the caller.")
+    if call.state != "ringing":
+        raise HTTPException(status_code=409, detail=f"Call is {call.state}, cannot cancel.")
 
-    mock_call["muted"] = not mock_call["muted"]
+    call.state = "canceled"
+    call.ended_at = _now()
+    call.end_reason = "canceled"
+    _add_event(db, call.id, "canceled", caller_id)
+    db.commit()
+    db.refresh(call)
 
-    await broadcast_call_remote_media(
-        call_id,
-        audio_enabled=not mock_call["muted"],
-        video_enabled=mock_call["mode"] == "video",
-    )
-
-    return {
-        "message": "Mute status updated successfully",
-        "call_id": call_id,
-        "muted": mock_call["muted"],
-    }
-
-
-@router.post("/{call_id}/end", response_model=CallControlResponse)
-async def end_call(call_id: int):
-    if call_id != mock_call["call_id"]:
-        raise HTTPException(status_code=404, detail="Call not found")
-
-    mock_call["ended"] = True
-    mock_call["ended_at"] = iso_now()
-    mock_call["consultation_status"] = "Consultation ended"
-
-    await broadcast_call_connection_state(call_id, "ended")
-    await broadcast_call_ended(call_id)
-
-    return {
-        "message": "Call ended successfully",
-        "call_id": call_id,
-        "ended": True,
-    }
+    await _ws_broadcast_call_event(call, "call.canceled", {"caller_user_id": caller_id})
+    return _fmt_call(call)
 
 
-@router.post("/{call_id}/stop", response_model=CallControlResponse)
-async def stop_transcript_or_recording(call_id: int):
-    if call_id != mock_call["call_id"]:
-        raise HTTPException(status_code=404, detail="Call not found")
+@router.post("/{call_id}/end", response_model=CallResponse)
+async def end_call(
+    call_id: int,
+    current_user=Depends(_get_current_user),
+    db: Session = Depends(get_db),
+):
+    user_id = _get_user_id(current_user)
+    call = db.query(models.Call).filter(models.Call.id == call_id).first()
+    if not call:
+        raise HTTPException(status_code=404, detail="Call not found.")
+    if call.state != "active":
+        raise HTTPException(status_code=409, detail=f"Call is {call.state}, cannot end.")
+    if user_id not in [call.created_by_user_id, call.callee_user_id]:
+        raise HTTPException(status_code=403, detail="Not a participant.")
 
-    mock_call["transcribing"] = False
-    await broadcast_call_transcribing_updated(call_id, False)
+    # Update participant left_at
+    p = db.query(models.CallParticipant).filter(
+        models.CallParticipant.call_id == call_id,
+        models.CallParticipant.user_id == user_id,
+    ).first()
+    if p:
+        p.left_at = _now()
 
-    return {
-        "message": "Recording or transcription stopped successfully",
-        "call_id": call_id,
-        "transcribing": False,
-    }
+    call.state = "ended"
+    call.ended_at = _now()
+    call.ended_by_user_id = user_id
+    call.end_reason = "ended_by_participant"
+    _add_event(db, call.id, "ended", user_id)
+    db.commit()
+    db.refresh(call)
+
+    await _ws_broadcast_call_event(call, "call.ended", {"ended_by": user_id})
+    return _fmt_call(call)
+
+
+@router.get("/{call_id}/events")
+def get_call_events(
+    call_id: int,
+    current_user=Depends(_get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Audit log for a call."""
+    call = db.query(models.Call).filter(models.Call.id == call_id).first()
+    if not call:
+        raise HTTPException(status_code=404, detail="Call not found.")
+    events = db.query(models.CallEvent).filter(
+        models.CallEvent.call_id == call_id
+    ).order_by(models.CallEvent.created_at.asc()).all()
+    return [{"id": e.id, "type": e.event_type, "actor": e.actor_user_id, "at": e.created_at.isoformat()} for e in events]
+
+
+# ── Timeout worker — called from lifespan ────────────────────────────────────
+async def expire_timed_out_calls(db: Session):
+    """Move ringing calls past invite_expires_at to timeout state."""
+    expired = db.query(models.Call).filter(
+        models.Call.state == "ringing",
+        models.Call.invite_expires_at < _now(),
+    ).all()
+    for call in expired:
+        call.state = "timeout"
+        call.ended_at = _now()
+        call.end_reason = "timeout"
+        _add_event(db, call.id, "timeout")
+        await _ws_broadcast_call_event(call, "call.timeout")
+    if expired:
+        db.commit()
+    return len(expired)
