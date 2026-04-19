@@ -5,7 +5,10 @@ export function useMiniCall() {
   const [state, setState] = useState<MiniCallState>(miniCallService.getState());
 
   useEffect(() => {
-    return miniCallService.subscribe(setState);
+    const unsubscribe = miniCallService.subscribe(setState);
+    return () => {
+      unsubscribe();
+    };
   }, []);
 
   return state;

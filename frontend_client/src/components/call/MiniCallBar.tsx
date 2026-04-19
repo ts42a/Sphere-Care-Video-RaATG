@@ -9,12 +9,7 @@ import { colors } from "../../theme/colors";
 export default function MiniCallBar() {
   const miniCall = useMiniCall();
 
-  if (
-    !miniCall.active ||
-    !miniCall.minimized ||
-    !miniCall.contactId ||
-    !miniCall.mode
-  ) {
+  if (!miniCall.active || !miniCall.minimized || !miniCall.contactId || !miniCall.mode) {
     return null;
   }
 
@@ -22,11 +17,11 @@ export default function MiniCallBar() {
     miniCallService.setState({ minimized: false });
 
     router.push({
-      pathname:
-        miniCall.mode === "video"
-          ? "/call/video/[contactId]"
-          : "/call/audio/[contactId]",
-      params: { contactId: miniCall.contactId },
+      pathname: miniCall.mode === "video" ? "/call/video/[contactId]" : "/call/audio/[contactId]",
+      params: {
+        contactId: String(miniCall.contactId),
+        ...(miniCall.callId ? { callId: String(miniCall.callId) } : {}),
+      },
     });
   }
 

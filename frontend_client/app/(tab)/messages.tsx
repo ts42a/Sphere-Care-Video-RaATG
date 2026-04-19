@@ -43,7 +43,9 @@ export default function MessageListScreen() {
       .connect()
       .then(() => {
         unsubscribeMessage = wsClient.subscribe("new_message", (payload) => {
-          const conversationId = String(payload?.conversation_id ?? payload?.message?.conversation_id ?? "");
+          const conversationId = String(
+            payload?.conversation_id ?? payload?.message?.conversation_id ?? ""
+          );
           const chatMessage = mapRealtimeMessage(payload?.message ?? payload);
 
           if (!conversationId || !chatMessage) return;
@@ -149,19 +151,19 @@ export default function MessageListScreen() {
                   })
                 }
               >
-                <View style={[styles.avatar, { backgroundColor: item.avatarColor }]}> 
+                <View style={[styles.avatar, { backgroundColor: item.avatarColor }]}>
                   <Text style={styles.avatarText}>{item.initials}</Text>
                 </View>
 
                 <View style={styles.content}>
                   <View style={styles.topRow}>
-                    <View>
+                    <View style={{ flex: 1 }}>
                       <Text style={styles.name}>{item.name}</Text>
-                      <Text style={styles.role}>{item.role}</Text>
+                      {!!item.role && <Text style={styles.role}>{item.role}</Text>}
                     </View>
 
                     <View style={styles.meta}>
-                      {!!item.time && <Text style={styles.time}>{item.time}</Text>}
+                      <Text style={styles.time}>{item.time}</Text>
                       {item.unread > 0 && (
                         <View style={styles.badge}>
                           <Text style={styles.badgeText}>{item.unread}</Text>
@@ -172,8 +174,8 @@ export default function MessageListScreen() {
 
                   <View style={styles.previewRow}>
                     {item.online && <View style={styles.onlineDot} />}
-                    <Text style={styles.preview} numberOfLines={1}>
-                      {item.preview || "No messages yet"}
+                    <Text numberOfLines={1} style={styles.preview}>
+                      {item.preview}
                     </Text>
                   </View>
                 </View>
@@ -193,20 +195,22 @@ const styles = StyleSheet.create({
   },
   inner: {
     flex: 1,
-    paddingHorizontal: 22,
-    paddingTop: 10,
+    paddingTop: 18,
+    paddingHorizontal: 24,
   },
   headerWrap: {
-    marginBottom: 18,
+    marginBottom: 20,
   },
   subtitle: {
     ...typography.subText,
-    marginTop: 6,
+    marginTop: 4,
   },
   searchWrap: {
-    height: 52,
-    borderRadius: 18,
-    backgroundColor: "#ECECEF",
+    minHeight: 50,
+    borderRadius: 16,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#E2E5EA",
     paddingHorizontal: 16,
     flexDirection: "row",
     alignItems: "center",
@@ -226,37 +230,31 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   row: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 22,
-    padding: 16,
-    marginBottom: 14,
     flexDirection: "row",
-    alignItems: "flex-start",
-    shadowColor: "#00000010",
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 1,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E9EBEF",
   },
   avatar: {
-    width: 58,
-    height: 58,
-    borderRadius: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 18,
     alignItems: "center",
     justifyContent: "center",
     marginRight: 14,
   },
   avatarText: {
     color: "#FFFFFF",
-    fontSize: 18,
     fontWeight: "700",
+    fontSize: 22,
   },
   content: {
     flex: 1,
+    justifyContent: "center",
   },
   topRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    alignItems: "flex-start",
     marginBottom: 8,
   },
   name: {
@@ -294,15 +292,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   onlineDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
     backgroundColor: "#27C27F",
     marginRight: 8,
   },
   preview: {
     flex: 1,
-    ...typography.subText,
-    lineHeight: 20,
+    ...typography.body,
+    color: "#5E6878",
   },
 });

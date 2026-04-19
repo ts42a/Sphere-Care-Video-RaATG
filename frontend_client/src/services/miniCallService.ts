@@ -4,6 +4,7 @@ export type MiniCallState = {
   active: boolean;
   minimized: boolean;
   mode?: CallMode;
+  callId?: number;
   contactId?: string;
   contactName?: string;
 };
@@ -26,7 +27,9 @@ export const miniCallService = {
 
   subscribe(listener: (next: MiniCallState) => void) {
     listeners.add(listener);
-    return () => listeners.delete(listener);
+    return () => {
+      listeners.delete(listener);
+    };
   },
 
   setState(patch: Partial<MiniCallState>) {

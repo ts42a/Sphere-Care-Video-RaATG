@@ -1,4 +1,5 @@
-import { View, Text, StyleSheet, Pressable, type ReactNode } from "react-native";
+import type { ReactNode } from "react";
+import { View, Text, StyleSheet, Pressable } from "react-native";
 import { colors } from "../../theme/colors";
 
 export type CallControlItem = {
@@ -25,44 +26,36 @@ export default function CallControls({
         const isGrid = layout === "grid";
 
         return (
-            <View
-            key={item.key}
-            style={isGrid ? styles.gridItemWrap : styles.rowItemWrap}
-            >
+          <View key={item.key} style={isGrid ? styles.gridItemWrap : styles.rowItemWrap}>
             <Pressable
-                onPress={item.onPress}
-                style={[
+              onPress={item.onPress}
+              style={[
                 isGrid ? styles.gridButton : styles.rowButton,
                 item.active ? styles.activeButton : null,
                 item.danger
-                    ? isGrid
+                  ? isGrid
                     ? styles.gridDangerButton
                     : styles.rowDangerButton
-                    : null,
-                ]}
+                  : null,
+              ]}
             >
-                {item.icon}
+              {item.icon}
 
-                {isGrid && item.label ? (
+              {isGrid && item.label ? (
                 <Text style={[styles.gridLabel, item.danger ? styles.gridDangerLabel : null]}>
-                    {item.label}
+                  {item.label}
                 </Text>
-                ) : null}
+              ) : null}
             </Pressable>
 
             {!isGrid && item.label ? (
-                <Text
-                style={[
-                    styles.rowLabel,
-                    item.danger ? styles.rowDangerLabel : null,
-                ]}
-                >
+              <Text style={[styles.rowLabel, item.danger ? styles.rowDangerLabel : null]}>
                 {item.label}
-                </Text>
+              </Text>
             ) : null}
-            </View>
-          );
-        })}
+          </View>
+        );
+      })}
     </View>
   );
 }

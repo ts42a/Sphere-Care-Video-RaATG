@@ -1,5 +1,27 @@
+export type CallMode = "audio" | "video";
+export type CallLifecycleState =
+  | "ringing"
+  | "active"
+  | "declined"
+  | "canceled"
+  | "timeout"
+  | "ended"
+  | "failed";
+
+export type TranscriptRole = "doctor" | "patient" | "ai";
+
+export type TranscriptItem = {
+  id: number;
+  speaker: string;
+  role: TranscriptRole;
+  content: string;
+  created_at: string;
+};
+
 export type CallContact = {
   id: string;
+  conversationId?: string;
+  userId?: number;
   initials: string;
   name: string;
   specialty: string;
@@ -16,43 +38,43 @@ export type CallSummary = {
   pendingCallsText: string;
 };
 
-export type CallMode = "audio" | "video";
-
-export type TranscriptRole = "doctor" | "patient" | "ai";
-
-export type TranscriptItem = {
-  id: number;
-  speaker: string;
-  role: TranscriptRole;
-  content: string;
-  created_at: string;
-};
-
 export type CallParticipant = {
+  userId?: number;
   name: string;
   role: string;
   initials: string;
 };
 
+export type CallJoinPayload = {
+  callId: number;
+  roomId: string;
+  livekitUrl?: string | null;
+  accessToken?: string | null;
+  expiresAt: string;
+  state: CallLifecycleState;
+};
+
 export type CallSession = {
   callId: number;
-  duration: string;
+  mode: CallMode;
+  callState: CallLifecycleState;
+  consultationStatus: string;
   doctor: CallParticipant;
   patient: CallParticipant;
-  consultationStatus: string;
-  transcribing: boolean;
+  remoteUserId?: number;
+  conversationId?: string;
+  livekitUrl?: string | null;
+  joinPayload?: CallJoinPayload | null;
+  inviteExpiresAt?: string;
   muted: boolean;
+  transcribing: boolean;
   ended: boolean;
-  mode: CallMode;
   startedAtMs: number;
 };
 
 export type StartCallPayload = {
   mode: CallMode;
-  doctorName: string;
-  doctorInitials: string;
-  patientName: string;
-  patientInitials: string;
+  contact: CallContact;
 };
 
 export type CallControlState = {
@@ -61,4 +83,36 @@ export type CallControlState = {
   muted?: boolean;
   transcribing?: boolean;
   ended?: boolean;
+};
+
+export type IncomingCallInvite = {
+  callId: number;
+  kind: "audio" | "video";
+  callerUserId?: number | null;
+  callerName?: string;
+  callerRole?: string | null;
+  expiresAt?: string | null;
+};
+
+export type BackendCallJoinPayload = {
+  call_id: number;
+  room_id: string;
+  livekit_url?: string | null;
+  access_token?: string | null;
+  expires_at: string;
+  state: CallLifecycleState;
+};
+
+export type BackendCallResponse = {
+  call_id: number;
+  room_id: string;
+  state: CallLifecycleState;
+  kind: CallMode;
+  caller_user_id: number;
+  callee_user_id: number;
+  invite_expires_at: string;
+  started_at?: string | null;
+  ended_at?: string | null;
+  livekit_url?: string | null;
+  join_payload?: BackendCallJoinPayload | null;
 };

@@ -10,9 +10,10 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { Feather, MaterialIcons, Ionicons } from "@expo/vector-icons";
-import { router, Stack } from "expo-router";
+import { router } from "expo-router";
 import PageHeader from "../../src/components/PageHeader";
 import { callService } from "../../src/services/callService";
+import { miniCallService } from "../../src/services/miniCallService";
 import type { CallContact, CallSummary } from "../../src/types/call";
 import { colors } from "../../src/theme/colors";
 import { spacing } from "../../src/theme/spacing";
@@ -24,6 +25,7 @@ export default function CallCenterScreen() {
   const [contacts, setContacts] = useState<CallContact[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [startingCallKey, setStartingCallKey] = useState("");
 
   useEffect(() => {
     loadInitialData();
@@ -69,6 +71,34 @@ export default function CallCenterScreen() {
   const pendingText = useMemo(() => {
     return summary?.pendingCallsText ?? "Loading recent activity...";
   }, [summary]);
+
+  async function handleStartCall(contact: CallContact, mode: "audio" | "video") {
+    const callKey = `${contact.id}-${mode}`;
+    if (startingCallKey) return;
+
+    try {
+      setStartingCallKey(callKey);
+      setError("");
+      const session = await callService.startCall({ mode, contact });
+      miniCallService.setState({
+        active: true,
+        minimized: false,
+        mode,
+        callId: session.callId,
+        contactId: contact.id,
+        contactName: contact.name,
+      });
+      router.push({
+        pathname: mode === "video" ? "/call/video/[contactId]" : "/call/audio/[contactId]",
+        params: { contactId: contact.id, callId: String(session.callId) },
+      });
+    } catch (callError) {
+      console.error("Failed to start call", callError);
+      setError(callError instanceof Error ? callError.message : "Unable to start call right now.");
+    } finally {
+      setStartingCallKey("");
+    }
+  }
 
   return (
       <SafeAreaView style={styles.container}>
@@ -119,7 +149,7 @@ export default function CallCenterScreen() {
             />
           </View>
 
-          <Pressable style={styles.addBtn}>
+          <Pressable style={[styles.addBtn, styles.addBtnDisabled]} disabled>
             <Ionicons name="add" size={24} color={colors.surface} />
           </Pressable>
         </View>
@@ -160,21 +190,26 @@ export default function CallCenterScreen() {
 
                 <View style={styles.actions}>
                   <Pressable
-                    onPress={() =>
-                      router.push({
-                        pathname: "/call/audio/[contactId]",
-                        params: { contactId: contact.id },
-                      })
-                    }
+                    disabled={Boolean(startingCallKey)}
+                    onPress={() => handleStartCall(contact, "audio")}
+                    style={startingCallKey ? styles.disabledAction : undefined}
                   >
-                    <Feather name="phone-call" size={24} color={colors.icon} />
+                    {startingCallKey === `${contact.id}-audio` ? (
+                      <ActivityIndicator size="small" color={colors.icon} />
+                    ) : (
+                      <Feather name="phone-call" size={24} color={colors.icon} />
+                    )}
                   </Pressable>
 
                   <Pressable
                     onPress={() =>
                       router.push({
                         pathname: "/messages/[contactId]",
-                        params: { contactId: contact.id },
+                        params: {
+                          contactId: contact.id,
+                          name: contact.name,
+                          role: contact.role || contact.specialty || "Care team",
+                        },
                       })
                     }
                   >
@@ -186,14 +221,15 @@ export default function CallCenterScreen() {
                   </Pressable>
 
                   <Pressable
-                    onPress={() =>
-                      router.push({
-                        pathname: "/call/video/[contactId]",
-                        params: { contactId: contact.id },
-                      })
-                    }
+                    disabled={Boolean(startingCallKey)}
+                    onPress={() => handleStartCall(contact, "video")}
+                    style={startingCallKey ? styles.disabledAction : undefined}
                   >
-                    <Feather name="video" size={24} color={colors.icon} />
+                    {startingCallKey === `${contact.id}-video` ? (
+                      <ActivityIndicator size="small" color={colors.icon} />
+                    ) : (
+                      <Feather name="video" size={24} color={colors.icon} />
+                    )}
                   </Pressable>
                 </View>
               </View>
@@ -305,6 +341,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  addBtnDisabled: {
+    opacity: 0.4,
+  },
   infoBox: {
     backgroundColor: "#F1F2F4",
     borderRadius: 16,
@@ -362,5 +401,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: spacing.lg,
     marginLeft: spacing.sm,
+  },
+  disabledAction: {
+  opacity: 0.45,
   },
 });

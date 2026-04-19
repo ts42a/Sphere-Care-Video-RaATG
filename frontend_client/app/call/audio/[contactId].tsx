@@ -15,7 +15,7 @@ import { miniCallService } from "../../../src/services/miniCallService";
 import { useCallSession } from "../../../src/hooks/useCallSession";
 import { useAiTranscript } from "../../../src/hooks/useAiTranscript";
 import { useRtcEngine } from "../../../src/hooks/useRtcEngine";
-import { mockRtcEngine } from "../../../src/services/rtc/mockRtcEngine";
+import { rtcEngine } from "../../../src/services/rtc/rtcEngineInstance";
 import type { CallContact } from "../../../src/types/call";
 import CallHeader from "../../../src/components/call/CallHeader";
 import TranscriptPanel from "../../../src/components/call/TranscriptPanel";
@@ -27,8 +27,14 @@ import { colors } from "../../../src/theme/colors";
 import { spacing } from "../../../src/theme/spacing";
 import { typography } from "../../../src/theme/typography";
 
-function getConnectionLabel(state: string) {
-  switch (state) {
+function getConnectionLabel(callState: string, rtcState: string) {
+  if (callState === "ringing") return "Ringing";
+  if (callState === "declined") return "Call declined";
+  if (callState === "canceled") return "Call canceled";
+  if (callState === "timeout") return "No answer";
+  if (callState === "ended") return "Call ended";
+
+  switch (rtcState) {
     case "connecting":
       return "Connecting";
     case "reconnecting":
@@ -40,17 +46,20 @@ function getConnectionLabel(state: string) {
     case "disconnected":
       return "Disconnected";
     default:
-      return "Connecting";
+      return callState === "active" ? "Connecting" : "Preparing call";
   }
 }
 
 export default function AudioCallScreen() {
-  const { contactId } = useLocalSearchParams<{ contactId: string }>();
+  const params = useLocalSearchParams<{ contactId: string; callId?: string }>();
+  const contactId = Array.isArray(params.contactId) ? params.contactId[0] : params.contactId;
+  const routeCallId = Number(Array.isArray(params.callId) ? params.callId[0] : params.callId);
   const [contact, setContact] = useState<CallContact | null>(null);
   const [contactLoading, setContactLoading] = useState(true);
   const [contactError, setContactError] = useState("");
   const [speakerOn, setSpeakerOn] = useState(true);
   const [expanded, setExpanded] = useState(false);
+  const [switchingToVideo, setSwitchingToVideo] = useState(false);
 
   useEffect(() => {
     if (!contactId) return;
@@ -81,35 +90,55 @@ export default function AudioCallScreen() {
     toggleMute,
     stopTranscribing,
     endCurrentCall,
-  } = useCallSession(contact, "audio");
+  } = useCallSession(contact, "audio", { callId: Number.isFinite(routeCallId) ? routeCallId : undefined });
 
-  const {
-    items: transcriptItems,
-    transcribing: liveTranscribing,
-  } = useAiTranscript(
+  const { items: transcriptItems } = useAiTranscript(
     session?.callId,
     Boolean(session?.transcribing)
   );
 
-  const rtc = useRtcEngine(
-    mockRtcEngine,
-    session && contact
+  const rtcOptions =
+    session && contact && session.callState === "active"
       ? {
           callId: String(session.callId),
-          mode: "audio",
-          localUserId: session.patient.name,
-          remoteUserId: contact.id,
+          mode: "audio" as const,
+          localUserId: String(session.patient.userId ?? session.patient.name),
+          remoteUserId: String(contact.userId ?? contact.id),
+          serverUrl: session.joinPayload?.livekitUrl ?? session.livekitUrl,
+          accessToken: session.joinPayload?.accessToken,
         }
-      : undefined
-  );
+      : undefined;
+
+  const rtc = useRtcEngine(rtcEngine, rtcOptions);
 
   const error = contactError || sessionError || rtc.error;
+
+  useEffect(() => {
+    if (!session || !contact || session.mode !== "video" || switchingToVideo) return;
+
+    setSwitchingToVideo(true);
+    router.replace({
+      pathname: "/call/video/[contactId]",
+      params: { contactId: contact.id, callId: String(session.callId) },
+    });
+  }, [session?.mode, contact?.id, session?.callId, switchingToVideo]);
+
+  useEffect(() => {
+    if (!session || !session.ended) return;
+
+    const timer = setTimeout(() => {
+      rtc.leaveCall().catch(() => undefined);
+      router.replace("/call");
+    }, 900);
+
+    return () => clearTimeout(timer);
+  }, [session?.ended, session?.callState]);
   const connectionLabel = useMemo(
-    () => getConnectionLabel(rtc.snapshot.connectionState),
-    [rtc.snapshot.connectionState]
+    () => getConnectionLabel(session?.callState ?? "ringing", rtc.snapshot.connectionState),
+    [session?.callState, rtc.snapshot.connectionState]
   );
 
-  if (contactLoading || loading || rtc.joining) {
+  if (contactLoading || loading || (rtcOptions ? rtc.joining : false)) {
     return (
       <SafeAreaView style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={colors.primary} />
@@ -162,11 +191,19 @@ export default function AudioCallScreen() {
       key: "video",
       label: "Video",
       icon: <Feather name="video" size={22} color={colors.icon} />,
-      onPress: () =>
-        router.replace({
-          pathname: "/call/video/[contactId]",
-          params: { contactId: contact.id },
-        }),
+      onPress: async () => {
+        if (!session || switchingToVideo) return;
+        setSwitchingToVideo(true);
+        try {
+          await callService.updateMode(session.callId, "video");
+          router.replace({
+            pathname: "/call/video/[contactId]",
+            params: { contactId: contact.id, callId: String(session.callId) },
+          });
+        } finally {
+          setSwitchingToVideo(false);
+        }
+      },
     },
     {
       key: "ai",
@@ -190,8 +227,8 @@ export default function AudioCallScreen() {
       danger: true,
       icon: <Feather name="phone" size={26} color="#FFFFFF" />,
       onPress: async () => {
-        await rtc.leaveCall();
         await endCurrentCall();
+        await rtc.leaveCall();
         router.replace("/call");
       },
     },
@@ -224,6 +261,7 @@ export default function AudioCallScreen() {
             active: true,
             minimized: true,
             mode: "audio",
+            callId: session.callId,
             contactId: contact.id,
             contactName: contact.name,
           });
@@ -261,7 +299,9 @@ export default function AudioCallScreen() {
         <View style={styles.connectionWrap}>
           <MaterialIcons
             name={
-              rtc.snapshot.connectionState === "connected"
+              session.callState === "ringing"
+                ? "ring-volume"
+                : rtc.snapshot.connectionState === "connected"
                 ? "graphic-eq"
                 : rtc.snapshot.connectionState === "ended"
                 ? "call-end"
@@ -269,7 +309,7 @@ export default function AudioCallScreen() {
             }
             size={22}
             color={
-              rtc.snapshot.connectionState === "ended"
+              ["declined", "canceled", "timeout", "ended"].includes(session.callState)
                 ? colors.danger
                 : colors.success
             }
@@ -277,7 +317,7 @@ export default function AudioCallScreen() {
           <Text
             style={[
               styles.connectionText,
-              rtc.snapshot.connectionState === "ended"
+              ["declined", "canceled", "timeout", "ended"].includes(session.callState)
                 ? styles.connectionTextEnded
                 : null,
             ]}

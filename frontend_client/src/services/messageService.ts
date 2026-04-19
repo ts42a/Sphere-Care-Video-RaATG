@@ -1,8 +1,11 @@
 import {
+  createConversation,
+  createMessage,
   fetchConversation,
   fetchConversations,
   fetchMessages,
-  createMessage,
+  findConversationByParticipantId,
+  getCachedConversation,
   markConversationRead,
 } from "../api/message";
 
@@ -12,4 +15,7 @@ export const messageService = {
   getMessages: fetchMessages,
   sendMessage: createMessage,
   markConversationRead,
+  createConversation,
+  findConversationByParticipantId,
+  getCachedConversation,
 };

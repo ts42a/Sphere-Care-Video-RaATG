@@ -1,13 +1,15 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Stack, usePathname, useRouter } from "expo-router";
 import { ActivityIndicator, View, StyleSheet } from "react-native";
 import { getAccessToken } from "../src/services/sessionService";
 import MiniCallBar from "../src/components/call/MiniCallBar";
+import IncomingCallOverlay from "../src/components/call/IncomingCallOverlay";
 
 export default function RootLayout() {
   const router = useRouter();
   const pathname = usePathname();
   const [checkingAuth, setCheckingAuth] = useState(true);
+  const [hasToken, setHasToken] = useState(false);
 
   useEffect(() => {
     checkAuth();
@@ -21,21 +23,26 @@ export default function RootLayout() {
       const isLegalPage = currentPath.startsWith("/legal");
       const guestOk = isAuthPage || isLegalPage;
 
+      setHasToken(!!token);
+
       if (!token && !guestOk) {
         router.replace("/auth/login");
         return;
       }
-
-      if (token && isAuthPage) {
-        router.replace("/");
-        return;
-      }
     } catch (error) {
       console.error("Failed to check auth state", error);
+      setHasToken(false);
     } finally {
       setCheckingAuth(false);
     }
   }
+
+  const showRealtimeUi = useMemo(() => {
+    const currentPath = pathname || "";
+    const isAuthPage = currentPath.startsWith("/auth");
+    const isLegalPage = currentPath.startsWith("/legal");
+    return hasToken && !isAuthPage && !isLegalPage;
+  }, [hasToken, pathname]);
 
   if (checkingAuth) {
     return (
@@ -48,7 +55,8 @@ export default function RootLayout() {
   return (
     <View style={styles.container}>
       <Stack screenOptions={{ headerShown: false }} />
-      <MiniCallBar />
+      {showRealtimeUi ? <IncomingCallOverlay /> : null}
+      {showRealtimeUi ? <MiniCallBar /> : null}
     </View>
   );
 }

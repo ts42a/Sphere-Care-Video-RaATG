@@ -1,21 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
-import { getStoredUser } from "../services/sessionService";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { wsClient } from "../services/wsClient";
 import { callService } from "../services/callService";
+import { hydrateCall } from "../api/call";
 import { activeCallService } from "../services/activeCallService";
 import { miniCallService } from "../services/miniCallService";
-import type { AuthUser } from "../types/auth";
 import type { CallContact, CallMode, CallSession } from "../types/call";
-
-function getInitials(name: string) {
-  return (
-    name
-      .split(" ")
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((part) => part[0]?.toUpperCase() ?? "")
-      .join("") || "CU"
-  );
-}
 
 function formatCallTime(totalSeconds: number) {
   const minutes = Math.floor(totalSeconds / 60);
@@ -28,20 +17,43 @@ function getElapsedSeconds(session: CallSession) {
   return Math.max(0, Math.floor((Date.now() - session.startedAtMs) / 1000));
 }
 
-function isSameDoctor(session: CallSession | null, contact: CallContact | null) {
+function matchesSession(session: CallSession | null, contact: CallContact | null, callId?: number | null) {
   if (!session || !contact) return false;
+  if (callId && session.callId === callId) return true;
+  if (contact.userId && session.remoteUserId) {
+    return contact.userId === session.remoteUserId;
+  }
+  if (contact.conversationId && session.conversationId) {
+    return contact.conversationId === session.conversationId;
+  }
   return session.doctor.name === contact.name;
 }
 
-export function useCallSession(contact: CallContact | null, mode: CallMode) {
+function isTerminal(session?: CallSession | null) {
+  if (!session) return true;
+  return session.ended || ["declined", "canceled", "timeout", "ended", "failed"].includes(session.callState);
+}
+
+export function useCallSession(
+  contact: CallContact | null,
+  _requestedMode: CallMode,
+  options?: { callId?: number | null }
+) {
+  const callId = options?.callId ?? null;
   const [session, setSession] = useState<CallSession | null>(null);
   const [callSeconds, setCallSeconds] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const endingRef = useRef(false);
 
   useEffect(() => {
-    if (!contact) return;
+    if (!contact) {
+      setLoading(false);
+      setSession(null);
+      return;
+    }
 
+    const resolvedContact = contact;
     let cancelled = false;
 
     async function bootstrap() {
@@ -49,91 +61,33 @@ export function useCallSession(contact: CallContact | null, mode: CallMode) {
         setLoading(true);
         setError("");
 
-        const existing = activeCallService.get();
-
-        if (existing && !existing.ended && isSameDoctor(existing, contact)) {
-          const reusedSession: CallSession = {
-            ...existing,
-            mode,
-          };
-
-          activeCallService.set(reusedSession);
-
-          miniCallService.setState({
-            active: true,
-            minimized: false,
-            mode,
-            contactId: contact.id,
-            contactName: contact.name,
-          });
-
-          if (cancelled) return;
-
-          setSession(reusedSession);
-          setCallSeconds(getElapsedSeconds(reusedSession));
+        const existing = activeCallService.getForContact(resolvedContact, callId);
+        if (existing) {
+          if (!cancelled) {
+            setSession(existing);
+            setCallSeconds(getElapsedSeconds(existing));
+          }
           return;
         }
 
-        const backendCurrent = await callService.getCurrentCall();
-
-        if (backendCurrent && !backendCurrent.ended && isSameDoctor(backendCurrent, contact)) {
-          const restoredSession: CallSession = {
-            ...backendCurrent,
-            mode: backendCurrent.mode ?? mode,
-            startedAtMs: backendCurrent.startedAtMs || Date.now(),
-          };
-
-          activeCallService.set(restoredSession);
-
-          miniCallService.setState({
-            active: true,
-            minimized: false,
-            mode: restoredSession.mode,
-            contactId: contact.id,
-            contactName: contact.name,
-          });
-
-          if (cancelled) return;
-
-          setSession(restoredSession);
-          setCallSeconds(getElapsedSeconds(restoredSession));
+        if (callId) {
+          const hydrated = await hydrateCall(callId, resolvedContact);
+          if (!cancelled) {
+            setSession(hydrated);
+            setCallSeconds(getElapsedSeconds(hydrated));
+          }
           return;
         }
 
-        const user = await getStoredUser<AuthUser>();
-        const patientName = user?.full_name || "Client User";
-
-        const data = await callService.startCall({
-          mode,
-          doctorName: contact.name,
-          doctorInitials: contact.initials,
-          patientName,
-          patientInitials: getInitials(patientName),
-        });
-
-        if (cancelled) return;
-
-        const nextSession: CallSession = {
-          ...data,
-          mode,
-          startedAtMs: data.startedAtMs || Date.now(),
-        };
-
-        setSession(nextSession);
-        activeCallService.set(nextSession);
-
-        miniCallService.setState({
-          active: true,
-          minimized: false,
-          mode,
-          contactId: contact.id,
-          contactName: contact.name,
-        });
-
-        setCallSeconds(0);
+        if (!cancelled) {
+          setSession(null);
+          setError("No active call session. Start the call from the call center first.");
+        }
       } catch (err) {
-        if (cancelled) return;
-        setError(err instanceof Error ? err.message : "Unable to start call");
+        if (!cancelled) {
+          setSession(null);
+          setError(err instanceof Error ? err.message : "Unable to load call session");
+        }
       } finally {
         if (!cancelled) {
           setLoading(false);
@@ -146,33 +100,119 @@ export function useCallSession(contact: CallContact | null, mode: CallMode) {
     return () => {
       cancelled = true;
     };
-  }, [contact?.id, mode]);
+  }, [contact?.id, callId]);
 
   useEffect(() => {
-    if (!session || session.ended) return;
+    if (!contact) return;
+
+    return activeCallService.subscribe((next) => {
+      if (!next) {
+        setSession((prev) => (prev ? null : prev));
+        return;
+      }
+      if (!matchesSession(next, contact, callId)) {
+        return;
+      }
+      setSession(next);
+      if (next.callState === "active") {
+        setCallSeconds(getElapsedSeconds(next));
+      }
+    });
+  }, [contact?.id, callId]);
+
+  useEffect(() => {
+    if (!session || session.ended || session.callState !== "active") return;
 
     const timer = setInterval(() => {
       setCallSeconds(getElapsedSeconds(session));
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [session?.callId, session?.startedAtMs, session?.ended]);
+  }, [session?.callId, session?.startedAtMs, session?.ended, session?.callState]);
+
+  useEffect(() => {
+    if (!contact) return;
+
+    let unsubscribeAccepted = () => {};
+    let unsubscribeDeclined = () => {};
+    let unsubscribeCanceled = () => {};
+    let unsubscribeTimeout = () => {};
+    let unsubscribeEnded = () => {};
+    let unsubscribeModeChanged = () => {};
+
+    const onEvent = (type: string) => (payload: any) => {
+    const payloadCallId = Number(payload?.call_id ?? payload?.callId);
+    const trackedCallId =
+      callId ?? activeCallService.getForContact(contact)?.callId ?? session?.callId;
+
+    if (!trackedCallId || payloadCallId !== trackedCallId) {
+      return;
+    }
+
+    const next = callService.applyRealtimeCallState({
+      type,
+      callId: payloadCallId,
+      state: payload?.state,
+      kind:
+        payload?.kind === "video"
+          ? "video"
+          : payload?.kind === "audio"
+            ? "audio"
+            : undefined,
+      startedAt: payload?.started_at ?? payload?.startedAt,
+    });
+
+    if (!next) {
+      return;
+    }
+
+    setSession(next);
+
+    miniCallService.setState({
+      active: !next.ended,
+      minimized: miniCallService.getState().minimized,
+      mode: next.mode,
+      callId: next.callId,
+      contactId: contact.id,
+      contactName: contact.name,
+    });
+
+    if (type === "call.accepted") {
+      setCallSeconds(getElapsedSeconds(next));
+    }
+
+    if (
+      ["call.declined", "call.canceled", "call.timeout", "call.ended"].includes(type)
+    ) {
+      miniCallService.clear();
+    }
+  };
+
+  unsubscribeAccepted = wsClient.subscribe("call.accepted", onEvent("call.accepted"));
+  unsubscribeDeclined = wsClient.subscribe("call.declined", onEvent("call.declined"));
+  unsubscribeCanceled = wsClient.subscribe("call.canceled", onEvent("call.canceled"));
+  unsubscribeTimeout = wsClient.subscribe("call.timeout", onEvent("call.timeout"));
+  unsubscribeEnded = wsClient.subscribe("call.ended", onEvent("call.ended"));
+  unsubscribeModeChanged = wsClient.subscribe("call.mode_changed", onEvent("call.mode_changed"));
+
+    return () => {
+      unsubscribeAccepted();
+      unsubscribeDeclined();
+      unsubscribeCanceled();
+      unsubscribeTimeout();
+      unsubscribeEnded();
+      unsubscribeModeChanged();
+    };
+  }, [session?.callId, contact?.id, contact?.name, callId]);
 
   const formattedDuration = useMemo(() => formatCallTime(callSeconds), [callSeconds]);
 
   async function toggleMute() {
     if (!session) return;
-
     const result = await callService.muteCall(session.callId);
-
     setSession((prev) => {
       if (!prev) return prev;
-
-      const updated: CallSession = {
-        ...prev,
-        muted: result.muted ?? prev.muted,
-      };
-
+      const updated = { ...prev, muted: result.muted ?? prev.muted };
       activeCallService.set(updated);
       return updated;
     });
@@ -180,68 +220,48 @@ export function useCallSession(contact: CallContact | null, mode: CallMode) {
 
   async function stopTranscribing() {
     if (!session) return;
-
     const result = await callService.stopCall(session.callId);
-
     setSession((prev) => {
       if (!prev) return prev;
-
-      const updated: CallSession = {
-        ...prev,
-        transcribing: result.transcribing ?? prev.transcribing,
-      };
-
+      const updated = { ...prev, transcribing: result.transcribing ?? prev.transcribing };
       activeCallService.set(updated);
       return updated;
     });
   }
 
-  function minimizeCurrentCall() {
-    if (!session || !contact) return;
-
-    miniCallService.setState({
-      active: true,
-      minimized: true,
-      mode: session.mode,
-      contactId: contact.id,
-      contactName: contact.name,
-    });
-
-    activeCallService.patch({
-      mode: session.mode,
-    });
-  }
-
-  function restoreCurrentCall() {
-    if (!session || !contact) return;
-
-    miniCallService.setState({
-      active: true,
-      minimized: false,
-      mode: session.mode,
-      contactId: contact.id,
-      contactName: contact.name,
-    });
-  }
-
   async function endCurrentCall() {
-    if (!session) return;
+    if (!session || endingRef.current) return;
 
-    await callService.endCall(session.callId);
-
-    setSession((prev) => {
-      if (!prev) return prev;
-
-      const updated: CallSession = {
-        ...prev,
+    if (isTerminal(session)) {
+      activeCallService.patch({
         ended: true,
-        consultationStatus: "Consultation ended",
-      };
-
-      activeCallService.clear();
+        consultationStatus: callService.getCallStatusLabel(session.callState),
+      });
       miniCallService.clear();
-      return updated;
-    });
+      return;
+    }
+
+    endingRef.current = true;
+    try {
+      await callService.endCall(session.callId);
+    } finally {
+      endingRef.current = false;
+      setSession((prev) => {
+        if (!prev) return prev;
+        const latest = activeCallService.patch({
+          callState: "ended",
+          ended: true,
+          consultationStatus: callService.getCallStatusLabel("ended"),
+        }) ?? {
+          ...prev,
+          callState: "ended" as const,
+          ended: true,
+          consultationStatus: callService.getCallStatusLabel("ended"),
+        };
+        miniCallService.clear();
+        return latest;
+      });
+    }
   }
 
   return {
@@ -252,11 +272,9 @@ export function useCallSession(contact: CallContact | null, mode: CallMode) {
     formattedDuration,
     muted: session?.muted ?? false,
     transcribing: session?.transcribing ?? false,
-    isConnected: Boolean(session && !session.ended),
+    isConnected: Boolean(session && session.callState === "active" && !session.ended),
     toggleMute,
     stopTranscribing,
-    minimizeCurrentCall,
-    restoreCurrentCall,
     endCurrentCall,
   };
 }

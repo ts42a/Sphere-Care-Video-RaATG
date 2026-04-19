@@ -2,7 +2,11 @@ export type NotificationType =
   | "appointment"
   | "alert"
   | "reminder"
-  | "general";
+  | "general"
+  | "medication"
+  | "task"
+  | "lab"
+  | "handoff";
 
 export type NotificationAction = {
   label: string;

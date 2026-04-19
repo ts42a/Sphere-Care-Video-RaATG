@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   View,
@@ -15,6 +15,8 @@ import { Feather, Ionicons } from "@expo/vector-icons";
 
 import { mapRealtimeMessage } from "../../src/api/message";
 import { messageService } from "../../src/services/messageService";
+import { callService } from "../../src/services/callService";
+import { miniCallService } from "../../src/services/miniCallService";
 import { wsClient } from "../../src/services/wsClient";
 import type { ChatMessage, ConversationItem } from "../../src/types/message";
 import { typography } from "../../src/theme/typography";
@@ -28,7 +30,8 @@ export default function MessageChatScreen() {
     role?: string;
   }>();
 
-  const conversationId = params.contactId;
+  const conversationId = String(params.contactId || "");
+  const scrollRef = useRef<ScrollView | null>(null);
 
   const [conversation, setConversation] = useState<ConversationItem | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -50,7 +53,9 @@ export default function MessageChatScreen() {
       .connect()
       .then(() => {
         unsubscribeMessage = wsClient.subscribe("new_message", async (payload) => {
-          const payloadConversationId = String(payload?.conversation_id ?? payload?.message?.conversation_id ?? "");
+          const payloadConversationId = String(
+            payload?.conversation_id ?? payload?.message?.conversation_id ?? ""
+          );
           if (payloadConversationId !== conversationId) return;
 
           const chatMessage = mapRealtimeMessage(payload?.message ?? payload);
@@ -83,6 +88,13 @@ export default function MessageChatScreen() {
     };
   }, [conversationId]);
 
+  useEffect(() => {
+    if (!messages.length) return;
+    requestAnimationFrame(() => {
+      scrollRef.current?.scrollToEnd({ animated: true });
+    });
+  }, [messages.length]);
+
   async function loadInitialData(id: string) {
     try {
       const [conversationData, messageData] = await Promise.all([
@@ -93,6 +105,7 @@ export default function MessageChatScreen() {
       setConversation(
         conversationData || {
           id,
+          contactId: id,
           name: params.name || "Conversation",
           role: params.role || "Conversation",
           category: "direct",
@@ -102,6 +115,9 @@ export default function MessageChatScreen() {
           online: false,
           initials: params.initials || "CH",
           avatarColor: params.avatarColor || "#3F7BF0",
+          participants: [],
+          otherParticipant: null,
+          targetUserId: undefined,
         }
       );
       setMessages(messageData);
@@ -113,7 +129,6 @@ export default function MessageChatScreen() {
 
   async function handleSend() {
     const trimmed = input.trim();
-
     if (!trimmed || !conversationId) return;
 
     try {
@@ -139,10 +154,43 @@ export default function MessageChatScreen() {
     }
   }
 
-  const headerName = useMemo(() => conversation?.name || params.name || "Conversation", [conversation?.name, params.name]);
-  const headerInitials = useMemo(() => conversation?.initials || params.initials || "CH", [conversation?.initials, params.initials]);
-  const headerRole = useMemo(() => conversation?.role || params.role || "Conversation", [conversation?.role, params.role]);
+  const headerName = useMemo(
+    () => conversation?.name || params.name || "Conversation",
+    [conversation?.name, params.name]
+  );
+  const headerInitials = useMemo(
+    () => conversation?.initials || params.initials || "CH",
+    [conversation?.initials, params.initials]
+  );
+  const headerRole = useMemo(
+    () => conversation?.role || params.role || "Conversation",
+    [conversation?.role, params.role]
+  );
   const avatarColor = conversation?.avatarColor || params.avatarColor || "#3F7BF0";
+  const canCall = Boolean(conversation?.targetUserId);
+
+  async function handleStartCall(mode: "audio" | "video") {
+    if (!conversation?.targetUserId) return;
+
+    try {
+      const contact = await callService.getContactById(conversationId);
+      const session = await callService.startCall({ mode, contact });
+      miniCallService.setState({
+        active: true,
+        minimized: false,
+        mode,
+        callId: session.callId,
+        contactId: contact.id,
+        contactName: contact.name,
+      });
+      router.push({
+        pathname: mode === "video" ? "/call/video/[contactId]" : "/call/audio/[contactId]",
+        params: { contactId: contact.id, callId: String(session.callId) },
+      });
+    } catch (callError) {
+      console.error("Failed to start call from messages", callError);
+    }
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -151,7 +199,7 @@ export default function MessageChatScreen() {
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         <View style={styles.header}>
-          <Pressable onPress={() => router.replace("/messages")}>
+          <Pressable onPress={() => router.replace("/(tab)/messages")}>
             <Feather name="arrow-left" size={28} color="#4D5B6B" />
           </Pressable>
 
@@ -168,11 +216,19 @@ export default function MessageChatScreen() {
           </View>
 
           <View style={styles.headerActions}>
-            <Pressable disabled style={styles.iconBtnDisabled}>
-              <Feather name="phone-call" size={24} color="#A8AFBA" />
+            <Pressable
+              disabled={!canCall}
+              style={!canCall ? styles.iconBtnDisabled : undefined}
+              onPress={() => canCall && handleStartCall("audio")}
+            >
+              <Feather name="phone-call" size={24} color={canCall ? "#5E6878" : "#A8AFBA"} />
             </Pressable>
-            <Pressable disabled style={styles.iconBtnDisabled}>
-              <Feather name="video" size={24} color="#A8AFBA" />
+            <Pressable
+              disabled={!canCall}
+              style={!canCall ? styles.iconBtnDisabled : undefined}
+              onPress={() => canCall && handleStartCall("video")}
+            >
+              <Feather name="video" size={24} color={canCall ? "#5E6878" : "#A8AFBA"} />
             </Pressable>
             <Pressable>
               <Ionicons name="information-circle" size={24} color="#5E6878" />
@@ -181,6 +237,7 @@ export default function MessageChatScreen() {
         </View>
 
         <ScrollView
+          ref={scrollRef}
           style={styles.thread}
           contentContainerStyle={styles.threadContent}
           showsVerticalScrollIndicator={false}
@@ -194,7 +251,8 @@ export default function MessageChatScreen() {
                   </View>
 
                   <Text style={styles.otherMeta}>
-                    {msg.time}{msg.name ? `   ${msg.name}` : ""}
+                    {msg.time}
+                    {msg.name ? `   ${msg.name}` : ""}
                   </Text>
                 </>
               ) : (

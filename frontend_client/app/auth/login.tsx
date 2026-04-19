@@ -15,7 +15,6 @@ import {
 import { router } from "expo-router";
 import { Images } from "../../src/constants/images";
 import { authService } from "../../src/services/authService";
-import { wsClient } from "../../src/services/wsClient";
 import { colors } from "../../src/theme/colors";
 import { spacing } from "../../src/theme/spacing";
 import { typography } from "../../src/theme/typography";
@@ -39,8 +38,7 @@ export default function LoginScreen() {
     try {
       setLoading(true);
       await authService.login(normalizedEmail, password);
-      await wsClient.connect().catch(() => {});
-      router.replace("/");
+      router.replace("/(tab)");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed");
     } finally {

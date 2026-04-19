@@ -1,82 +1,167 @@
-import { WS_BASE_URL } from "../config/ws";
 import { getAccessToken } from "./sessionService";
 
-type WsHandler = (payload: any) => void;
-type OpenHandler = () => void;
+type WsEventPayload = Record<string, any>;
+type WsListener = (payload: WsEventPayload) => void;
 
 class WSClient {
   private socket: WebSocket | null = null;
-  private handlers = new Map<string, Set<WsHandler>>();
-  private openHandlers = new Set<OpenHandler>();
-  private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
-  private manuallyClosed = false;
   private connectPromise: Promise<void> | null = null;
-  private queuedMessages: string[] = [];
+  private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 
-  async connect() {
-    if (this.socket?.readyState === WebSocket.OPEN) {
+  private listeners = new Map<string, Set<WsListener>>();
+
+  private connected = false;
+  private manualClose = false;
+  private reconnectAttempts = 0;
+  private lastConnectHadToken = false;
+  private latestToken: string | null = null;
+
+  private readonly maxReconnectDelayMs = 10000;
+  private readonly baseReconnectDelayMs = 1200;
+
+  private getBaseUrl() {
+    const raw = process.env.EXPO_PUBLIC_WS_BASE_URL?.trim();
+
+    if (!raw) {
+      console.warn("WS base URL is missing. Set EXPO_PUBLIC_WS_BASE_URL in frontend_client/.env");
+      return "";
+    }
+
+    if (raw.startsWith("ws://") || raw.startsWith("wss://")) {
+      return raw.replace(/\/+$/, "");
+    }
+
+    if (raw.startsWith("http://")) {
+      return `ws://${raw.slice("http://".length).replace(/\/+$/, "")}`;
+    }
+
+    if (raw.startsWith("https://")) {
+      return `wss://${raw.slice("https://".length).replace(/\/+$/, "")}`;
+    }
+
+    return `ws://${raw.replace(/\/+$/, "")}`;
+  }
+
+  private buildUrl(token: string) {
+    const baseUrl = this.getBaseUrl();
+    if (!baseUrl) return "";
+
+    const encodedToken = encodeURIComponent(token);
+    return `${baseUrl}/ws?token=${encodedToken}`;
+  }
+
+  isConnected() {
+    return this.connected && this.socket?.readyState === WebSocket.OPEN;
+  }
+
+  async connect(force = false): Promise<void> {
+    const token = await getAccessToken();
+
+    if (!token) {
+      this.lastConnectHadToken = false;
+      this.latestToken = null;
+      this.clearReconnectTimer();
+      this.safeCloseSocket();
       return;
     }
 
-    if (this.connectPromise) {
+    this.lastConnectHadToken = true;
+    this.latestToken = token;
+
+    if (this.isConnected() && !force) {
+      return;
+    }
+
+    if (this.connectPromise && !force) {
       return this.connectPromise;
     }
 
-    const token = await getAccessToken();
-    if (!token) {
-      throw new Error("No token available for WebSocket connection");
-    }
+    this.manualClose = false;
 
-    const url = `${WS_BASE_URL}?token=${encodeURIComponent(token)}`;
-
-    this.manuallyClosed = false;
     this.connectPromise = new Promise<void>((resolve, reject) => {
+      const url = this.buildUrl(token);
+
+      if (!url) {
+        this.connectPromise = null;
+        reject(new Error("WebSocket URL is not configured"));
+        return;
+      }
+
+      if (force) {
+        this.safeCloseSocket();
+      }
+
+      let opened = false;
       const socket = new WebSocket(url);
       this.socket = socket;
 
       socket.onopen = () => {
+        opened = true;
+        this.connected = true;
+        this.reconnectAttempts = 0;
+        this.clearReconnectTimer();
         console.log("WS connected:", url);
-        this.flushQueue();
-        this.openHandlers.forEach((handler) => handler());
         this.connectPromise = null;
         resolve();
       };
 
       socket.onmessage = (event) => {
-        console.log("WS raw message:", event.data);
         try {
-          const message = JSON.parse(event.data);
-          const type = message?.type;
-          if (!type) return;
+          const raw = typeof event.data === "string" ? event.data : "";
+          if (!raw) return;
 
-          const normalizedPayload = message?.payload !== undefined ? message.payload : message;
-          const listeners = this.handlers.get(type);
-          listeners?.forEach((handler) => handler(normalizedPayload));
+          console.log("WS raw message:", raw);
+
+          const payload = JSON.parse(raw) as WsEventPayload;
+          const eventType =
+            typeof payload?.type === "string" && payload.type.length > 0
+              ? payload.type
+              : "message";
+
+          this.emit(eventType, payload);
+          this.emit("*", payload);
         } catch (error) {
-          console.error("WebSocket message parse error", error);
+          console.warn("Failed to parse WS message", error);
         }
       };
 
-      socket.onerror = (error) => {
-        console.error("WebSocket error", error);
+      socket.onerror = (event) => {
+        console.warn("WebSocket error", event);
       };
 
       socket.onclose = (event) => {
-        console.log("WS closed:", event.code, event.reason);
-        this.socket = null;
+        this.connected = false;
+
+        if (this.socket === socket) {
+          this.socket = null;
+        }
+
+        console.log("WS closed:", event.code, event.reason || "(no reason)");
+
+        const connectError = !opened
+          ? new Error("WebSocket closed before opening")
+          : null;
 
         if (this.connectPromise) {
+          const pending = this.connectPromise;
           this.connectPromise = null;
-          reject(new Error("WebSocket closed before opening"));
+          if (connectError) {
+            reject(connectError);
+          } else {
+            resolve();
+          }
+          void pending;
         }
 
-        if (!this.manuallyClosed) {
-          this.reconnectTimer = setTimeout(() => {
-            this.connect().catch((error) => {
-              console.error("WebSocket reconnect failed", error);
-            });
-          }, 2000);
+        if (this.manualClose) {
+          return;
         }
+
+        if (!this.lastConnectHadToken) {
+          return;
+        }
+
+        this.scheduleReconnect();
       };
     });
 
@@ -84,71 +169,102 @@ class WSClient {
   }
 
   disconnect() {
-    this.manuallyClosed = true;
-
-    if (this.reconnectTimer) {
-      clearTimeout(this.reconnectTimer);
-      this.reconnectTimer = null;
-    }
-
+    this.manualClose = true;
+    this.lastConnectHadToken = false;
+    this.latestToken = null;
+    this.clearReconnectTimer();
+    this.safeCloseSocket();
+    this.connected = false;
     this.connectPromise = null;
-    this.socket?.close();
-    this.socket = null;
   }
 
-  send(type: string, payload: unknown) {
-    const message = JSON.stringify({ type, payload });
-
-    if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
-      this.queuedMessages.push(message);
-      this.connect().catch((error) => {
-        console.error("WebSocket connect failed while sending", error);
-      });
-      return;
-    }
-
-    this.socket.send(message);
+  async reconnectNow() {
+    this.clearReconnectTimer();
+    return this.connect(true);
   }
 
-  subscribe(type: string, handler: WsHandler) {
-    const currentHandlers = this.handlers.get(type) ?? new Set<WsHandler>();
-    currentHandlers.add(handler);
-    this.handlers.set(type, currentHandlers);
+  subscribe(eventType: string, listener: WsListener) {
+    const key = eventType || "*";
+    const set = this.listeners.get(key) ?? new Set<WsListener>();
+    set.add(listener);
+    this.listeners.set(key, set);
 
     return () => {
-      const listeners = this.handlers.get(type);
-      if (!listeners) return;
-
-      listeners.delete(handler);
-
-      if (listeners.size === 0) {
-        this.handlers.delete(type);
+      const current = this.listeners.get(key);
+      if (!current) return;
+      current.delete(listener);
+      if (current.size === 0) {
+        this.listeners.delete(key);
       }
     };
   }
 
-  subscribeOpen(handler: OpenHandler) {
-    this.openHandlers.add(handler);
-
-    if (this.socket?.readyState === WebSocket.OPEN) {
-      handler();
+  async send(payload: WsEventPayload) {
+    if (!this.isConnected()) {
+      await this.connect();
     }
 
-    return () => {
-      this.openHandlers.delete(handler);
-    };
+    if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
+      throw new Error("WebSocket is not connected");
+    }
+
+    this.socket.send(JSON.stringify(payload));
   }
 
-  private flushQueue() {
-    if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
+  private emit(eventType: string, payload: WsEventPayload) {
+    const listeners = this.listeners.get(eventType);
+    if (!listeners || listeners.size === 0) return;
+
+    for (const listener of listeners) {
+      try {
+        listener(payload);
+      } catch (error) {
+        console.error(`WS listener failed for ${eventType}`, error);
+      }
+    }
+  }
+
+  private scheduleReconnect() {
+    if (this.reconnectTimer) {
       return;
     }
 
-    while (this.queuedMessages.length > 0) {
-      const message = this.queuedMessages.shift();
-      if (!message) break;
-      this.socket.send(message);
-    }
+    this.reconnectAttempts += 1;
+
+    const delay = Math.min(
+      this.baseReconnectDelayMs * Math.max(1, this.reconnectAttempts),
+      this.maxReconnectDelayMs
+    );
+
+    this.reconnectTimer = setTimeout(async () => {
+      this.reconnectTimer = null;
+
+      try {
+        const token = await getAccessToken();
+        if (!token) {
+          this.lastConnectHadToken = false;
+          return;
+        }
+
+        await this.connect(true);
+      } catch (error) {
+        console.warn("WebSocket reconnect failed", error);
+        this.scheduleReconnect();
+      }
+    }, delay);
+  }
+
+  private clearReconnectTimer() {
+    if (!this.reconnectTimer) return;
+    clearTimeout(this.reconnectTimer);
+    this.reconnectTimer = null;
+  }
+
+  private safeCloseSocket() {
+    try {
+      this.socket?.close();
+    } catch {}
+    this.socket = null;
   }
 }
 

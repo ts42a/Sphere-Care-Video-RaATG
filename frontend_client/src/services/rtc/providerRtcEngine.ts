@@ -1,4 +1,6 @@
+import { ensureLiveKitRuntime, registerLiveKitGlobalsOnce } from "./livekitRuntime";
 import type {
+  CameraFacing,
   RtcEngine,
   RtcEngineSnapshot,
   RtcJoinOptions,
@@ -6,8 +8,16 @@ import type {
 
 type Listener = (snapshot: RtcEngineSnapshot) => void;
 
+type SnapshotPatch = Partial<Omit<RtcEngineSnapshot, "local" | "remote">> & {
+  local?: Partial<RtcEngineSnapshot["local"]>;
+  remote?: Partial<RtcEngineSnapshot["remote"]>;
+};
+
 class ProviderRtcEngine implements RtcEngine {
   private listeners = new Set<Listener>();
+  private room: any | null = null;
+  private roomEventEntries: Array<[any, (...args: any[]) => void]> = [];
+  private currentOptions: RtcJoinOptions | null = null;
 
   private snapshot: RtcEngineSnapshot = {
     joined: false,
@@ -15,12 +25,12 @@ class ProviderRtcEngine implements RtcEngine {
     connectionState: "idle",
     local: {
       audioEnabled: true,
-      videoEnabled: true,
+      videoEnabled: false,
       cameraFacing: "front",
     },
     remote: {
       audioEnabled: true,
-      videoEnabled: true,
+      videoEnabled: false,
     },
   };
 
@@ -29,7 +39,7 @@ class ProviderRtcEngine implements RtcEngine {
     this.listeners.forEach((listener) => listener(next));
   }
 
-  private setSnapshot(next: Partial<RtcEngineSnapshot>) {
+  private setSnapshot(next: SnapshotPatch) {
     this.snapshot = {
       ...this.snapshot,
       ...next,
@@ -43,6 +53,76 @@ class ProviderRtcEngine implements RtcEngine {
       },
     };
     this.emit();
+  }
+
+  private clearRoomListeners() {
+    if (!this.room?.off) {
+      this.roomEventEntries = [];
+      return;
+    }
+
+    this.roomEventEntries.forEach(([eventName, handler]) => {
+      try {
+        this.room.off(eventName, handler);
+      } catch {}
+    });
+    this.roomEventEntries = [];
+  }
+
+  private bindRoomEvent(eventName: any, handler: (...args: any[]) => void) {
+    if (!this.room?.on) return;
+    this.room.on(eventName, handler);
+    this.roomEventEntries.push([eventName, handler]);
+  }
+
+  private resolveRoomEvent(name: string) {
+    try {
+      const runtime = ensureLiveKitRuntime();
+      const roomEvent = runtime.RoomEvent;
+      if (roomEvent && name in roomEvent) {
+        return roomEvent[name];
+      }
+    } catch {}
+    return name.charAt(0).toLowerCase() + name.slice(1);
+  }
+
+  private updateRemoteSnapshotFromRoom() {
+    if (!this.room) {
+      this.setSnapshot({
+        remote: {
+          audioEnabled: true,
+          videoEnabled: this.snapshot.mode === "video",
+        },
+      });
+      return;
+    }
+
+    const iterator = this.room.remoteParticipants?.values?.();
+    const firstRemote = iterator ? iterator.next()?.value : null;
+
+    this.setSnapshot({
+      remote: {
+        audioEnabled: firstRemote?.isMicrophoneEnabled ?? true,
+        videoEnabled:
+          this.snapshot.mode === "video"
+            ? (firstRemote?.isCameraEnabled ?? false)
+            : false,
+      },
+    });
+  }
+
+  private async configureLocalTracksForMode(mode: RtcJoinOptions["mode"]) {
+    if (!this.room?.localParticipant) return;
+
+    await this.room.localParticipant.setMicrophoneEnabled(true);
+    await this.room.localParticipant.setCameraEnabled(mode === "video");
+
+    this.setSnapshot({
+      local: {
+        audioEnabled: true,
+        videoEnabled: mode === "video",
+      },
+    });
   }
 
   getSnapshot(): RtcEngineSnapshot {
@@ -65,47 +145,163 @@ class ProviderRtcEngine implements RtcEngine {
   }
 
   async joinCall(options: RtcJoinOptions) {
+    registerLiveKitGlobalsOnce();
+
+    if (!options.serverUrl || !options.accessToken) {
+      throw new Error("LiveKit join payload is missing. Check LIVEKIT_URL and token minting on the backend.");
+    }
+
+    const isSameCall =
+      this.currentOptions?.callId === options.callId &&
+      this.currentOptions?.localUserId === options.localUserId &&
+      this.currentOptions?.remoteUserId === options.remoteUserId &&
+      this.room;
+
+    this.currentOptions = options;
+
+    if (isSameCall && this.snapshot.joined) {
+      this.setSnapshot({ mode: options.mode });
+      await this.configureLocalTracksForMode(options.mode);
+      this.updateRemoteSnapshotFromRoom();
+      return;
+    }
+
+    await this.leaveCall({ preserveIdleState: true });
+
+    const runtime = ensureLiveKitRuntime();
+    const Room = runtime.Room;
+    const AudioSession = runtime.AudioSession;
+
+    if (!Room) {
+      throw new Error("LiveKit Room is unavailable in the current build.");
+    }
+
+    this.room = new Room({ adaptiveStream: true, dynacast: true });
+
     this.setSnapshot({
       mode: options.mode,
+      joined: false,
       connectionState: "connecting",
       local: {
+        audioEnabled: true,
         videoEnabled: options.mode === "video",
       },
       remote: {
-        videoEnabled: options.mode === "video",
+        audioEnabled: true,
+        videoEnabled: false,
       },
     });
 
-    /**
-    * TODO:
-    * 1. Create a provider room/channel
-    * 2. Obtain or use the provider token
-    * 3. Join the call
-    * 4. Subscribe to remote user audio/video
-    * 5. Update joined/connectionState upon success
-    */
+    this.bindRoomEvent(this.resolveRoomEvent("Connected"), async () => {
+      this.setSnapshot({ joined: true, connectionState: "connected" });
+      await this.configureLocalTracksForMode(options.mode);
+      this.updateRemoteSnapshotFromRoom();
+    });
 
-    throw new Error("providerRtcEngine is not implemented yet");
+    this.bindRoomEvent(this.resolveRoomEvent("ConnectionStateChanged"), (state: string) => {
+      const normalized =
+        state === "connected" || state === "connecting" || state === "reconnecting" || state === "disconnected"
+          ? state
+          : "connected";
+      this.setSnapshot({
+        joined: normalized === "connected" ? true : this.snapshot.joined,
+        connectionState: normalized,
+      });
+    });
+
+    this.bindRoomEvent(this.resolveRoomEvent("ParticipantConnected"), () => {
+      this.updateRemoteSnapshotFromRoom();
+    });
+
+    this.bindRoomEvent(this.resolveRoomEvent("ParticipantDisconnected"), () => {
+      this.updateRemoteSnapshotFromRoom();
+    });
+
+    this.bindRoomEvent(this.resolveRoomEvent("TrackSubscribed"), () => {
+      this.updateRemoteSnapshotFromRoom();
+    });
+
+    this.bindRoomEvent(this.resolveRoomEvent("TrackUnsubscribed"), () => {
+      this.updateRemoteSnapshotFromRoom();
+    });
+
+    this.bindRoomEvent(this.resolveRoomEvent("TrackMuted"), () => {
+      this.updateRemoteSnapshotFromRoom();
+    });
+
+    this.bindRoomEvent(this.resolveRoomEvent("TrackUnmuted"), () => {
+      this.updateRemoteSnapshotFromRoom();
+    });
+
+    this.bindRoomEvent(this.resolveRoomEvent("Reconnecting"), () => {
+      this.setSnapshot({ connectionState: "reconnecting" });
+    });
+
+    this.bindRoomEvent(this.resolveRoomEvent("Reconnected"), () => {
+      this.setSnapshot({ joined: true, connectionState: "connected" });
+      this.updateRemoteSnapshotFromRoom();
+    });
+
+    this.bindRoomEvent(this.resolveRoomEvent("Disconnected"), () => {
+      this.setSnapshot({ joined: false, connectionState: "ended" });
+    });
+
+    try {
+      await AudioSession?.startAudioSession?.();
+      await this.room.connect(options.serverUrl, options.accessToken, { autoSubscribe: true });
+      await this.configureLocalTracksForMode(options.mode);
+      this.updateRemoteSnapshotFromRoom();
+      this.setSnapshot({ joined: true, connectionState: "connected" });
+    } catch (error) {
+      console.error("LiveKit join failed", error);
+      this.setSnapshot({ joined: false, connectionState: "disconnected" });
+      throw error instanceof Error ? error : new Error("Unable to join LiveKit room");
+    }
   }
 
-  async leaveCall() {
-    /**
-    * TODO:
-    * 1. Leave the provider room/channel
-    * 2. Clear local tracks
-    * 3. Clear remote subscriptions
-    */
+  async leaveCall(options?: { preserveIdleState?: boolean }) {
+    const runtime = (() => {
+      try {
+        return ensureLiveKitRuntime();
+      } catch {
+        return null;
+      }
+    })();
+
+    this.clearRoomListeners();
+
+    try {
+      await this.room?.disconnect?.();
+    } catch (error) {
+      console.warn("LiveKit disconnect failed", error);
+    }
+
+    this.room = null;
+    this.currentOptions = null;
+
+    try {
+      await runtime?.AudioSession?.stopAudioSession?.();
+    } catch (error) {
+      console.warn("LiveKit audio session stop failed", error);
+    }
+
     this.setSnapshot({
       joined: false,
-      connectionState: "ended",
+      connectionState: options?.preserveIdleState ? "idle" : "ended",
+      local: {
+        audioEnabled: true,
+        videoEnabled: false,
+        cameraFacing: "front",
+      },
+      remote: {
+        audioEnabled: true,
+        videoEnabled: false,
+      },
     });
   }
 
   async setMuted(muted: boolean) {
-    /**
-     * TODO:
-     * Control the provider's local audio track enable/disable
-     */
+    await this.room?.localParticipant?.setMicrophoneEnabled?.(!muted);
     this.setSnapshot({
       local: {
         audioEnabled: !muted,
@@ -114,10 +310,7 @@ class ProviderRtcEngine implements RtcEngine {
   }
 
   async setCameraEnabled(enabled: boolean) {
-    /**
-     * TODO:
-     * Control the provider's local video track enable/disable
-     */
+    await this.room?.localParticipant?.setCameraEnabled?.(enabled);
     this.setSnapshot({
       local: {
         videoEnabled: enabled,
@@ -126,24 +319,30 @@ class ProviderRtcEngine implements RtcEngine {
   }
 
   async switchCamera() {
-    /**
-     * TODO:
-     * Call the provider to switch between front and back cameras.
-     */
+    const nextFacing: CameraFacing = this.snapshot.local.cameraFacing === "front" ? "back" : "front";
+
+    try {
+      const runtime = ensureLiveKitRuntime();
+      const cameraSource = runtime.Track?.Source?.Camera;
+      const publication = cameraSource
+        ? this.room?.localParticipant?.getTrackPublication?.(cameraSource)
+        : null;
+      const track = publication?.videoTrack ?? publication?.track;
+      await track?.restartTrack?.({
+        facingMode: nextFacing === "front" ? "user" : "environment",
+      });
+    } catch (error) {
+      console.warn("LiveKit switchCamera fallback applied", error);
+    }
+
     this.setSnapshot({
       local: {
-        cameraFacing:
-          this.snapshot.local.cameraFacing === "front" ? "back" : "front",
+        cameraFacing: nextFacing,
       },
     });
   }
 
   async setRemoteVideoEnabled(enabled: boolean) {
-    /**
-    * This is typically not a capability that can be set directly locally.
-    * The official version should be updated via provider remote user event.
-    * This feature is reserved for future development and testing.
-     */
     this.setSnapshot({
       remote: {
         videoEnabled: enabled,
