@@ -20,26 +20,32 @@ class WSClient {
   private readonly baseReconnectDelayMs = 1200;
 
   private getBaseUrl() {
-    const raw = process.env.EXPO_PUBLIC_WS_BASE_URL?.trim();
+  const raw = process.env.EXPO_PUBLIC_WS_BASE_URL?.trim();
 
-    if (!raw) {
-      console.warn("WS base URL is missing. Set EXPO_PUBLIC_WS_BASE_URL in frontend_client/.env");
-      return "";
-    }
+  if (!raw) {
+    console.warn("WS base URL is missing. Set EXPO_PUBLIC_WS_BASE_URL in frontend_client/.env");
+    return "";
+  }
 
-    if (raw.startsWith("ws://") || raw.startsWith("wss://")) {
-      return raw.replace(/\/+$/, "");
-    }
+  let normalized = raw.replace(/\/+$/, "");
 
-    if (raw.startsWith("http://")) {
-      return `ws://${raw.slice("http://".length).replace(/\/+$/, "")}`;
-    }
+  if (normalized.endsWith("/ws")) {
+    normalized = normalized.slice(0, -3);
+  }
 
-    if (raw.startsWith("https://")) {
-      return `wss://${raw.slice("https://".length).replace(/\/+$/, "")}`;
-    }
+  if (normalized.startsWith("ws://") || normalized.startsWith("wss://")) {
+    return normalized;
+  }
 
-    return `ws://${raw.replace(/\/+$/, "")}`;
+  if (normalized.startsWith("http://")) {
+    return `ws://${normalized.slice("http://".length)}`;
+  }
+
+  if (normalized.startsWith("https://")) {
+    return `wss://${normalized.slice("https://".length)}`;
+  }
+
+  return `ws://${normalized}`;
   }
 
   private buildUrl(token: string) {
