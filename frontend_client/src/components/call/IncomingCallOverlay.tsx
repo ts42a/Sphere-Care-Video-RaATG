@@ -1,45 +1,99 @@
-import { useEffect, useMemo, useState } from "react";
-import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
+import { useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  Modal,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { router } from "expo-router";
 import { Feather } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
 import { getAccessToken } from "../../services/sessionService";
 import { wsClient } from "../../services/wsClient";
 import { callService } from "../../services/callService";
-import { incomingCallService } from "../../services/call/incomingCallService";
+import {
+  incomingCallService,
+  type IncomingCallState,
+} from "../../services/call/incomingCallService";
 import { miniCallService } from "../../services/miniCallService";
+import type { CallContact } from "../../types/call";
 import { colors } from "../../theme/colors";
 
-type OverlayState = any;
-
 function useIncomingCallState() {
-  const [state, setState] = useState<OverlayState>(() => {
+  const [state, setState] = useState<IncomingCallState>(() => {
     try {
-      return incomingCallService?.getState?.() ?? null;
+      return incomingCallService.getState();
     } catch {
-      return null;
+      return {
+        invite: null,
+        contact: null,
+        phase: "idle",
+        receivedAtMs: undefined,
+      };
     }
   });
 
   useEffect(() => {
-    const unsubscribe = incomingCallService?.subscribe?.((next: OverlayState) => {
-      setState(next ?? null);
-    });
-
-    return () => {
-      if (typeof unsubscribe === "function") {
-        unsubscribe();
-      }
-    };
+    return incomingCallService.subscribe(setState);
   }, []);
 
   return state;
 }
 
+function buildFallbackContact(
+  callerUserId: number | undefined,
+  callerName: string,
+  callerRole: string | null | undefined
+): CallContact {
+  return {
+    id: String(callerUserId ?? callerName),
+    userId: callerUserId,
+    name: callerName,
+    initials: String(callerName)
+      .split(" ")
+      .map((part) => part[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase(),
+    role: callerRole ?? "",
+    specialty: "",
+    lastSeen: "",
+    online: true,
+    avatarColor: "#4C6EF5",
+    conversationId: undefined,
+  };
+}
+
+function getCountdownLabel(expiresAt?: string | null) {
+  if (!expiresAt) return "Secure call request";
+
+  const expiresMs = new Date(expiresAt).getTime();
+  if (!Number.isFinite(expiresMs)) return "Secure call request";
+
+  const diffSeconds = Math.max(0, Math.ceil((expiresMs - Date.now()) / 1000));
+  if (diffSeconds <= 0) return "Invite is about to expire";
+
+  return `Answer within ${diffSeconds}s`;
+}
+
 export default function IncomingCallOverlay() {
+  const insets = useSafeAreaInsets();
   const state = useIncomingCallState();
   const [busyAction, setBusyAction] = useState<"accept" | "decline" | "">("");
+  const [nowTick, setNowTick] = useState(Date.now());
 
-    useEffect(() => {
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setNowTick(Date.now());
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
     let unsubscribeInvite = () => {};
     let unsubscribeCanceled = () => {};
     let unsubscribeTimeout = () => {};
@@ -49,64 +103,50 @@ export default function IncomingCallOverlay() {
     async function setupIncomingCallWs() {
       try {
         const token = await getAccessToken();
-        if (!token || cancelled) {
-          return;
-        }
+        if (!token || cancelled) return;
 
         await wsClient.connect();
 
         unsubscribeInvite = wsClient.subscribe("call.invite", async (payload) => {
           try {
-            console.log("call.invite received on client", payload);
-
-            const callId = Number(payload?.call_id ?? payload?.callId);
-            if (!callId) return;
-
-            const callerUserIdRaw = payload?.caller_user_id ?? payload?.callerUserId;
-            const callerUserId =
-              callerUserIdRaw === undefined || callerUserIdRaw === null
-                ? undefined
-                : Number(callerUserIdRaw);
+            const invite = callService.parseIncomingInvite(payload);
+            if (!invite) return;
 
             const callerName =
               payload?.caller_name ??
               payload?.callerName ??
               "Incoming call";
 
-            const kind = payload?.kind === "video" ? "video" : "audio";
+            const callerRole =
+              payload?.caller_role ??
+              payload?.callerRole ??
+              null;
 
-            const invitePayload = {
-              callId,
-              kind,
-              callerUserId,
+            const fallbackContact = buildFallbackContact(
+              invite.callerUserId === null || invite.callerUserId === undefined
+                ? undefined
+                : Number(invite.callerUserId),
               callerName,
-              callerRole: payload?.caller_role ?? payload?.callerRole ?? null,
-              expiresAt: payload?.expires_at ?? payload?.expiresAt ?? null,
-            };
+              callerRole
+            );
 
-            const fallbackContact = {
-              id: String(callerUserId ?? callId),
-              userId: callerUserId,
-              name: callerName,
-              initials: String(callerName)
-                .split(" ")
-                .map((part: string) => part[0])
-                .join("")
-                .slice(0, 2)
-                .toUpperCase(),
-              role: payload?.caller_role ?? payload?.callerRole ?? "",
-              specialty: "",
-              avatarColor: "#4C6EF5",
-              conversationId: undefined,
-            };
+            incomingCallService.show(
+              {
+                ...invite,
+                callerName,
+                callerRole,
+              },
+              fallbackContact
+            );
 
-            incomingCallService.show(invitePayload as any, fallbackContact as any);
-
-            if (callerUserId) {
+            if (invite.callerUserId) {
               try {
-                const resolvedContact = await callService.resolveIncomingContact(callerUserId);
+                const resolvedContact = await callService.resolveIncomingContact(
+                  Number(invite.callerUserId)
+                );
+
                 if (resolvedContact) {
-                  incomingCallService.show(invitePayload as any, resolvedContact as any);
+                  incomingCallService.patchContact(invite.callId, resolvedContact);
                 }
               } catch (resolveError) {
                 console.warn(
@@ -121,17 +161,9 @@ export default function IncomingCallOverlay() {
         });
 
         const clearIfSame = (payload: any) => {
-          const currentState = incomingCallService.getState();
-          const activeInvite = currentState?.invite ?? null;
-
           const callId = Number(payload?.call_id ?? payload?.callId);
-          const currentCallId = Number(activeInvite?.callId);
-
-          if (!activeInvite || !callId || currentCallId !== callId) {
-            return;
-          }
-
-          incomingCallService.clear();
+          if (!Number.isFinite(callId)) return;
+          incomingCallService.clear(callId);
         };
 
         unsubscribeCanceled = wsClient.subscribe("call.canceled", clearIfSame);
@@ -153,65 +185,75 @@ export default function IncomingCallOverlay() {
     };
   }, []);
 
-  const { invite, contact } = useMemo(() => {
-    return {
-      invite: state?.invite ?? null,
-      contact: state?.contact ?? null,
-    };
-  }, [state]);
+  const invite = state.invite;
+  const contact = state.contact;
 
   if (!invite) {
     return null;
   }
 
-  const fallbackName =
-    contact?.name ??
-    invite?.callerName ??
-    invite?.caller_name ??
-    "Incoming call";
+  const currentInvite = invite;
 
-  const fallbackInitials =
+  const name = contact?.name ?? currentInvite.callerName ?? "Incoming call";
+  const role =
+    contact?.role ??
+    contact?.specialty ??
+    currentInvite.callerRole ??
+    "";
+  const initials =
     contact?.initials ??
-    String(fallbackName)
+    String(name)
       .split(" ")
       .map((part) => part[0])
       .join("")
       .slice(0, 2)
       .toUpperCase();
 
-  const fallbackRole =
-    contact?.role ??
-    contact?.specialty ??
-    invite?.callerRole ??
-    invite?.caller_role ??
-    "";
+  const avatarColor = contact?.avatarColor ?? "#4C6EF5";
+  const kind = currentInvite.kind === "video" ? "video" : "audio";
+  const kindLabel =
+    kind === "video" ? "Incoming video call" : "Incoming audio call";
+  const countdownLabel = getCountdownLabel(currentInvite.expiresAt);
 
-  const kind = invite?.kind === "video" ? "video" : "audio";
   const contactId =
     contact?.id ??
-    String(
-      invite?.callerUserId ??
-        invite?.caller_user_id ??
-        invite?.callId ??
-        invite?.call_id ??
-        "unknown"
-    );
+    String(currentInvite.callerUserId ?? currentInvite.callId ?? "unknown");
+
+  const acceptedContact: CallContact = contact ?? {
+    id: contactId,
+    userId:
+      currentInvite.callerUserId === null ||
+      currentInvite.callerUserId === undefined
+        ? undefined
+        : Number(currentInvite.callerUserId),
+    name,
+    initials,
+    role,
+    specialty: "",
+    lastSeen: "",
+    online: true,
+    avatarColor,
+    conversationId: undefined,
+  };
+
+  const statusLabel =
+    busyAction === "accept"
+      ? "Connecting secure call..."
+      : busyAction === "decline"
+        ? "Declining..."
+        : countdownLabel;
 
   async function handleAccept() {
     try {
       setBusyAction("accept");
+      incomingCallService.setPhase("accepting");
 
-      const callId = Number(invite?.callId ?? invite?.call_id);
-      const acceptedContact = contact ?? {
-        id: contactId,
-        name: fallbackName,
-        initials: fallbackInitials,
-        role: fallbackRole,
-      };
+      const session = await callService.acceptCall(
+        currentInvite.callId,
+        acceptedContact
+      );
 
-      const session = await callService.acceptCall(callId, acceptedContact);
-
-      incomingCallService?.clear?.();
+      incomingCallService.clear(currentInvite.callId);
 
       miniCallService.setState({
         active: true,
@@ -220,10 +262,15 @@ export default function IncomingCallOverlay() {
         callId: session.callId,
         contactId: acceptedContact.id,
         contactName: acceptedContact.name,
+        startedAtMs: session.startedAtMs,
+        statusText: session.consultationStatus,
       });
 
       router.push({
-        pathname: kind === "video" ? "/call/video/[contactId]" : "/call/audio/[contactId]",
+        pathname:
+          kind === "video"
+            ? "/call/video/[contactId]"
+            : "/call/audio/[contactId]",
         params: {
           contactId: acceptedContact.id,
           callId: String(session.callId),
@@ -231,6 +278,7 @@ export default function IncomingCallOverlay() {
       });
     } catch (error) {
       console.error("Failed to accept incoming call", error);
+      incomingCallService.setPhase("ringing");
     } finally {
       setBusyAction("");
     }
@@ -239,46 +287,88 @@ export default function IncomingCallOverlay() {
   async function handleDecline() {
     try {
       setBusyAction("decline");
-      const callId = Number(invite?.callId ?? invite?.call_id);
-      await callService.declineCall(callId);
+      incomingCallService.setPhase("declining");
+      await callService.declineCall(currentInvite.callId);
     } catch (error) {
       console.error("Failed to decline incoming call", error);
     } finally {
       setBusyAction("");
-      incomingCallService?.clear?.();
+      incomingCallService.clear(currentInvite.callId);
     }
   }
+
+  const actionsDisabled = busyAction !== "";
 
   return (
     <Modal transparent animationType="fade" visible>
       <View style={styles.backdrop}>
-        <View style={styles.card}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{fallbackInitials}</Text>
+        <View
+          style={[
+            styles.sheet,
+            {
+              paddingTop: Math.max(insets.top, 18),
+              paddingBottom: Math.max(insets.bottom, 22),
+            },
+          ]}
+        >
+          <View style={styles.handle} />
+
+          <View style={styles.badgeRow}>
+            <View style={styles.kindBadge}>
+              <Feather
+                name={kind === "video" ? "video" : "phone-call"}
+                size={14}
+                color={colors.surface}
+              />
+              <Text style={styles.kindBadgeText}>{kindLabel}</Text>
+            </View>
           </View>
 
-          <Text style={styles.kicker}>Incoming {kind} call</Text>
-          <Text style={styles.name}>{fallbackName}</Text>
-          {!!fallbackRole && <Text style={styles.role}>{fallbackRole}</Text>}
+          <View style={[styles.avatar, { backgroundColor: avatarColor }]}>
+            <Text style={styles.avatarText}>{initials}</Text>
+          </View>
 
-          <View style={styles.actions}>
+          <Text style={styles.name}>{name}</Text>
+
+          {!!role ? (
+            <View style={styles.rolePill}>
+              <Text style={styles.rolePillText}>{role}</Text>
+            </View>
+          ) : null}
+
+          <Text style={styles.statusText}>{statusLabel}</Text>
+
+          <View style={styles.actionsRow}>
             <Pressable
-              style={[styles.actionBtn, styles.declineBtn]}
+              style={[styles.circleAction, styles.declineCircle]}
               onPress={handleDecline}
-              disabled={busyAction !== ""}
+              disabled={actionsDisabled}
             >
-              <Feather name="phone-off" size={22} color={colors.surface} />
-              <Text style={styles.actionText}>Decline</Text>
+              {busyAction === "decline" ? (
+                <ActivityIndicator color={colors.surface} />
+              ) : (
+                <Feather name="phone-off" size={24} color={colors.surface} />
+              )}
             </Pressable>
 
             <Pressable
-              style={[styles.actionBtn, styles.acceptBtn]}
+              style={[styles.circleAction, styles.acceptCircle]}
               onPress={handleAccept}
-              disabled={busyAction !== ""}
+              disabled={actionsDisabled}
             >
-              <Feather name="phone-call" size={22} color={colors.surface} />
-              <Text style={styles.actionText}>Accept</Text>
+              {busyAction === "accept" ? (
+                <ActivityIndicator color={colors.surface} />
+              ) : kind === "video" ? (
+                <Feather name="video" size={24} color={colors.surface} />
+              ) : (
+                <Feather name="phone-call" size={24} color={colors.surface} />
+              )}
             </Pressable>
+          </View>
+
+          <View style={styles.actionLabels}>
+            <Text style={styles.actionLabel}>Decline</Text>
+            <Text style={styles.actionLabel}>Accept</Text>
           </View>
         </View>
       </View>
@@ -289,83 +379,118 @@ export default function IncomingCallOverlay() {
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: "rgba(8, 25, 54, 0.45)",
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 24,
+    backgroundColor: "rgba(3, 11, 24, 0.54)",
+    justifyContent: "flex-end",
   },
-  card: {
-    width: "100%",
-    maxWidth: 360,
-    borderRadius: 28,
-    backgroundColor: colors.surface,
+  sheet: {
+    backgroundColor: "#0C1830",
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
     paddingHorizontal: 24,
-    paddingTop: 28,
-    paddingBottom: 24,
     alignItems: "center",
     shadowColor: "#000000",
-    shadowOpacity: 0.12,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 8,
+    shadowOpacity: 0.24,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: -8 },
+    elevation: 16,
+  },
+  handle: {
+    width: 54,
+    height: 5,
+    borderRadius: 999,
+    backgroundColor: "rgba(255,255,255,0.18)",
+    marginBottom: 18,
+  },
+  badgeRow: {
+    width: "100%",
+    alignItems: "center",
+    marginBottom: 22,
+  },
+  kindBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(124, 145, 219, 0.24)",
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  kindBadgeText: {
+    marginLeft: 8,
+    color: colors.surface,
+    fontSize: 13,
+    fontWeight: "700",
   },
   avatar: {
-    width: 84,
-    height: 84,
-    borderRadius: 42,
-    backgroundColor: colors.primary,
+    width: 96,
+    height: 96,
+    borderRadius: 48,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 18,
   },
   avatarText: {
     color: colors.surface,
-    fontSize: 28,
-    fontWeight: "700",
-  },
-  kicker: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: colors.textMuted,
-    marginBottom: 8,
-    textTransform: "capitalize",
+    fontSize: 30,
+    fontWeight: "800",
   },
   name: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: colors.textSecondary,
+    color: colors.surface,
+    fontSize: 28,
+    fontWeight: "800",
     textAlign: "center",
-    marginBottom: 6,
   },
-  role: {
+  rolePill: {
+    marginTop: 12,
+    backgroundColor: "rgba(255,255,255,0.08)",
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  rolePillText: {
+    color: "#D7E3FF",
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  statusText: {
+    marginTop: 18,
+    color: "#AFC3EE",
     fontSize: 15,
-    color: colors.textPrimary,
     textAlign: "center",
-    marginBottom: 24,
+    minHeight: 22,
   },
-  actions: {
+  actionsRow: {
     width: "100%",
+    marginTop: 30,
     flexDirection: "row",
-    justifyContent: "space-between",
-    gap: 14,
+    justifyContent: "space-evenly",
+    alignItems: "center",
   },
-  actionBtn: {
-    flex: 1,
-    borderRadius: 20,
-    paddingVertical: 16,
+  circleAction: {
+    width: 74,
+    height: 74,
+    borderRadius: 37,
     alignItems: "center",
     justifyContent: "center",
   },
-  declineBtn: {
-    backgroundColor: colors.danger,
+  declineCircle: {
+    backgroundColor: "#E5484D",
   },
-  acceptBtn: {
-    backgroundColor: colors.success,
+  acceptCircle: {
+    backgroundColor: "#1FA971",
   },
-  actionText: {
-    marginTop: 8,
+  actionLabels: {
+    width: "100%",
+    marginTop: 12,
+    marginBottom: 8,
+    flexDirection: "row",
+    justifyContent: "space-evenly",
+    alignItems: "center",
+  },
+  actionLabel: {
+    width: 100,
+    textAlign: "center",
     color: colors.surface,
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: "700",
   },
 });

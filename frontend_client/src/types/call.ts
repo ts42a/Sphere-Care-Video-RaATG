@@ -27,6 +27,7 @@ export type CallContact = {
   specialty: string;
   role?: string;
   lastSeen: string;
+  lastSeenAt?: string;
   online: boolean;
   avatarColor: string;
 };
@@ -88,9 +89,12 @@ export type CallControlState = {
 export type IncomingCallInvite = {
   callId: number;
   kind: "audio" | "video";
+  state?: CallLifecycleState;
   callerUserId?: number | null;
   callerName?: string;
   callerRole?: string | null;
+  timestamp?: string;
+  roomId?: string;
   expiresAt?: string | null;
 };
 

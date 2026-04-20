@@ -42,4 +42,5 @@ export type RtcEngine = {
   setCameraEnabled(enabled: boolean): Promise<void>;
   switchCamera(): Promise<void>;
   setRemoteVideoEnabled(enabled: boolean): Promise<void>;
+  getRoom?(): any | null;
 };

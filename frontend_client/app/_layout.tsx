@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { Stack, usePathname, useRouter } from "expo-router";
 import { ActivityIndicator, View, StyleSheet } from "react-native";
+
 import { getAccessToken } from "../src/services/sessionService";
 import MiniCallBar from "../src/components/call/MiniCallBar";
 import IncomingCallOverlay from "../src/components/call/IncomingCallOverlay";
+import CallLifecycleBridge from "../src/components/call/CallLifecycleBridge";
 
 export default function RootLayout() {
   const router = useRouter();
@@ -12,7 +14,7 @@ export default function RootLayout() {
   const [hasToken, setHasToken] = useState(false);
 
   useEffect(() => {
-    checkAuth();
+    void checkAuth();
   }, [pathname]);
 
   async function checkAuth() {
@@ -55,6 +57,7 @@ export default function RootLayout() {
   return (
     <View style={styles.container}>
       <Stack screenOptions={{ headerShown: false }} />
+      {showRealtimeUi ? <CallLifecycleBridge /> : null}
       {showRealtimeUi ? <IncomingCallOverlay /> : null}
       {showRealtimeUi ? <MiniCallBar /> : null}
     </View>

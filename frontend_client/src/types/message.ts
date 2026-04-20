@@ -18,6 +18,7 @@ export type ConversationItem = {
   category: ConversationCategory;
   preview: string;
   time: string;
+  lastMessageAt?: string;
   unread: number;
   online: boolean;
   initials: string;

@@ -7,6 +7,8 @@ export type MiniCallState = {
   callId?: number;
   contactId?: string;
   contactName?: string;
+  startedAtMs?: number;
+  statusText?: string;
 };
 
 let state: MiniCallState = {
@@ -27,6 +29,8 @@ export const miniCallService = {
 
   subscribe(listener: (next: MiniCallState) => void) {
     listeners.add(listener);
+    listener(state);
+
     return () => {
       listeners.delete(listener);
     };
@@ -44,6 +48,12 @@ export const miniCallService = {
     state = {
       active: false,
       minimized: false,
+      mode: undefined,
+      callId: undefined,
+      contactId: undefined,
+      contactName: undefined,
+      startedAtMs: undefined,
+      statusText: undefined,
     };
     emit();
   },

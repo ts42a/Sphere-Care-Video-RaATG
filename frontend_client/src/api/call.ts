@@ -1,22 +1,17 @@
 import { request } from "./client";
-import { getStoredUser } from "../services/sessionService";
 import { fetchConversations } from "./message";
 import type { AuthUser } from "../types/auth";
 import type {
   BackendCallResponse,
   CallContact,
-  CallControlState,
   CallJoinPayload,
   CallLifecycleState,
   CallMode,
   CallSession,
-  CallSummary,
   IncomingCallInvite,
   StartCallPayload,
   TranscriptItem,
 } from "../types/call";
-import { activeCallService } from "../services/activeCallService";
-
 const contactCache = new Map<string, CallContact>();
 const TERMINAL_CALL_STATES: CallLifecycleState[] = ["declined", "canceled", "timeout", "ended", "failed"];
 
@@ -28,10 +23,6 @@ function initialsFromName(name: string) {
     .join("")
     .toUpperCase()
     .slice(0, 2);
-}
-
-async function getCurrentUser() {
-  return getStoredUser<AuthUser>();
 }
 
 function buildJoinPayload(data?: BackendCallResponse["join_payload"] | null): CallJoinPayload | null {
@@ -212,179 +203,77 @@ export async function resolveIncomingCallContact(callerUserId?: number | null): 
   return fallback;
 }
 
-export async function startCall(payload: StartCallPayload): Promise<CallSession> {
+export async function startCallRequest(
+  payload: StartCallPayload
+): Promise<BackendCallResponse> {
   if (!payload.contact.userId) {
     throw new Error("This conversation does not have a callable participant yet.");
   }
 
-  const data = await request<BackendCallResponse>("/calls", {
+  return request<BackendCallResponse>("/calls", {
     method: "POST",
     body: {
       callee_user_id: payload.contact.userId,
       kind: payload.mode,
     },
   });
-
-  const currentUser = await getCurrentUser();
-  const session = buildSession(data, payload.contact, currentUser, payload.mode);
-  activeCallService.set(session);
-  return session;
 }
 
-export async function acceptCall(callId: number, contact: CallContact): Promise<CallSession> {
-  const data = await request<BackendCallResponse>(`/calls/${callId}/accept`, {
+export async function acceptCallRequest(
+  callId: number
+): Promise<BackendCallResponse> {
+  return request<BackendCallResponse>(`/calls/${callId}/accept`, {
     method: "POST",
   });
-  const currentUser = await getCurrentUser();
-  const session = buildSession(data, contact, currentUser, data.kind);
-  activeCallService.set(session);
-  return session;
 }
 
-export async function hydrateCall(callId: number, contact: CallContact, preferredMode?: CallMode): Promise<CallSession> {
-  const data = await request<BackendCallResponse>(`/calls/${callId}`);
-  const currentUser = await getCurrentUser();
-  const session = buildSession(data, contact, currentUser, preferredMode);
-  activeCallService.set(session);
-  return session;
+export async function hydrateCallRequest(
+  callId: number
+): Promise<BackendCallResponse> {
+  return request<BackendCallResponse>(`/calls/${callId}`);
 }
 
 export async function fetchCall(callId: number): Promise<BackendCallResponse> {
   return request<BackendCallResponse>(`/calls/${callId}`);
 }
 
-export async function fetchCallSummary(): Promise<CallSummary> {
-  const contacts = await fetchCallContacts("").catch(() => [] as CallContact[]);
-  const activeCall = activeCallService.get();
-  return {
-    todayCalls: contacts.length,
-    missedCalls: 0,
-    totalDurationLabel: activeCall && !activeCall.ended ? "Live now" : "0m",
-    pendingCallsText: activeCall && !activeCall.ended
-      ? `${activeCall.doctor.name} ${activeCall.callState === "ringing" ? "is being called" : "is on the line"}`
-      : contacts.length > 0
-      ? `${contacts.length} care team contact${contacts.length > 1 ? "s" : ""} available`
-      : "No callable contacts yet",
-  };
-}
-
 export async function fetchTranscript(_callId: number): Promise<TranscriptItem[]> {
   return [];
 }
 
-export async function muteCall(callId: number): Promise<CallControlState> {
-  const current = activeCallService.get();
-  const nextMuted = !(current?.muted ?? false);
-  activeCallService.patch({ muted: nextMuted });
-  return {
-    callId,
-    message: nextMuted ? "Muted" : "Unmuted",
-    muted: nextMuted,
-  };
-}
-
-export async function stopCall(callId: number): Promise<CallControlState> {
-  const current = activeCallService.get();
-  const nextTranscribing = !(current?.transcribing ?? true);
-  activeCallService.patch({ transcribing: nextTranscribing });
-  return {
-    callId,
-    message: nextTranscribing ? "AI transcript resumed" : "AI transcript paused",
-    transcribing: nextTranscribing,
-  };
-}
-
-export async function endCall(callId: number): Promise<CallControlState> {
-  const data = await request<BackendCallResponse>(`/calls/${callId}/end`, {
+export async function endCallRequest(
+  callId: number
+): Promise<BackendCallResponse> {
+  return request<BackendCallResponse>(`/calls/${callId}/end`, {
     method: "POST",
   });
-
-  activeCallService.patch({
-    callState: data.state,
-    ended: TERMINAL_CALL_STATES.includes(data.state),
-    consultationStatus: consultationStatusForState(data.state),
-  });
-
-  return {
-    callId,
-    message: data.state === "ended" ? "Call ended" : "Call closed",
-    ended: TERMINAL_CALL_STATES.includes(data.state),
-  };
 }
 
-export async function cancelCall(callId: number): Promise<void> {
+export async function cancelCallRequest(callId: number): Promise<void> {
   await request<BackendCallResponse>(`/calls/${callId}/cancel`, {
     method: "POST",
   });
 }
 
-export async function declineCall(callId: number): Promise<void> {
+export async function declineCallRequest(callId: number): Promise<void> {
   await request<BackendCallResponse>(`/calls/${callId}/decline`, {
     method: "POST",
   });
 }
 
-export async function updateCallMode(callId: number, kind: CallMode): Promise<CallSession | null> {
-  const data = await request<BackendCallResponse>(`/calls/${callId}/mode`, {
+export async function updateCallModeRequest(
+  callId: number,
+  kind: CallMode
+): Promise<BackendCallResponse> {
+  return request<BackendCallResponse>(`/calls/${callId}/mode`, {
     method: "POST",
     body: { kind },
   });
-
-  const current = activeCallService.get();
-  if (!current) return null;
-
-  const startedAtMs = data.started_at ? new Date(data.started_at).getTime() : current.startedAtMs;
-  const next = activeCallService.patch({
-    mode: resolveSessionMode(data, kind),
-    callState: data.state,
-    consultationStatus: consultationStatusForState(data.state),
-    startedAtMs: Number.isFinite(startedAtMs) ? startedAtMs : current.startedAtMs,
-  });
-
-  return next;
-}
-
-export function applyRealtimeCallState(event: {
-  type: string;
-  callId: number;
-  state?: CallSession["callState"];
-  kind?: CallMode;
-  startedAt?: string;
-}) {
-  const current = activeCallService.get();
-  if (!current || current.callId != event.callId) return current;
-
-  const resolvedState =
-    event.state ||
-    (event.type === "call.accepted"
-      ? "active"
-      : event.type === "call.declined"
-      ? "declined"
-      : event.type === "call.canceled"
-      ? "canceled"
-      : event.type === "call.timeout"
-      ? "timeout"
-      : event.type === "call.ended"
-      ? "ended"
-      : current.callState);
-
-  const nextStartedAtMs = event.startedAt
-    ? new Date(event.startedAt).getTime()
-    : current.startedAtMs;
-
-  const next = activeCallService.patch({
-    callState: resolvedState,
-    mode: event.kind ?? current.mode,
-    consultationStatus: consultationStatusForState(resolvedState),
-    ended: TERMINAL_CALL_STATES.includes(resolvedState),
-    startedAtMs: Number.isFinite(nextStartedAtMs) ? nextStartedAtMs : current.startedAtMs,
-  });
-
-  return next;
 }
 
 export function parseIncomingInvite(payload: any): IncomingCallInvite | null {
   if (!payload || typeof payload !== "object") return null;
+
   const callId = Number(payload.call_id ?? payload.callId);
   if (!Number.isFinite(callId)) return null;
 
@@ -394,7 +283,10 @@ export function parseIncomingInvite(payload: any): IncomingCallInvite | null {
     callId,
     state: payload.state ?? "ringing",
     kind,
-    callerUserId: typeof payload.caller_user_id === "number" ? payload.caller_user_id : undefined,
+    callerUserId:
+      typeof payload.caller_user_id === "number"
+        ? payload.caller_user_id
+        : undefined,
     timestamp: payload.timestamp,
     roomId: payload.room_id,
     expiresAt: payload.expires_at,

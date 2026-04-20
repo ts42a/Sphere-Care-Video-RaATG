@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { wsClient } from "../services/wsClient";
 import { callService } from "../services/callService";
-import { hydrateCall } from "../api/call";
 import { activeCallService } from "../services/activeCallService";
 import { miniCallService } from "../services/miniCallService";
 import type { CallContact, CallMode, CallSession } from "../types/call";
@@ -71,7 +70,7 @@ export function useCallSession(
         }
 
         if (callId) {
-          const hydrated = await hydrateCall(callId, resolvedContact);
+          const hydrated = await callService.hydrateCall(callId, resolvedContact);
           if (!cancelled) {
             setSession(hydrated);
             setCallSeconds(getElapsedSeconds(hydrated));
@@ -209,58 +208,59 @@ export function useCallSession(
 
   async function toggleMute() {
     if (!session) return;
-    const result = await callService.muteCall(session.callId);
-    setSession((prev) => {
-      if (!prev) return prev;
-      const updated = { ...prev, muted: result.muted ?? prev.muted };
-      activeCallService.set(updated);
-      return updated;
-    });
+    const next = await callService.muteCall(session.callId);
+    if (next) {
+      setSession(next);
+    }
   }
 
   async function stopTranscribing() {
     if (!session) return;
-    const result = await callService.stopCall(session.callId);
-    setSession((prev) => {
-      if (!prev) return prev;
-      const updated = { ...prev, transcribing: result.transcribing ?? prev.transcribing };
-      activeCallService.set(updated);
-      return updated;
-    });
+    const next = await callService.stopCall(session.callId);
+    if (next) {
+      setSession(next);
+    }
   }
 
   async function endCurrentCall() {
     if (!session || endingRef.current) return;
 
     if (isTerminal(session)) {
-      activeCallService.patch({
-        ended: true,
-        consultationStatus: callService.getCallStatusLabel(session.callState),
-      });
+      const latest =
+        activeCallService.patch({
+          ended: true,
+          consultationStatus: callService.getCallStatusLabel(session.callState),
+        }) ?? session;
+
+      setSession(latest);
       miniCallService.clear();
       return;
     }
 
     endingRef.current = true;
+
     try {
-      await callService.endCall(session.callId);
-    } finally {
-      endingRef.current = false;
-      setSession((prev) => {
-        if (!prev) return prev;
-        const latest = activeCallService.patch({
+      const next = await callService.endCall(session.callId);
+      if (next) {
+        setSession(next);
+      }
+    } catch {
+      const fallback =
+        activeCallService.patch({
           callState: "ended",
           ended: true,
           consultationStatus: callService.getCallStatusLabel("ended"),
         }) ?? {
-          ...prev,
+          ...session,
           callState: "ended" as const,
           ended: true,
           consultationStatus: callService.getCallStatusLabel("ended"),
         };
-        miniCallService.clear();
-        return latest;
-      });
+
+      setSession(fallback);
+    } finally {
+      endingRef.current = false;
+      miniCallService.clear();
     }
   }
 

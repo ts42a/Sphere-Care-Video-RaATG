@@ -1,4 +1,3 @@
-import { USE_MOCK_API } from "../config/api";
 import { request } from "./client";
 import { getStoredUser } from "../services/sessionService";
 import type { AuthUser } from "../types/auth";
@@ -11,27 +10,9 @@ import type {
   ConversationParticipant,
   CreateConversationInput,
 } from "../types/message";
-import { mockChatMessages, mockConversations } from "../mock/callData";
 
-function wait(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
 
 const AVATAR_COLORS = ["#2EC4B6", "#7C3AED", "#DB2777", "#059669", "#D97706", "#0369A1", "#DC2626", "#9333EA"];
-
-let inMemoryMessages: Record<string, ChatMessage[]> = Object.fromEntries(
-  Object.entries(mockChatMessages).map(([key, value]) => [
-    key,
-    value.map((item) => ({
-      id: item.id,
-      conversationId: key,
-      sender: item.sender === "me" ? "me" : "other",
-      text: item.text,
-      time: item.time,
-      name: item.name,
-    })),
-  ])
-);
 
 const conversationCache = new Map<string, ConversationItem>();
 
@@ -112,6 +93,7 @@ async function mapConversation(item: BackendConversation): Promise<ConversationI
     category: item.category,
     preview: item.last_message ?? "",
     time: formatTime(item.last_message_at),
+    lastMessageAt: item.last_message_at ?? undefined,
     unread: item.unread_count ?? 0,
     online: false,
     initials: initialsFromName(displayName),
@@ -162,104 +144,33 @@ export function getCachedConversation(conversationId: string) {
 }
 
 export async function fetchConversations(search = ""): Promise<ConversationItem[]> {
-  if (USE_MOCK_API) {
-    await wait(150);
-
-    const keyword = search.trim().toLowerCase();
-    const mapped = mockConversations.map((item, index) => ({
-      id: item.contactId,
-      contactId: item.contactId,
-      name: item.name,
-      role: item.role,
-      category: "direct",
-      preview: item.preview,
-      time: item.time,
-      unread: item.unread,
-      online: item.online,
-      initials: item.initials,
-      avatarColor: item.avatarColor,
-      participantCount: 2,
-      participants: [
-        {
-          id: index + 1,
-          userId: index + 101,
-          participantType: "user",
-          displayName: item.name,
-          role: item.role,
-        },
-      ],
-      otherParticipant: {
-        id: index + 1,
-        userId: index + 101,
-        participantType: "user",
-        displayName: item.name,
-        role: item.role,
-      },
-      targetUserId: index + 101,
-    } satisfies ConversationItem));
-
-    mapped.forEach((entry) => conversationCache.set(entry.id, entry));
-
-    if (!keyword) return mapped;
-
-    return mapped.filter((item) =>
-      `${item.name} ${item.role} ${item.preview}`.toLowerCase().includes(keyword)
-    );
-  }
-
   const query = search ? `?search=${encodeURIComponent(search)}` : "";
   const response = await request<BackendConversation[]>(`/messages/conversations${query}`);
-  const mapped = await Promise.all(response.map(mapConversation));
-  return mapped;
+  return Promise.all(response.map(mapConversation));
 }
 
 export async function fetchConversation(conversationId: string): Promise<ConversationItem | null> {
   const cached = conversationCache.get(String(conversationId));
   if (cached) return cached;
 
-  if (USE_MOCK_API) {
-    const item = mockConversations.find((entry) => entry.contactId === conversationId);
-    if (!item) return null;
-    const mapped: ConversationItem = {
-      id: item.contactId,
-      contactId: item.contactId,
-      name: item.name,
-      role: item.role,
-      category: "direct",
-      preview: item.preview,
-      time: item.time,
-      unread: item.unread,
-      online: item.online,
-      initials: item.initials,
-      avatarColor: item.avatarColor,
-      participantCount: 2,
-      participants: [],
-      otherParticipant: null,
-      targetUserId: undefined,
-    };
-    conversationCache.set(mapped.id, mapped);
-    return mapped;
-  }
-
   const response = await request<BackendConversation>(`/messages/conversations/${conversationId}`);
   return mapConversation(response);
 }
 
 export async function fetchMessages(conversationId: string): Promise<ChatMessage[]> {
-  if (USE_MOCK_API) {
-    await wait(120);
-    return inMemoryMessages[conversationId] ?? [];
-  }
-
-  const response = await request<BackendMessage[]>(`/messages/conversations/${conversationId}/messages`);
+  const response = await request<BackendMessage[]>(
+    `/messages/conversations/${conversationId}/messages`
+  );
   return response.map(mapMessage);
 }
-
 export async function markConversationRead(conversationId: string): Promise<void> {
-  if (USE_MOCK_API) return;
-  const updated = await request<BackendConversation>(`/messages/conversations/${conversationId}/read`, {
-    method: "PATCH",
-  });
+  const updated = await request<BackendConversation>(
+    `/messages/conversations/${conversationId}/read`,
+    {
+      method: "PATCH",
+    }
+  );
+
   const mapped = await mapConversation(updated);
   conversationCache.set(mapped.id, mapped);
 }
@@ -269,24 +180,8 @@ function buildClientMessageId() {
 }
 
 export async function createMessage(conversationId: string, text: string): Promise<ChatMessage> {
-  if (USE_MOCK_API) {
-    await wait(120);
-
-    const message: ChatMessage = {
-      id: `msg-${Date.now()}`,
-      conversationId,
-      sender: "me",
-      text,
-      time: formatTime(new Date().toISOString()),
-      pending: false,
-    };
-
-    const current = inMemoryMessages[conversationId] ?? [];
-    inMemoryMessages[conversationId] = [...current, message];
-    return message;
-  }
-
   const currentUser = await getStoredUser<AuthUser>();
+
   const response = await request<BackendMessage>(
     `/messages/conversations/${conversationId}/messages`,
     {
@@ -304,6 +199,7 @@ export async function createMessage(conversationId: string, text: string): Promi
 
   const message = mapMessage(response);
   const cached = conversationCache.get(String(conversationId));
+
   if (cached) {
     conversationCache.set(String(conversationId), {
       ...cached,
@@ -311,6 +207,7 @@ export async function createMessage(conversationId: string, text: string): Promi
       time: message.time,
     });
   }
+
   return message;
 }
 

@@ -144,6 +144,10 @@ class ProviderRtcEngine implements RtcEngine {
     };
   }
 
+  getRoom() {
+    return this.room;
+  }
+
   async joinCall(options: RtcJoinOptions) {
     registerLiveKitGlobalsOnce();
 
