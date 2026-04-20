@@ -200,7 +200,3 @@ Run lint:
 npm run lint
 ```
 
-## Notes
-
-This project is designed to work with the Sphere Care backend.  
-Before testing, make sure the backend, WebSocket server, database, and LiveKit configuration are all running correctly.
