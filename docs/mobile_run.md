@@ -54,13 +54,6 @@ EXPO_PUBLIC_API_BASE_URL=http://10.0.2.2:8000/api/v1
 EXPO_PUBLIC_WS_BASE_URL=ws://10.0.2.2:8000
 ```
 
-### Example for real device on local network
-
-```env
-EXPO_PUBLIC_API_BASE_URL=http://192.168.1.107:8000/api/v1
-EXPO_PUBLIC_WS_BASE_URL=ws://192.168.1.107:8000
-```
-
 ## How to Run
 
 Start the Expo development server:
