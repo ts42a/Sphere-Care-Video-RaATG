@@ -5,9 +5,10 @@ LiveKit token minting is stubbed — fill in when LIVEKIT_* env vars are set.
 import json
 import uuid
 from datetime import datetime, timezone, timedelta
+from zoneinfo import ZoneInfo
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
@@ -147,6 +148,12 @@ class CallResponse(BaseModel):
     livekit_url: Optional[str] = None
     join_payload: Optional[JoinPayload] = None
 
+class CallSummaryResponse(BaseModel):
+    today_calls: int
+    missed_calls: int
+    total_duration_minutes: int
+    total_duration_label: str
+    pending_calls_text: str
 
 class UpdateCallModeRequest(BaseModel):
     kind: str
@@ -167,6 +174,18 @@ def _fmt_call(call: models.Call, join_payload: Optional[JoinPayload] = None) -> 
         join_payload=join_payload,
     )
 
+def _format_duration_label(total_minutes: int) -> str:
+    if total_minutes <= 0:
+        return "0m"
+
+    hours = total_minutes // 60
+    minutes = total_minutes % 60
+
+    if hours and minutes:
+        return f"{hours}h {minutes}m"
+    if hours:
+        return f"{hours}h"
+    return f"{minutes}m"
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
 
@@ -294,6 +313,71 @@ async def start_call(
 
     return _fmt_call(call, join)
 
+@router.get("/summary", response_model=CallSummaryResponse)
+def get_call_summary(
+    current_user=Depends(_get_current_user),
+    db: Session = Depends(get_db),
+):
+    user_id = _get_user_id(current_user)
+
+    now = _now().astimezone(timezone.utc)
+    day_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    day_end = day_start + timedelta(days=1)
+
+    calls_today = (
+        db.query(models.Call)
+        .filter(
+            or_(
+                models.Call.created_by_user_id == user_id,
+                models.Call.callee_user_id == user_id,
+            ),
+            models.Call.created_at >= day_start,
+            models.Call.created_at < day_end,
+        )
+        .all()
+    )
+
+    today_calls = len(calls_today)
+
+    missed_calls = sum(
+        1
+        for call in calls_today
+        if call.callee_user_id == user_id and call.state == "timeout"
+    )
+
+    total_duration_minutes = 0
+    for call in calls_today:
+        if call.started_at and call.ended_at and call.ended_at >= call.started_at:
+            total_seconds = int((call.ended_at - call.started_at).total_seconds())
+            if total_seconds > 0:
+                total_duration_minutes += max(1, (total_seconds + 59) // 60)
+
+    live_or_pending_count = (
+        db.query(models.Call)
+        .filter(
+            or_(
+                models.Call.created_by_user_id == user_id,
+                models.Call.callee_user_id == user_id,
+            ),
+            models.Call.state.in_(["ringing", "active"]),
+        )
+        .count()
+    )
+
+    if live_or_pending_count == 1:
+        pending_calls_text = "1 live or pending call right now"
+    elif live_or_pending_count > 1:
+        pending_calls_text = f"{live_or_pending_count} live or pending calls right now"
+    else:
+        pending_calls_text = "No active calls right now"
+
+    return CallSummaryResponse(
+        today_calls=today_calls,
+        missed_calls=missed_calls,
+        total_duration_minutes=total_duration_minutes,
+        total_duration_label=_format_duration_label(total_duration_minutes),
+        pending_calls_text=pending_calls_text,
+    )
 
 @router.get("/{call_id}", response_model=CallResponse)
 def get_call(
