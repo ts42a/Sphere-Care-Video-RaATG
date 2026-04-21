@@ -1,5 +1,4 @@
 import { request } from "./client";
-import { fetchConversations } from "./message";
 import type { AuthUser } from "../types/auth";
 import type {
   BackendCallResponse,
@@ -8,85 +7,107 @@ import type {
   CallLifecycleState,
   CallMode,
   CallSession,
+  CallSummary,
   IncomingCallInvite,
   StartCallPayload,
   TranscriptItem,
 } from "../types/call";
-const contactCache = new Map<string, CallContact>();
-const TERMINAL_CALL_STATES: CallLifecycleState[] = ["declined", "canceled", "timeout", "ended", "failed"];
+import type { ConversationItem } from "../types/message";
 
-function initialsFromName(name: string) {
-  return (name || "?")
-    .split(" ")
-    .filter(Boolean)
-    .map((part) => part[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
+type BackendCallSummaryResponse = {
+  today_calls: number;
+  missed_calls: number;
+  total_duration_minutes: number;
+  total_duration_label: string;
+  pending_calls_text: string;
+};
+
+function consultationStatusForState(
+  state?: CallLifecycleState
+): CallSession["consultationStatus"] {
+  switch (state) {
+    case "ringing":
+      return "Calling";
+    case "active":
+      return "In progress";
+    case "declined":
+      return "Declined";
+    case "canceled":
+      return "Canceled";
+    case "timeout":
+      return "Missed";
+    case "ended":
+      return "Completed";
+    case "failed":
+      return "Failed";
+    default:
+      return "Calling";
+  }
 }
 
-function buildJoinPayload(data?: BackendCallResponse["join_payload"] | null): CallJoinPayload | null {
-  if (!data) return null;
+function resolveCallMode(kind?: string, fallback: CallMode = "audio"): CallMode {
+  return kind === "video" ? "video" : kind === "audio" ? "audio" : fallback;
+}
+
+function resolveJoinPayload(data: BackendCallResponse): CallJoinPayload | null {
+  if (!data.join_payload) return null;
+
   return {
-    callId: data.call_id,
-    roomId: data.room_id,
-    livekitUrl: data.livekit_url,
-    accessToken: data.access_token,
-    expiresAt: data.expires_at,
-    state: data.state,
+    callId: data.join_payload.call_id,
+    roomId: data.join_payload.room_id,
+    livekitUrl: data.join_payload.livekit_url ?? null,
+    accessToken: data.join_payload.access_token ?? null,
+    expiresAt: data.join_payload.expires_at,
+    state: data.join_payload.state,
   };
 }
 
-function consultationStatusForState(state: string) {
-  switch (state) {
-    case "ringing":
-      return "Ringing care team";
-    case "active":
-      return "Connected";
-    case "declined":
-      return "Call declined";
-    case "canceled":
-      return "Call canceled";
-    case "timeout":
-      return "No answer";
-    case "ended":
-      return "Call ended";
-    case "failed":
-      return "Call failed";
-    default:
-      return "Connecting";
-  }
+function resolveStartedAtMs(
+  startedAt?: string | null,
+  fallback?: number
+): number {
+  if (!startedAt) return fallback ?? Date.now();
+  const parsed = new Date(startedAt).getTime();
+  return Number.isFinite(parsed) ? parsed : fallback ?? Date.now();
 }
 
-function resolveSessionMode(data: BackendCallResponse, preferredMode?: CallMode) {
-  if (data.kind === "video" || data.kind === "audio") {
-    return data.kind;
-  }
-  return preferredMode ?? "audio";
+function initialsFromName(name: string) {
+  return name
+    .split(" ")
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
 }
 
-function resolveStartedAtMs(data: BackendCallResponse) {
-  if (!data.started_at) return Date.now();
-  const parsed = new Date(data.started_at).getTime();
-  return Number.isFinite(parsed) ? parsed : Date.now();
-}
+const TERMINAL_CALL_STATES: CallLifecycleState[] = [
+  "declined",
+  "canceled",
+  "timeout",
+  "ended",
+  "failed",
+];
 
 export function buildSession(
   data: BackendCallResponse,
   contact: CallContact,
-  currentUser: AuthUser | null,
+  currentUser?: AuthUser | null,
   preferredMode?: CallMode
 ): CallSession {
   const localName = currentUser?.full_name || "Client user";
   const localRole = currentUser?.role || "client";
-  const joinPayload = buildJoinPayload(data.join_payload);
-  const mode = resolveSessionMode(data, preferredMode);
+  const joinPayload = resolveJoinPayload(data);
+  const mode = resolveCallMode(data.kind, preferredMode ?? "audio");
+  const callState = (data.state ?? "ringing") as CallLifecycleState;
+  const startedAtMs = resolveStartedAtMs(data.started_at);
 
   return {
     callId: data.call_id,
     mode,
-    callState: data.state,
-    consultationStatus: consultationStatusForState(data.state),
+    callState,
+    consultationStatus: consultationStatusForState(callState),
     doctor: {
       userId: contact.userId,
       name: contact.name,
@@ -101,106 +122,62 @@ export function buildSession(
     },
     remoteUserId: contact.userId,
     conversationId: contact.conversationId,
-    livekitUrl: data.livekit_url,
+    livekitUrl: data.livekit_url ?? joinPayload?.livekitUrl ?? null,
     joinPayload,
     inviteExpiresAt: data.invite_expires_at,
     muted: false,
     transcribing: true,
-    ended: TERMINAL_CALL_STATES.includes(data.state),
-    startedAtMs: resolveStartedAtMs(data),
+    ended: TERMINAL_CALL_STATES.includes(callState),
+    startedAtMs,
   };
 }
 
 export async function fetchCallContacts(search = ""): Promise<CallContact[]> {
-  const conversations = await fetchConversations(search);
+  const { fetchConversations } = await import("./message");
+  const conversations: ConversationItem[] = await fetchConversations(search);
 
-  return conversations
-    .filter((conversation) => Boolean(conversation.targetUserId))
-    .map((conversation) => {
-      const contact: CallContact = {
-        id: conversation.id,
-        conversationId: conversation.id,
-        userId: conversation.targetUserId,
-        initials: conversation.initials,
-        name: conversation.name,
-        specialty: conversation.role,
-        role: conversation.role,
-        lastSeen: conversation.time || "Recently active",
-        online: conversation.online,
-        avatarColor: conversation.avatarColor,
-      };
-
-      contactCache.set(contact.id, contact);
-      if (contact.userId) {
-        contactCache.set(`user-${contact.userId}`, contact);
-      }
-      return contact;
-    });
+  return conversations.map((conversation) => ({
+    id: conversation.contactId,
+    conversationId: conversation.id,
+    userId: conversation.targetUserId,
+    initials: conversation.initials,
+    name: conversation.name,
+    specialty: conversation.role || "Care team",
+    role: conversation.role || "Care team",
+    lastSeen: conversation.time || "Recently active",
+    lastSeenAt: conversation.lastMessageAt,
+    online: conversation.online,
+    avatarColor: conversation.avatarColor,
+  }));
 }
 
-export async function fetchCallContactById(contactId: string): Promise<CallContact> {
-  const normalizedId = String(contactId);
-  const cached = contactCache.get(normalizedId);
-  if (cached) return cached;
-
+export async function fetchCallContactById(
+  contactId: string
+): Promise<CallContact | null> {
   const contacts = await fetchCallContacts("");
-  const matched = contacts.find((item) => item.id === normalizedId);
-  if (matched) return matched;
-
-  if (normalizedId.startsWith("user-")) {
-    const userId = Number(normalizedId.replace("user-", ""));
-    const fallback: CallContact = {
-      id: normalizedId,
-      userId: Number.isFinite(userId) ? userId : undefined,
-      initials: "CT",
-      name: `Care team #${Number.isFinite(userId) ? userId : ""}`.trim(),
-      specialty: "Care team",
-      role: "Care team",
-      lastSeen: "Recently active",
-      online: false,
-      avatarColor: "#3F7BF0",
-    };
-    contactCache.set(normalizedId, fallback);
-    return fallback;
-  }
-
-  throw new Error("Contact not found");
+  return contacts.find((item) => String(item.id) === String(contactId)) ?? null;
 }
 
-export async function resolveIncomingCallContact(callerUserId?: number | null): Promise<CallContact> {
-  if (!callerUserId) {
-    return {
-      id: `user-unknown-${Date.now()}`,
-      initials: "CT",
-      name: "Care team",
-      specialty: "Care team",
-      role: "Care team",
-      lastSeen: "Calling now",
-      online: true,
-      avatarColor: "#3F7BF0",
-    };
-  }
-
-  const cached = contactCache.get(`user-${callerUserId}`);
-  if (cached) return cached;
-
+export async function resolveIncomingCallContact(
+  userId: number
+): Promise<CallContact | null> {
   const contacts = await fetchCallContacts("");
-  const matched = contacts.find((contact) => contact.userId === callerUserId);
-  if (matched) return matched;
+  return contacts.find((item) => item.userId === userId) ?? null;
+}
 
-  const fallback: CallContact = {
-    id: `user-${callerUserId}`,
-    userId: callerUserId,
-    initials: "CT",
-    name: `Care team #${callerUserId}`,
-    specialty: "Care team",
-    role: "Care team",
-    lastSeen: "Calling now",
-    online: true,
-    avatarColor: "#3F7BF0",
+export async function fetchCallSummary(timeZone?: string): Promise<CallSummary> {
+  const query = timeZone
+    ? `?time_zone=${encodeURIComponent(timeZone)}`
+    : "";
+
+  const data = await request<BackendCallSummaryResponse>(`/calls/summary${query}`);
+
+  return {
+    todayCalls: data.today_calls,
+    missedCalls: data.missed_calls,
+    totalDurationLabel: data.total_duration_label,
+    pendingCallsText: data.pending_calls_text,
   };
-  contactCache.set(fallback.id, fallback);
-  return fallback;
 }
 
 export async function startCallRequest(

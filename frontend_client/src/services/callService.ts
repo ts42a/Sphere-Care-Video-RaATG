@@ -17,6 +17,7 @@ import {
   fetchCall,
   fetchCallContactById,
   fetchCallContacts,
+  fetchCallSummary,
   fetchTranscript,
   getCallStatusLabel,
   hydrateCallRequest,
@@ -52,27 +53,8 @@ function resolveStartedAtMs(
 }
 
 export const callService = {
-  async getSummary() {
-    const contacts = await fetchCallContacts("").catch(() => [] as CallContact[]);
-    const activeCall = activeCallService.get();
-
-    return {
-      todayCalls: contacts.length,
-      missedCalls: 0,
-      totalDurationLabel: activeCall && !activeCall.ended ? "Live now" : "0m",
-      pendingCallsText:
-        activeCall && !activeCall.ended
-          ? `${activeCall.doctor.name} ${
-              activeCall.callState === "ringing"
-                ? "is being called"
-                : "is on the line"
-            }`
-          : contacts.length > 0
-            ? `${contacts.length} care team contact${
-                contacts.length > 1 ? "s" : ""
-              } available`
-            : "No callable contacts yet",
-    };
+  async getSummary(timeZone?: string) {
+    return fetchCallSummary(timeZone);
   },
 
   getContacts: fetchCallContacts,
