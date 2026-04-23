@@ -1,4 +1,4 @@
-```markdown
+markdown
 # SR – Sentence Refiner Conversation Dataset Guide
 
 ## Overview
@@ -10,26 +10,6 @@ It is designed for:
 - Gesture-to-text systems  
 - Noisy conversation correction  
 - Transcript refinement for communication systems (e.g., Sphere Care)
-
----
-
-## Objective
-
-Transform input such as:
-
-```
-
-hello hello. you okay. busy today. finish task
-
-```
-
-into:
-
-```
-
-Hello. Hello. Are you okay? I am busy today. Did you finish the task?
-
-````
 
 ---
 
@@ -74,16 +54,11 @@ Each team member will create:
 
 ### Calculation Per Member
 
-```
+
 6 categories × 10 conversations = 60 conversations  
 60 × 4 variations = 240 pairs per member
-```
 
-### Team Total
-
-```
-6 members × 240 pairs = 1440 pairs total
-```
+### Team Total: 6 members × 240 pairs = 1440 pairs total
 
 ---
 
@@ -117,7 +92,6 @@ The output must always remain clean and grammatically correct.
 ### Step 3: Apply Noise
 
 For each copy:
-
 * Modify only the **input** field
 * Apply one noise type per copy
 * Keep the **output** unchanged
@@ -127,14 +101,7 @@ Ensure all variations are realistic and consistent.
 ---
 
 ## Use Case in System
-
 The model refines noisy conversation input into clear and readable communication.
-
-Pipeline:
-
-```
-Gesture Recognition → Raw Text → SR Model → Clean Sentence
-```
 
 ---
 
@@ -144,5 +111,4 @@ This dataset is **domain-specific**, not general NLP.
 
 The goal is not to build a large language model, but to develop a **focused, high-accuracy correction system** that performs reliably on noisy, real-world conversational input.
 
-```
-```
+
