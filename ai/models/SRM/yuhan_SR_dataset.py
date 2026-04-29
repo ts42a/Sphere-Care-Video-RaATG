@@ -1,10 +1,24 @@
-
-import json
-
-
-clean_conversations = {
-    "Staff-Resident": [
-        "Good morning, Mr Lee. Did you sleep well last night? Are you feeling any pain today? I will check your blood pressure now. Please sit comfortably on the chair. Your breakfast will arrive soon. The nurse will bring your medicine after breakfast. Would you like some water? I will come back in thirty minutes. Please press the call button if you need help.",
+# Staff-Resident": [
+{
+  "input": "Good . Did you sleep well  night? Are you  any  today? I will check your  pressure now. Please  comfortably on the . Your breakfast  arrive soon. The  will bring your medicine after breakfast. Would you like some water? I will come back in thirty minutes. Please press the call button if you need help.",
+  "output": ""Good morning. Did you sleep well last night? Are you feeling any pain today? I will check your blood pressure now. Please sit comfortably on the chair. Your breakfast will arrive soon. The nurse will bring your medicine after breakfast. Would you like some water? I will come back in thirty minutes. Please press the call button if you need help.","
+}
+{
+  "input": "Good morning. Did you sleep well last night? Are you feeling any pain today? I will check your blood pressure now. Please sit comfortably on the chair. Your breakfast will arrive soon. The nurse will bring your medicine after breakfast. Would you like some water? I will come back in thirty minutes. Please press the call button if you need help.",
+  "output": ""Good morning. Did you sleep well last night? Are you feeling any pain today? I will check your blood pressure now. Please sit comfortably on the chair. Your breakfast will arrive soon. The nurse will bring your medicine after breakfast. Would you like some water? I will come back in thirty minutes. Please press the call button if you need help.","
+}
+{
+  "input": "Good morning. Did you sleep well last night? Are you feeling any pain today? I will check your blood pressure now. Please sit comfortably on the chair. Your breakfast will arrive soon. The nurse will bring your medicine after breakfast. Would you like some water? I will come back in thirty minutes. Please press the call button if you need help.",
+  "output": ""Good morning. Did you sleep well last night? Are you feeling any pain today? I will check your blood pressure now. Please sit comfortably on the chair. Your breakfast will arrive soon. The nurse will bring your medicine after breakfast. Would you like some water? I will come back in thirty minutes. Please press the call button if you need help.","
+}
+{
+  "input": "Good morning. Did you sleep well last night? Are you feeling any pain today? I will check your blood pressure now. Please sit comfortably on the chair. Your breakfast will arrive soon. The nurse will bring your medicine after breakfast. Would you like some water? I will come back in thirty minutes. Please press the call button if you need help.",
+  "output": ""Good morning. Did you sleep well last night? Are you feeling any pain today? I will check your blood pressure now. Please sit comfortably on the chair. Your breakfast will arrive soon. The nurse will bring your medicine after breakfast. Would you like some water? I will come back in thirty minutes. Please press the call button if you need help.","
+}
+{
+  "input": "Good morning. Did you sleep well last night? Are you feeling any pain today? I will check your blood pressure now. Please sit comfortably on the chair. Your breakfast will arrive soon. The nurse will bring your medicine after breakfast. Would you like some water? I will come back in thirty minutes. Please press the call button if you need help.",
+  "output": ""Good morning. Did you sleep well last night? Are you feeling any pain today? I will check your blood pressure now. Please sit comfortably on the chair. Your breakfast will arrive soon. The nurse will bring your medicine after breakfast. Would you like some water? I will come back in thirty minutes. Please press the call button if you need help.","
+}
         "Hello, Mrs Tan. It is time for your afternoon walk. Do you feel strong enough to walk today? I can support you while we move slowly. We will walk only a short distance. Please tell me if you feel tired. After the walk, you can rest in your room. Your family called earlier to check on you. They said they will visit tomorrow. I will remind you again later.",
         "Hi, Mr Wong. Your lunch is ready. Would you like to eat at the table? I can help you move from the bed. Please take your time. The soup may still be warm. You should drink some water with your meal. After lunch, we will check your medication. The doctor will visit you this evening. I will update your care notes after this.",
         "Good evening, Mrs Lim. I am here to help you get ready for bed. Have you brushed your teeth? I will prepare your night clothes. Your room temperature is comfortable. I will close the curtains now. Your night medicine is on the tray. Please take it with water. I will switch off the main light. Call me if you need anything during the night.",
