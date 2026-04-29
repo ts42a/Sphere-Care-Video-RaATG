@@ -608,6 +608,51 @@ def draw_hand_landmarks(frame, hand_landmarks_list) -> None:
             cv2.circle(frame, (x, y), 3, color, -1, cv2.LINE_AA)
 
 
+def draw_static_target_overlay(frame: np.ndarray, hand_landmarks=None) -> bool:
+    """
+    Draw a center target box + crosshair for static capture alignment.
+    Returns True when the detected hand centroid is inside the target box.
+    """
+    h, w = frame.shape[:2]
+    cx, cy = w // 2, h // 2
+    box_w = int(w * 0.38)
+    box_h = int(h * 0.5)
+    x1, y1 = cx - box_w // 2, cy - box_h // 2
+    x2, y2 = cx + box_w // 2, cy + box_h // 2
+
+    in_zone = False
+    hand_pt: tuple[int, int] | None = None
+    if hand_landmarks:
+        xs = [int(lm.x * w) for lm in hand_landmarks]
+        ys = [int(lm.y * h) for lm in hand_landmarks]
+        if xs and ys:
+            hand_pt = (int(np.mean(xs)), int(np.mean(ys)))
+            in_zone = x1 <= hand_pt[0] <= x2 and y1 <= hand_pt[1] <= y2
+
+    box_color = (0, 220, 0) if in_zone else (0, 200, 255)
+    cv2.rectangle(frame, (x1, y1), (x2, y2), box_color, 2, cv2.LINE_AA)
+
+    # Crosshair helps users center their pose quickly.
+    cv2.line(frame, (cx - 22, cy), (cx + 22, cy), box_color, 2, cv2.LINE_AA)
+    cv2.line(frame, (cx, cy - 22), (cx, cy + 22), box_color, 2, cv2.LINE_AA)
+
+    if hand_pt is not None:
+        cv2.circle(frame, hand_pt, 5, (255, 255, 255), -1, cv2.LINE_AA)
+        cv2.circle(frame, hand_pt, 7, (20, 20, 20), 1, cv2.LINE_AA)
+        status = "In target" if in_zone else "Move hand to target"
+        cv2.putText(
+            frame,
+            status,
+            (x1, max(24, y1 - 10)),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.6,
+            box_color,
+            2,
+            cv2.LINE_AA,
+        )
+    return in_zone
+
+
 def draw_motion_pose_overlay(frame: np.ndarray, pose_landmarks) -> None:
     """
     Draw nose + shoulders + elbows + wrists used in extract_motion_features (MOTION_POSE_LANDMARKS).
@@ -988,6 +1033,12 @@ def capture_static(
         if not ok:
             break
         frame = cv2.flip(frame, 1)
+        rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        rgb = np.ascontiguousarray(rgb)
+        mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
+        res = detector.detect(mp_image)
+        draw_hand_landmarks(frame, getattr(res, "hand_landmarks", None))
+        draw_static_target_overlay(frame, res.hand_landmarks[0] if res.hand_landmarks else None)
         rem = int(np.ceil(end_t - time.time()))
         draw_text(frame, [f"STATIC: {label}", f"Starting in {rem}s", "Hold steady", "ESC/Q cancel"])
         cv2.imshow(win, frame)
@@ -1016,9 +1067,13 @@ def capture_static(
         res = detector.detect(mp_image)
 
         stable = False
+        in_target = False
         if res.hand_landmarks:
             detected_frames += 1
-            vec = extract_hand_features(res.hand_landmarks[0])
+            hand_lms = res.hand_landmarks[0]
+            draw_hand_landmarks(frame, res.hand_landmarks)
+            vec = extract_hand_features(hand_lms)
+            in_target = draw_static_target_overlay(frame, hand_lms)
 
             recent.append(vec)
             if len(recent) > STABILITY_WINDOW:
@@ -1031,12 +1086,14 @@ def capture_static(
             if stable:
                 stable_samples.append(vec)
         else:
+            draw_static_target_overlay(frame, None)
             recent.clear()
 
         draw_text(frame, [
             f"STATIC: {label}",
             f"Stable candidates: {len(stable_samples)}",
             f"Detected frames: {detected_frames}",
+            f"In target zone: {'YES' if in_target else 'NO'}",
             f"Stable now: {'YES' if stable else 'NO'}",
             "ESC/Q cancel"
         ])
