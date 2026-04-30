@@ -5,6 +5,7 @@ let isPlaying = false, progressInterval = null;
 let activeHls = null; // holds the HLS instance when real stream is playing
 let modalPlaybackIndex = -1;
 const localCamStreams = new Map(); // deviceId -> MediaStream
+const LOCAL_RECORDING_INDEX_KEY = "spherecare_local_recordings_index_v1";
 
 function authHeaders(){
   const h = {'Content-Type':'application/json'};
@@ -631,6 +632,66 @@ window.addEventListener('beforeunload', () => {
 function showGridError(elId, type){
   const el = document.getElementById(elId);
   if(el) el.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--red);font-size:13px;font-weight:600;">⚠ Unable to load ${type}. Please check your connection.</div>`;
+}
+
+async function unlockVaultFromConsole(){
+  if (!window.recordingVault?.vaultHasPassword || !window.recordingVault?.vaultUnlock || !window.recordingVault?.vaultSetPassword) {
+    alert('Vault module is not loaded.');
+    return;
+  }
+  try {
+    const hasPassword = await window.recordingVault.vaultHasPassword();
+    if (!hasPassword) {
+      const newPass = prompt('Set a new vault password (minimum 8 characters):');
+      if (!newPass) return;
+      await window.recordingVault.vaultSetPassword(newPass);
+      alert('Vault password created and unlocked.');
+      return;
+    }
+    const pass = prompt('Enter vault password to unlock recordings:');
+    if (!pass) return;
+    await window.recordingVault.vaultUnlock(pass);
+    alert('Vault unlocked.');
+  } catch (err) {
+    alert(`Vault unlock failed: ${err?.message || err}`);
+  }
+}
+
+async function deleteAllVaultRecordingsFromConsole(){
+  if (!window.recordingVault?.vaultListRecordings || !window.recordingVault?.vaultDeleteRecording) {
+    alert('Vault module is not loaded.');
+    return;
+  }
+  const ok = confirm('Delete ALL local vault recordings from this browser? This cannot be undone.');
+  if (!ok) return;
+  try {
+    const localRows = await window.recordingVault.vaultListRecordings();
+    for (const row of localRows) {
+      await window.recordingVault.vaultDeleteRecording(row.id);
+    }
+    localStorage.removeItem(LOCAL_RECORDING_INDEX_KEY);
+    let serverDeleted = 0;
+    try {
+      const res = await fetch(`${API_BASE}/records/?record_type=video&limit=200`, { headers: authHeaders() });
+      if (res.ok) {
+        const serverRows = await res.json();
+        for (const r of (Array.isArray(serverRows) ? serverRows : [])) {
+          if (!String(r?.file_url || '').startsWith('localvault://')) continue;
+          const d = await fetch(`${API_BASE}/records/${encodeURIComponent(r.id)}`, {
+            method: 'DELETE',
+            headers: authHeaders(),
+          });
+          if (d.ok) serverDeleted += 1;
+        }
+      }
+    } catch (_) {
+      // best effort: local purge already completed
+    }
+    alert(`Deleted ${localRows.length} local vault recording(s) and ${serverDeleted} server record(s).`);
+    await loadPlayback();
+  } catch (err) {
+    alert(`Failed to delete vault recordings: ${err?.message || err}`);
+  }
 }
 
 // INIT

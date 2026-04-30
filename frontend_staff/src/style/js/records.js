@@ -180,6 +180,104 @@ async function downloadRecord(id){
   } else alert('No file available to download.');
 }
 
+async function deleteRecord(id){
+  const r = records.find(x => String(x.id) === String(id));
+  if(!r) return;
+  const ok = confirm('Delete this recording?');
+  if (!ok) return;
+
+  if (String(r.file_url || '').startsWith('localvault://') || r.is_local_vault) {
+    try {
+      if (window.recordingVault?.vaultDeleteRecording) {
+        await window.recordingVault.vaultDeleteRecording(String(r.id));
+      }
+      const localIndexRaw = localStorage.getItem(LOCAL_RECORDING_INDEX_KEY);
+      const localIndex = localIndexRaw ? JSON.parse(localIndexRaw) : [];
+      if (Array.isArray(localIndex)) {
+        const filtered = localIndex.filter((row) => String(row?.id) !== String(r.id));
+        localStorage.setItem(LOCAL_RECORDING_INDEX_KEY, JSON.stringify(filtered));
+      }
+      records = records.filter((x) => String(x.id) !== String(r.id));
+      renderAll();
+    } catch (err) {
+      alert(`Delete failed: ${err?.message || err}`);
+    }
+    return;
+  }
+
+  try {
+    const res = await fetch(`${API_BASE}/records/${encodeURIComponent(r.id)}`, {
+      method: 'DELETE',
+      headers: authHeaders(),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    records = records.filter((x) => String(x.id) !== String(r.id));
+    renderAll();
+  } catch (err) {
+    alert(`Delete failed: ${err?.message || err}`);
+  }
+}
+
+async function unlockVaultFromRecords(){
+  if (!window.recordingVault?.vaultHasPassword || !window.recordingVault?.vaultUnlock || !window.recordingVault?.vaultSetPassword) {
+    alert('Vault module is not loaded.');
+    return;
+  }
+  try {
+    const hasPassword = await window.recordingVault.vaultHasPassword();
+    if (!hasPassword) {
+      const newPass = prompt('Set a new vault password (minimum 8 characters):');
+      if (!newPass) return;
+      await window.recordingVault.vaultSetPassword(newPass);
+      alert('Vault password created and unlocked.');
+      return;
+    }
+    const pass = prompt('Enter vault password to unlock recordings:');
+    if (!pass) return;
+    await window.recordingVault.vaultUnlock(pass);
+    alert('Vault unlocked.');
+  } catch (err) {
+    alert(`Vault unlock failed: ${err?.message || err}`);
+  }
+}
+
+async function deleteAllLocalVaultRecords(){
+  const ok = confirm('Delete ALL vault videos (local + server localvault records)? This cannot be undone.');
+  if (!ok) return;
+  if (!window.recordingVault?.vaultListRecordings || !window.recordingVault?.vaultDeleteRecording) {
+    alert('Vault module is not loaded.');
+    return;
+  }
+  try {
+    const localRows = await window.recordingVault.vaultListRecordings();
+    for (const row of localRows) {
+      await window.recordingVault.vaultDeleteRecording(String(row.id));
+    }
+    localStorage.removeItem(LOCAL_RECORDING_INDEX_KEY);
+    let serverDeleted = 0;
+    try {
+      const res = await fetch(`${API_BASE}/records/?record_type=video&limit=200`, { headers: authHeaders() });
+      if (res.ok) {
+        const serverRows = await res.json();
+        for (const r of (Array.isArray(serverRows) ? serverRows : [])) {
+          if (!String(r?.file_url || '').startsWith('localvault://')) continue;
+          const d = await fetch(`${API_BASE}/records/${encodeURIComponent(r.id)}`, {
+            method: 'DELETE',
+            headers: authHeaders(),
+          });
+          if (d.ok) serverDeleted += 1;
+        }
+      }
+    } catch (_) {
+      // best effort, keep local deletion success
+    }
+    await loadRecords();
+    alert(`Deleted ${localRows.length} local vault recording(s) and ${serverDeleted} server record(s).`);
+  } catch (err) {
+    alert(`Delete-all failed: ${err?.message || err}`);
+  }
+}
+
 // RENDER
 function renderAll(){
   renderGrid(); renderList();
@@ -254,6 +352,9 @@ function renderGrid(){
           <button class="ra-btn dl" onclick='downloadRecord(${JSON.stringify(r.id)})'>
             <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Download
           </button>
+          <button class="ra-btn" onclick='deleteRecord(${JSON.stringify(r.id)})'>
+            <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>Delete
+          </button>
         </div>
       </div>
     </div>`).join('');
@@ -272,6 +373,7 @@ function renderList(){
       <td><div style="display:flex;gap:5px">
         <button class="tbl-btn" title="View" onclick='viewRecord(${JSON.stringify(r.id)})'><svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
         <button class="tbl-btn dl" title="Download" onclick='downloadRecord(${JSON.stringify(r.id)})'><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>
+        <button class="tbl-btn" title="Delete" onclick='deleteRecord(${JSON.stringify(r.id)})'><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>
       </div></td>
     </tr>`).join('');
 }
