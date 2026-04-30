@@ -274,6 +274,32 @@ def _print_header(args: argparse.Namespace) -> None:
     print("-" * 72)
 
 
+def _print_human_summary(branch_info: Dict[str, object], branch_output: Dict[str, object]) -> None:
+    branch = str(branch_info.get("branch", ""))
+    if branch == "alpha_path":
+        incident_report = branch_output.get("incident_report", {})
+        if isinstance(incident_report, dict):
+            print("Human summary (incident):")
+            print(str(incident_report.get("summary", "")))
+            if incident_report.get("body"):
+                print(str(incident_report.get("body")))
+        else:
+            print("Human summary (incident):")
+            print("")
+    elif branch == "observation_path":
+        general_report = branch_output.get("general_report", {})
+        if isinstance(general_report, dict):
+            print("Human summary (observation):")
+            print(str(general_report.get("summary", "")))
+        else:
+            print("Human summary (observation):")
+            print("")
+
+    schema_ok = bool(branch_output.get("schema_ok", False))
+    schema_source = str(branch_output.get("schema_source", "unknown"))
+    print(f"Summary source: schema_ok={schema_ok}, schema_source={schema_source}")
+
+
 def run(args: argparse.Namespace) -> int:
     focus_labels = _parse_focus_labels(args.focus_labels)
     zone_defs = load_zone_defs()
@@ -586,6 +612,8 @@ def run(args: argparse.Namespace) -> int:
     if _stage_ge(args.stage, "summary"):
         has_summary_prep = bool(branch_output.get("incident_summary_prep"))
         print(f"- Layer 13A summary prep available: {has_summary_prep}")
+        if branch_info:
+            _print_human_summary(branch_info, branch_output)
 
     print("-" * 72)
     print("Sample rows (layers 1-5):")
@@ -616,6 +644,10 @@ def run(args: argparse.Namespace) -> int:
         if branch_info.get("branch") == "alpha_path":
             timeline = branch_output.get("incident_timeline", [])
             print({"incident_count": len(timeline), "audit": branch_output.get("audit", {})})
+            incident_report = branch_output.get("incident_report", {})
+            if isinstance(incident_report, dict):
+                print("Incident report payload:")
+                print(incident_report)
             for row in list(timeline)[: args.show_samples]:
                 print(row)
         else:
@@ -635,6 +667,8 @@ def run(args: argparse.Namespace) -> int:
             )
             print("General observation summary:")
             print(general_report.get("summary", ""))
+            print("General report payload:")
+            print(general_report)
             print("Observation timeline sample:")
             for row in list(obs_timeline)[: args.show_samples]:
                 print(row)

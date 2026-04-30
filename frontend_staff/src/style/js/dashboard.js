@@ -271,3 +271,292 @@
   // Auto-refresh messages every 30 seconds
   setInterval(loadDashboardMessages, 30000);
 })();
+
+// ══════════════════════════════════════════
+// DASHBOARD LIVE MONITORING (Record / Pause / Auto Record)
+// ══════════════════════════════════════════
+(function() {
+  var API = (typeof API_BASE !== 'undefined') ? API_BASE : '/api/v1';
+  var monitorCameras = [];
+  var localStreams = new Map(); // cameraId -> MediaStream
+  var recState = new Map(); // cameraId -> {recorder,chunks,status,auto,cameraLabel}
+  var prefsKey = 'dashboard_camera_record_prefs_v1';
+
+  function authHeaders() {
+    var h = { 'Content-Type': 'application/json' };
+    var t = sessionStorage.getItem('access_token') || sessionStorage.getItem('spherecare_token');
+    if (t) h['Authorization'] = 'Bearer ' + t;
+    return h;
+  }
+
+  function getPrefs() {
+    try { return JSON.parse(localStorage.getItem(prefsKey) || '{}'); }
+    catch (_) { return {}; }
+  }
+
+  function setPrefs(p) {
+    try { localStorage.setItem(prefsKey, JSON.stringify(p)); } catch (_) {}
+  }
+
+  async function loadFacilityCameras() {
+    try {
+      var res = await fetch(API + '/cameras/', { headers: authHeaders() });
+      if (!res.ok) throw new Error();
+      var rows = await res.json();
+      return rows.map(function(c) {
+        return {
+          id: 'facility:' + c.id,
+          deviceId: null,
+          title: c.title || ('Camera ' + c.id),
+          resident: c.resident_name || 'Common Area',
+          status: (c.stream_status || c.status || 'offline') === 'live' ? 'live' : 'offline',
+          streamUrl: c.stream_url || null,
+          source: 'facility',
+        };
+      });
+    } catch (_) {
+      return [];
+    }
+  }
+
+  async function loadLocalCameras() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices || !navigator.mediaDevices.getUserMedia) {
+      return [];
+    }
+    try {
+      var unlock = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      unlock.getTracks().forEach(function(t) { t.stop(); });
+    } catch (_) {}
+
+    try {
+      var devices = await navigator.mediaDevices.enumerateDevices();
+      var vids = devices.filter(function(d) { return d.kind === 'videoinput'; });
+      return vids.map(function(d, i) {
+        return {
+          id: 'local:' + (d.deviceId || ('cam_' + (i + 1))),
+          deviceId: d.deviceId || null,
+          title: d.label || ('Local Camera ' + (i + 1)),
+          resident: 'This device',
+          status: 'live',
+          streamUrl: null,
+          source: 'local',
+        };
+      });
+    } catch (_) {
+      return [];
+    }
+  }
+
+  function ensureState(cam) {
+    if (!recState.has(cam.id)) {
+      var prefs = getPrefs();
+      var auto = !!prefs[cam.id];
+      recState.set(cam.id, {
+        recorder: null,
+        chunks: [],
+        status: 'idle',
+        auto: auto,
+        cameraLabel: cam.title || 'Camera',
+      });
+    }
+    return recState.get(cam.id);
+  }
+
+  function getPreviewElementId(camId) {
+    return 'monitor-preview-' + camId.replace(/[^a-zA-Z0-9_-]/g, '_');
+  }
+
+  function updateSummary() {
+    var el = document.getElementById('monitoring-summary');
+    if (!el) return;
+    var total = monitorCameras.length;
+    var recCount = 0;
+    recState.forEach(function(s) { if (s.status === 'recording') recCount++; });
+    el.textContent = total + ' camera(s) · ' + recCount + ' recording';
+  }
+
+  function renderMonitoring() {
+    var wrap = document.getElementById('monitoring-cameras');
+    if (!wrap) return;
+    if (!monitorCameras.length) {
+      wrap.innerHTML = '<div class="monitoring-empty">No cameras found.</div>';
+      updateSummary();
+      return;
+    }
+    wrap.innerHTML = monitorCameras.map(function(c) {
+      var st = ensureState(c);
+      var previewId = getPreviewElementId(c.id);
+      var statusTag = st.status === 'recording' ? 'RECORDING' : st.status === 'paused' ? 'PAUSED' : (c.status === 'live' ? 'LIVE' : 'OFFLINE');
+      return ''
+        + '<div class="monitoring-card">'
+        + '  <div class="monitoring-preview">'
+        + '    <video id="' + previewId + '" autoplay muted playsinline></video>'
+        + '    <div class="monitoring-preview-overlay">' + statusTag + '</div>'
+        + '  </div>'
+        + '  <div class="monitoring-body">'
+        + '    <div class="monitoring-title">' + (c.title || 'Camera') + '</div>'
+        + '    <div class="monitoring-meta">' + (c.resident || '—') + ' · ' + c.source + '</div>'
+        + '    <div class="monitoring-controls">'
+        + '      <button class="monitoring-btn rec" onclick="dashboardMonitoringStartRecord(\'' + c.id + '\')">Record</button>'
+        + '      <button class="monitoring-btn pause" onclick="dashboardMonitoringTogglePause(\'' + c.id + '\')">' + (st.status === 'paused' ? 'Resume' : 'Pause') + '</button>'
+        + '      <button class="monitoring-btn auto ' + (st.auto ? 'active' : '') + '" onclick="dashboardMonitoringToggleAuto(\'' + c.id + '\')">Auto Record</button>'
+        + '      <button class="monitoring-btn" onclick="dashboardMonitoringStopRecord(\'' + c.id + '\')">Stop</button>'
+        + '    </div>'
+        + '  </div>'
+        + '</div>';
+    }).join('');
+
+    monitorCameras.forEach(function(c) {
+      var v = document.getElementById(getPreviewElementId(c.id));
+      if (!v) return;
+      if (c.source === 'local') {
+        var stream = localStreams.get(c.id);
+        if (stream) v.srcObject = stream;
+      } else if (c.streamUrl) {
+        v.src = c.streamUrl;
+      }
+    });
+    updateSummary();
+  }
+
+  async function attachLocalStreams() {
+    for (var i = 0; i < monitorCameras.length; i++) {
+      var c = monitorCameras[i];
+      if (c.source !== 'local') continue;
+      if (localStreams.has(c.id)) continue;
+      try {
+        var constraints = c.deviceId ? { video: { deviceId: { exact: c.deviceId } }, audio: false } : { video: true, audio: false };
+        var s = await navigator.mediaDevices.getUserMedia(constraints);
+        localStreams.set(c.id, s);
+      } catch (_) {}
+    }
+  }
+
+  async function refreshMonitoring() {
+    var local = await loadLocalCameras();
+    var facility = await loadFacilityCameras();
+    monitorCameras = local.concat(facility);
+    await attachLocalStreams();
+    renderMonitoring();
+    autoStartEnabled();
+  }
+
+  function pickRecordableStream(camId) {
+    var cam = monitorCameras.find(function(x) { return x.id === camId; });
+    if (!cam) return null;
+    if (cam.source === 'local') return localStreams.get(cam.id) || null;
+    return null;
+  }
+
+  async function saveRecording(cameraId, chunks, cameraLabel) {
+    if (!chunks || !chunks.length) return;
+    var blob = new Blob(chunks, { type: chunks[0].type || 'video/webm' });
+    if (!window.recordingVault?.vaultIsUnlocked?.()) return;
+    var plain = await blob.arrayBuffer();
+    var enc = await window.recordingVault.vaultEncryptArrayBuffer(plain);
+    var now = new Date().toISOString();
+    await window.recordingVault.vaultSaveRecording({
+      id: 'dash_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
+      createdAt: now,
+      startedAt: now,
+      endedAt: now,
+      cameraLabel: cameraLabel || cameraId,
+      mimeType: blob.type || 'video/webm',
+      sizePlain: plain.byteLength,
+      ivB64: enc.ivB64,
+      cipherB64: enc.cipherB64,
+      durationMs: null,
+      notes: 'Dashboard monitoring recording',
+    });
+  }
+
+  async function startRecord(cameraId) {
+    var st = recState.get(cameraId);
+    var cam = monitorCameras.find(function(x) { return x.id === cameraId; });
+    if (!st || !cam) return;
+    if (st.status === 'recording') return;
+    var stream = pickRecordableStream(cameraId);
+    if (!stream) {
+      alert('Recording is currently supported for local camera feeds on dashboard.');
+      return;
+    }
+    try {
+      st.chunks = [];
+      st.recorder = new MediaRecorder(stream);
+      st.recorder.ondataavailable = function(e) {
+        if (e.data && e.data.size > 0) st.chunks.push(e.data);
+      };
+      st.recorder.onstop = async function() {
+        try {
+          await saveRecording(cameraId, st.chunks, st.cameraLabel);
+        } catch (_) {}
+        st.recorder = null;
+        st.chunks = [];
+        st.status = 'idle';
+        renderMonitoring();
+      };
+      st.recorder.start(1000);
+      st.status = 'recording';
+      renderMonitoring();
+    } catch (_) {
+      alert('Unable to start recording for this camera.');
+    }
+  }
+
+  function stopRecord(cameraId) {
+    var st = recState.get(cameraId);
+    if (!st || !st.recorder) return;
+    if (st.recorder.state !== 'inactive') st.recorder.stop();
+    st.status = 'idle';
+    renderMonitoring();
+  }
+
+  function togglePause(cameraId) {
+    var st = recState.get(cameraId);
+    if (!st || !st.recorder) return;
+    if (st.recorder.state === 'recording') {
+      st.recorder.pause();
+      st.status = 'paused';
+    } else if (st.recorder.state === 'paused') {
+      st.recorder.resume();
+      st.status = 'recording';
+    }
+    renderMonitoring();
+  }
+
+  function toggleAuto(cameraId) {
+    var st = recState.get(cameraId);
+    if (!st) return;
+    st.auto = !st.auto;
+    var p = getPrefs();
+    p[cameraId] = st.auto;
+    setPrefs(p);
+    renderMonitoring();
+    if (st.auto && st.status === 'idle') startRecord(cameraId);
+  }
+
+  function autoStartEnabled() {
+    recState.forEach(function(st, cameraId) {
+      if (st.auto && st.status === 'idle') startRecord(cameraId);
+    });
+  }
+
+  function releaseStreams() {
+    localStreams.forEach(function(s) { s.getTracks().forEach(function(t) { t.stop(); }); });
+    localStreams.clear();
+  }
+
+  window.dashboardMonitoringRefresh = refreshMonitoring;
+  window.dashboardMonitoringStartRecord = startRecord;
+  window.dashboardMonitoringStopRecord = stopRecord;
+  window.dashboardMonitoringTogglePause = togglePause;
+  window.dashboardMonitoringToggleAuto = toggleAuto;
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', refreshMonitoring);
+  } else {
+    refreshMonitoring();
+  }
+
+  window.addEventListener('beforeunload', releaseStreams);
+})();

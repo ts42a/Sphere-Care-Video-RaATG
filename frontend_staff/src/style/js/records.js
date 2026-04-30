@@ -2,6 +2,7 @@ let records = [];
 let currentView = 'grid';
 let searchTimeout = null;
 let _tsTimers = [];
+const LOCAL_RECORDING_INDEX_KEY = "spherecare_local_recordings_index_v1";
 
 // CLOCK
 function tick(){
@@ -30,10 +31,74 @@ async function loadRecords(){
   if(cat)    p.set('category',cat);
   if(type)   p.set('record_type',type);
   try{
+    const merged = [];
+    const seenIds = new Set();
+
+    if (window.recordingVault?.vaultListRecordings) {
+      try {
+        const vaultRows = await window.recordingVault.vaultListRecordings();
+        vaultRows.forEach((row) => {
+          const id = String(row.id || "");
+          if (!id || seenIds.has(id)) return;
+          seenIds.add(id);
+          merged.push({
+            id,
+            resident_name: "This device",
+            category: row.cameraLabel || "Local camera recording",
+            record_type: "video",
+            duration: row.durationMs ? `${Math.max(1, Math.round(Number(row.durationMs) / 1000))}s` : "—",
+            notes: row.notes || "Encrypted local vault recording",
+            recorded_at: row.startedAt || row.createdAt || null,
+            created_at: row.createdAt || row.startedAt || null,
+            file_url: `localvault://${id}`,
+            is_local_vault: true,
+            vaultMeta: row,
+          });
+        });
+      } catch (_) {}
+    }
+
+    try {
+      const localIndexRaw = localStorage.getItem(LOCAL_RECORDING_INDEX_KEY);
+      const localIndex = localIndexRaw ? JSON.parse(localIndexRaw) : [];
+      if (Array.isArray(localIndex)) {
+        localIndex.forEach((row) => {
+          const id = String(row.id || "");
+          if (!id || seenIds.has(id)) return;
+          seenIds.add(id);
+          merged.push({
+            id,
+            resident_name: "This device",
+            category: row.cameraLabel || "Local camera recording",
+            record_type: "video",
+            duration: row.durationMs ? `${Math.max(1, Math.round(Number(row.durationMs) / 1000))}s` : "—",
+            notes: row.notes || "Encrypted local vault recording",
+            recorded_at: row.startedAt || row.createdAt || null,
+            created_at: row.createdAt || row.startedAt || null,
+            file_url: `localvault://${id}`,
+            is_local_vault: true,
+            vaultMeta: null,
+          });
+        });
+      }
+    } catch (_) {}
+
     const res=await fetch(`${API_BASE}/records/?${p}`,{headers:authHeaders()});
     if(!res.ok) throw new Error();
     const data=await res.json();
-    records=data;
+    data.forEach((row) => {
+      const id = String(row.id);
+      if (seenIds.has(id)) return;
+      seenIds.add(id);
+      merged.push(row);
+    });
+
+    merged.sort((a, b) => {
+      const aTs = Date.parse(a.created_at || a.recorded_at || 0) || 0;
+      const bTs = Date.parse(b.created_at || b.recorded_at || 0) || 0;
+      return bTs - aTs;
+    });
+    records=merged;
     showApiStatus(true);
   }catch(e){
     records=[];
@@ -58,13 +123,55 @@ async function loadCategories(){
 function debounceSearch(){clearTimeout(searchTimeout);searchTimeout=setTimeout(loadRecords,450);}
 
 // VIEW / DOWNLOAD
-function viewRecord(id){
-  const r=records.find(x=>x.id===id);
+async function resolveVaultRowById(localId){
+  if (!window.recordingVault?.vaultListRecordings) return null;
+  const rows = await window.recordingVault.vaultListRecordings();
+  return rows.find((x) => String(x.id) === String(localId)) || null;
+}
+
+async function openLocalVaultRecord(rec, forDownload){
+  if (!window.recordingVault?.vaultDecryptToArrayBuffer || !window.recordingVault?.vaultIsUnlocked?.()) {
+    alert('Vault is locked. Please unlock the vault first in Recording Console.');
+    return;
+  }
+  const localId = String(rec.id);
+  const vaultMeta = rec.vaultMeta || await resolveVaultRowById(localId);
+  if (!vaultMeta?.ivB64 || !vaultMeta?.cipherB64) {
+    alert('Encrypted payload not found for this local record.');
+    return;
+  }
+  const plain = await window.recordingVault.vaultDecryptToArrayBuffer(vaultMeta.ivB64, vaultMeta.cipherB64);
+  const blob = new Blob([plain], { type: vaultMeta.mimeType || "video/webm" });
+  const blobUrl = URL.createObjectURL(blob);
+  if (forDownload) {
+    const a=document.createElement('a');
+    a.href=blobUrl;
+    a.download=`${rec.category||'record'}_${rec.resident_name||'resident'}.webm`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 4000);
+    return;
+  }
+  window.open(blobUrl, '_blank');
+  setTimeout(() => URL.revokeObjectURL(blobUrl), 120000);
+}
+
+async function viewRecord(id){
+  const r=records.find(x=>String(x.id)===String(id));
+  if(!r) return;
+  if (String(r.file_url || '').startsWith('localvault://') || r.is_local_vault) {
+    await openLocalVaultRecord(r, false);
+    return;
+  }
   if(r?.file_url&&r.file_url!=='#') window.open(r.file_url,'_blank');
   else alert('No file URL available for this record.');
 }
-function downloadRecord(id){
-  const r=records.find(x=>x.id===id);
+async function downloadRecord(id){
+  const r=records.find(x=>String(x.id)===String(id));
+  if(!r) return;
+  if (String(r.file_url || '').startsWith('localvault://') || r.is_local_vault) {
+    await openLocalVaultRecord(r, true);
+    return;
+  }
   if(r?.file_url&&r.file_url!=='#'){
     const a=document.createElement('a');
     a.href=r.file_url;
@@ -104,21 +211,22 @@ function startTsTimers(){
 }
 
 function thumbHTML(r,i){
+  const idArg = JSON.stringify(r.id);
   const figs=['🚶','🧑','👴','👵','🧓','🧑‍🦯'];
   const f1=figs[i%figs.length], f2=figs[(i+3)%figs.length];
   const s1=7+i*1.5, s2=11+i*1.2;
   if(r.record_type==='document') return `
-    <div class="rec-thumb-doc" onclick="viewRecord(${r.id})">
+    <div class="rec-thumb-doc" onclick="viewRecord(${idArg})">
       <svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
       <div class="type-badge-abs rtb-document">document</div>
     </div>`;
   if(r.record_type==='audio') return `
-    <div class="rec-thumb-audio" onclick="viewRecord(${r.id})">
+    <div class="rec-thumb-audio" onclick="viewRecord(${idArg})">
       <svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
       <div class="type-badge-abs rtb-audio">audio</div>
     </div>`;
   return `
-    <div class="rec-thumb" onclick="viewRecord(${r.id})">
+    <div class="rec-thumb" onclick="viewRecord(${idArg})">
       <div class="cctv-bg"></div>
       <div class="cctv-grid-lines"></div>
       <div class="cctv-fig" style="animation-duration:${s1}s">${f1}</div>
@@ -140,10 +248,10 @@ function renderGrid(){
         <div class="rec-datetime">${r.recorded_at||r.created_at?.slice(0,10)||'—'}&nbsp;&nbsp;${r.recorded_time||r.created_at?.slice(11,16)||''}</div>
         <div class="rec-notes">${r.notes||'—'}</div>
         <div class="rec-actions-row">
-          <button class="ra-btn view" onclick="viewRecord(${r.id})">
+          <button class="ra-btn view" onclick='viewRecord(${JSON.stringify(r.id)})'>
             <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>View
           </button>
-          <button class="ra-btn dl" onclick="downloadRecord(${r.id})">
+          <button class="ra-btn dl" onclick='downloadRecord(${JSON.stringify(r.id)})'>
             <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Download
           </button>
         </div>
@@ -162,8 +270,8 @@ function renderList(){
       <td><div style="font-size:12.5px">${r.recorded_at||'—'}</div><div style="font-size:11px;color:var(--text3)">${r.recorded_time||''}</div></td>
       <td style="max-width:170px;font-size:12.5px;color:var(--text2)">${r.notes||'—'}</td>
       <td><div style="display:flex;gap:5px">
-        <button class="tbl-btn" title="View" onclick="viewRecord(${r.id})"><svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
-        <button class="tbl-btn dl" title="Download" onclick="downloadRecord(${r.id})"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>
+        <button class="tbl-btn" title="View" onclick='viewRecord(${JSON.stringify(r.id)})'><svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+        <button class="tbl-btn dl" title="Download" onclick='downloadRecord(${JSON.stringify(r.id)})'><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>
       </div></td>
     </tr>`).join('');
 }

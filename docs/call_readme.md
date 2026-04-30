@@ -1,5 +1,8 @@
 # Sphere Care — Video / Audio Calling
 
+> This file describes the current runnable behavior.
+> `docs/call.md` is the target architecture/design guide and may include future-state notes.
+
 ## Prerequisites
 
 Before calling works, a resident must have a linked mobile account.

@@ -26,7 +26,6 @@ class StaffUpdate(BaseModel):
 
 class StaffResponse(BaseModel):
     id: int
-    user_id: Optional[int] = None
     staff_code: str
     full_name: str
     role: str

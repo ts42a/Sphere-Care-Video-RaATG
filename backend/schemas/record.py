@@ -21,6 +21,28 @@ class RecordCreate(BaseModel):
     recorded_at: Optional[datetime] = None
 
 
+class VaultRecordingUploadIn(BaseModel):
+    record_id: str
+    resident_name: Optional[str] = "This device"
+    category: Optional[str] = "Local camera recording"
+    record_type: str = "video"
+    mime_type: Optional[str] = "video/webm"
+    duration: Optional[int] = None
+    started_at: Optional[datetime] = None
+    ended_at: Optional[datetime] = None
+    iv_b64: str
+    cipher_b64: str
+    notes: Optional[str] = "Encrypted local vault recording"
+    file_url: Optional[str] = None
+
+
+class VaultRecordingUploadOut(BaseModel):
+    ok: bool
+    record_id: int
+    file_path: str
+    file_url: str
+
+
 class RecordResponse(BaseModel):
     id: int
     resident_name: str

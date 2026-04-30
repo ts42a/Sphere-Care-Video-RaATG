@@ -102,7 +102,6 @@
     <div style="display:flex;gap:0;border-bottom:1.5px solid var(--border);padding:0 22px;">
       <button id="tab-team" onclick="switchNewTab('team')" style="background:none;border:none;border-bottom:2.5px solid #0f172a;padding:10px 16px;font-size:13px;font-weight:700;cursor:pointer;color:#0f172a;margin-bottom:-1.5px;">Team Chat</button>
       <button id="tab-resident" onclick="switchNewTab('resident')" style="background:none;border:none;border-bottom:2.5px solid transparent;padding:10px 16px;font-size:13px;font-weight:500;cursor:pointer;color:#94a3b8;margin-bottom:-1.5px;">Add Resident</button>
-      <button id="tab-staff" onclick="switchNewTab('staff')" style="background:none;border:none;border-bottom:2.5px solid transparent;padding:10px 16px;font-size:13px;font-weight:500;cursor:pointer;color:#94a3b8;margin-bottom:-1.5px;">Add Staff</button>
     </div>
     <!-- Team tab -->
     <div id="new-tab-team" class="mbody">
@@ -127,18 +126,6 @@
         onkeydown="if(event.key==='Enter')createConv()"/>
       <p style="font-size:11px;color:var(--text3);margin-top:4px;">Find this in <strong>Settings → Account</strong> on the mobile app.</p>
       <div id="new-modal-error" style="display:none;color:#ef4444;font-size:12px;margin-top:8px;padding:8px;background:#fee2e2;border-radius:8px;"></div>
-    </div>
-    <!-- Staff tab -->
-    <div id="new-tab-staff" class="mbody" style="display:none;text-align:center;">
-      <div style="font-size:32px;margin-bottom:12px;">👤</div>
-      <p style="font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:18px;">
-        Select a staff member to start a direct conversation.
-      </p>
-      <label class="flabel" style="text-align:left;display:block;letter-spacing:.8px;font-size:11px;">SELECT STAFF</label>
-      <select class="fsel" id="new-staff-code" style="width:100%;font-size:14px;">
-        <option value="">Loading staff…</option>
-      </select>
-      <div id="new-staff-error" style="display:none;color:#ef4444;font-size:12px;margin-top:8px;padding:8px;background:#fee2e2;border-radius:8px;"></div>
     </div>
     <div class="mfooter">
       <button class="btn btn-outline" onclick="closeModal('modal-new')">Cancel</button>

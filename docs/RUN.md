@@ -54,6 +54,18 @@ cd ..
 
 # 5. Start the Servers
 
+### Required backend `.env` for realtime calls (LiveKit)
+
+Create a `.env` file in the project root (same level as `backend/`) and add:
+
+```env
+LIVEKIT_URL=wss://your-project.livekit.cloud
+LIVEKIT_API_KEY=your_api_key
+LIVEKIT_API_SECRET=your_api_secret
+```
+
+Without these values, call invite/accept can work but media will not connect.
+
 ### Start Backend (Terminal 1)
 
 ```powershell
@@ -69,6 +81,14 @@ python -m uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000
 ```powershell
 cd frontend_client
 npx expo start --web --port 3000
+```
+
+Before starting Expo, ensure `frontend_client/.env` points to a real host (not placeholders):
+
+```env
+EXPO_PUBLIC_USE_MOCK_API=false
+EXPO_PUBLIC_API_BASE_URL=http://127.0.0.1:8000
+EXPO_PUBLIC_WS_BASE_URL=ws://127.0.0.1:8000
 ```
 
 - Mobile web app: http://localhost:3000

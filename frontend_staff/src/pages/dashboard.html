@@ -147,10 +147,16 @@
 
         <!-- ── LIVE MONITORING ── -->
         <div class="page-section" id="sec-monitoring">
-          <div class="placeholder-page">
-            <div class="placeholder-icon">📡</div>
-            <div class="placeholder-title">Live Monitoring</div>
-            <div class="placeholder-sub">Real-time resident monitoring and alerts.</div>
+          <div class="section-card">
+            <h3>Live Monitoring</h3>
+            <p class="section-sub">Per-camera controls for recording, pause, and auto record.</p>
+            <div class="monitoring-toolbar">
+              <button class="monitoring-refresh-btn" onclick="dashboardMonitoringRefresh()">Refresh Cameras</button>
+              <span id="monitoring-summary" class="monitoring-summary">Loading cameras...</span>
+            </div>
+            <div id="monitoring-cameras" class="monitoring-camera-grid">
+              <div class="monitoring-empty">Loading camera feeds...</div>
+            </div>
           </div>
         </div>
 
@@ -673,6 +679,7 @@
       <div class="col-4"><div class="card p-3 placeholder-glow" style="height:260px;"><span class="placeholder bg-secondary w-50 d-block mb-3" style="height:16px;border-radius:4px;"></span><span class="placeholder bg-secondary w-100 d-block mb-2" style="height:40px;border-radius:8px;"></span><span class="placeholder bg-secondary w-100 d-block mb-2" style="height:40px;border-radius:8px;"></span><span class="placeholder bg-secondary w-100 d-block" style="height:40px;border-radius:8px;"></span></div></div>
     </div>
   </div><script src="../style/js/script.js"></script>
+<script src="../style/js/recording_vault.js"></script>
 <script src="../style/js/dashboard.js"></script>
 <script src="../style/js/admin_console.js"></script>
 <script src="/components/sidebar.js"></script>

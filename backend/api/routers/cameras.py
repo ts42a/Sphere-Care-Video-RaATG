@@ -18,6 +18,7 @@ from typing import Optional
 from datetime import datetime
 
 from backend.api.deps import get_db
+from backend.api.rbac import resolve_staff_admin_scope_id
 from backend import models, schemas
 
 router = APIRouter(tags=["Recording Console"])
@@ -52,14 +53,21 @@ def _fmt_alert(a: models.CameraAlert) -> schemas.CameraAlertResponse:
 
 # CAMERAS
 @router.get("/stats", response_model=schemas.CameraStats)
-def get_camera_stats(db: Session = Depends(get_db)):
+def get_camera_stats(
+    admin_id: int = Depends(resolve_staff_admin_scope_id),
+    db: Session = Depends(get_db),
+):
     """Stat cards: total / online / active alerts / events today."""
-    total  = db.query(func.count(models.Camera.id)).scalar()
+    total  = db.query(func.count(models.Camera.id)).filter(models.Camera.admin_id == admin_id).scalar()
     online = db.query(func.count(models.Camera.id)).filter(
-                 models.Camera.status == "live").scalar()
+                 models.Camera.admin_id == admin_id,
+                 models.Camera.stream_status == "live",
+             ).scalar()
     alerts = db.query(func.count(models.CameraAlert.id)).filter(
+                 models.CameraAlert.admin_id == admin_id,
                  models.CameraAlert.resolved == False).scalar()
     events = db.query(func.count(models.CameraAlert.id)).filter(
+                 models.CameraAlert.admin_id == admin_id,
                  func.date(models.CameraAlert.created_at) == datetime.utcnow().date()
              ).scalar()
     return schemas.CameraStats(
@@ -74,26 +82,35 @@ def get_camera_stats(db: Session = Depends(get_db)):
 def get_cameras(
     floor:  Optional[str] = Query(None, description="e.g. Floor 1"),
     status: Optional[str] = Query(None, description="live | offline"),
+    admin_id: int = Depends(resolve_staff_admin_scope_id),
     db: Session = Depends(get_db),
 ):
     """Live View tab — returns all cameras with optional filters."""
-    q = db.query(models.Camera).order_by(models.Camera.id)
+    q = db.query(models.Camera).filter(models.Camera.admin_id == admin_id).order_by(models.Camera.id)
     if floor:  q = q.filter(models.Camera.floor  == floor)
     if status: q = q.filter(models.Camera.status == status)
     return [_fmt_camera(c) for c in q.all()]
 
 
 @router.get("/{camera_id}", response_model=schemas.CameraResponse)
-def get_camera(camera_id: int, db: Session = Depends(get_db)):
-    c = db.query(models.Camera).filter(models.Camera.id == camera_id).first()
+def get_camera(
+    camera_id: int,
+    admin_id: int = Depends(resolve_staff_admin_scope_id),
+    db: Session = Depends(get_db),
+):
+    c = db.query(models.Camera).filter(models.Camera.id == camera_id, models.Camera.admin_id == admin_id).first()
     if not c:
         raise HTTPException(status_code=404, detail="Camera not found.")
     return _fmt_camera(c)
 
 
 @router.post("/", response_model=schemas.CameraResponse, status_code=status.HTTP_201_CREATED)
-def add_camera(camera_in: schemas.CameraCreate, db: Session = Depends(get_db)):
-    camera = models.Camera(**camera_in.model_dump())
+def add_camera(
+    camera_in: schemas.CameraCreate,
+    admin_id: int = Depends(resolve_staff_admin_scope_id),
+    db: Session = Depends(get_db),
+):
+    camera = models.Camera(**camera_in.model_dump(), admin_id=admin_id)
     db.add(camera)
     db.commit()
     db.refresh(camera)
@@ -104,9 +121,10 @@ def add_camera(camera_in: schemas.CameraCreate, db: Session = Depends(get_db)):
 def update_camera_status(
     camera_id: int,
     payload: schemas.CameraStatusUpdate,
+    admin_id: int = Depends(resolve_staff_admin_scope_id),
     db: Session = Depends(get_db),
 ):
-    c = db.query(models.Camera).filter(models.Camera.id == camera_id).first()
+    c = db.query(models.Camera).filter(models.Camera.id == camera_id, models.Camera.admin_id == admin_id).first()
     if not c:
         raise HTTPException(status_code=404, detail="Camera not found.")
     if payload.status        is not None: c.status        = payload.status
@@ -123,9 +141,10 @@ def get_alerts(
     camera_id:  Optional[int]  = Query(None),
     resolved:   Optional[bool] = Query(None),
     limit: int = Query(50, ge=1, le=200),
+    admin_id: int = Depends(resolve_staff_admin_scope_id),
     db: Session = Depends(get_db),
 ):
-    q = db.query(models.CameraAlert).order_by(models.CameraAlert.created_at.desc())
+    q = db.query(models.CameraAlert).filter(models.CameraAlert.admin_id == admin_id).order_by(models.CameraAlert.created_at.desc())
     if alert_type is not None: q = q.filter(models.CameraAlert.alert_type == alert_type)
     if camera_id  is not None: q = q.filter(models.CameraAlert.camera_id  == camera_id)
     if resolved   is not None: q = q.filter(models.CameraAlert.resolved   == resolved)
@@ -133,8 +152,12 @@ def get_alerts(
 
 
 @router.post("/alerts/", response_model=schemas.CameraAlertResponse, status_code=status.HTTP_201_CREATED)
-def create_alert(alert_in: schemas.CameraAlertCreate, db: Session = Depends(get_db)):
-    alert = models.CameraAlert(**alert_in.model_dump())
+def create_alert(
+    alert_in: schemas.CameraAlertCreate,
+    admin_id: int = Depends(resolve_staff_admin_scope_id),
+    db: Session = Depends(get_db),
+):
+    alert = models.CameraAlert(**alert_in.model_dump(), admin_id=admin_id)
     db.add(alert)
     db.commit()
     db.refresh(alert)
@@ -142,8 +165,12 @@ def create_alert(alert_in: schemas.CameraAlertCreate, db: Session = Depends(get_
 
 
 @router.patch("/alerts/{alert_id}/resolve", response_model=schemas.CameraAlertResponse)
-def resolve_alert(alert_id: int, db: Session = Depends(get_db)):
-    alert = db.query(models.CameraAlert).filter(models.CameraAlert.id == alert_id).first()
+def resolve_alert(
+    alert_id: int,
+    admin_id: int = Depends(resolve_staff_admin_scope_id),
+    db: Session = Depends(get_db),
+):
+    alert = db.query(models.CameraAlert).filter(models.CameraAlert.id == alert_id, models.CameraAlert.admin_id == admin_id).first()
     if not alert:
         raise HTTPException(status_code=404, detail="Alert not found.")
     alert.resolved = True

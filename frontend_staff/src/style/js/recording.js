@@ -1,8 +1,10 @@
 // CONFIG
-let cameras = [], recordings = [], alertsData = [];
+let facilityCameras = [], cameras = [], recordings = [], alertsData = [];
 let alertFilterOn = false, filteredCameras = [];
 let isPlaying = false, progressInterval = null;
 let activeHls = null; // holds the HLS instance when real stream is playing
+let modalPlaybackIndex = -1;
+const localCamStreams = new Map(); // deviceId -> MediaStream
 
 function authHeaders(){
   const h = {'Content-Type':'application/json'};
@@ -11,32 +13,91 @@ function authHeaders(){
   return h;
 }
 
+function mergeCameras() {
+  const localCards = [];
+  let idx = 0;
+  localCamStreams.forEach((stream, deviceId) => {
+    const track = stream.getVideoTracks()[0];
+    localCards.push({
+      id: `local:${deviceId}`,
+      source: 'local',
+      deviceId,
+      localPreviewStream: stream,
+      title: track?.label || `Local Camera ${idx + 1}`,
+      resident: 'This device',
+      floor: 'Local',
+      status: 'live',
+      alert: 'fine',
+      desc: 'Browser camera input',
+      streamUrl: null,
+    });
+    idx++;
+  });
+  cameras = [...localCards, ...facilityCameras.map((c) => ({ ...c, source: 'facility' }))];
+  filteredCameras = applyFilters(cameras);
+  renderCameras();
+}
+
 // API — CAMERAS (Live View)
-async function loadCameras(){
+async function loadFacilityCameras(){
   try {
     const res = await fetch(`${API_BASE}/cameras/`, {headers: authHeaders()});
     if(!res.ok) throw new Error(res.status);
     const data = await res.json();
-    const mapped = data.map(c => ({
+    facilityCameras = data.map(c => ({
       id:        c.id,
       title:     c.title,
       resident:  c.resident_name || 'Common Area',
       floor:     c.floor || '',
-      status:    c.status,
-      alert:     c.alert,
+      status:    (c.stream_status || c.status || 'offline') === 'live' ? 'live' : 'offline',
+      alert:     c.alert || 'fine',
       desc:      c.description || '',
       streamUrl: c.stream_url || null,
     }));
-    cameras = mapped;
     showApiStatus(true);
   } catch(e){
-    console.warn('API unavailable, using demo cameras');
-    cameras = [];
+    console.warn('API unavailable, camera API list failed');
+    facilityCameras = [];
     showGridError('camera-grid', 'cameras');
     showApiStatus(false);
   }
-  filteredCameras = applyFilters(cameras);
-  renderCameras();
+  mergeCameras();
+}
+
+async function loadLocalCameras() {
+  if (!navigator.mediaDevices?.getUserMedia) {
+    mergeCameras();
+    return;
+  }
+  for (const s of localCamStreams.values()) {
+    s.getTracks().forEach((t) => t.stop());
+  }
+  localCamStreams.clear();
+  try {
+    // trigger permission prompt and unlock device labels
+    const temp = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+    temp.getTracks().forEach((t) => t.stop());
+  } catch (_) {
+    // continue; user may still have some accessible devices
+  }
+  try {
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const cams = devices.filter((d) => d.kind === 'videoinput');
+    for (const cam of cams) {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { deviceId: cam.deviceId ? { exact: cam.deviceId } : undefined },
+          audio: false,
+        });
+        localCamStreams.set(cam.deviceId || `cam_${localCamStreams.size + 1}`, stream);
+      } catch (_) {
+        // one specific camera failed; continue with others
+      }
+    }
+  } catch (e) {
+    console.warn('Local camera enumerate failed', e);
+  }
+  mergeCameras();
 }
 
 // API — STATS (Stat Cards)
@@ -132,10 +193,11 @@ function renderCameras(){
     grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text3);font-weight:600;">No cameras match the current filter.</div>';
     return;
   }
-  grid.innerHTML = filteredCameras.map(c => {
+  grid.innerHTML = filteredCameras.map((c, idx) => {
     const isAlert   = c.alert === 'critical';
     const isOffline = c.status === 'offline';
-    const emojis    = EMOJI_SETS[(c.id - 1) % EMOJI_SETS.length];
+    const emojiIdx  = (typeof c.id === 'number' ? (c.id - 1) : idx) % EMOJI_SETS.length;
+    const emojis    = EMOJI_SETS[Math.max(0, emojiIdx)];
     const people    = emojis.map((e,i) =>
       `<div class="${i===0?'cctv-person':'cctv-person2'}" style="animation-duration:${6+i*3}s">${e}</div>`
     ).join('');
@@ -160,8 +222,29 @@ function renderCameras(){
              : '<div class="cam-fine-label">LIVE</div>'}
          </div>`;
 
+    const idArg = JSON.stringify(c.id);
+    if (c.source === 'local') {
+      return `<div class="cam-card cam-card-local fine" data-cam-id='${idArg}' onclick="openCamera(${idArg})">
+      <div class="cam-video">
+        <video class="cam-feed" data-local-device="${encodeURIComponent(c.deviceId)}" autoplay muted playsinline style="width:100%;height:100%;object-fit:cover;background:#0a1628;"></video>
+      </div>
+      <div class="cam-info">
+        <div class="cam-title">${c.title}</div>
+        <div class="cam-resident">👤 ${c.resident}</div>
+        ${c.desc ? `<div class="cam-desc">${c.desc}</div>` : ''}
+        <div class="cam-footer">
+          <span class="cam-status-dot"><div class="dot-live"></div> Live</span>
+          <div class="cam-actions">
+            <button class="cam-btn" title="Fullscreen" onclick="event.stopPropagation();openCamera(${idArg})">
+              <svg viewBox="0 0 24 24"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+    }
     return `<div class="cam-card ${isAlert?'critical':c.alert==='fine'?'fine':''} ${isOffline?'offline':''}"
-                 onclick="openCamera(${c.id})">
+                 onclick="openCamera(${idArg})">
       <div class="cam-video">${feed}</div>
       <div class="cam-info">
         <div class="cam-title">${c.title}</div>
@@ -172,7 +255,7 @@ function renderCameras(){
             ${isOffline ? '<div class="dot-offline"></div> Offline' : '<div class="dot-live"></div> Live'}
           </span>
           <div class="cam-actions">
-            <button class="cam-btn" title="Fullscreen" onclick="event.stopPropagation();openCamera(${c.id})">
+            <button class="cam-btn" title="Fullscreen" onclick="event.stopPropagation();openCamera(${idArg})">
               <svg viewBox="0 0 24 24"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
             </button>
             <button class="cam-btn" title="Snapshot" onclick="event.stopPropagation()">
@@ -183,6 +266,13 @@ function renderCameras(){
       </div>
     </div>`;
   }).join('');
+
+  grid.querySelectorAll('video.cam-feed[data-local-device]').forEach((v) => {
+    const raw = v.getAttribute('data-local-device');
+    const did = raw ? decodeURIComponent(raw) : '';
+    const stream = localCamStreams.get(did);
+    if (stream) v.srcObject = stream;
+  });
 }
 
 // RENDER — PLAYBACK
@@ -313,7 +403,17 @@ function openCamera(id){
 
   const screenEl = document.querySelector('.vm-screen-inner');
 
-  if(cam.streamUrl){
+  if (cam.source === 'local' && cam.localPreviewStream) {
+    const video = document.createElement('video');
+    video.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;background:#0a1628;';
+    video.autoplay = true;
+    video.muted = true;
+    video.playsInline = true;
+    video.srcObject = cam.localPreviewStream;
+    screenEl.innerHTML = '';
+    screenEl.appendChild(video);
+    window._modalVideo = video;
+  } else if(cam.streamUrl){
     // ── REAL HLS STREAM ──
     // Requires HLS.js in <head>: cdn.jsdelivr.net/npm/hls.js@latest
     // Your backend must serve FFmpeg → HLS:
@@ -337,7 +437,8 @@ function openCamera(id){
     }
   } else {
     // ── SIMULATED CCTV (no stream_url yet) ──
-    const emojis = EMOJI_SETS[(id - 1) % EMOJI_SETS.length];
+    const idx = cameras.findIndex((x) => x.id === id);
+    const emojis = EMOJI_SETS[(idx >= 0 ? idx : 0) % EMOJI_SETS.length];
     const people = emojis.map((e,i) =>
       `<div class="${i===0?'cctv-person':'cctv-person2'}" style="font-size:42px;animation-duration:${6+i*3}s">${e}</div>`
     ).join('');
@@ -361,12 +462,14 @@ function openCamera(id){
 
   document.getElementById('modal-video').classList.add('open');
   document.body.style.overflow = 'hidden';
+  modalPlaybackIndex = -1;
 }
 
 // VIDEO MODAL — PLAYBACK (from Records API)
 function openPlayback(id){
   const rec = recordings.find(r => r.id === id);
   if(!rec) return;
+  modalPlaybackIndex = recordings.findIndex((r) => r.id === id);
 
   if(activeHls){ activeHls.destroy(); activeHls = null; }
   clearInterval(window._modalTick);
@@ -401,22 +504,13 @@ function openPlayback(id){
     document.getElementById('vm-progress').dataset.videoEl = 'true';
     window._modalVideo = video;
   } else {
-    // ── SIMULATED PLAYBACK FEED ──
+    // no file available for this playback card
     window._modalVideo = null;
-    const emojis = EMOJI_SETS[(id - 1) % EMOJI_SETS.length];
-    const people = emojis.map((e,i) =>
-      `<div class="${i===0?'cctv-person':'cctv-person2'}" style="font-size:42px;animation-duration:${6+i*3}s;animation-play-state:paused" class="sim-person">${e}</div>`
-    ).join('');
     screenEl.innerHTML = `
-      <div class="cctv-sim" style="width:100%;height:100%">
-        <div class="cctv-bg" style="width:100%;height:100%"></div>
-        ${people}
-        <div class="cctv-scanline"></div>
-        <div class="cctv-noise"></div>
-        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">
-          <div style="width:60px;height:60px;background:rgba(46,196,182,0.2);border-radius:50%;border:2px solid rgba(46,196,182,0.5);display:flex;align-items:center;justify-content:center;">
-            <svg viewBox="0 0 24 24" style="width:24px;height:24px;fill:#2ec4b6;stroke:none"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-          </div>
+      <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#0b1220;color:#94a3b8;">
+        <div style="text-align:center;">
+          <div style="font-size:14px;font-weight:700;margin-bottom:6px;">No playback source</div>
+          <div style="font-size:12px;">This record does not have a playable URL.</div>
         </div>
       </div>`;
   }
@@ -513,13 +607,38 @@ document.getElementById('alerts-topbtn').addEventListener('click', () => {
   switchTab('alerts', document.querySelectorAll('.page-tab')[2]);
 });
 
+document.getElementById('vm-prev-btn')?.addEventListener('click', () => {
+  if (modalPlaybackIndex <= 0) return;
+  openPlayback(recordings[modalPlaybackIndex - 1].id);
+});
+document.getElementById('vm-next-btn')?.addEventListener('click', () => {
+  if (modalPlaybackIndex < 0 || modalPlaybackIndex >= recordings.length - 1) return;
+  openPlayback(recordings[modalPlaybackIndex + 1].id);
+});
+document.getElementById('vm-fullscreen-btn')?.addEventListener('click', () => {
+  const el = document.getElementById('vm-screen');
+  if (!el) return;
+  if (document.fullscreenElement) document.exitFullscreen?.();
+  else el.requestFullscreen?.();
+});
+
+window.addEventListener('beforeunload', () => {
+  for (const stream of localCamStreams.values()) {
+    stream.getTracks().forEach((t) => t.stop());
+  }
+});
+
 function showGridError(elId, type){
   const el = document.getElementById(elId);
   if(el) el.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--red);font-size:13px;font-weight:600;">⚠ Unable to load ${type}. Please check your connection.</div>`;
 }
 
 // INIT
-loadStats();
-loadCameras();
-loadPlayback();
-loadAlerts();
+async function initRecordingConsole() {
+  await loadLocalCameras();
+  await loadFacilityCameras();
+  loadStats();
+  loadPlayback();
+  loadAlerts();
+}
+initRecordingConsole();

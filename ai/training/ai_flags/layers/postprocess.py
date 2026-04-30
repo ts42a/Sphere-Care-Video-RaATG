@@ -2,9 +2,16 @@ from __future__ import annotations
 
 from collections import defaultdict
 from dataclasses import dataclass
+import json
+import os
 from typing import Callable, Dict, List, Sequence
 
 from .types import TriagedEvent
+
+try:
+    from ai.llm.client import chat_once as _chat_once
+except Exception:  # pragma: no cover - optional dependency bridge
+    _chat_once = None  # type: ignore[assignment]
 
 
 @dataclass
@@ -91,7 +98,7 @@ class IncidentStateMachine:
 
 class LLMIncidentNarrative:
     @staticmethod
-    def generate(incidents: Sequence[Dict[str, object]]) -> str:
+    def _fallback(incidents: Sequence[Dict[str, object]]) -> str:
         if not incidents:
             return "No confirmed incident was found."
         parts = []
@@ -105,16 +112,80 @@ class LLMIncidentNarrative:
             )
         return " ".join(parts)
 
+    @staticmethod
+    def _use_llm(mode: str) -> bool:
+        enabled = os.getenv("AI_FLAGS_USE_LLM", "false").strip().lower() in {"1", "true", "yes", "on"}
+        llm_mode = os.getenv("AI_FLAGS_LLM_MODE", "both").strip().lower()
+        return bool(enabled and _chat_once is not None and llm_mode in {"both", mode})
+
+    @staticmethod
+    def _extract_json_object(raw: str) -> Dict[str, object]:
+        payload = raw.strip()
+        start = payload.find("{")
+        end = payload.rfind("}")
+        if start == -1 or end == -1 or end <= start:
+            raise ValueError("No JSON object found in model output.")
+        obj = json.loads(payload[start : end + 1])
+        if not isinstance(obj, dict):
+            raise ValueError("Model output JSON must be an object.")
+        return obj
+
+    @staticmethod
+    def generate(incidents: Sequence[Dict[str, object]]) -> str:
+        fallback = LLMIncidentNarrative._fallback(incidents)
+        if not LLMIncidentNarrative._use_llm("incident"):
+            return fallback
+
+        prompt = (
+            "You are a safety-report narrator. Use facts only; do not invent details. "
+            "Return one JSON object with keys: title, summary, body.\n\n"
+            f"INCIDENT_FACTS={json.dumps(list(incidents), ensure_ascii=True)}"
+        )
+        try:
+            raw = _chat_once(prompt, system_prompt="Output strict JSON only.")  # type: ignore[misc]
+            parsed = LLMIncidentNarrative._extract_json_object(raw)
+            summary = str(parsed.get("summary", "")).strip()
+            body = str(parsed.get("body", "")).strip()
+            if summary and body:
+                return f"{summary} {body}".strip()
+            if summary:
+                return summary
+        except Exception:
+            return fallback
+        return fallback
+
 
 class LLMGeneralSummary:
     @staticmethod
     def generate(chunk_summaries: Sequence[Dict[str, object]]) -> str:
-        general_summary = "No confirmed incident. "
+        fallback = "No confirmed incident. "
         if chunk_summaries:
-            general_summary += " ".join(str(c["summary"]) for c in chunk_summaries)
+            fallback += " ".join(str(c["summary"]) for c in chunk_summaries)
         else:
-            general_summary += "No notable candidate activity in sampled frames."
-        return general_summary
+            fallback += "No notable candidate activity in sampled frames."
+
+        enabled = os.getenv("AI_FLAGS_USE_LLM", "false").strip().lower() in {"1", "true", "yes", "on"}
+        llm_mode = os.getenv("AI_FLAGS_LLM_MODE", "both").strip().lower()
+        if not enabled or _chat_once is None or llm_mode not in {"both", "observation"}:
+            return fallback
+
+        prompt = (
+            "You are a conservative reviewer. Keep wording neutral and non-alarmist. "
+            "Return one JSON object with keys: summary, notes.\n\n"
+            f"OBSERVATION_CHUNKS={json.dumps(list(chunk_summaries), ensure_ascii=True)}"
+        )
+        try:
+            raw = _chat_once(prompt, system_prompt="Output strict JSON only.")  # type: ignore[misc]
+            parsed = LLMIncidentNarrative._extract_json_object(raw)
+            summary = str(parsed.get("summary", "")).strip()
+            notes = str(parsed.get("notes", "")).strip()
+            if summary and notes:
+                return f"{summary} {notes}".strip()
+            if summary:
+                return summary
+        except Exception:
+            return fallback
+        return fallback
 
 
 class AlphaPathProcessor:

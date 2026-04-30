@@ -47,6 +47,13 @@ EXPO_PUBLIC_API_BASE_URL=http://YOUR_BACKEND_HOST:8000/api/v1
 EXPO_PUBLIC_WS_BASE_URL=ws://YOUR_BACKEND_HOST:8000
 ```
 
+`EXPO_PUBLIC_API_BASE_URL` can be either:
+- `http://HOST:8000`
+- `http://HOST:8000/api/v1`
+
+`EXPO_PUBLIC_WS_BASE_URL` should be host + port only (`ws://HOST:8000`).  
+The app appends `/ws` automatically.
+
 ### Example for Android emulator
 
 ```env

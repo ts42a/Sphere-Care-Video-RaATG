@@ -63,37 +63,8 @@ async function loadConvs() {
     if (!r.ok) throw new Error();
     var d = await r.json();
     if (d.length) {
-      var myId = _getMyUserId();
-      var myUser = JSON.parse(sessionStorage.getItem('user') || '{}');
-      var myRole = myUser.global_role === 'admin' ? 'admin' : 'user';
-      var myName = myUser.full_name || '';
-
       allConvs = d.map(function (c) {
-        var name = c.name;
-        var participants = c.participants || [];
-
-        // For team/direct conversations with exactly 2 participants,
-        // show the OTHER person's name (like WhatsApp)
-        if (c.category === 'team' && participants.length === 2) {
-          var other = participants.find(function(p) {
-            return !(String(p.user_id) === String(myId) && (p.participant_type || 'user') === myRole);
-          });
-          if (other && other.display_name) name = other.display_name;
-        }
-
-        return {
-          id: c.id,
-          name: name,
-          original_name: c.name,
-          category: c.category,
-          last_message: c.last_message || '',
-          last_message_at: c.last_message_at || '',
-          unread_count: c.unread_count || 0,
-          sub: catLabel(c.category),
-          color: convClr(c.id, c.category),
-          online: false,
-          participants: participants
-        };
+        return { id: c.id, name: c.name, category: c.category, last_message: c.last_message || '', last_message_at: c.last_message_at || '', unread_count: c.unread_count || 0, sub: catLabel(c.category), color: convClr(c.id, c.category), online: false };
       });
       demo = false;
     } else throw new Error();
@@ -266,13 +237,6 @@ function renderMsgs(msgs, hl) {
   var html = pinnedHtml + '<div class="date-div">Today</div>';
 
   msgs.forEach(function (m, i) {
-    // Call summary bubble
-    if (m.isCallSummary) {
-      html += '<div style="text-align:center;margin:8px 0;">' +
-        '<span style="display:inline-block;background:#f0fdfa;color:#0f766e;border:1px solid #99f6e4;border-radius:20px;padding:4px 14px;font-size:12px;font-weight:600;">' +
-        esc(m.content) + '</span></div>';
-      return;
-    }
     if (deletedMsgs[m.id]) {
       html += '<div class="msg-row' + (m.is_self === true || m.is_self === 'true' ? ' self' : '') + '">' +
         '<div class="bubble-deleted">🚫 Message deleted</div></div>';
@@ -463,178 +427,14 @@ async function deleteConv() {
 function openNewModal() {
   var f = document.getElementById('new-account-id');
   if (f) f.value = '';
-  var fn = document.getElementById('new-name');
-  if (fn) fn.value = '';
   var err = document.getElementById('new-modal-error');
   if (err) { err.textContent=''; err.style.display='none'; }
-  var err2 = document.getElementById('new-team-error');
-  if (err2) { err2.textContent=''; err2.style.display='none'; }
-  // Reset submit button label based on active tab
-  var btn = document.getElementById('new-modal-submit');
-  if (btn) btn.textContent = 'Create';
-  switchNewTab('team');
   document.getElementById('modal-new').classList.add('open');
+  setTimeout(function () { var f2 = document.getElementById('new-account-id'); if(f2) f2.focus(); }, 80);
 }
-
-function switchNewTab(tab) {
-  var tabs = ['team', 'resident', 'staff'];
-  tabs.forEach(function(t) {
-    var btn = document.getElementById('tab-' + t);
-    var body = document.getElementById('new-tab-' + t);
-    var active = t === tab;
-    if (btn) {
-      btn.style.borderBottomColor = active ? '#0f172a' : 'transparent';
-      btn.style.color = active ? '#0f172a' : '#94a3b8';
-      btn.style.fontWeight = active ? '700' : '500';
-    }
-    if (body) body.style.display = active ? 'block' : 'none';
-  });
-  var btn = document.getElementById('new-modal-submit');
-  if (btn) btn.textContent = tab === 'resident' ? 'Send Invitation' : 'Create';
-
-  // Load staff list when switching to staff tab
-  if (tab === 'staff') {
-    var sel = document.getElementById('new-staff-code');
-    if (sel && sel.options.length <= 1) {
-      fetch(API_BASE + '/staff/', { headers: authH() })
-        .then(function(r){ return r.json(); })
-        .then(function(list) {
-          sel.innerHTML = '<option value="">— Select staff member —</option>';
-          var myId = _getMyUserId();
-          list.forEach(function(s) {
-            if (!s.user_id || String(s.user_id) === String(myId)) return;
-            var opt = document.createElement('option');
-            opt.value = s.user_id + '|' + s.full_name + '|user';
-            opt.textContent = s.full_name + (s.role ? ' · ' + s.role : '');
-            sel.appendChild(opt);
-          });
-          if (sel.options.length <= 1) sel.innerHTML = '<option value="">No staff available</option>';
-        })
-        .catch(function(){ sel.innerHTML = '<option value="">Failed to load staff</option>'; });
-    }
-  }
-}
-
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 
 async function createConv() {
-  var residentBody = document.getElementById('new-tab-resident');
-  var staffBody = document.getElementById('new-tab-staff');
-  var isResidentTab = residentBody && residentBody.style.display !== 'none';
-  var isStaffTab = staffBody && staffBody.style.display !== 'none';
-
-  if (isResidentTab) {
-    await _createResidentConv();
-  } else if (isStaffTab) {
-    await _createStaffConv();
-  } else {
-    await _createTeamConv();
-  }
-}
-
-async function _createStaffConv() {
-  var sel = document.getElementById('new-staff-code');
-  var staffValue = sel ? sel.value : '';
-  var errEl = document.getElementById('new-staff-error');
-
-  if (!staffValue) {
-    if (errEl) { errEl.textContent = 'Please select a staff member.'; errEl.style.display='block'; }
-    return;
-  }
-
-  var btn = document.getElementById('new-modal-submit');
-  if (btn) { btn.textContent = 'Creating…'; btn.disabled = true; }
-
-  try {
-    var parts = staffValue.split('|');
-    var staffUserId = parseInt(parts[0], 10);
-    var staffName = parts[1] || 'Staff';
-    var staffParticipantType = parts[2] || 'user';
-
-    var myUser = JSON.parse(sessionStorage.getItem('user') || '{}');
-    var myId = _getMyUserId();
-    var myRole = myUser.global_role || 'admin';
-    var myType = myRole === 'admin' ? 'admin' : 'user';
-    var myName = myUser.full_name || 'Me';
-
-    var convName = staffName;
-    var r = await fetch(API_BASE + '/messages/conversations', {
-      method: 'POST', headers: authH(),
-      body: JSON.stringify({
-        name: convName,
-        category: 'team',
-        participants: [
-          { user_id: myId, participant_type: myType, display_name: myName, role: myRole },
-          { user_id: staffUserId, participant_type: staffParticipantType, display_name: staffName, role: 'staff' }
-        ]
-      })
-    });
-    if (!r.ok) {
-      if (errEl) { errEl.textContent = 'Failed to create conversation.'; errEl.style.display='block'; }
-      if (btn) { btn.textContent = 'Create'; btn.disabled = false; }
-      return;
-    }
-    var cd = await r.json();
-    var c = { id: cd.id, name: cd.name || convName, category: 'team',
-      last_message: '', last_message_at: 'Just now',
-      unread_count: 0, sub: 'Staff',
-      color: convClr(cd.id, 'team'), online: false,
-      participants: cd.participants || [],
-      callee_user_id: staffUserId };
-    allConvs.unshift(c);
-    localMsgs[cd.id] = [];
-    filterConvs();
-    closeModal('modal-new');
-    openConv(cd.id);
-  } catch(e) {
-    if (errEl) { errEl.textContent = 'Network error. Please try again.'; errEl.style.display='block'; }
-    if (btn) { btn.textContent = 'Create'; btn.disabled = false; }
-  }
-}
-
-async function _createTeamConv() {
-  var nameInput = document.getElementById('new-name');
-  var catSelect = document.getElementById('new-cat');
-  var name = (nameInput ? nameInput.value : '').trim();
-  var category = catSelect ? catSelect.value : 'team';
-  var errEl = document.getElementById('new-team-error');
-
-  if (!name) {
-    if (errEl) { errEl.textContent = 'Please enter a conversation name.'; errEl.style.display='block'; }
-    return;
-  }
-
-  var btn = document.getElementById('new-modal-submit');
-  if (btn) { btn.textContent = 'Creating…'; btn.disabled = true; }
-
-  try {
-    var r = await fetch(API_BASE + '/messages/conversations', {
-      method: 'POST', headers: authH(),
-      body: JSON.stringify({ name: name, category: category })
-    });
-    if (!r.ok) {
-      var d = await r.json().catch(function(){ return {}; });
-      if (errEl) { errEl.textContent = (d.detail && d.detail.msg) || d.detail || 'Failed to create conversation.'; errEl.style.display='block'; }
-      if (btn) { btn.textContent = 'Create'; btn.disabled = false; }
-      return;
-    }
-    var cd = await r.json();
-    var c = { id: cd.id, name: cd.name || name, category: cd.category || category,
-      last_message: '', last_message_at: 'Just now',
-      unread_count: 0, sub: catLabel(category),
-      color: convClr(cd.id, category), online: false, participants: cd.participants || [] };
-    allConvs.unshift(c);
-    localMsgs[cd.id] = [];
-    filterConvs();
-    closeModal('modal-new');
-    openConv(cd.id);
-  } catch(e) {
-    if (errEl) { errEl.textContent = 'Network error. Please try again.'; errEl.style.display='block'; }
-    if (btn) { btn.textContent = 'Create'; btn.disabled = false; }
-  }
-}
-
-async function _createResidentConv() {
   var accountId = (document.getElementById('new-account-id') || {}).value;
   accountId = (accountId || '').trim().toUpperCase();
   var errEl = document.getElementById('new-modal-error');
@@ -645,12 +445,14 @@ async function _createResidentConv() {
   var btn = document.getElementById('new-modal-submit');
   if (btn) { btn.textContent = 'Sending…'; btn.disabled = true; }
   try {
+    // Send invitation — same API as residents page
     var invRes = await fetch(API_BASE + '/center-membership/admin/invite', {
       method: 'POST', headers: authH(),
       body: JSON.stringify({ account_id: accountId })
     });
     var invData = await invRes.json();
 
+    // Extract error message from detail object or string
     if (!invRes.ok) {
       var errMsg = 'Invalid Account ID.';
       if (invData) {
@@ -663,7 +465,10 @@ async function _createResidentConv() {
       return;
     }
 
+    // Get client name from response
     var clientName = invData.user_full_name || accountId;
+
+    // Create conversation for this resident
     var newId = Date.now();
     var convName = 'Resident Care: ' + clientName;
     try {
@@ -671,13 +476,13 @@ async function _createResidentConv() {
         method: 'POST', headers: authH(),
         body: JSON.stringify({ name: convName, category: 'resident' })
       });
-      if (convRes.ok) { var cd2 = await convRes.json(); newId = cd2.id; }
+      if (convRes.ok) { var cd = await convRes.json(); newId = cd.id; }
     } catch(e) {}
 
     var c = { id: newId, name: convName, category: 'resident',
       last_message: 'Invitation sent', last_message_at: 'Just now',
       unread_count: 0, sub: 'Resident Care',
-      color: CAT_CLR.resident, online: false, participants: [] };
+      color: CAT_CLR.resident, online: false };
     allConvs.unshift(c);
     localMsgs[newId] = [];
     filterConvs();
@@ -759,6 +564,7 @@ var ASL_STATIC_CONF   = 0.70;
 var ASL_MOTION_CONF   = 0.76;
 var ASL_MOTION_SEQLEN = 10;
 var _aslMotionSeq     = [];
+var SHOW_ASL_LANDMARKS = false;
 
 function _L2_aiPipeline(stream) {
   // Only run for video calls with a real stream
@@ -1017,8 +823,8 @@ async function _aslDetectFrame() {
       _aslHoldLetter = '';
     }
 
-    // Draw landmarks on video canvas if returned
-    if (data.landmarks && data.landmarks.length) {
+    // Optional debug overlay for hand landmarks.
+    if (SHOW_ASL_LANDMARKS && data.landmarks && data.landmarks.length) {
       _aslDrawLandmarks(data.landmarks, video.videoWidth, video.videoHeight);
     }
 
@@ -1068,12 +874,11 @@ async function _initiateCall(type) {
   if (_call.active || _outgoingCallId) return;
   _pendingCallKind = type;
 
-  // Resolve callee_user_id
+  // Resolve callee_user_id from resident's client_user_id
   var calleeUserId = null;
   var conv = allConvs.find(function(c){ return c.id === currentId; });
 
   try {
-    // Resident Care conversation — look up resident.client_user_id
     if (conv && conv.name && conv.name.startsWith('Resident Care: ')) {
       var residentName = conv.name.replace('Resident Care: ', '').trim();
       var rr = await fetch(API_BASE + '/residents/', { headers: authH() });
@@ -1091,20 +896,17 @@ async function _initiateCall(type) {
         }
       }
     }
-
-    // Team/direct conversation — use participants already loaded in allConvs
-    if (!calleeUserId && conv && conv.participants && conv.participants.length) {
+    // Team/staff conversation — try members endpoint
+    if (!calleeUserId) {
       var myId = _getMyUserId();
-      var myRole = (JSON.parse(sessionStorage.getItem('user') || '{}').global_role === 'admin') ? 'admin' : 'user';
-      var other = conv.participants.find(function(p) {
-        return !(String(p.user_id) === String(myId) && (p.participant_type || 'user') === myRole);
-      });
-      if (other) calleeUserId = other.user_id;
-    }
-
-    // Fallback: staff conv created with explicit callee_user_id
-    if (!calleeUserId && conv && conv.callee_user_id) {
-      calleeUserId = conv.callee_user_id;
+      var mr = await fetch(API_BASE + '/messages/conversations/' + currentId + '/members', { headers: authH() });
+      if (mr.ok) {
+        var members = await mr.json();
+        var other = members.find(function(m) {
+          return String(m.user_id || m.id) !== String(myId);
+        });
+        if (other) calleeUserId = other.user_id || other.id;
+      }
     }
   } catch(e) {}
 
@@ -1283,14 +1085,11 @@ function callToggleSpeaker() {
 
 async function endCall() {
   var cid = _activeCallId;
-  var duration = _call.seconds;
-  var convId = currentId;
   _activeCallId = null;
   if (cid) {
     try { await fetch(API_BASE + '/calls/' + cid + '/end', { method: 'POST', headers: authH() }); } catch(e) {}
   }
   _teardownCallMedia();
-  _showCallSummary(duration, convId);
 }
 
 // ════════════════════════════════════════════════════
@@ -1825,31 +1624,8 @@ async function _declineCall(callId) {
 }
 
 function _endActiveCall() {
-  var duration = _call.seconds;
-  var convId = currentId;
   _activeCallId = null;
   _teardownCallMedia();
-  _showCallSummary(duration, convId);
-}
-
-function _showCallSummary(seconds, convId) {
-  var cid = convId || currentId;
-  if (!cid) return;
-  var m = Math.floor(seconds / 60), s = seconds % 60;
-  var durStr = seconds < 5 ? 'Missed' : (seconds < 60 ? seconds + 's' : m + ':' + (s < 10 ? '0' : '') + s);
-  var summary = {
-    id: Date.now(),
-    conversation_id: cid,
-    sender_name: '',
-    sender_role: '',
-    content: '📞 Call ended · ' + durStr,
-    is_self: false,
-    created_at: new Date().toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit' }),
-    isCallSummary: true
-  };
-  if (!localMsgs[cid]) localMsgs[cid] = [];
-  localMsgs[cid].push(summary);
-  if (cid === currentId) renderMsgs(localMsgs[cid]);
 }
 
 function _teardownCallMedia() {
