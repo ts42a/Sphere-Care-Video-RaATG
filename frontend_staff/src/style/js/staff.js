@@ -216,6 +216,21 @@ async function loadStats() {
 }
 
 // ── RENDER TABLE ──
+function _calcShiftHours(s) {
+  try {
+    var from = s.shift_start || _parseTimeTo24((s.shift_time||'').split(/[–-]/)[0].trim());
+    var to   = s.shift_end   || _parseTimeTo24((s.shift_time||'').split(/[–-]/)[1] ? (s.shift_time||'').split(/[–-]/)[1].trim() : '');
+    if (!from || !to) return '';
+    var fParts = from.split(':'), tParts = to.split(':');
+    var fMins  = parseInt(fParts[0],10)*60 + parseInt(fParts[1]||0,10);
+    var tMins  = parseInt(tParts[0],10)*60 + parseInt(tParts[1]||0,10);
+    if (tMins <= fMins) tMins += 24*60; // overnight shift
+    var diff = (tMins - fMins) / 60;
+    var h = Math.floor(diff), m = Math.round((diff - h)*60);
+    return m > 0 ? h+'h '+m+'m' : h+' hour'+(h!==1?'s':'');
+  } catch(_) { return ''; }
+}
+
 function renderTable() {
   const tbody = document.getElementById('staff-tbody');
   const countEl = document.getElementById('staff-count');
@@ -247,8 +262,7 @@ function renderTable() {
           <div class="staff-id">ID: ${s.staff_id} · ${s.role || 'Staff'}</div>
         </td>
         <td>
-          <div class="shift-main">${s.shift_time}</div>
-          <div class="shift-hours">8 hours</div>
+          <div class="shift-main">${s.shift_time}</div><div class="shift-hours">${_calcShiftHours(s)}</div>
         </td>
         <td>${s.assigned_unit}</td>
         <td><span class="avail-badge ${availClass}">${availLabel}</span></td>
@@ -298,44 +312,142 @@ function closeViewModal() {
   viewingId = null;
 }
 
-// ── CALL STAFF ──
-function callStaff(id) {
+// ── TIME HELPERS ──
+function _fmtTime24(t) {
+  if (!t) return '';
+  var parts=t.split(':'), h=parseInt(parts[0],10), m=parts[1]||'00';
+  var ampm=h>=12?'PM':'AM', h12=h%12||12;
+  return h12+':'+m+' '+ampm;
+}
+function _parseTimeTo24(display) {
+  if (!display) return '';
+  var match=display.match(/(\d+):(\d+)\s*(AM|PM)?/i);
+  if (!match) return '';
+  var h=parseInt(match[1],10), min=match[2], ampm=(match[3]||'').toUpperCase();
+  if (ampm==='PM'&&h!==12) h+=12;
+  if (ampm==='AM'&&h===12) h=0;
+  return String(h).padStart(2,'0')+':'+min;
+}
+
+// ══════════════════════════════════════════════
+// ── CALL — dynamic overlay (like message.js) ──
+// ══════════════════════════════════════════════
+var _sc = { callId:null, muted:false, timerInt:null, pollInt:null, seconds:0, state:'idle', lkRoom:null };
+function _scEsc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function _scIni(n){return(n||'?').split(' ').map(function(w){return w[0]||'';}).join('').toUpperCase().slice(0,2);}
+function _scInjectStyle(){if(!document.getElementById('sc-call-style')){var st=document.createElement('style');st.id='sc-call-style';st.textContent='@keyframes sc-pulse{0%,100%{transform:scale(1);}50%{transform:scale(1.15);}} @keyframes sc-ring{0%{transform:scale(1);opacity:1;}100%{transform:scale(1.5);opacity:0;}}';document.head.appendChild(st);}}
+function _removeCallingOverlay(){var el=document.getElementById('sc-calling-overlay');if(el)el.remove();}
+function _removeActiveCallOverlay(){var el=document.getElementById('sc-active-call-overlay');if(el)el.remove();clearInterval(_sc.timerInt);}
+function _scShowToast(msg){var t=document.createElement('div');t.style.cssText='position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#0f172a;color:#fff;padding:8px 18px;border-radius:20px;font-size:13px;z-index:999999;pointer-events:none;';t.textContent=msg;document.body.appendChild(t);setTimeout(function(){t.remove();},2500);}
+
+function _showCallingOverlay(name) {
+  _removeCallingOverlay(); _scInjectStyle();
+  var ov=document.createElement('div'); ov.id='sc-calling-overlay';
+  ov.style.cssText='position:fixed;inset:0;z-index:999998;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.65);';
+  ov.innerHTML='<div style="background:#1e2025;border-radius:20px;padding:36px 32px;min-width:300px;text-align:center;color:#fff;">'+
+    '<div style="font-size:52px;margin-bottom:14px;animation:sc-pulse 1s infinite;">📞</div>'+
+    '<div style="font-size:18px;font-weight:800;margin-bottom:4px;">Calling…</div>'+
+    '<div style="font-size:13px;color:rgba(255,255,255,0.55);margin-bottom:28px;">'+_scEsc(name)+'</div>'+
+    '<button onclick="_scCancelCall()" style="width:56px;height:56px;border-radius:50%;background:#ef4444;border:none;cursor:pointer;font-size:24px;" title="Cancel">📵</button>'+
+    '</div>';
+  document.body.appendChild(ov);
+}
+
+function _showActiveCallOverlay(name) {
+  _removeCallingOverlay(); _scInjectStyle();
+  var existing=document.getElementById('sc-active-call-overlay'); if(existing)existing.remove();
+  var av=_scIni(name);
+  var ov=document.createElement('div'); ov.id='sc-active-call-overlay';
+  ov.style.cssText='position:fixed;inset:0;z-index:999998;display:flex;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 40%,#38bdf833 0%,#0f172a 70%);';
+  ov.innerHTML=
+    '<div style="position:relative;width:120px;height:120px;margin-bottom:20px;">'+
+      '<div style="position:absolute;inset:-24px;border-radius:50%;border:2px solid rgba(56,189,248,0.15);animation:sc-ring 2s ease-out infinite;"></div>'+
+      '<div style="position:absolute;inset:-12px;border-radius:50%;border:2px solid rgba(56,189,248,0.25);animation:sc-ring 2s ease-out .4s infinite;"></div>'+
+      '<div style="width:120px;height:120px;border-radius:50%;background:linear-gradient(135deg,#38BDF8,#6366F1);display:flex;align-items:center;justify-content:center;font-size:40px;font-weight:800;color:#fff;">'+av+'</div>'+
+    '</div>'+
+    '<div style="font-size:20px;font-weight:800;color:#fff;margin-bottom:6px;">'+_scEsc(name)+'</div>'+
+    '<div style="font-size:13px;color:rgba(255,255,255,0.5);margin-bottom:4px;">Connected</div>'+
+    '<div id="sc-active-timer" style="font-size:28px;font-weight:700;color:#38BDF8;letter-spacing:2px;margin-bottom:32px;font-variant-numeric:tabular-nums;">0:00</div>'+
+    '<div style="display:flex;align-items:center;gap:20px;">'+
+      '<button id="sc-mute-btn" onclick="_scToggleMute()" style="width:56px;height:56px;border-radius:50%;background:rgba(255,255,255,0.12);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;">'+
+        '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>'+
+      '</button>'+
+      '<button onclick="_scEndCall()" style="width:68px;height:68px;border-radius:50%;background:#ef4444;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;">'+
+        '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="transform:rotate(135deg)"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 1.18h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.77a16 16 0 0 0 6 6l.93-.93a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7a2 2 0 0 1 1.72 2.03z"/></svg>'+
+      '</button>'+
+    '</div>';
+  document.body.appendChild(ov);
+  _sc.seconds=0;
+  _sc.timerInt=setInterval(function(){_sc.seconds++;var m=Math.floor(_sc.seconds/60),s=_sc.seconds%60;var el=document.getElementById('sc-active-timer');if(el)el.textContent=m+':'+(s<10?'0':'')+s;},1000);
+}
+
+async function callStaff(id) {
   const s = staffData.find(x => x.staff_id === id);
   if (!s) return;
-  // Navigate to the call page with the staff member pre-selected
-  window.location.href = `call.html?staff=${encodeURIComponent(s.staff_id)}&name=${encodeURIComponent(s.full_name)}`;
+  if (!s.user_id) { alert('Cannot call this staff member — no user account linked.'); return; }
+  _sc.state='ringing'; _sc.callId=null;
+  _showCallingOverlay(s.full_name);
+  try {
+    var res=await fetch(API_BASE+'/calls',{method:'POST',headers:staffAuthHeaders(),body:JSON.stringify({callee_user_id:s.user_id,kind:'audio'})});
+    var data=await res.json();
+    if (!res.ok) { _removeCallingOverlay(); _scShowToast(data.detail||'Failed to start call'); _sc.state='idle'; return; }
+    _sc.callId=data.call_id;
+    if (data.join_payload&&data.join_payload.livekit_url&&data.join_payload.access_token) _scLkConnect(data.join_payload.livekit_url,data.join_payload.access_token);
+    var calleeName=s.full_name;
+    _sc.pollInt=setInterval(async function(){
+      if (_sc.state==='ended'||_sc.state==='idle'){clearInterval(_sc.pollInt);return;}
+      try{
+        var r=await fetch(API_BASE+'/calls/'+_sc.callId,{headers:staffAuthHeaders()});if(!r.ok)return;
+        var d=await r.json();
+        if (d.state==='active'&&_sc.state==='ringing'){_sc.state='active';_showActiveCallOverlay(calleeName);}
+        else if(d.state==='declined'){clearInterval(_sc.pollInt);_sc.state='idle';_removeCallingOverlay();_removeActiveCallOverlay();_scShowToast('Call declined');}
+        else if(d.state==='timeout'){clearInterval(_sc.pollInt);_sc.state='idle';_removeCallingOverlay();_removeActiveCallOverlay();_scShowToast('No answer');}
+        else if(d.state==='canceled'||d.state==='ended'){clearInterval(_sc.pollInt);_sc.state='idle';_removeCallingOverlay();_removeActiveCallOverlay();}
+      }catch(_){}
+    },1500);
+  } catch(err){_removeCallingOverlay();_scShowToast('Network error.');_sc.state='idle';}
 }
+async function _scCancelCall(){clearInterval(_sc.pollInt);var cid=_sc.callId;_sc.callId=null;_sc.state='idle';_removeCallingOverlay();if(cid)try{await fetch(API_BASE+'/calls/'+cid+'/cancel',{method:'POST',headers:staffAuthHeaders()});}catch(_){}}
+async function _scEndCall(){clearInterval(_sc.pollInt);var cid=_sc.callId;_sc.callId=null;_sc.state='ended';_removeActiveCallOverlay();if(_sc.lkRoom){try{_sc.lkRoom.disconnect();}catch(_){}_sc.lkRoom=null;}var ae=document.getElementById('sc-lk-audio');if(ae)ae.remove();if(cid)try{await fetch(API_BASE+'/calls/'+cid+'/end',{method:'POST',headers:staffAuthHeaders()});}catch(_){}_sc.state='idle';}
+function _scToggleMute(){_sc.muted=!_sc.muted;if(_sc.lkRoom)try{_sc.lkRoom.localParticipant.setMicrophoneEnabled(!_sc.muted);}catch(_){}var btn=document.getElementById('sc-mute-btn');if(btn)btn.style.background=_sc.muted?'#f59e0b':'rgba(255,255,255,0.12)';}
+async function _scLkConnect(lkUrl,lkToken){if(typeof LivekitClient==='undefined')return;try{var room=new LivekitClient.Room({adaptiveStream:true,dynacast:true});_sc.lkRoom=room;room.on(LivekitClient.RoomEvent.TrackSubscribed,function(track){if(track.kind===LivekitClient.Track.Kind.Audio){var el=track.attach();el.id='sc-lk-audio';document.body.appendChild(el);}});room.on(LivekitClient.RoomEvent.ParticipantDisconnected,function(){if(_sc.state==='active'){_scEndCall();_scShowToast('Call ended');}});await room.connect(lkUrl,lkToken);await room.localParticipant.setMicrophoneEnabled(true);}catch(e){console.warn('LiveKit:',e);}}
 
 // ── EDIT / DELETE ──
 function editStaff(id) {
-  if (readOnlyMode) {
-    viewStaff(id);
-    return;
-  }
+  if (readOnlyMode) { viewStaff(id); return; }
   const s = staffData.find(x => x.staff_id === id);
   if (!s) return;
   editingId = id;
-  document.getElementById('edit-name').value  = s.full_name;
-  document.getElementById('edit-id').value    = s.staff_id;
-  document.getElementById('edit-shift').value = s.shift_time;
-  document.getElementById('edit-unit').value  = s.assigned_unit;
-  document.getElementById('edit-status').value = s.status;
-  document.getElementById('edit-role').value  = s.role;
+  document.getElementById('edit-name').value = s.full_name;
+  document.getElementById('edit-id').value   = s.staff_id;
+  var shiftFrom = s.shift_start ? s.shift_start.slice(0,5) : '';
+  var shiftTo   = s.shift_end   ? s.shift_end.slice(0,5)   : '';
+  if (!shiftFrom && s.shift_time && (s.shift_time.includes('–')||s.shift_time.includes('-'))) {
+    var sep=s.shift_time.includes('–')?'–':'-', pts=s.shift_time.split(sep);
+    shiftFrom=_parseTimeTo24(pts[0].trim());
+    shiftTo=_parseTimeTo24(pts[1]?pts[1].trim():'');
+  }
+  document.getElementById('edit-shift-from').value   = shiftFrom;
+  document.getElementById('edit-shift-to').value     = shiftTo;
+  document.getElementById('edit-unit').value         = s.assigned_unit;
+  document.getElementById('edit-status').value       = s.status;
+  document.getElementById('edit-role').value         = s.role;
   document.getElementById('edit-availability').value = s.availability || 'ready';
-  document.getElementById('edit-location').value = s.location || '';
+  document.getElementById('edit-location').value     = s.location || '';
   document.getElementById('modal-edit').classList.add('open');
 }
 
-function closeModal() {
-  document.getElementById('modal-edit').classList.remove('open');
-  editingId = null;
-}
+function closeModal() { document.getElementById('modal-edit').classList.remove('open'); editingId = null; }
 
 async function saveStaff() {
-  if (readOnlyMode) return;
-  if (!editingId) return;
+  if (readOnlyMode || !editingId) return;
+  var shiftFrom=document.getElementById('edit-shift-from').value;
+  var shiftTo=document.getElementById('edit-shift-to').value;
+  var shift_time=(shiftFrom&&shiftTo)?_fmtTime24(shiftFrom)+' – '+_fmtTime24(shiftTo):(shiftFrom?_fmtTime24(shiftFrom):'—');
   const updates = {
-    shift_time:    document.getElementById('edit-shift').value,
+    shift_start:   shiftFrom||null,
+    shift_end:     shiftTo||null,
+    shift_time,
     assigned_unit: document.getElementById('edit-unit').value,
     status:        document.getElementById('edit-status').value,
     role:          document.getElementById('edit-role').value,
@@ -343,23 +455,16 @@ async function saveStaff() {
     location:      document.getElementById('edit-location').value,
   };
   try {
-    const res = await fetch(`${API_BASE}/staff/${encodeURIComponent(editingId)}`, {
-      method: 'PATCH',
-      headers: staffAuthHeaders(),
-      body: JSON.stringify(updates)
-    });
+    const res=await fetch(`${API_BASE}/staff/${encodeURIComponent(editingId)}`,{method:'PATCH',headers:staffAuthHeaders(),body:JSON.stringify(updates)});
     if (!res.ok) throw new Error();
-    const updated = await res.json();
-    const idx = staffData.findIndex(s => s.staff_id === editingId);
-    if (idx >= 0) staffData[idx] = updated;
+    const updated=await res.json();
+    const idx=staffData.findIndex(s=>s.staff_id===editingId);
+    if (idx>=0) staffData[idx]=normalizeStaffApiRow({...staffData[idx],...updates,...updated});
   } catch {
-    // Update locally if API unavailable
-    const idx = staffData.findIndex(s => s.staff_id === editingId);
-    if (idx >= 0) Object.assign(staffData[idx], updates);
+    const idx=staffData.findIndex(s=>s.staff_id===editingId);
+    if (idx>=0) Object.assign(staffData[idx],updates);
   }
-  closeModal();
-  renderTable();
-  loadStats();
+  closeModal(); renderTable(); loadStats();
 }
 
 async function deleteStaff() {
@@ -461,9 +566,130 @@ async function submitAddStaff() {
   loadStats();
 }
 
+
+// ══════════════════════════════════════════════════
+// ── DOCTOR SUMMARY ────────────────────────────────
+// ══════════════════════════════════════════════════
+var _allBookings = [];
+var _myDoctorName = '';
+
+function _isDoctorRole() {
+  try {
+    var user = JSON.parse(sessionStorage.getItem('user') || '{}');
+    var role = (user.role || user.global_role || '').toLowerCase();
+    return role === 'doctor';
+  } catch(_) { return false; }
+}
+
+function _initDoctorTab() {
+  // All logged-in users can see Doctor Summary
+  try {
+    var user = JSON.parse(sessionStorage.getItem('user') || '{}');
+    var role = (user.role || user.global_role || '').toLowerCase();
+    // If doctor, pre-filter by their name; otherwise show all bookings
+    if (role === 'doctor') {
+      _myDoctorName = (user.full_name || '').toLowerCase();
+    }
+  } catch(_) {}
+}
+
+async function loadDoctorBookings() {
+  var tbody = document.getElementById('doctor-bookings-tbody');
+  if (!tbody) return;
+  try {
+    var res = await fetch(API_BASE + '/bookings/', { headers: staffAuthHeaders() });
+    if (!res.ok) throw new Error();
+    var data = await res.json();
+    _allBookings = _myDoctorName
+      ? data.filter(function(b) {
+          var bn = (b.doctor_name || '').toLowerCase();
+          return bn.includes(_myDoctorName) || _myDoctorName.includes(bn.replace('dr. ','').replace('dr ',''));
+        })
+      : data;
+  } catch(_) { _allBookings = []; }
+  _renderDoctorBookings(_allBookings);
+  _updateDocStats(_allBookings);
+}
+
+function filterBookings() {
+  var status = document.getElementById('doctor-filter-status').value;
+  var filtered = status ? _allBookings.filter(function(b){ return b.status === status; }) : _allBookings;
+  _renderDoctorBookings(filtered);
+  _updateDocStats(filtered);
+}
+
+function _updateDocStats(bookings) {
+  var today = new Date().toISOString().slice(0,10);
+  var el;
+  el = document.getElementById('doc-stat-total');     if(el) el.textContent = bookings.length;
+  el = document.getElementById('doc-stat-today');     if(el) el.textContent = bookings.filter(function(b){ return b.appointment_date === today; }).length;
+  el = document.getElementById('doc-stat-confirmed'); if(el) el.textContent = bookings.filter(function(b){ return b.status === 'confirmed'; }).length;
+  el = document.getElementById('doc-stat-pending');   if(el) el.textContent = bookings.filter(function(b){ return b.status === 'requested'; }).length;
+}
+
+function _statusBadge(status) {
+  var map = { requested:{cls:'status-pending',label:'Requested'}, confirmed:{cls:'status-active',label:'Confirmed'}, completed:{cls:'status-active',label:'Completed'}, cancelled:{cls:'status-leave',label:'Cancelled'} };
+  var s = map[status] || {cls:'status-pending',label:status};
+  return '<span class="status-badge ' + s.cls + '">' + s.label + '</span>';
+}
+
+function _fmtBookingDate(d) {
+  if (!d) return '—';
+  try { return new Date(d + 'T00:00:00').toLocaleDateString('en-AU', {day:'numeric',month:'short',year:'numeric'}); } catch(_){ return d; }
+}
+function _fmtTimePretty(t) {
+  if (!t) return '';
+  var parts = t.split(':'), h = parseInt(parts[0],10), m = parts[1]||'00';
+  return (h%12||12)+':'+m+(h>=12?' PM':' AM');
+}
+
+function _renderDoctorBookings(bookings) {
+  var tbody   = document.getElementById('doctor-bookings-tbody');
+  var countEl = document.getElementById('doctor-booking-count');
+  if (!bookings || !bookings.length) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#9aa0ac;padding:32px;">No appointments found.</td></tr>';
+    if (countEl) countEl.textContent = '';
+    return;
+  }
+  var sorted = bookings.slice().sort(function(a,b){
+    return ((b.appointment_date||'')+(b.start_time||'')) > ((a.appointment_date||'')+(a.start_time||'')) ? 1 : -1;
+  });
+  tbody.innerHTML = sorted.map(function(b) {
+    var patientName = b.resident ? b.resident.full_name : ('Resident #' + b.resident_id);
+    var timeStr = _fmtTimePretty(b.start_time) + (b.end_time ? ' – ' + _fmtTimePretty(b.end_time) : '');
+    return '<tr>' +
+      '<td><div class="staff-name">' + escapeHtml(patientName) + '</div>' + (b.resident && b.resident.room ? '<div class="staff-id">Room ' + escapeHtml(String(b.resident.room)) + '</div>' : '') + '</td>' +
+      '<td>' + escapeHtml(b.booking_type) + (b.doctor_specialty ? '<div style="font-size:11.5px;color:var(--text3);">' + escapeHtml(b.doctor_specialty) + '</div>' : '') + '</td>' +
+      '<td><div style="font-weight:600;font-size:13px;">' + _fmtBookingDate(b.appointment_date) + '</div><div style="font-size:12px;color:var(--text2);">' + timeStr + '</div></td>' +
+      '<td style="font-size:13px;color:var(--text2);">' + escapeHtml(b.location || '—') + '</td>' +
+      '<td>' + _statusBadge(b.status) + '</td>' +
+      '<td style="font-size:12.5px;color:var(--text2);max-width:180px;">' + escapeHtml(b.notes || '—') + '</td>' +
+    '</tr>';
+  }).join('');
+  if (countEl) countEl.textContent = bookings.length + ' appointment' + (bookings.length !== 1 ? 's' : '');
+}
+
+// Wrap switchTab to lazy-load doctor bookings
+var _doctorTabLoaded = false;
+var _origSwitchTab = typeof switchTab !== 'undefined' ? switchTab : null;
+function switchTab(name, el) {
+  document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
+  document.querySelectorAll('.tab-panel').forEach(function(p){ p.classList.remove('active'); });
+  el.classList.add('active');
+  var target = document.getElementById('tab-' + name);
+  if (target) target.classList.add('active');
+  if (name === 'doctor' && !_doctorTabLoaded) {
+    _doctorTabLoaded = true;
+    loadDoctorBookings();
+  }
+}
+
 // ── INIT ──
-document.addEventListener('DOMContentLoaded', () => {
-  if (checkAccess()) loadStaff();
+document.addEventListener('DOMContentLoaded', function() {
+  if (checkAccess()) {
+    loadStaff();
+    _initDoctorTab();
+  }
 });
 
 // Hide Bootstrap skeleton once page content is ready (Option)
