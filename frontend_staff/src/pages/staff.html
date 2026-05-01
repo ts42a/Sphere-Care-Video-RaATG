@@ -9,6 +9,14 @@
 <title>Staff &amp; Roles – Sphere Care</title>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
+<style>
+/* ── Time picker row ── */
+.shift-row{display:flex;align-items:center;gap:8px;}
+.shift-row .finput{margin-bottom:0;flex:1;}
+.shift-sep{font-size:12px;color:var(--text2);font-weight:600;white-space:nowrap;}
+
+
+</style>
 </head>
 <body>
 
@@ -59,6 +67,7 @@
       <div class="tabs">
         <div class="tab active" onclick="switchTab('summary',this)">Staff Summary</div>
         <div class="tab" onclick="switchTab('taskreview',this)">Task Review</div>
+        <div class="tab" id="tab-btn-doctor" onclick="switchTab('doctor',this)">Doctor Summary</div>
       </div>
 
       <!-- TAB: STAFF SUMMARY -->
@@ -147,6 +156,85 @@
         </div>
         <div style="color:var(--text3);font-size:14px;padding:32px 0;text-align:center;">No tasks assigned. This section can be wired to a Tasks model when ready.</div>
       </div>
+
+      <!-- TAB: DOCTOR SUMMARY -->
+      <div class="tab-panel" id="tab-doctor">
+        <div class="section-hdr">
+          <div style="flex:1">
+            <div class="section-title">Doctor Summary</div>
+            <div class="section-sub">Upcoming and recent patient appointments assigned to you</div>
+          </div>
+          <div style="display:flex;gap:10px;align-items:center;">
+            <select id="doctor-filter-status" class="fsel" style="height:36px;font-size:13px;width:140px;" onchange="filterBookings()">
+              <option value="">All Status</option>
+              <option value="requested">Requested</option>
+              <option value="confirmed">Confirmed</option>
+              <option value="completed">Completed</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Stats row -->
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px;">
+          <div class="stat-card">
+            <div class="stat-left">
+              <div class="stat-label">Total Bookings</div>
+              <div class="stat-num" id="doc-stat-total" style="color:var(--blue);">–</div>
+              <div class="stat-sub">All appointments</div>
+            </div>
+            <div class="stat-icon si-blue"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-left">
+              <div class="stat-label">Today</div>
+              <div class="stat-num" id="doc-stat-today" style="color:var(--teal);">–</div>
+              <div class="stat-sub">Scheduled today</div>
+            </div>
+            <div class="stat-icon si-green"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-left">
+              <div class="stat-label">Confirmed</div>
+              <div class="stat-num" id="doc-stat-confirmed" style="color:var(--green);">–</div>
+              <div class="stat-sub">Ready to see</div>
+            </div>
+            <div class="stat-icon si-green"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-left">
+              <div class="stat-label">Pending</div>
+              <div class="stat-num" id="doc-stat-pending" style="color:var(--amber);">–</div>
+              <div class="stat-sub">Awaiting confirmation</div>
+            </div>
+            <div class="stat-icon si-amber"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
+          </div>
+        </div>
+
+        <!-- Bookings table -->
+        <div class="card">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Patient</th>
+                  <th>Appointment Type</th>
+                  <th>Date & Time</th>
+                  <th>Location</th>
+                  <th>Status</th>
+                  <th>Notes</th>
+                </tr>
+              </thead>
+              <tbody id="doctor-bookings-tbody">
+                <tr><td colspan="6" style="text-align:center;color:#9aa0ac;padding:24px;">Loading…</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="table-footer">
+            <div class="table-count" id="doctor-booking-count"></div>
+          </div>
+        </div>
+      </div>
     </div>
 
   </div><!-- /content -->
@@ -158,57 +246,70 @@
   <div class="sc-modal">
     <div class="mhdr"><h3>Edit Staff Member</h3><button class="mclose" onclick="closeModal()">✕</button></div>
     <div class="mbody">
-      <div class="mrow">
-        <div>
-          <label class="flabel">Full Name</label>
-          <input class="finput" id="edit-name" placeholder="Full Name"/>
+      <div class="mbody-section">
+        <!-- Row 1: Full Name + Staff ID -->
+        <div class="mrow">
+          <div>
+            <label class="flabel">Full Name</label>
+            <input class="finput" id="edit-name" placeholder="Full Name"/>
+          </div>
+          <div>
+            <label class="flabel">Staff ID</label>
+            <input class="finput" id="edit-id" readonly style="background:#f8fafc;color:var(--text3);"/>
+          </div>
         </div>
+
+        <!-- Row 2: Shift From/To -->
         <div>
-          <label class="flabel">Staff ID</label>
-          <input class="finput" id="edit-id" readonly style="background:#f8fafc;color:var(--text3);"/>
+          <label class="flabel">Shift Hours</label>
+          <div class="shift-row">
+            <input class="finput" type="time" id="edit-shift-from" title="Shift start"/>
+            <span class="shift-sep">to</span>
+            <input class="finput" type="time" id="edit-shift-to" title="Shift end"/>
+          </div>
         </div>
-      </div>
-      <div class="mrow">
-        <div>
-          <label class="flabel">Shift Time</label>
-          <input class="finput" id="edit-shift" placeholder="7:00 AM – 3:00 PM"/>
+
+        <!-- Row 3: Assigned Unit + Status -->
+        <div class="mrow" style="margin-top:12px;">
+          <div>
+            <label class="flabel">Assigned Unit</label>
+            <select class="fsel" id="edit-unit">
+              <option>ICU Ward</option><option>Emergency</option><option>General Ward</option>
+              <option>Pediatrics</option><option>Geriatrics</option><option>Neurology</option><option>Surgery</option>
+            </select>
+          </div>
+          <div>
+            <label class="flabel">Status</label>
+            <select class="fsel" id="edit-status">
+              <option value="active">Active</option>
+              <option value="on_leave">On Leave</option>
+              <option value="pending">Pending</option>
+            </select>
+          </div>
         </div>
-        <div>
-          <label class="flabel">Assigned Unit</label>
-          <select class="fsel" id="edit-unit">
-            <option>ICU Ward</option><option>Emergency</option><option>General Ward</option>
-            <option>Pediatrics</option><option>Geriatrics</option><option>Neurology</option><option>Surgery</option>
-          </select>
+
+        <!-- Row 4: Role + Availability -->
+        <div class="mrow">
+          <div>
+            <label class="flabel">Role</label>
+            <select class="fsel" id="edit-role">
+              <option>Senior Carer</option><option>Nurse</option><option>Carer</option><option>Doctor</option><option>Admin</option>
+            </select>
+          </div>
+          <div>
+            <label class="flabel">Availability</label>
+            <select class="fsel" id="edit-availability">
+              <option value="ready">Ready</option>
+              <option value="busy">Busy</option>
+              <option value="on_break">On Break</option>
+            </select>
+          </div>
         </div>
-      </div>
-      <div class="mrow">
-        <div>
-          <label class="flabel">Status</label>
-          <select class="fsel" id="edit-status">
-            <option value="active">Active</option>
-            <option value="on_leave">On Leave</option>
-            <option value="pending">Pending</option>
-          </select>
-        </div>
-        <div>
-          <label class="flabel">Role</label>
-          <select class="fsel" id="edit-role">
-            <option>Senior Carer</option><option>Nurse</option><option>Carer</option><option>Doctor</option><option>Admin</option>
-          </select>
-        </div>
-      </div>
-      <div class="mrow">
-        <div>
-          <label class="flabel">Availability</label>
-          <select class="fsel" id="edit-availability">
-            <option value="ready">Ready</option>
-            <option value="busy">Busy</option>
-            <option value="on_break">On Break</option>
-          </select>
-        </div>
+
+        <!-- Row 5: Location -->
         <div>
           <label class="flabel">Current Location</label>
-          <input class="finput" id="edit-location" placeholder="e.g. Room 204, Nurses Station"/>
+          <input class="finput" id="edit-location" placeholder="Search location…" autocomplete="off"/>
         </div>
       </div>
     </div>
@@ -256,14 +357,8 @@
       <button class="mclose" onclick="closeAddModal()">✕</button>
     </div>
     <div class="mbody">
-
-      <!-- Error message -->
       <div id="add-error" style="display:none;color:#ef4444;font-size:13px;margin-bottom:12px;padding:8px 12px;background:#fee2e2;border-radius:8px;"></div>
-
-      <!-- White background section -->
       <div class="mbody-section">
-
-        <!-- Row 1: Full Name + Staff ID -->
         <div class="mrow">
           <div>
             <label class="flabel">Full Name *</label>
@@ -274,21 +369,19 @@
             <input class="finput" id="add-staff-id" placeholder="Auto-generated" disabled style="background:#f0f2f5;color:#94a3b8;cursor:not-allowed;"/>
           </div>
         </div>
-
-        <!-- Row 2: Shift Time + Assigned Unit -->
-        <div class="mrow">
-          <div>
-            <label class="flabel">Shift Time</label>
-            <input class="finput" id="add-shift-time" placeholder="e.g. 7:00 AM – 3:00 PM"/>
+        <div>
+          <label class="flabel">Shift Hours</label>
+          <div class="shift-row">
+            <input class="finput" type="time" id="add-shift-from" title="Shift start"/>
+            <span class="shift-sep">to</span>
+            <input class="finput" type="time" id="add-shift-to" title="Shift end"/>
           </div>
+        </div>
+        <div class="mrow" style="margin-top:12px;">
           <div>
             <label class="flabel">Assigned Unit</label>
             <input class="finput" id="add-unit" placeholder="e.g. General Ward"/>
           </div>
-        </div>
-
-        <!-- Row 3: Status + Role -->
-        <div class="mrow">
           <div>
             <label class="flabel">Status</label>
             <select class="fsel" id="add-status">
@@ -297,13 +390,14 @@
               <option value="pending">Pending</option>
             </select>
           </div>
+        </div>
+        <div class="mrow">
           <div>
             <label class="flabel">Role</label>
             <input class="finput" id="add-role" placeholder="e.g. Nurse, Carer, Doctor"/>
           </div>
         </div>
-
-      </div><!-- /mbody-section -->
+      </div>
     </div>
     <div class="mfooter">
       <button class="btn btn-outline" onclick="closeAddModal()">Cancel</button>
@@ -314,8 +408,9 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+
 <script src="../style/js/script.js"></script>
-<script src="../style/js/staff.js?v=3"></script>
+<script src="../style/js/staff.js?v=5"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="/components/sidebar.js"></script>
 </body>
