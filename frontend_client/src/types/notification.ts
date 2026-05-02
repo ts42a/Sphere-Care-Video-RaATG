@@ -3,6 +3,7 @@ export type NotificationType =
   | "alert"
   | "reminder"
   | "general"
+  | "message"
   | "medication"
   | "task"
   | "lab"
@@ -11,7 +12,7 @@ export type NotificationType =
 export type NotificationAction = {
   label: string;
   variant?: "red" | "blue" | "neutral";
-  actionType?: "view_details" | "view_results" | "open_task" | "none";
+  actionType?: "view_details" | "view_results" | "open_task" | "open_conversation" | "none";
 };
 
 export type NotificationItem = {
@@ -24,6 +25,8 @@ export type NotificationItem = {
   action?: NotificationAction | null;
   sourceId?: number;
   sourceEvent?: string;
+  relatedEntityType?: string | null;
+  relatedEntityId?: number | null;
   createdAt?: string;
 };
 

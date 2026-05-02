@@ -1,6 +1,6 @@
 import re
 import random
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Header
 from sqlalchemy.orm import Session
@@ -417,6 +417,7 @@ def register(user: schemas.UserCreate, db: Session = Depends(get_db)):
 
             # Generate unique_code before flush to satisfy NOT NULL
             client_code = generate_unique_id(db, models.User, "unique_code")
+            now = datetime.now(timezone.utc)
             new_user = models.User(
                 unique_code=client_code,
                 full_name=user.full_name,
@@ -426,9 +427,51 @@ def register(user: schemas.UserCreate, db: Session = Depends(get_db)):
                 phone=user.phone,
                 date_of_birth=user.date_of_birth,
                 gender=user.gender,
+                preferred_name=user.preferred_name,
+                address_line_1=user.address_line_1 or user.address,
+                address_line_2=user.address_line_2,
+                city=user.city,
+                state=user.state,
+                postal_code=user.postal_code,
+                country=user.country,
+                registration_completed_by=user.registration_completed_by,
+                registration_assisted_by_name=user.registration_assisted_by_name,
+                terms_accepted_at=now if user.accept_terms else None,
+                privacy_accepted_at=now if user.accept_privacy else None,
+                sms_notifications=bool(user.sms_consent),
             )
             db.add(new_user)
             db.flush()
+
+            if user.guardian:
+                guardian = models.ClientGuardian(
+                    user_id=new_user.id,
+                    full_name=user.guardian.full_name,
+                    relationship=user.guardian.relationship,
+                    guardian_type=user.guardian.guardian_type,
+                    phone=user.guardian.phone,
+                    email=user.guardian.email,
+                    address_line_1=user.guardian.address_line_1,
+                    address_line_2=user.guardian.address_line_2,
+                    city=user.guardian.city,
+                    state=user.guardian.state,
+                    postal_code=user.guardian.postal_code,
+                    country=user.guardian.country,
+                )
+                db.add(guardian)
+
+            if user.emergency_contacts:
+                for index, contact in enumerate(user.emergency_contacts, start=1):
+                    emergency_contact = models.ClientEmergencyContact(
+                        user_id=new_user.id,
+                        full_name=contact.full_name,
+                        relationship=contact.relationship,
+                        phone=contact.phone,
+                        alternate_phone=contact.alternate_phone,
+                        email=contact.email,
+                        priority_order=index,
+                    )
+                    db.add(emergency_contact)
 
             # If center_id provided, create a join request
             if user.center_id:

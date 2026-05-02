@@ -11,6 +11,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import * as LiveKit from "@livekit/react-native";
 
 import { callService } from "../../../src/services/callService";
+import { activeCallService } from "../../../src/services/activeCallService";
 import { useCallSession } from "../../../src/hooks/useCallSession";
 import { useAiTranscript } from "../../../src/hooks/useAiTranscript";
 import { rtcEngine } from "../../../src/services/rtc/rtcEngineInstance";
@@ -29,6 +30,60 @@ const audioSession = (((LiveKit as any).AudioSession ?? {}) as unknown) as {
   stopAudioSession?: () => Promise<void>;
 };
 
+
+function buildRouteFallbackContact(
+  contactId: string | undefined,
+  callId: number,
+  params: { contactName?: string; contactUserId?: string; contactRole?: string }
+): CallContact | null {
+  const active = Number.isFinite(callId) ? activeCallService.getByCallId(callId) : null;
+
+  if (active?.doctor) {
+    return {
+      id: contactId || String(active.remoteUserId ?? active.callId),
+      userId: active.remoteUserId ?? active.doctor.userId,
+      name: active.doctor.name || params.contactName || "Incoming call",
+      initials: active.doctor.initials || String(active.doctor.name || params.contactName || "IC")
+        .split(" ")
+        .map((part) => part[0])
+        .join("")
+        .slice(0, 2)
+        .toUpperCase(),
+      role: active.doctor.role || params.contactRole || "Care team",
+      specialty: active.doctor.role || params.contactRole || "Care team",
+      lastSeen: "",
+      online: true,
+      avatarColor: "#4C6EF5",
+      conversationId: active.conversationId,
+    };
+  }
+
+  const name = params.contactName || "Incoming call";
+  const userId = Number(params.contactUserId || contactId);
+
+  if (!contactId && !Number.isFinite(userId)) {
+    return null;
+  }
+
+  return {
+    id: contactId || String(userId),
+    userId: Number.isFinite(userId) ? userId : undefined,
+    name,
+    initials: String(name)
+      .split(" ")
+      .map((part) => part[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase(),
+    role: params.contactRole || "Care team",
+    specialty: params.contactRole || "Care team",
+    lastSeen: "",
+    online: true,
+    avatarColor: "#4C6EF5",
+    conversationId: undefined,
+  };
+}
+
 function formatStatus(session: CallSession) {
   if (session.callState === "ringing") return "Ringing";
   if (session.callState === "active") return "Connected";
@@ -40,7 +95,7 @@ function formatStatus(session: CallSession) {
 }
 
 export default function VideoCallScreen() {
-  const params = useLocalSearchParams<{ contactId: string; callId?: string }>();
+  const params = useLocalSearchParams<{ contactId: string; callId?: string; contactName?: string; contactUserId?: string; contactRole?: string }>();
   const contactId = Array.isArray(params.contactId)
     ? params.contactId[0]
     : params.contactId;
@@ -63,7 +118,14 @@ export default function VideoCallScreen() {
         setContactLoading(true);
         setContactError("");
         const data = await callService.getContactById(contactId);
-        setContact(data);
+        setContact(
+          data ??
+            buildRouteFallbackContact(contactId, routeCallId, {
+              contactName: Array.isArray(params.contactName) ? params.contactName[0] : params.contactName,
+              contactUserId: Array.isArray(params.contactUserId) ? params.contactUserId[0] : params.contactUserId,
+              contactRole: Array.isArray(params.contactRole) ? params.contactRole[0] : params.contactRole,
+            })
+        );
       } catch (err) {
         setContactError(
           err instanceof Error ? err.message : "Unable to load contact"
@@ -74,7 +136,7 @@ export default function VideoCallScreen() {
     }
 
     loadContact();
-  }, [contactId]);
+  }, [contactId, routeCallId, params.contactName, params.contactUserId, params.contactRole]);
 
   const {
     session,

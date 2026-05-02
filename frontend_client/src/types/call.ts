@@ -39,6 +39,21 @@ export type CallSummary = {
   pendingCallsText: string;
 };
 
+export type CallHistoryItem = {
+  callId: number;
+  state: CallLifecycleState;
+  kind: CallMode;
+  direction: "incoming" | "outgoing";
+  remoteUserId: number;
+  remoteName: string;
+  remoteRole?: string | null;
+  startedAt?: string | null;
+  endedAt?: string | null;
+  createdAt: string;
+  durationSeconds: number;
+  durationLabel: string;
+};
+
 export type CallParticipant = {
   userId?: number;
   name: string;

@@ -32,8 +32,18 @@ def _actor_identity(auth: dict) -> tuple[str, int]:
     raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing user scope")
 
 
+def _normalize_participant_type(value: Optional[str]) -> str:
+    # Mobile clients connect as user:<id>. Some older staff UI code wrote
+    # participant_type="client", which makes delivery target client:<id>
+    # and breaks realtime messaging. Treat client/family/staff accounts as user.
+    value = (value or "user").strip().lower()
+    if value in {"client", "resident", "staff", "family", "family_contact"}:
+        return "user"
+    return value
+
+
 def _actor_key(actor_type: str, actor_id: int) -> str:
-    return f"{actor_type}:{actor_id}"
+    return f"{_normalize_participant_type(actor_type)}:{actor_id}"
 
 
 def _now_utc() -> datetime:
@@ -44,7 +54,7 @@ def _format_participant(p: models.ConversationParticipant) -> schemas.Conversati
     return schemas.ConversationParticipantResponse(
         id=p.id,
         user_id=p.user_id,
-        participant_type=p.participant_type or "user",
+        participant_type=_normalize_participant_type(p.participant_type),
         display_name=p.display_name,
         role=p.role,
         last_read_at=p.last_read_at,
@@ -55,7 +65,7 @@ def _format_participant(p: models.ConversationParticipant) -> schemas.Conversati
 def _message_is_self(message: models.Message, actor_type: str, actor_id: int) -> bool:
     return (
         int(getattr(message, "sender_user_id", 0) or 0) == int(actor_id)
-        and (getattr(message, "sender_participant_type", None) or "user") == actor_type
+        and _normalize_participant_type(getattr(message, "sender_participant_type", None)) == _normalize_participant_type(actor_type)
     )
 
 
@@ -76,7 +86,7 @@ def _format_message(message: models.Message, actor_type: str, actor_id: int) -> 
 
 def _participant_matches(participant: models.ConversationParticipant, actor_type: str, actor_id: int) -> bool:
     return (
-        (participant.participant_type or "user") == actor_type
+        _normalize_participant_type(participant.participant_type) == _normalize_participant_type(actor_type)
         and int(participant.user_id or 0) == int(actor_id)
     )
 
@@ -132,6 +142,160 @@ def _add_participant_if_missing(
     )
     conversation.participants.append(participant)
     return participant
+
+
+def _ensure_resident_conversation_participants(db: Session, conversation: models.Conversation) -> None:
+    """Repair resident conversations so linked mobile clients are real participants.
+
+    Older staff UI flows could create a resident conversation before the client
+    accepted the invitation, or without adding the client participant. Then the
+    client can read /messages/conversations successfully but receives 0 rows and
+    no realtime/new message notification. This function auto-heals that state.
+    """
+    if (conversation.category or "") != "resident":
+        return
+
+    raw_name = (conversation.name or "").strip()
+    resident_name = raw_name
+    prefix = "Resident Care:"
+    if resident_name.lower().startswith(prefix.lower()):
+        resident_name = resident_name[len(prefix):].strip()
+
+    resident = None
+    if resident_name:
+        resident = db.query(models.Resident).filter(
+            models.Resident.admin_id == conversation.admin_id,
+            models.Resident.full_name == resident_name,
+        ).first()
+
+    # Fallback: if the conversation already has exactly one client/user participant,
+    # no need to guess by name.
+    if not resident:
+        return
+
+    if getattr(resident, "client_user_id", None):
+        client = db.query(models.User).filter(models.User.id == resident.client_user_id).first()
+        if client:
+            _add_participant_if_missing(
+                conversation,
+                actor_type="user",
+                actor_id=int(client.id),
+                display_name=client.full_name or resident.full_name or client.email,
+                role="client",
+            )
+
+    admin = db.query(models.Admin).filter(models.Admin.id == conversation.admin_id).first()
+    if admin:
+        _add_participant_if_missing(
+            conversation,
+            actor_type="admin",
+            actor_id=int(admin.id),
+            display_name=admin.full_name or "Admin",
+            role="admin",
+        )
+
+
+def _ensure_client_resident_conversation(db: Session, admin_id: int, actor_type: str, actor_id: int) -> None:
+    """When a client opens Messages, ensure their resident conversation exists.
+
+    This makes old invitation data self-healing: if the client accepted an
+    invitation but no resident conversation exists, create one. If the
+    conversation exists but lacks the client participant, repair it.
+    """
+    if _normalize_participant_type(actor_type) != "user":
+        return
+
+    user = db.query(models.User).filter(models.User.id == actor_id).first()
+    if not user or (getattr(user, "global_role", None) or "") != "client":
+        return
+
+    resident = db.query(models.Resident).filter(
+        models.Resident.admin_id == admin_id,
+        models.Resident.client_user_id == actor_id,
+    ).first()
+    if not resident:
+        return
+
+    conv_name = f"Resident Care: {resident.full_name or user.full_name or user.email}"
+    conversation = db.query(models.Conversation).options(joinedload(models.Conversation.participants)).filter(
+        models.Conversation.admin_id == admin_id,
+        models.Conversation.category == "resident",
+        models.Conversation.name == conv_name,
+    ).first()
+
+    if not conversation:
+        conversation = models.Conversation(
+            admin_id=admin_id,
+            name=conv_name,
+            category="resident",
+            created_by=admin_id,
+            unread_count=0,
+        )
+        db.add(conversation)
+        db.flush()
+
+    _add_participant_if_missing(
+        conversation,
+        actor_type="user",
+        actor_id=actor_id,
+        display_name=user.full_name or resident.full_name or user.email,
+        role="client",
+    )
+
+    admin = db.query(models.Admin).filter(models.Admin.id == admin_id).first()
+    if admin:
+        _add_participant_if_missing(
+            conversation,
+            actor_type="admin",
+            actor_id=int(admin.id),
+            display_name=admin.full_name or "Admin",
+            role="admin",
+        )
+
+
+def _persist_message_notifications(db: Session, message: models.Message, conversation: models.Conversation) -> None:
+    """Persist notification rows for message recipients.
+
+    WebSocket updates are temporary. The mobile Notifications page reads
+    /notifications/, so a message should also create a Notification plus
+    recipient rows for non-sender user participants.
+    """
+    recipients = []
+    sender_type = _normalize_participant_type(getattr(message, "sender_participant_type", "user"))
+    sender_id = int(getattr(message, "sender_user_id", 0) or 0)
+
+    for participant in conversation.participants or []:
+        p_type = _normalize_participant_type(participant.participant_type)
+        p_id = int(participant.user_id or 0)
+        if not p_id or participant.notifications_muted:
+            continue
+        if p_type == sender_type and p_id == sender_id:
+            continue
+        # NotificationRecipient has a user_id field only, so persist user clients/staff.
+        if p_type == "user":
+            recipients.append(p_id)
+
+    if not recipients:
+        return
+
+    notification = models.Notification(
+        admin_id=conversation.admin_id,
+        category="message",
+        title=f"New message from {message.sender_name}",
+        body=message.content,
+        related_entity_type="conversation",
+        related_entity_id=conversation.id,
+        is_priority=False,
+    )
+    db.add(notification)
+    db.flush()
+
+    for user_id in sorted(set(recipients)):
+        db.add(models.NotificationRecipient(
+            notification_id=notification.id,
+            user_id=user_id,
+            is_read=False,
+        ))
 
 
 def _default_team_participants(
@@ -232,6 +396,8 @@ def _ensure_conversation_access(
     if not conversation.participants:
         _bootstrap_legacy_participants(db, conversation)
 
+    _ensure_resident_conversation_participants(db, conversation)
+
     actor_name, actor_role = _resolve_actor_profile(db, auth, actor_type, actor_id)
     participant = _find_actor_participant(conversation, actor_type, actor_id)
 
@@ -313,7 +479,7 @@ def _delivery_payload_for_message(message: models.Message, conversation: models.
     for participant in conversation.participants:
         if participant.notifications_muted:
             continue
-        actor_type = participant.participant_type or "user"
+        actor_type = _normalize_participant_type(participant.participant_type)
         actor_id = int(participant.user_id or 0)
         if not actor_id:
             continue
@@ -329,7 +495,7 @@ def _delivery_payload_for_message(message: models.Message, conversation: models.
                 "sender_participant_type": getattr(message, "sender_participant_type", "user"),
                 "content": message.content,
                 "message_type": message.message_type,
-                "is_self": actor_type == (getattr(message, "sender_participant_type", "user") or "user") and actor_id == int(message.sender_user_id or 0),
+                "is_self": _normalize_participant_type(actor_type) == _normalize_participant_type(getattr(message, "sender_participant_type", "user")) and actor_id == int(message.sender_user_id or 0),
                 "created_at": created_at,
             },
         }
@@ -345,6 +511,9 @@ def get_conversations(
 ):
     admin_id = _require_admin_id(auth)
     actor_type, actor_id = _actor_identity(auth)
+
+    _ensure_client_resident_conversation(db, admin_id, actor_type, actor_id)
+    db.flush()
 
     rows = (
         db.query(models.Conversation)
@@ -363,6 +532,8 @@ def get_conversations(
 
         if not conversation.participants:
             _bootstrap_legacy_participants(db, conversation)
+
+        _ensure_resident_conversation_participants(db, conversation)
 
         participant = _find_actor_participant(conversation, actor_type, actor_id)
         if not participant:
@@ -424,7 +595,7 @@ async def create_conversation(
     if participant_payloads:
         deduped: dict[tuple[str, int], schemas.ConversationParticipantCreate] = {}
         for item in participant_payloads:
-            deduped[(item.participant_type or "user", int(item.user_id))] = item
+            deduped[(_normalize_participant_type(item.participant_type), int(item.user_id))] = item
         deduped[(actor_type, actor_id)] = schemas.ConversationParticipantCreate(
             user_id=actor_id,
             participant_type=actor_type,
@@ -436,17 +607,17 @@ async def create_conversation(
             role = item.role
             if not display_name or not role:
                 fake_auth = {"role": "admin" if item.participant_type == "admin" else "staff", "user_id": item.user_id, "email": None}
-                resolved_name, resolved_role = _resolve_actor_profile(db, fake_auth, item.participant_type or "user", int(item.user_id))
+                resolved_name, resolved_role = _resolve_actor_profile(db, fake_auth, _normalize_participant_type(item.participant_type), int(item.user_id))
                 display_name = display_name or resolved_name
                 role = role or resolved_role
             conversation.participants.append(
                 models.ConversationParticipant(
                     conversation_id=conversation.id,
                     user_id=int(item.user_id),
-                    participant_type=item.participant_type or "user",
+                    participant_type=_normalize_participant_type(item.participant_type),
                     display_name=display_name,
                     role=role,
-                    last_read_at=_now_utc() if int(item.user_id) == actor_id and (item.participant_type or "user") == actor_type else None,
+                    last_read_at=_now_utc() if int(item.user_id) == actor_id and _normalize_participant_type(item.participant_type) == _normalize_participant_type(actor_type) else None,
                 )
             )
     else:
@@ -466,7 +637,7 @@ async def create_conversation(
     db.refresh(conversation)
 
     deliveries = {
-        _actor_key((participant.participant_type or "user"), int(participant.user_id or 0)): {"type": "conversations_update"}
+        _actor_key(_normalize_participant_type(participant.participant_type), int(participant.user_id or 0)): {"type": "conversations_update"}
         for participant in conversation.participants
         if participant.user_id
     }
@@ -547,6 +718,11 @@ async def send_message(
 
     db.commit()
     db.refresh(message)
+    db.refresh(conversation)
+
+    _ensure_resident_conversation_participants(db, conversation)
+    _persist_message_notifications(db, message, conversation)
+    db.commit()
     db.refresh(conversation)
 
     deliveries = _delivery_payload_for_message(message, conversation)
@@ -643,7 +819,7 @@ def get_read_receipts(
         {
             "participant_id": p.id,
             "display_name": p.display_name,
-            "participant_type": p.participant_type,
+            "participant_type": _normalize_participant_type(p.participant_type),
             "last_read_at": p.last_read_at.isoformat() if p.last_read_at else None,
         }
         for p in conversation.participants
@@ -705,14 +881,14 @@ def add_participant(
     new_p = models.ConversationParticipant(
         conversation_id=conversation_id,
         user_id=payload.user_id,
-        participant_type=payload.participant_type,
+        participant_type=_normalize_participant_type(payload.participant_type),
         display_name=payload.display_name,
         role=payload.role or "member",
     )
     db.add(new_p)
     db.commit()
     db.refresh(new_p)
-    return schemas.ConversationParticipantResponse.model_validate(new_p)
+    return _format_participant(new_p)
 
 
 # ── 7. Remove participant from conversation ───────────────────────
@@ -729,7 +905,7 @@ def list_participants(
             "id": p.id,
             "user_id": p.user_id,
             "display_name": p.display_name,
-            "participant_type": p.participant_type,
+            "participant_type": _normalize_participant_type(p.participant_type),
             "role": p.role,
             "joined_at": p.joined_at.isoformat() if p.joined_at else None,
             "last_read_at": p.last_read_at.isoformat() if p.last_read_at else None,

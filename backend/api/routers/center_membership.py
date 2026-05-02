@@ -418,6 +418,86 @@ def _parse_account_id(raw: str, db: Session = None) -> int:
     raise HTTPException(status_code=400, detail={"msg": "Invalid Account ID format. Use ACC-<code>."})
 
 
+def _ensure_resident_conversation_for_client(
+    *,
+    db: Session,
+    admin_id: int,
+    client: models.User,
+) -> None:
+    """Ensure the approved client is included in their Resident Care conversation.
+
+    Admin may create the conversation before the client accepts the invitation.
+    In that case the conversation can exist with only staff/admin participants,
+    so the client will not receive realtime messages. This helper links the
+    client after approval and also creates the conversation when it is missing.
+    """
+    if not admin_id or not client:
+        return
+
+    client_name = client.full_name or client.email or f"Client #{client.id}"
+    conv_name = f"Resident Care: {client_name}"
+
+    conversation = db.query(models.Conversation).filter(
+        models.Conversation.admin_id == admin_id,
+        models.Conversation.category == "resident",
+        models.Conversation.name == conv_name,
+    ).first()
+
+    if not conversation:
+        conversation = models.Conversation(
+            admin_id=admin_id,
+            name=conv_name,
+            category="resident",
+            created_by=admin_id,
+            unread_count=0,
+        )
+        db.add(conversation)
+        db.flush()
+
+    # The mobile WS actor key is always user:<user_id> for client accounts.
+    # Do not use participant_type="client", otherwise delivery targets
+    # client:<id> while the phone is connected as user:<id>.
+    exists = db.query(models.ConversationParticipant).filter(
+        models.ConversationParticipant.conversation_id == conversation.id,
+        models.ConversationParticipant.user_id == client.id,
+        models.ConversationParticipant.participant_type == "user",
+    ).first()
+
+    if exists:
+        if not exists.display_name:
+            exists.display_name = client_name
+        if not exists.role:
+            exists.role = "client"
+    else:
+        db.add(models.ConversationParticipant(
+            conversation_id=conversation.id,
+            user_id=client.id,
+            participant_type="user",
+            display_name=client_name,
+            role="client",
+        ))
+
+    # Also make sure the owning admin is a participant so the conversation
+    # remains visible and deliverable to admin-side sockets.
+    admin = db.query(models.Admin).filter(models.Admin.id == admin_id).first()
+    if admin:
+        admin_exists = db.query(models.ConversationParticipant).filter(
+            models.ConversationParticipant.conversation_id == conversation.id,
+            models.ConversationParticipant.user_id == admin.id,
+            models.ConversationParticipant.participant_type == "admin",
+        ).first()
+        if not admin_exists:
+            db.add(models.ConversationParticipant(
+                conversation_id=conversation.id,
+                user_id=admin.id,
+                participant_type="admin",
+                display_name=admin.full_name or "Admin",
+                role="admin",
+            ))
+
+    db.flush()
+
+
 @router.post("/admin/invite", response_model=schemas.CenterJoinRequestResponse)
 def admin_invite_client(
     payload: schemas.AdminInvitePayload,
@@ -471,6 +551,11 @@ def admin_invite_client(
     db.add(invitation)
     db.commit()
     db.refresh(invitation)
+
+    # Create or update the Resident Care conversation now so admin can start it,
+    # and include the client as a user participant for future realtime delivery.
+    _ensure_resident_conversation_for_client(db=db, admin_id=admin_id, client=client)
+    db.commit()
 
     return _build_request_response(db, invitation)
 
@@ -554,6 +639,8 @@ def accept_invitation(
     ).first()
     if org_admin:
         _create_resident_for_client(org_admin.id, current_user, db)
+        _ensure_resident_conversation_for_client(db=db, admin_id=org_admin.id, client=current_user)
+        db.commit()
 
     return _build_request_response(db, inv)
 

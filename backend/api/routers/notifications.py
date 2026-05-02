@@ -33,13 +33,23 @@ def get_notifications(
     if not admin_id:
         raise HTTPException(status_code=403, detail="Missing admin scope")
 
-    q = (
-        db.query(models.Notification)
-        .filter(models.Notification.admin_id == admin_id)
-        .order_by(models.Notification.created_at.desc())
-    )
+    q = db.query(models.Notification).filter(models.Notification.admin_id == admin_id)
+
+    # Clients should only see notifications that were addressed to them.
+    # Message notifications are persisted with NotificationRecipient rows.
+    # Admin/staff users can still see center-wide notifications by admin scope.
+    role = auth.get("role")
+    user_id = auth.get("user_id")
+    if role == "client" and user_id:
+        q = (
+            q.join(models.NotificationRecipient)
+            .filter(models.NotificationRecipient.user_id == int(user_id))
+        )
+
     if category:
         q = q.filter(models.Notification.category == category)
+
+    q = q.order_by(models.Notification.created_at.desc())
     return [_fmt(n) for n in q.limit(limit).all()]
 
 

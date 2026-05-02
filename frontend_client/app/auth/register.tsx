@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   View,
@@ -12,8 +12,11 @@ import {
   Platform,
   Alert,
   Image,
+  Modal,
+  FlatList,
 } from "react-native";
 import { router } from "expo-router";
+import { CountryPicker } from "react-native-country-codes-picker";
 import { Images } from "../../src/constants/images";
 import { authService } from "../../src/services/authService";
 import { colors } from "../../src/theme/colors";
@@ -21,6 +24,15 @@ import { spacing } from "../../src/theme/spacing";
 import { typography } from "../../src/theme/typography";
 
 const TOTAL_STEPS = 7;
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const CURRENT_YEAR = new Date().getFullYear();
+const DEFAULT_DOB_YEAR = CURRENT_YEAR - 65;
+const MIN_DOB_YEAR = CURRENT_YEAR - 120;
+const YEAR_OPTIONS = Array.from({ length: CURRENT_YEAR - MIN_DOB_YEAR + 1 }, (_, i) => String(CURRENT_YEAR - i));
+const DEFAULT_DOB_YEAR_INDEX = YEAR_OPTIONS.indexOf(String(DEFAULT_DOB_YEAR));
+const DROPDOWN_OPTION_ESTIMATED_HEIGHT = 47;
+const MONTH_OPTIONS = Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, "0"));
 
 const GENDER_OPTIONS = ["Male", "Female", "Other", "Prefer not to say"];
 
@@ -53,10 +65,49 @@ const STEP_TITLES = [
 type EmergencyRow = {
   fullName: string;
   relationship: string;
+  phoneCountryCode: string;
   phone: string;
+  alternatePhoneCountryCode: string;
   alternatePhone: string;
   email: string;
 };
+
+type DropdownOption = {
+  label: string;
+  value: string;
+};
+
+type CountryPickerTarget = {
+  key: string;
+  onSelect: (dialCode: string) => void;
+};
+
+function cleanPhone(value: string) {
+  return value.replace(/[^0-9]/g, "");
+}
+
+function formatPhone(countryCode: string, localPhone: string) {
+  const digits = cleanPhone(localPhone);
+  if (!digits) return "";
+  return `${countryCode}${digits}`;
+}
+
+function daysInMonth(year: string, month: string) {
+  if (!year || !month) return 31;
+  return new Date(Number(year), Number(month), 0).getDate();
+}
+
+function makeEmergencyRow(): EmergencyRow {
+  return {
+    fullName: "",
+    relationship: "",
+    phoneCountryCode: "+61",
+    phone: "",
+    alternatePhoneCountryCode: "+61",
+    alternatePhone: "",
+    email: "",
+  };
+}
 
 function CheckRow({
   checked,
@@ -79,7 +130,12 @@ function CheckRow({
       <View style={styles.checkLabelWrap}>
         <Text style={styles.checkLabel}>{label}</Text>
         {linkLabel && onLink ? (
-          <Pressable onPress={onLink}>
+          <Pressable
+            onPress={(event) => {
+              event.stopPropagation();
+              onLink();
+            }}
+          >
             <Text style={styles.checkLink}>{linkLabel}</Text>
           </Pressable>
         ) : null}
@@ -88,18 +144,111 @@ function CheckRow({
   );
 }
 
+function InlineDropdown({
+  label,
+  value,
+  placeholder,
+  options,
+  openKey,
+  expandedKey,
+  setExpandedKey,
+  onSelect,
+  compact,
+  initialScrollIndex,
+}: {
+  label?: string;
+  value: string;
+  placeholder: string;
+  options: DropdownOption[];
+  openKey: string;
+  expandedKey: string | null;
+  setExpandedKey: (key: string | null) => void;
+  onSelect: (value: string) => void;
+  compact?: boolean;
+  initialScrollIndex?: number;
+}) {
+  const isOpen = expandedKey === openKey;
+  const selected = options.find((item) => item.value === value);
+  const selectedIndex = options.findIndex((item) => item.value === value);
+  const modalInitialIndex = selectedIndex >= 0 ? selectedIndex : initialScrollIndex ?? 0;
+
+  return (
+    <View style={[styles.dropdownWrap, compact && styles.dropdownWrapCompact]}>
+      {label ? <Text style={styles.fieldLabel}>{label}</Text> : null}
+      <Pressable
+        style={[styles.dropdownButton, compact && styles.dropdownButtonCompact]}
+        onPress={() => setExpandedKey(isOpen ? null : openKey)}
+      >
+        <Text style={[styles.dropdownText, !selected && styles.placeholderText]} numberOfLines={1}>
+          {selected?.label || placeholder}
+        </Text>
+        <Text style={styles.dropdownArrow}>▾</Text>
+      </Pressable>
+
+      <Modal transparent visible={isOpen} animationType="fade" onRequestClose={() => setExpandedKey(null)}>
+        <Pressable style={styles.dropdownModalBackdrop} onPress={() => setExpandedKey(null)}>
+          <Pressable style={styles.dropdownModalCard} onPress={(event) => event.stopPropagation()}>
+            <View style={styles.dropdownModalHeader}>
+              <Text style={styles.dropdownModalTitle}>{placeholder}</Text>
+              <Pressable onPress={() => setExpandedKey(null)} hitSlop={10}>
+                <Text style={styles.dropdownModalClose}>×</Text>
+              </Pressable>
+            </View>
+            <FlatList
+              data={options}
+              keyExtractor={(item) => item.value}
+              style={styles.dropdownModalList}
+              initialScrollIndex={modalInitialIndex > 0 ? modalInitialIndex : undefined}
+              getItemLayout={(_, index) => ({
+                length: DROPDOWN_OPTION_ESTIMATED_HEIGHT,
+                offset: DROPDOWN_OPTION_ESTIMATED_HEIGHT * index,
+                index,
+              })}
+              onScrollToIndexFailed={() => undefined}
+              keyboardShouldPersistTaps="handled"
+              renderItem={({ item }) => (
+                <Pressable
+                  style={[styles.dropdownOption, value === item.value && styles.dropdownOptionActive]}
+                  onPress={() => {
+                    onSelect(item.value);
+                    setExpandedKey(null);
+                  }}
+                >
+                  <Text
+                    style={[
+                      styles.dropdownOptionText,
+                      value === item.value && styles.dropdownOptionTextActive,
+                    ]}
+                  >
+                    {item.label}
+                  </Text>
+                </Pressable>
+              )}
+            />
+          </Pressable>
+        </Pressable>
+      </Modal>
+    </View>
+  );
+}
+
 export default function RegisterScreen() {
   const [step, setStep] = useState(1);
+  const [expandedKey, setExpandedKey] = useState<string | null>(null);
+  const [countryPickerTarget, setCountryPickerTarget] = useState<CountryPickerTarget | null>(null);
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [preferredName, setPreferredName] = useState("");
   const [email, setEmail] = useState("");
   const [emailConfirm, setEmailConfirm] = useState("");
+  const [phoneCountryCode, setPhoneCountryCode] = useState("+61");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [dateOfBirth, setDateOfBirth] = useState("");
+  const [dobYear, setDobYear] = useState("");
+  const [dobMonth, setDobMonth] = useState("");
+  const [dobDay, setDobDay] = useState("");
   const [gender, setGender] = useState("");
 
   const [addressLine1, setAddressLine1] = useState("");
@@ -112,6 +261,7 @@ export default function RegisterScreen() {
   const [guardianName, setGuardianName] = useState("");
   const [guardianRelationship, setGuardianRelationship] = useState("");
   const [guardianType, setGuardianType] = useState("");
+  const [guardianPhoneCountryCode, setGuardianPhoneCountryCode] = useState("+61");
   const [guardianPhone, setGuardianPhone] = useState("");
   const [guardianEmail, setGuardianEmail] = useState("");
   const [guardianAddressSame, setGuardianAddressSame] = useState(true);
@@ -122,9 +272,7 @@ export default function RegisterScreen() {
   const [gPostal, setGPostal] = useState("");
   const [gCountry, setGCountry] = useState("");
 
-  const [emergencyRows, setEmergencyRows] = useState<EmergencyRow[]>([
-    { fullName: "", relationship: "", phone: "", alternatePhone: "", email: "" },
-  ]);
+  const [emergencyRows, setEmergencyRows] = useState<EmergencyRow[]>([makeEmergencyRow()]);
 
   const [registrationCompletedBy, setRegistrationCompletedBy] = useState("");
   const [assistedByName, setAssistedByName] = useState("");
@@ -138,23 +286,47 @@ export default function RegisterScreen() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const dayOptions = useMemo(() => {
+    const count = daysInMonth(dobYear, dobMonth);
+    return Array.from({ length: count }, (_, i) => {
+      const value = String(i + 1).padStart(2, "0");
+      return { label: value, value };
+    });
+  }, [dobYear, dobMonth]);
+
+  const dateOfBirth = dobYear && dobMonth && dobDay ? `${dobYear}-${dobMonth}-${dobDay}` : "";
+
   function updateEmergencyRow(index: number, patch: Partial<EmergencyRow>) {
-    setEmergencyRows((rows) =>
-      rows.map((r, i) => (i === index ? { ...r, ...patch } : r)),
-    );
+    setEmergencyRows((rows) => rows.map((r, i) => (i === index ? { ...r, ...patch } : r)));
   }
 
   function addEmergencyRow() {
     if (emergencyRows.length >= 3) return;
-    setEmergencyRows((rows) => [
-      ...rows,
-      { fullName: "", relationship: "", phone: "", alternatePhone: "", email: "" },
-    ]);
+    setEmergencyRows((rows) => [...rows, makeEmergencyRow()]);
   }
 
   function removeEmergencyRow(index: number) {
     if (emergencyRows.length <= 1) return;
     setEmergencyRows((rows) => rows.filter((_, i) => i !== index));
+  }
+
+  function validateEmail(value: string, message: string) {
+    if (!EMAIL_PATTERN.test(value.trim())) return message;
+    return null;
+  }
+
+  function validatePhone(value: string, message: string) {
+    const digits = cleanPhone(value);
+    if (digits.length < 6 || digits.length > 15) return message;
+    return null;
+  }
+
+  function validatePassword(value: string) {
+    if (value.length < 8) return "Password must be at least 8 characters";
+    if (!/[A-Z]/.test(value)) return "Password must contain at least 1 uppercase letter";
+    if (!/[a-z]/.test(value)) return "Password must contain at least 1 lowercase letter";
+    if (!/\d/.test(value)) return "Password must contain at least 1 number";
+    return null;
   }
 
   function validateStep(s: number): string | null {
@@ -167,14 +339,22 @@ export default function RegisterScreen() {
         !phone.trim() ||
         !password ||
         !confirmPassword ||
-        !dateOfBirth.trim() ||
+        !dateOfBirth ||
         !gender.trim()
       ) {
         return "Please complete all required fields on this step";
       }
+      const emailError = validateEmail(email, "Please enter a valid email address");
+      if (emailError) return emailError;
+      const emailConfirmError = validateEmail(emailConfirm, "Please enter a valid confirmation email");
+      if (emailConfirmError) return emailConfirmError;
       if (email.trim().toLowerCase() !== emailConfirm.trim().toLowerCase()) {
         return "Email addresses do not match";
       }
+      const phoneError = validatePhone(phone, "Please enter a valid phone number");
+      if (phoneError) return phoneError;
+      const passwordError = validatePassword(password);
+      if (passwordError) return passwordError;
       if (password !== confirmPassword) {
         return "Passwords do not match";
       }
@@ -188,20 +368,18 @@ export default function RegisterScreen() {
       if (!guardianName.trim() || !guardianType.trim() || !guardianPhone.trim()) {
         return "Guardian name, type, and phone are required";
       }
-      if (!guardianAddressSame) {
-        if (!gAddr1.trim() || !gCity.trim() || !gCountry.trim()) {
-          return "Guardian address needs line 1, city, and country (or use same as yours)";
-        }
+      const guardianPhoneError = validatePhone(guardianPhone, "Please enter a valid guardian phone number");
+      if (guardianPhoneError) return guardianPhoneError;
+      if (guardianEmail.trim() && !EMAIL_PATTERN.test(guardianEmail.trim())) {
+        return "Please enter a valid guardian email address";
+      }
+      if (!guardianAddressSame && (!gAddr1.trim() || !gCity.trim() || !gCountry.trim())) {
+        return "Guardian address needs line 1, city, and country, or use same as yours";
       }
     }
     if (s === 4) {
       const filled = emergencyRows.filter(
-        (r) =>
-          r.fullName.trim() ||
-          r.phone.trim() ||
-          r.relationship.trim() ||
-          r.alternatePhone.trim() ||
-          r.email.trim(),
+        (r) => r.fullName.trim() || r.phone.trim() || r.relationship.trim() || r.alternatePhone.trim() || r.email.trim(),
       );
       const toCheck = filled.length > 0 ? filled : emergencyRows.slice(0, 1);
       for (let i = 0; i < toCheck.length; i++) {
@@ -209,48 +387,56 @@ export default function RegisterScreen() {
         if (!r.fullName.trim() || !r.phone.trim()) {
           return `Emergency contact ${i + 1}: name and phone are required`;
         }
+        const emergencyPhoneError = validatePhone(r.phone, `Emergency contact ${i + 1}: please enter a valid phone number`);
+        if (emergencyPhoneError) return emergencyPhoneError;
+        if (r.alternatePhone.trim()) {
+          const alternatePhoneError = validatePhone(
+            r.alternatePhone,
+            `Emergency contact ${i + 1}: please enter a valid alternate phone number`,
+          );
+          if (alternatePhoneError) return alternatePhoneError;
+        }
+        if (r.email.trim() && !EMAIL_PATTERN.test(r.email.trim())) {
+          return `Emergency contact ${i + 1}: please enter a valid email address`;
+        }
       }
     }
-    if (s === 5) {
-      if (!registrationCompletedBy) {
-        return "Please select who is creating this account";
-      }
+    if (s === 5 && !registrationCompletedBy) {
+      return "Please select who is creating this account";
     }
-    if (s === 7) {
-      if (!acceptTerms || !acceptPrivacy) {
-        return "Please accept the Terms of Use and Privacy Policy";
-      }
+    if (s === 7 && (!acceptTerms || !acceptPrivacy)) {
+      return "Please accept the Terms of Use and Privacy Policy";
     }
     return null;
   }
 
   function goNext() {
     setError("");
+    setExpandedKey(null);
+    setCountryPickerTarget(null);
     const msg = validateStep(step);
     if (msg) {
       setError(msg);
       return;
     }
-    if (step < TOTAL_STEPS) {
-      setStep(step + 1);
-    }
+    if (step < TOTAL_STEPS) setStep(step + 1);
   }
 
   function goBack() {
     setError("");
-    if (step > 1) {
-      setStep(step - 1);
-    }
+    setExpandedKey(null);
+    setCountryPickerTarget(null);
+    if (step > 1) setStep(step - 1);
   }
 
   function buildEmergencyList(): EmergencyRow[] {
-    return emergencyRows.filter(
-      (r) => r.fullName.trim() && r.phone.trim(),
-    );
+    return emergencyRows.filter((r) => r.fullName.trim() && r.phone.trim());
   }
 
   async function handleRegister() {
     setError("");
+    setExpandedKey(null);
+    setCountryPickerTarget(null);
     const msg = validateStep(7);
     if (msg) {
       setError(msg);
@@ -268,9 +454,9 @@ export default function RegisterScreen() {
       await authService.register({
         firstName,
         lastName,
-        email,
-        emailConfirm,
-        phone,
+        email: email.trim().toLowerCase(),
+        emailConfirm: emailConfirm.trim().toLowerCase(),
+        phone: formatPhone(phoneCountryCode, phone),
         password,
         confirmPassword,
         dateOfBirth,
@@ -287,7 +473,7 @@ export default function RegisterScreen() {
           fullName: guardianName,
           relationship: guardianRelationship,
           guardianType,
-          phone: guardianPhone,
+          phone: formatPhone(guardianPhoneCountryCode, guardianPhone),
           email: guardianEmail,
           addressSameAsUser: guardianAddressSame,
           addressLine1: gAddr1,
@@ -300,8 +486,10 @@ export default function RegisterScreen() {
         emergencyContacts: list.map((r) => ({
           fullName: r.fullName,
           relationship: r.relationship,
-          phone: r.phone,
-          alternatePhone: r.alternatePhone,
+          phone: formatPhone(r.phoneCountryCode, r.phone),
+          alternatePhone: r.alternatePhone.trim()
+            ? formatPhone(r.alternatePhoneCountryCode, r.alternatePhone)
+            : "",
           email: r.email,
         })),
         registrationCompletedBy,
@@ -315,10 +503,6 @@ export default function RegisterScreen() {
         {
           text: "Continue",
           onPress: () => {
-            if (Platform.OS === "web" && typeof window !== "undefined") {
-              window.location.href = "http://localhost:3000/";
-              return;
-            }
             router.replace("/");
           },
         },
@@ -337,14 +521,51 @@ export default function RegisterScreen() {
           {Array.from({ length: TOTAL_STEPS }, (_, i) => (
             <View
               key={i}
-              style={[
-                styles.segment,
-                i < step && styles.segmentActive,
-                i === step - 1 && styles.segmentCurrent,
-              ]}
+              style={[styles.segment, i < step && styles.segmentActive, i === step - 1 && styles.segmentCurrent]}
             />
           ))}
         </View>
+      </View>
+    );
+  }
+
+  function renderPhoneField({
+    value,
+    countryCode,
+    onChangeText,
+    onChangeCountryCode,
+    placeholder,
+    openKey,
+  }: {
+    value: string;
+    countryCode: string;
+    onChangeText: (value: string) => void;
+    onChangeCountryCode: (value: string) => void;
+    placeholder: string;
+    openKey: string;
+  }) {
+    return (
+      <View style={styles.phoneRow}>
+        <Pressable
+          style={styles.countryPickerButton}
+          onPress={() => {
+            setExpandedKey(null);
+            setCountryPickerTarget({ key: openKey, onSelect: onChangeCountryCode });
+          }}
+        >
+          <Text style={styles.countryPickerButtonText} numberOfLines={1}>
+            {countryCode === "+61" ? "🇦🇺 +61" : `🌐 ${countryCode}`}
+          </Text>
+          <Text style={styles.dropdownArrow}>▾</Text>
+        </Pressable>
+        <TextInput
+          style={styles.phoneInput}
+          placeholder={placeholder}
+          placeholderTextColor={colors.textMuted}
+          keyboardType="phone-pad"
+          value={value}
+          onChangeText={(text) => onChangeText(text.replace(/[^0-9\s-]/g, ""))}
+        />
       </View>
     );
   }
@@ -397,25 +618,54 @@ export default function RegisterScreen() {
               value={emailConfirm}
               onChangeText={setEmailConfirm}
             />
-            <View style={styles.phoneRow}>
-              <Text style={styles.countryCode}>🇦🇺 ▾</Text>
-              <TextInput
-                style={styles.phoneInput}
-                placeholder="Phone number"
-                placeholderTextColor={colors.textMuted}
-                keyboardType="phone-pad"
-                value={phone}
-                onChangeText={setPhone}
+            <Text style={styles.fieldLabel}>Phone number</Text>
+            {renderPhoneField({
+              value: phone,
+              countryCode: phoneCountryCode,
+              onChangeText: setPhone,
+              onChangeCountryCode: setPhoneCountryCode,
+              placeholder: "Phone number",
+              openKey: "phone-main",
+            })}
+            <Text style={styles.fieldLabel}>Date of birth</Text>
+            <View style={styles.dateRow}>
+              <InlineDropdown
+                value={dobYear}
+                placeholder="Year"
+                options={YEAR_OPTIONS.map((year) => ({ label: year, value: year }))}
+                openKey="dob-year"
+                expandedKey={expandedKey}
+                setExpandedKey={setExpandedKey}
+                initialScrollIndex={DEFAULT_DOB_YEAR_INDEX}
+                onSelect={(value) => {
+                  setDobYear(value);
+                  const maxDay = daysInMonth(value, dobMonth);
+                  if (dobDay && Number(dobDay) > maxDay) setDobDay(String(maxDay).padStart(2, "0"));
+                }}
+              />
+              <InlineDropdown
+                value={dobMonth}
+                placeholder="Month"
+                options={MONTH_OPTIONS.map((month) => ({ label: month, value: month }))}
+                openKey="dob-month"
+                expandedKey={expandedKey}
+                setExpandedKey={setExpandedKey}
+                onSelect={(value) => {
+                  setDobMonth(value);
+                  const maxDay = daysInMonth(dobYear, value);
+                  if (dobDay && Number(dobDay) > maxDay) setDobDay(String(maxDay).padStart(2, "0"));
+                }}
+              />
+              <InlineDropdown
+                value={dobDay}
+                placeholder="Day"
+                options={dayOptions}
+                openKey="dob-day"
+                expandedKey={expandedKey}
+                setExpandedKey={setExpandedKey}
+                onSelect={setDobDay}
               />
             </View>
-            <Text style={styles.fieldLabel}>Date of birth</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="YYYY-MM-DD"
-              placeholderTextColor={colors.textMuted}
-              value={dateOfBirth}
-              onChangeText={setDateOfBirth}
-            />
             <Text style={styles.fieldLabel}>Gender</Text>
             <View style={styles.genderRow}>
               {GENDER_OPTIONS.map((g) => (
@@ -424,11 +674,7 @@ export default function RegisterScreen() {
                   style={[styles.genderBtn, gender === g && styles.genderBtnActive]}
                   onPress={() => setGender(g)}
                 >
-                  <Text
-                    style={[styles.genderBtnText, gender === g && styles.genderBtnTextActive]}
-                  >
-                    {g}
-                  </Text>
+                  <Text style={[styles.genderBtnText, gender === g && styles.genderBtnTextActive]}>{g}</Text>
                 </Pressable>
               ))}
             </View>
@@ -440,6 +686,7 @@ export default function RegisterScreen() {
               value={password}
               onChangeText={setPassword}
             />
+            <Text style={styles.passwordHint}>Use 8+ characters with uppercase, lowercase, and a number.</Text>
             <TextInput
               style={styles.input}
               placeholder="Confirm password"
@@ -453,101 +700,40 @@ export default function RegisterScreen() {
       case 2:
         return (
           <>
-            <TextInput
-              style={styles.input}
-              placeholder="Address line 1"
-              placeholderTextColor={colors.textMuted}
-              value={addressLine1}
-              onChangeText={setAddressLine1}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Address line 2 (optional)"
-              placeholderTextColor={colors.textMuted}
-              value={addressLine2}
-              onChangeText={setAddressLine2}
-            />
+            <TextInput style={styles.input} placeholder="Address line 1" placeholderTextColor={colors.textMuted} value={addressLine1} onChangeText={setAddressLine1} />
+            <TextInput style={styles.input} placeholder="Address line 2 (optional)" placeholderTextColor={colors.textMuted} value={addressLine2} onChangeText={setAddressLine2} />
             <View style={styles.nameRow}>
-              <TextInput
-                style={[styles.input, styles.nameInput, styles.nameInputTight]}
-                placeholder="City"
-                placeholderTextColor={colors.textMuted}
-                value={city}
-                onChangeText={setCity}
-              />
-              <TextInput
-                style={[styles.input, styles.nameInput, styles.nameInputTight]}
-                placeholder="State / region"
-                placeholderTextColor={colors.textMuted}
-                value={stateRegion}
-                onChangeText={setStateRegion}
-              />
+              <TextInput style={[styles.input, styles.nameInput, styles.nameInputTight]} placeholder="City" placeholderTextColor={colors.textMuted} value={city} onChangeText={setCity} />
+              <TextInput style={[styles.input, styles.nameInput, styles.nameInputTight]} placeholder="State / region" placeholderTextColor={colors.textMuted} value={stateRegion} onChangeText={setStateRegion} />
             </View>
             <View style={styles.nameRow}>
-              <TextInput
-                style={[styles.input, styles.nameInput, styles.nameInputTight]}
-                placeholder="Postcode"
-                placeholderTextColor={colors.textMuted}
-                value={postalCode}
-                onChangeText={setPostalCode}
-              />
-              <TextInput
-                style={[styles.input, styles.nameInput, styles.nameInputTight]}
-                placeholder="Country"
-                placeholderTextColor={colors.textMuted}
-                value={country}
-                onChangeText={setCountry}
-              />
+              <TextInput style={[styles.input, styles.nameInput, styles.nameInputTight]} placeholder="Postcode" placeholderTextColor={colors.textMuted} value={postalCode} onChangeText={setPostalCode} />
+              <TextInput style={[styles.input, styles.nameInput, styles.nameInputTight]} placeholder="Country" placeholderTextColor={colors.textMuted} value={country} onChangeText={setCountry} />
             </View>
           </>
         );
       case 3:
         return (
           <>
-            <TextInput
-              style={styles.input}
-              placeholder="Guardian full name"
-              placeholderTextColor={colors.textMuted}
-              value={guardianName}
-              onChangeText={setGuardianName}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Relationship to you (optional)"
-              placeholderTextColor={colors.textMuted}
-              value={guardianRelationship}
-              onChangeText={setGuardianRelationship}
-            />
+            <TextInput style={styles.input} placeholder="Guardian full name" placeholderTextColor={colors.textMuted} value={guardianName} onChangeText={setGuardianName} />
+            <TextInput style={styles.input} placeholder="Relationship to you (optional)" placeholderTextColor={colors.textMuted} value={guardianRelationship} onChangeText={setGuardianRelationship} />
             <Text style={styles.fieldLabel}>Guardian type</Text>
             <View style={styles.genderRow}>
               {GUARDIAN_TYPES.map((gt) => (
-                <Pressable
-                  key={gt.value}
-                  style={[
-                    styles.genderBtn,
-                    guardianType === gt.value && styles.genderBtnActive,
-                  ]}
-                  onPress={() => setGuardianType(gt.value)}
-                >
-                  <Text
-                    style={[
-                      styles.genderBtnText,
-                      guardianType === gt.value && styles.genderBtnTextActive,
-                    ]}
-                  >
-                    {gt.label}
-                  </Text>
+                <Pressable key={gt.value} style={[styles.genderBtn, guardianType === gt.value && styles.genderBtnActive]} onPress={() => setGuardianType(gt.value)}>
+                  <Text style={[styles.genderBtnText, guardianType === gt.value && styles.genderBtnTextActive]}>{gt.label}</Text>
                 </Pressable>
               ))}
             </View>
-            <TextInput
-              style={styles.input}
-              placeholder="Guardian phone"
-              placeholderTextColor={colors.textMuted}
-              keyboardType="phone-pad"
-              value={guardianPhone}
-              onChangeText={setGuardianPhone}
-            />
+            <Text style={styles.fieldLabel}>Guardian phone</Text>
+            {renderPhoneField({
+              value: guardianPhone,
+              countryCode: guardianPhoneCountryCode,
+              onChangeText: setGuardianPhone,
+              onChangeCountryCode: setGuardianPhoneCountryCode,
+              placeholder: "Guardian phone",
+              openKey: "phone-guardian",
+            })}
             <TextInput
               style={styles.input}
               placeholder="Guardian email (optional)"
@@ -557,58 +743,18 @@ export default function RegisterScreen() {
               value={guardianEmail}
               onChangeText={setGuardianEmail}
             />
-            <CheckRow
-              checked={guardianAddressSame}
-              onToggle={() => setGuardianAddressSame(!guardianAddressSame)}
-              label="Guardian address is the same as mine"
-            />
+            <CheckRow checked={guardianAddressSame} onToggle={() => setGuardianAddressSame(!guardianAddressSame)} label="Guardian address is the same as mine" />
             {!guardianAddressSame ? (
               <>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Guardian address line 1"
-                  placeholderTextColor={colors.textMuted}
-                  value={gAddr1}
-                  onChangeText={setGAddr1}
-                />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Guardian address line 2 (optional)"
-                  placeholderTextColor={colors.textMuted}
-                  value={gAddr2}
-                  onChangeText={setGAddr2}
-                />
+                <TextInput style={styles.input} placeholder="Guardian address line 1" placeholderTextColor={colors.textMuted} value={gAddr1} onChangeText={setGAddr1} />
+                <TextInput style={styles.input} placeholder="Guardian address line 2 (optional)" placeholderTextColor={colors.textMuted} value={gAddr2} onChangeText={setGAddr2} />
                 <View style={styles.nameRow}>
-                  <TextInput
-                    style={[styles.input, styles.nameInput, styles.nameInputTight]}
-                    placeholder="City"
-                    placeholderTextColor={colors.textMuted}
-                    value={gCity}
-                    onChangeText={setGCity}
-                  />
-                  <TextInput
-                    style={[styles.input, styles.nameInput, styles.nameInputTight]}
-                    placeholder="State"
-                    placeholderTextColor={colors.textMuted}
-                    value={gState}
-                    onChangeText={setGState}
-                  />
+                  <TextInput style={[styles.input, styles.nameInput, styles.nameInputTight]} placeholder="City" placeholderTextColor={colors.textMuted} value={gCity} onChangeText={setGCity} />
+                  <TextInput style={[styles.input, styles.nameInput, styles.nameInputTight]} placeholder="State" placeholderTextColor={colors.textMuted} value={gState} onChangeText={setGState} />
                 </View>
                 <View style={styles.nameRow}>
-                  <TextInput
-                    style={[styles.input, styles.nameInput, styles.nameInputTight]}
-                    placeholder="Postcode"
-                    placeholderTextColor={colors.textMuted}
-                    value={gPostal}
-                    onChangeText={setGPostal}
-                  />
-                  <TextInput
-                    style={[styles.input, styles.nameInput, styles.nameInputTight]}
-                    placeholder="Country"
-                    placeholderTextColor={colors.textMuted}
-                    value={gCountry}
-                    onChangeText={setGCountry}
-                  />
+                  <TextInput style={[styles.input, styles.nameInput, styles.nameInputTight]} placeholder="Postcode" placeholderTextColor={colors.textMuted} value={gPostal} onChangeText={setGPostal} />
+                  <TextInput style={[styles.input, styles.nameInput, styles.nameInputTight]} placeholder="Country" placeholderTextColor={colors.textMuted} value={gCountry} onChangeText={setGCountry} />
                 </View>
               </>
             ) : null}
@@ -620,45 +766,33 @@ export default function RegisterScreen() {
             {emergencyRows.map((row, index) => (
               <View key={index} style={styles.emergencyBlock}>
                 <View style={styles.emergencyLabelRow}>
-                  <Text style={styles.emergencyTitle}>
-                    Emergency contact {index + 1}
-                  </Text>
+                  <Text style={styles.emergencyTitle}>Emergency contact {index + 1}</Text>
                   {emergencyRows.length > 1 ? (
                     <Pressable onPress={() => removeEmergencyRow(index)}>
                       <Text style={styles.inlineLink}>Remove</Text>
                     </Pressable>
                   ) : null}
                 </View>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Full name"
-                  placeholderTextColor={colors.textMuted}
-                  value={row.fullName}
-                  onChangeText={(t) => updateEmergencyRow(index, { fullName: t })}
-                />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Relationship (optional)"
-                  placeholderTextColor={colors.textMuted}
-                  value={row.relationship}
-                  onChangeText={(t) => updateEmergencyRow(index, { relationship: t })}
-                />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Primary phone"
-                  placeholderTextColor={colors.textMuted}
-                  keyboardType="phone-pad"
-                  value={row.phone}
-                  onChangeText={(t) => updateEmergencyRow(index, { phone: t })}
-                />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Alternate phone (optional)"
-                  placeholderTextColor={colors.textMuted}
-                  keyboardType="phone-pad"
-                  value={row.alternatePhone}
-                  onChangeText={(t) => updateEmergencyRow(index, { alternatePhone: t })}
-                />
+                <TextInput style={styles.input} placeholder="Full name" placeholderTextColor={colors.textMuted} value={row.fullName} onChangeText={(t) => updateEmergencyRow(index, { fullName: t })} />
+                <TextInput style={styles.input} placeholder="Relationship (optional)" placeholderTextColor={colors.textMuted} value={row.relationship} onChangeText={(t) => updateEmergencyRow(index, { relationship: t })} />
+                <Text style={styles.fieldLabel}>Primary phone</Text>
+                {renderPhoneField({
+                  value: row.phone,
+                  countryCode: row.phoneCountryCode,
+                  onChangeText: (t) => updateEmergencyRow(index, { phone: t }),
+                  onChangeCountryCode: (t) => updateEmergencyRow(index, { phoneCountryCode: t }),
+                  placeholder: "Primary phone",
+                  openKey: `phone-emergency-${index}`,
+                })}
+                <Text style={styles.fieldLabel}>Alternate phone (optional)</Text>
+                {renderPhoneField({
+                  value: row.alternatePhone,
+                  countryCode: row.alternatePhoneCountryCode,
+                  onChangeText: (t) => updateEmergencyRow(index, { alternatePhone: t }),
+                  onChangeCountryCode: (t) => updateEmergencyRow(index, { alternatePhoneCountryCode: t }),
+                  placeholder: "Alternate phone",
+                  openKey: `phone-emergency-alt-${index}`,
+                })}
                 <TextInput
                   style={styles.input}
                   placeholder="Email (optional)"
@@ -683,73 +817,29 @@ export default function RegisterScreen() {
             <Text style={styles.fieldLabel}>Who is completing this registration?</Text>
             <View style={styles.genderRow}>
               {CREATED_BY_OPTIONS.map((opt) => (
-                <Pressable
-                  key={opt.value}
-                  style={[
-                    styles.genderBtn,
-                    registrationCompletedBy === opt.value && styles.genderBtnActive,
-                  ]}
-                  onPress={() => setRegistrationCompletedBy(opt.value)}
-                >
-                  <Text
-                    style={[
-                      styles.genderBtnText,
-                      registrationCompletedBy === opt.value && styles.genderBtnTextActive,
-                    ]}
-                  >
-                    {opt.label}
-                  </Text>
+                <Pressable key={opt.value} style={[styles.genderBtn, registrationCompletedBy === opt.value && styles.genderBtnActive]} onPress={() => setRegistrationCompletedBy(opt.value)}>
+                  <Text style={[styles.genderBtnText, registrationCompletedBy === opt.value && styles.genderBtnTextActive]}>{opt.label}</Text>
                 </Pressable>
               ))}
             </View>
             <Text style={styles.fieldLabel}>Name of person assisting (optional)</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="If someone helped you register, their name"
-              placeholderTextColor={colors.textMuted}
-              value={assistedByName}
-              onChangeText={setAssistedByName}
-            />
+            <TextInput style={styles.input} placeholder="If someone helped you register, their name" placeholderTextColor={colors.textMuted} value={assistedByName} onChangeText={setAssistedByName} />
           </>
         );
       case 6:
         return (
           <>
-            <Text style={styles.hintText}>
-              If your care centre gave you a centre ID, enter it here. You can skip this and add it later.
-            </Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Centre ID (optional)"
-              placeholderTextColor={colors.textMuted}
-              autoCapitalize="characters"
-              value={centerId}
-              onChangeText={setCenterId}
-            />
+            <Text style={styles.hintText}>If your care centre gave you a centre ID, enter it here. You can skip this and add it later.</Text>
+            <TextInput style={styles.input} placeholder="Centre ID (optional)" placeholderTextColor={colors.textMuted} autoCapitalize="characters" value={centerId} onChangeText={setCenterId} />
           </>
         );
       case 7:
         return (
           <>
-            <CheckRow
-              checked={acceptTerms}
-              onToggle={() => setAcceptTerms(!acceptTerms)}
-              label="I accept the Terms of Use"
-              linkLabel="View terms"
-              onLink={() => router.push("/legal/terms")}
-            />
-            <CheckRow
-              checked={acceptPrivacy}
-              onToggle={() => setAcceptPrivacy(!acceptPrivacy)}
-              label="I accept the Privacy Policy"
-              linkLabel="View policy"
-              onLink={() => router.push("/legal/privacy")}
-            />
-            <CheckRow
-              checked={smsConsent}
-              onToggle={() => setSmsConsent(!smsConsent)}
-              label="I agree to receive SMS notifications where applicable (optional)"
-            />
+            <Text style={styles.hintText}>Please review the demo legal documents below. These are placeholders and can be replaced with your team&apos;s final legal text later.</Text>
+            <CheckRow checked={acceptTerms} onToggle={() => setAcceptTerms(!acceptTerms)} label="I accept the Terms of Use" linkLabel="View terms" onLink={() => router.push("/legal/terms")} />
+            <CheckRow checked={acceptPrivacy} onToggle={() => setAcceptPrivacy(!acceptPrivacy)} label="I accept the Privacy Policy" linkLabel="View policy" onLink={() => router.push("/legal/privacy")} />
+            <CheckRow checked={smsConsent} onToggle={() => setSmsConsent(!smsConsent)} label="I agree to receive SMS notifications where applicable (optional)" />
           </>
         );
       default:
@@ -759,35 +849,20 @@ export default function RegisterScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView
-        style={styles.container}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-      >
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-        >
+      <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
           <View style={styles.screen}>
             <View style={styles.logoWrap}>
-              <Image
-                source={Images.logo_2}
-                style={{ width: 250, height: 60, resizeMode: "contain" }}
-              />
+              <Image source={Images.logo_2} style={{ width: 250, height: 60, resizeMode: "contain" }} />
             </View>
 
             <View style={styles.stepBadge}>
-              <Text style={styles.stepBadgeText}>
-                Step {step} of {TOTAL_STEPS}
-              </Text>
+              <Text style={styles.stepBadgeText}>Step {step} of {TOTAL_STEPS}</Text>
             </View>
             <Text style={styles.title}>Create account</Text>
             <Text style={styles.subtitle}>{STEP_TITLES[step - 1]}</Text>
             {step === 1 ? (
-              <Text style={styles.stepHint}>
-                Multi-step signup: after your details you&apos;ll add your address, guardian, emergency
-                contacts, and accept policies. Use Next to continue.
-              </Text>
+              <Text style={styles.stepHint}>Multi-step signup: after your details you&apos;ll add your address, guardian, emergency contacts, and accept policies. Use Next to continue.</Text>
             ) : null}
 
             {renderProgress()}
@@ -799,10 +874,7 @@ export default function RegisterScreen() {
 
               <View style={styles.btnRow}>
                 {step > 1 ? (
-                  <Pressable
-                    style={[styles.primaryBtn, styles.backBtn]}
-                    onPress={goBack}
-                  >
+                  <Pressable style={[styles.primaryBtn, styles.backBtn]} onPress={goBack}>
                     <Text style={[styles.primaryBtnText, styles.backBtnText]}>Back</Text>
                   </Pressable>
                 ) : (
@@ -814,16 +886,8 @@ export default function RegisterScreen() {
                     <Text style={styles.primaryBtnText}>Next</Text>
                   </Pressable>
                 ) : (
-                  <Pressable
-                    style={[styles.primaryBtn, { flex: 1 }]}
-                    onPress={handleRegister}
-                    disabled={loading}
-                  >
-                    {loading ? (
-                      <ActivityIndicator color={colors.surface} />
-                    ) : (
-                      <Text style={styles.primaryBtnText}>Create account</Text>
-                    )}
+                  <Pressable style={[styles.primaryBtn, { flex: 1 }, loading && styles.disabledBtn]} onPress={handleRegister} disabled={loading}>
+                    {loading ? <ActivityIndicator color={colors.surface} /> : <Text style={styles.primaryBtnText}>Create account</Text>}
                   </Pressable>
                 )}
               </View>
@@ -853,6 +917,24 @@ export default function RegisterScreen() {
             </View>
           </View>
         </ScrollView>
+        <CountryPicker
+          show={countryPickerTarget !== null}
+          lang="en"
+          inputPlaceholder="Search country or code"
+          onBackdropPress={() => setCountryPickerTarget(null)}
+          pickerButtonOnPress={(item: any) => {
+            const dialCode = item?.dial_code || item?.dialCode || item?.callingCode;
+            if (dialCode && countryPickerTarget) {
+              countryPickerTarget.onSelect(dialCode);
+            }
+            setCountryPickerTarget(null);
+          }}
+          style={{
+            modal: styles.countryPickerModal,
+            countryButtonStyles: styles.countryPickerOption,
+            textInput: styles.countryPickerSearch,
+          }}
+        />
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -950,6 +1032,14 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
     textAlign: "left",
     width: "100%",
+    lineHeight: 22,
+  },
+  passwordHint: {
+    ...typography.subText,
+    color: colors.textMuted,
+    marginTop: -spacing.md,
+    marginBottom: spacing.lg,
+    width: "100%",
   },
   genderRow: {
     flexDirection: "row",
@@ -992,6 +1082,9 @@ const styles = StyleSheet.create({
   backBtnText: {
     color: colors.textSecondary,
   },
+  disabledBtn: {
+    opacity: 0.7,
+  },
   nameRow: {
     flexDirection: "row",
     gap: 12,
@@ -1021,28 +1114,175 @@ const styles = StyleSheet.create({
   },
   phoneRow: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     gap: spacing.sm,
+    marginBottom: spacing.lg,
+    width: "100%",
+    zIndex: 20,
+  },
+  countryPickerButton: {
+    minWidth: 110,
+    height: 56,
     borderWidth: 1,
     borderColor: colors.borderStrong,
     borderRadius: 14,
-    height: 56,
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.sm,
     backgroundColor: colors.surface,
-    marginBottom: spacing.lg,
-    width: "100%",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
-  countryCode: {
-    ...typography.body,
+  countryPickerButtonText: {
+    flex: 1,
+    color: colors.textSecondary,
+    fontSize: 15,
+    fontWeight: "700",
+  },
+  countryPickerModal: {
+    height: 540,
+    backgroundColor: colors.background,
+  },
+  countryPickerSearch: {
+    height: 50,
+    borderRadius: 14,
+    backgroundColor: colors.surface,
+    color: colors.textSecondary,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+  },
+  countryPickerOption: {
+    backgroundColor: colors.surface,
+    borderRadius: 14,
+    marginVertical: 4,
   },
   phoneInput: {
     flex: 1,
-    ...typography.body,
+    height: 56,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+    borderRadius: 14,
+    paddingHorizontal: spacing.lg,
+    backgroundColor: colors.surface,
+    color: colors.textSecondary,
+    fontSize: 16,
+  },
+  dateRow: {
+    flexDirection: "row",
+    gap: spacing.sm,
+    width: "100%",
+    marginBottom: spacing.lg,
+    alignItems: "flex-start",
+    zIndex: 15,
+  },
+  dropdownWrap: {
+    flex: 1,
+    position: "relative",
+    zIndex: 25,
+  },
+  dropdownWrapCompact: {
+    flex: 0,
+    width: 112,
+  },
+  dropdownButton: {
+    minHeight: 56,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+    borderRadius: 14,
+    paddingHorizontal: spacing.md,
+    backgroundColor: colors.surface,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  dropdownButtonCompact: {
+    width: 112,
+  },
+  dropdownText: {
+    flex: 1,
+    fontSize: 15,
+    color: colors.textSecondary,
+  },
+  placeholderText: {
+    color: colors.textMuted,
+  },
+  dropdownArrow: {
+    marginLeft: spacing.xs,
+    color: colors.textMuted,
+    fontSize: 14,
+  },
+  dropdownPanel: {
+    position: "absolute",
+    top: 60,
+    left: 0,
+    right: 0,
+    maxHeight: 220,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+    borderRadius: 14,
+    backgroundColor: colors.surface,
+    overflow: "hidden",
+    zIndex: 100,
+    elevation: 8,
+  },
+  dropdownScroll: {
+    maxHeight: 220,
+  },
+  dropdownModalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.35)",
+    justifyContent: "flex-end",
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.xl,
+  },
+  dropdownModalCard: {
+    maxHeight: "62%",
+    borderRadius: 22,
+    backgroundColor: colors.surface,
+    overflow: "hidden",
+  },
+  dropdownModalHeader: {
+    minHeight: 56,
+    paddingHorizontal: spacing.lg,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  dropdownModalTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: colors.textPrimary,
+  },
+  dropdownModalClose: {
+    fontSize: 28,
+    color: colors.textMuted,
+  },
+  dropdownModalList: {
+    maxHeight: 340,
+  },
+  dropdownOption: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  dropdownOptionActive: {
+    backgroundColor: colors.primary,
+  },
+  dropdownOptionText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+  },
+  dropdownOptionTextActive: {
+    color: colors.surface,
+    fontWeight: "700",
   },
   errorText: {
     color: colors.danger,
     fontSize: 14,
     marginBottom: spacing.sm,
+    lineHeight: 20,
   },
   primaryBtn: {
     width: "100%",
@@ -1159,6 +1399,7 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: colors.borderStrong,
+    zIndex: 10,
   },
   emergencyLabelRow: {
     flexDirection: "row",

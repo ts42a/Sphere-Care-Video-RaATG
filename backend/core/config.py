@@ -8,7 +8,7 @@ load_dotenv(_BACKEND_ENV_PATH)
 
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
-    "postgresql://postgres:postgres@localhost:5432/sphere_care",
+    "postgresql://postgres:chingyu1015@localhost:5432/sphere_care",
 )
 ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "*")
 SECRET_KEY = os.getenv("SECRET_KEY", "change-this-secret-key")

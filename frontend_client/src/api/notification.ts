@@ -97,6 +97,8 @@ function toNotificationType(category?: string): NotificationType {
       return "alert";
     case "reminder":
       return "reminder";
+    case "message":
+      return "message";
     default:
       return "general";
   }
@@ -143,6 +145,9 @@ export function subscribeToNotificationUpdates(listener: NotificationSubscriber)
 }
 
 function mapBackendNotification(notification: BackendNotification): NotificationItem {
+  const isConversationNotification =
+    notification.category === "message" || notification.related_entity_type === "conversation";
+
   return withReadState({
     id: `server-${notification.id}`,
     type: toNotificationType(notification.category),
@@ -150,11 +155,17 @@ function mapBackendNotification(notification: BackendNotification): Notification
     message: notification.body,
     timeAgo: formatTimeAgo(notification.created_at),
     action: {
-      label: notification.category === "appointment" ? "View details" : "Open",
+      label: isConversationNotification
+        ? "Open"
+        : notification.category === "appointment"
+          ? "View details"
+          : "Open",
       variant: notification.is_priority ? "red" : "blue",
-      actionType: "view_details",
+      actionType: isConversationNotification ? "open_conversation" : "view_details",
     },
     sourceId: notification.id,
+    relatedEntityType: notification.related_entity_type ?? null,
+    relatedEntityId: notification.related_entity_id ?? null,
     createdAt: notification.created_at,
   });
 }

@@ -57,6 +57,32 @@ export default function NotificationScreen() {
     }
   }
 
+  async function handleOpenNotification(item: NotificationItem) {
+    try {
+      if (!item.isRead) {
+        await notificationService.markAsRead(item.id);
+      }
+
+      const conversationId =
+        item.relatedEntityType === "conversation" ||
+        item.action?.actionType === "open_conversation"
+          ? item.relatedEntityId
+          : null;
+
+      if (conversationId) {
+        router.push({
+          pathname: "/messages/[contactId]",
+          params: { contactId: String(conversationId) },
+        });
+        return;
+      }
+
+      await loadNotifications(activeFilter);
+    } catch (error) {
+      console.error("Failed to open notification", error);
+    }
+  }
+
   async function handleMarkAllRead() {
     try {
       await notificationService.markAllAsRead();
@@ -149,7 +175,11 @@ export default function NotificationScreen() {
         ) : (
           <View style={styles.list}>
             {notifications.map((item) => (
-              <View key={item.id} style={styles.itemRow}>
+              <Pressable
+                key={item.id}
+                style={styles.itemRow}
+                onPress={() => handleOpenNotification(item)}
+              >
                 <View style={[styles.dotAvatar, getAvatarStyle(item.type)]} />
 
                 <View style={styles.itemContent}>
@@ -163,6 +193,7 @@ export default function NotificationScreen() {
                   <View style={styles.actionRow}>
                     {item.action ? (
                       <Pressable
+                        onPress={() => handleOpenNotification(item)}
                         style={[
                           styles.actionBtn,
                           item.action.variant === "red" && styles.actionBtnRed,
@@ -176,13 +207,18 @@ export default function NotificationScreen() {
                     )}
 
                     {!item.isRead && (
-                      <Pressable onPress={() => handleMarkRead(item.id)}>
+                      <Pressable
+                        onPress={(event) => {
+                          event.stopPropagation();
+                          handleMarkRead(item.id);
+                        }}
+                      >
                         <Text style={styles.markReadText}>Mark read</Text>
                       </Pressable>
                     )}
                   </View>
                 </View>
-              </View>
+              </Pressable>
             ))}
           </View>
         )}
@@ -201,6 +237,8 @@ function getAvatarStyle(type: NotificationItem["type"]) {
       return { backgroundColor: "#E8EEF8" };
     case "handoff":
       return { backgroundColor: "#F3F0DD" };
+    case "message":
+      return { backgroundColor: "#E7ECFF" };
     default:
       return { backgroundColor: "#ECEFF4" };
   }

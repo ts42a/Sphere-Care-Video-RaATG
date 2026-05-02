@@ -17,6 +17,7 @@ import {
   fetchCall,
   fetchCallContactById,
   fetchCallContacts,
+  fetchCallHistory,
   fetchCallSummary,
   fetchTranscript,
   getCallStatusLabel,
@@ -55,6 +56,10 @@ function resolveStartedAtMs(
 export const callService = {
   async getSummary(timeZone?: string) {
     return fetchCallSummary(timeZone);
+  },
+
+  async getHistory(limit?: number) {
+    return fetchCallHistory(limit);
   },
 
   getContacts: fetchCallContacts,

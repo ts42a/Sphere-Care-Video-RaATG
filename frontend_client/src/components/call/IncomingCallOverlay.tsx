@@ -274,6 +274,9 @@ export default function IncomingCallOverlay() {
         params: {
           contactId: acceptedContact.id,
           callId: String(session.callId),
+          contactName: acceptedContact.name,
+          contactUserId: acceptedContact.userId ? String(acceptedContact.userId) : "",
+          contactRole: acceptedContact.role || acceptedContact.specialty || "",
         },
       });
     } catch (error) {

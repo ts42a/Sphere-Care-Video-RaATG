@@ -24,14 +24,30 @@ export default function LoginScreen() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
   async function handleLogin() {
     setError("");
 
     const normalizedEmail = email.trim().toLowerCase();
 
-    if (!normalizedEmail || !password) {
+    if (!normalizedEmail && !password) {
       setError("Please enter your email and password");
+      return;
+    }
+
+    if (!normalizedEmail) {
+      setError("Please enter your email");
+      return;
+    }
+
+    if (!emailPattern.test(normalizedEmail)) {
+      setError("Please enter a valid email address");
+      return;
+    }
+
+    if (!password) {
+      setError("Please enter your password");
       return;
     }
 
@@ -79,7 +95,10 @@ export default function LoginScreen() {
                 autoCapitalize="none"
                 autoCorrect={false}
                 value={email}
-                onChangeText={setEmail}
+                onChangeText={(text) => {
+                  setEmail(text);
+                  if (error) setError("");
+                }}
               />
 
               <TextInput
@@ -88,7 +107,10 @@ export default function LoginScreen() {
                 placeholderTextColor={colors.textMuted}
                 secureTextEntry
                 value={password}
-                onChangeText={setPassword}
+                onChangeText={(text) => {
+                  setPassword(text);
+                  if (error) setError("");
+                }}
               />
 
               {!!error && <Text style={styles.errorText}>{error}</Text>}

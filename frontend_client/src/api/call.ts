@@ -3,6 +3,7 @@ import type { AuthUser } from "../types/auth";
 import type {
   BackendCallResponse,
   CallContact,
+  CallHistoryItem,
   CallJoinPayload,
   CallLifecycleState,
   CallMode,
@@ -20,6 +21,21 @@ type BackendCallSummaryResponse = {
   total_duration_minutes: number;
   total_duration_label: string;
   pending_calls_text: string;
+};
+
+type BackendCallHistoryItem = {
+  call_id: number;
+  state: CallLifecycleState;
+  kind: CallMode;
+  direction: "incoming" | "outgoing";
+  remote_user_id: number;
+  remote_name: string;
+  remote_role?: string | null;
+  started_at?: string | null;
+  ended_at?: string | null;
+  created_at: string;
+  duration_seconds: number;
+  duration_label: string;
 };
 
 function consultationStatusForState(
@@ -178,6 +194,25 @@ export async function fetchCallSummary(timeZone?: string): Promise<CallSummary> 
     totalDurationLabel: data.total_duration_label,
     pendingCallsText: data.pending_calls_text,
   };
+}
+
+export async function fetchCallHistory(limit = 30): Promise<CallHistoryItem[]> {
+  const data = await request<BackendCallHistoryItem[]>(`/calls/history?limit=${limit}`);
+
+  return data.map((item) => ({
+    callId: item.call_id,
+    state: item.state,
+    kind: item.kind,
+    direction: item.direction,
+    remoteUserId: item.remote_user_id,
+    remoteName: item.remote_name,
+    remoteRole: item.remote_role,
+    startedAt: item.started_at,
+    endedAt: item.ended_at,
+    createdAt: item.created_at,
+    durationSeconds: item.duration_seconds,
+    durationLabel: item.duration_label,
+  }));
 }
 
 export async function startCallRequest(

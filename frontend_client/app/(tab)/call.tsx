@@ -16,7 +16,7 @@ import PageHeader from "../../src/components/PageHeader";
 import { callService } from "../../src/services/callService";
 import { miniCallService } from "../../src/services/miniCallService";
 import { wsClient } from "../../src/services/wsClient";
-import type { CallContact, CallSummary } from "../../src/types/call";
+import type { CallContact, CallHistoryItem, CallSummary } from "../../src/types/call";
 import { colors } from "../../src/theme/colors";
 import { spacing } from "../../src/theme/spacing";
 import { typography } from "../../src/theme/typography";
@@ -43,11 +43,49 @@ function formatRelativeTime(value?: string, nowMs = Date.now()) {
 
   return date.toLocaleDateString();
 }
+function isMissedIncomingCall(call: CallHistoryItem) {
+  return (
+    call.direction === "incoming" &&
+    !call.startedAt &&
+    (call.state === "timeout" || call.state === "canceled")
+  );
+}
+
+function formatCallStateLabel(call: CallHistoryItem) {
+  if (call.state === "ended") return call.durationLabel || "Completed";
+  if (isMissedIncomingCall(call)) return "Missed";
+  if (call.state === "timeout") return "Missed";
+  if (call.state === "declined") return "Declined";
+  if (call.state === "canceled") return "Canceled";
+  if (call.state === "active") return "In progress";
+  if (call.state === "ringing") return "Ringing";
+  return "Failed";
+}
+
+function initialsFromName(name: string) {
+  return name
+    .split(" ")
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase() || "?";
+}
+
+function historyIconName(call: CallHistoryItem): keyof typeof Feather.glyphMap {
+  if (isMissedIncomingCall(call) || call.state === "timeout") return "phone-missed";
+  if (call.kind === "video") return "video";
+  if (call.direction === "incoming") return "phone-incoming";
+  return "phone-outgoing";
+}
+
 
 export default function CallCenterScreen() {
   const [query, setQuery] = useState("");
   const [summary, setSummary] = useState<CallSummary | null>(null);
   const [contacts, setContacts] = useState<CallContact[]>([]);
+  const [history, setHistory] = useState<CallHistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [startingCallKey, setStartingCallKey] = useState("");
@@ -105,6 +143,7 @@ export default function CallCenterScreen() {
 
         const refreshAll = () => {
           void refreshSummary();
+          void refreshHistory();
           void loadContacts(query);
         };
 
@@ -141,18 +180,29 @@ export default function CallCenterScreen() {
     }
   }
 
+  async function refreshHistory() {
+    try {
+      const historyData = await callService.getHistory(30);
+      setHistory(historyData);
+    } catch (historyError) {
+      console.error("Failed to refresh call history", historyError);
+    }
+  }
+
   async function loadInitialData() {
     try {
       setLoading(true);
       setError("");
 
-      const [summaryData, contactData] = await Promise.all([
+      const [summaryData, contactData, historyData] = await Promise.all([
         callService.getSummary(deviceTimeZone),
         callService.getContacts(""),
+        callService.getHistory(30),
       ]);
 
       setSummary(summaryData);
       setContacts(contactData);
+      setHistory(historyData);
     } catch (loadError) {
       console.error("Failed to load call center data", loadError);
       setError("Unable to load call data right now.");
@@ -215,6 +265,7 @@ export default function CallCenterScreen() {
       });
 
       void refreshSummary();
+      void refreshHistory();
     } catch (callError) {
       console.error("Failed to start call", callError);
       setError(
@@ -278,9 +329,9 @@ export default function CallCenterScreen() {
           </View>
         ) : null}
 
-        {!loading && !error && contacts.length === 0 ? (
+        {!loading && !error && contacts.length === 0 && history.length === 0 ? (
           <View style={styles.infoBox}>
-            <Text style={styles.infoText}>No contacts found.</Text>
+            <Text style={styles.infoText}>No contacts or call history found.</Text>
           </View>
         ) : null}
 
@@ -290,6 +341,9 @@ export default function CallCenterScreen() {
           </View>
         ) : (
           <View style={styles.list}>
+            {contacts.length > 0 ? (
+              <Text style={styles.sectionTitle}>Callable contacts</Text>
+            ) : null}
             {contacts.map((contact) => (
               <View key={contact.id} style={styles.contactCard}>
                 <View
@@ -354,6 +408,43 @@ export default function CallCenterScreen() {
                 </View>
               </View>
             ))}
+
+            {history.length > 0 ? (
+              <>
+                <Text style={styles.sectionTitle}>Call history</Text>
+                {history.map((call) => (
+                  <View key={call.callId} style={styles.contactCard}>
+                    <View style={[styles.avatar, styles.historyAvatar]}>
+                      <Text style={styles.avatarText}>
+                        {initialsFromName(call.remoteName)}
+                      </Text>
+                    </View>
+
+                    <View style={styles.contactInfo}>
+                      <Text style={styles.contactName}>{call.remoteName}</Text>
+                      <Text style={styles.contactSeen}>
+                        {call.direction === "incoming" ? "Incoming" : "Outgoing"}
+                        {" · "}
+                        {call.kind === "video" ? "Video" : "Audio"}
+                        {" · "}
+                        {formatRelativeTime(call.startedAt || call.createdAt, nowTick)}
+                      </Text>
+                      <Text style={styles.historyStatus}>
+                        {formatCallStateLabel(call)}
+                      </Text>
+                    </View>
+
+                    <View style={styles.historyIconWrap}>
+                      <Feather
+                        name={historyIconName(call)}
+                        size={23}
+                        color={colors.icon}
+                      />
+                    </View>
+                  </View>
+                ))}
+              </>
+            ) : null}
           </View>
         )}
       </ScrollView>
@@ -487,6 +578,12 @@ const styles = StyleSheet.create({
     gap: 14,
     paddingBottom: spacing.md,
   },
+  sectionTitle: {
+    ...typography.cardTitle,
+    color: colors.textSecondary,
+    marginTop: spacing.sm,
+    marginBottom: -2,
+  },
   contactCard: {
     borderRadius: 18,
     backgroundColor: "#F1F2F4",
@@ -503,6 +600,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginRight: spacing.md,
   },
+  historyAvatar: {
+    backgroundColor: colors.primary,
+  },
   avatarText: {
     color: colors.surface,
     fontSize: 22,
@@ -518,6 +618,16 @@ const styles = StyleSheet.create({
   },
   contactSeen: {
     ...typography.subText,
+  },
+  historyStatus: {
+    ...typography.subText,
+    color: colors.textSecondary,
+    marginTop: 2,
+  },
+  historyIconWrap: {
+    width: 40,
+    alignItems: "center",
+    justifyContent: "center",
   },
   actions: {
     flexDirection: "row",
