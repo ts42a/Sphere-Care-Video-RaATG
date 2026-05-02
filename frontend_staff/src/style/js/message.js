@@ -467,22 +467,52 @@ async function createConv() {
 
     // Get client name from response
     var clientName = invData.user_full_name || accountId;
-
     // Create conversation for this resident
+    var clientUserId = invData.user_id || invData.client_user_id || 0;
     var newId = Date.now();
     var convName = 'Resident Care: ' + clientName;
+    var backendParticipants = [];
     try {
+      var convPayload = {
+        name: convName,
+        category: 'resident',
+        participants: []
+      };
+
+      // Important: mobile clients connect to WebSocket as user:<id>,
+      // so participant_type must be "user", not "client".
+      if (clientUserId) {
+        convPayload.participants.push({
+          user_id: clientUserId,
+          participant_type: 'user',
+          display_name: clientName,
+          role: 'client'
+        });
+      }
+
       var convRes = await fetch(API_BASE + '/messages/conversations', {
         method: 'POST', headers: authH(),
-        body: JSON.stringify({ name: convName, category: 'resident' })
+        body: JSON.stringify(convPayload)
       });
+<<<<<<< HEAD
       if (convRes.ok) { var cd = await convRes.json(); newId = cd.id; }
+=======
+      if (convRes.ok) {
+        var cd2 = await convRes.json();
+        newId = cd2.id;
+        backendParticipants = cd2.participants || [];
+      }
+>>>>>>> 0ac943b54 (Update fix error)
     } catch(e) {}
 
     var c = { id: newId, name: convName, category: 'resident',
       last_message: 'Invitation sent', last_message_at: 'Just now',
       unread_count: 0, sub: 'Resident Care',
+<<<<<<< HEAD
       color: CAT_CLR.resident, online: false };
+=======
+      color: CAT_CLR.resident, online: false, participants: backendParticipants };
+>>>>>>> 0ac943b54 (Update fix error)
     allConvs.unshift(c);
     localMsgs[newId] = [];
     filterConvs();
@@ -1483,7 +1513,7 @@ async function showMembersModal() {
       }
       var addRes = await fetch(API_BASE + '/messages/conversations/' + currentId + '/participants', {
         method: 'POST', headers: authH(),
-        body: JSON.stringify({ user_id: invData.user_id || 0, participant_type: 'client', display_name: invData.user_full_name || accountId, role: 'member' })
+        body: JSON.stringify({ user_id: invData.user_id || 0, participant_type: 'user', display_name: invData.user_full_name || accountId, role: 'client' })
       });
       if (!addRes.ok) {
         var ad = await addRes.json();
