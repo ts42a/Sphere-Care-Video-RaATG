@@ -23,6 +23,9 @@ router = APIRouter(prefix="/calls", tags=["Calls"])
 INVITE_TTL_SECONDS = 60  # 1 minute ringing timeout
 TERMINAL_CALL_STATES = {"declined", "canceled", "timeout", "ended", "failed"}
 
+# Admin IDs are offset to avoid colliding with users.id values
+ADMIN_ID_OFFSET = 1_000_000
+
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -46,6 +49,12 @@ def _get_org_id(current_user, db: Session | None = None) -> int:
     return int(getattr(current_user, "organization_id", 0) or 0)
 
 def _get_user_id(current_user) -> int:
+    """
+    Admin rows live in a separate table so we offset their id by ADMIN_ID_OFFSET
+    to guarantee they never collide with a users.id value.
+    """
+    if isinstance(current_user, models.Admin):
+        return int(current_user.id) + ADMIN_ID_OFFSET
     return int(current_user.id)
 
 def _get_role(current_user) -> str:
