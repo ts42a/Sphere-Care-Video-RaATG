@@ -19,7 +19,7 @@
     <div class="lp-header">
       <div class="lp-title-row">
         <div class="lp-title">Messages</div>
-        <button class="btn-new" onclick="openNewModal()"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>New</button>
+        <button class="btn-new" onclick="openNewModal();_loadStaffForPicker();"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>New</button>
       </div>
       <div class="unread-label" id="unread-label">Loading...</div>
       <div class="search-wrap">
@@ -112,7 +112,16 @@
         <option value="team">Team</option>
         <option value="alerts">Alerts</option>
       </select>
-      <div id="new-team-error" style="display:none;color:#ef4444;font-size:12px;margin-top:4px;padding:8px;background:#fee2e2;border-radius:8px;"></div>
+      <div style="margin-top:12px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+          <label class="flabel" style="margin:0;">Add Members</label>
+          <span id="new-member-count" style="font-size:12px;color:#38BDF8;font-weight:600;"></span>
+        </div>
+        <div id="new-member-picker" style="max-height:180px;overflow-y:auto;border:1.5px solid #e2e8f0;border-radius:10px;padding:4px;">
+          <div style="font-size:12px;color:#94a3b8;text-align:center;padding:12px;">Loading staff…</div>
+        </div>
+      </div>
+      <div id="new-team-error" style="display:none;color:#ef4444;font-size:12px;margin-top:8px;padding:8px;background:#fee2e2;border-radius:8px;"></div>
     </div>
     <!-- Resident tab -->
     <div id="new-tab-resident" class="mbody" style="display:none;text-align:center;">

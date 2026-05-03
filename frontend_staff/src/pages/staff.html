@@ -351,57 +351,37 @@
 
 <!-- ── ADD STAFF MODAL ── -->
 <div class="overlay" id="modal-add" onclick="if(event.target===this)closeAddModal()">
-  <div class="sc-modal">
+  <div class="sc-modal" style="max-width:420px;">
     <div class="mhdr">
       <h3>Add New Staff</h3>
-      <button class="mclose" onclick="closeAddModal()">✕</button>
+      <button class="mclose" onclick="closeAddModal()">&#x2715;</button>
     </div>
     <div class="mbody">
+      <div style="text-align:center;padding:8px 0 20px;">
+        <div style="font-size:44px;margin-bottom:14px;">&#x1F517;</div>
+        <p style="font-size:13.5px;color:var(--text2);line-height:1.6;margin:0;">
+          To add a staff member, enter the <strong style="color:var(--text);">Account ID</strong> of someone who has registered on the Sphere Care web portal.<br/>
+          They will be linked to your care centre.
+        </p>
+      </div>
       <div id="add-error" style="display:none;color:#ef4444;font-size:13px;margin-bottom:12px;padding:8px 12px;background:#fee2e2;border-radius:8px;"></div>
+      <div id="add-success" style="display:none;font-size:13px;margin-bottom:12px;padding:8px 12px;background:#dcfce7;border-radius:8px;color:#16a34a;"></div>
       <div class="mbody-section">
-        <div class="mrow">
-          <div>
-            <label class="flabel">Full Name *</label>
-            <input class="finput" id="add-fullname" placeholder="e.g. Sarah Nurse" onkeydown="if(event.key==='Enter')submitAddStaff()"/>
-          </div>
-          <div>
-            <label class="flabel">Staff ID</label>
-            <input class="finput" id="add-staff-id" placeholder="Auto-generated" disabled style="background:#f0f2f5;color:#94a3b8;cursor:not-allowed;"/>
-          </div>
-        </div>
-        <div>
-          <label class="flabel">Shift Hours</label>
-          <div class="shift-row">
-            <input class="finput" type="time" id="add-shift-from" title="Shift start"/>
-            <span class="shift-sep">to</span>
-            <input class="finput" type="time" id="add-shift-to" title="Shift end"/>
-          </div>
-        </div>
-        <div class="mrow" style="margin-top:12px;">
-          <div>
-            <label class="flabel">Assigned Unit</label>
-            <input class="finput" id="add-unit" placeholder="e.g. General Ward"/>
-          </div>
-          <div>
-            <label class="flabel">Status</label>
-            <select class="fsel" id="add-status">
-              <option value="active">Active</option>
-              <option value="on_leave">On Leave</option>
-              <option value="pending">Pending</option>
-            </select>
-          </div>
-        </div>
-        <div class="mrow">
-          <div>
-            <label class="flabel">Role</label>
-            <input class="finput" id="add-role" placeholder="e.g. Nurse, Carer, Doctor"/>
-          </div>
+        <label class="flabel">STAFF ACCOUNT ID</label>
+        <input class="finput"
+          id="add-account-id"
+          placeholder="E.G. ACC-47291038"
+          style="font-size:15px;font-weight:700;letter-spacing:1px;text-transform:uppercase;"
+          oninput="this.value=this.value.toUpperCase()"
+          onkeydown="if(event.key==='Enter')submitAddStaff()"/>
+        <div style="font-size:12px;color:var(--text3);margin-top:6px;">
+          The staff member can find their Account ID in <strong>Settings &#x2192; Account</strong> on the web portal.
         </div>
       </div>
     </div>
     <div class="mfooter">
       <button class="btn btn-outline" onclick="closeAddModal()">Cancel</button>
-      <button class="btn btn-primary" id="btn-add-submit" onclick="submitAddStaff()">Add Staff</button>
+      <button class="btn btn-primary" id="btn-add-submit" onclick="submitAddStaff()">Send Invitation</button>
     </div>
   </div>
 </div>
