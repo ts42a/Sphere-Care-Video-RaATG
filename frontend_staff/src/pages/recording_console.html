@@ -1,149 +1,709 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
-<link rel="stylesheet" href="/style/css/recording_console.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="/style/css/recording_console.css"/>
 
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Sphere Care – Recording Console</title>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sphere Care – Recording Console</title>
 
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
 </head>
+
 <body>
 <div class="app">
 
-<!-- SIDEBAR -->
-<div id="sidebar-container"></div>
+  <!-- SIDEBAR -->
+  <div id="sidebar-container"></div>
 
-<!-- MAIN -->
-<div class="main">
+  <!-- MAIN -->
+  <div class="main">
 
-  <!-- TOPBAR -->
-  <div class="topbar">
-    <div class="topbar-left">
-      <div class="topbar-title">Recording Console</div>
-      <div class="topbar-sub">AI-powered surveillance for real-time resident safety and care monitoring.</div>
+    <!-- TOPBAR -->
+    <div class="topbar">
+      <div class="topbar-left">
+        <div class="topbar-title">Recording Console</div>
+        <div class="topbar-sub">AI-powered surveillance for real-time resident safety and care monitoring.</div>
+      </div>
+
+      <div class="topbar-right">
+        <span class="topbar-date" id="tb-date"></span>
+        <span class="topbar-time" id="tb-time"></span>
+
+        <button class="tb-btn" onclick="unlockVaultFromConsole()">
+          <svg viewBox="0 0 24 24">
+            <rect x="3" y="11" width="18" height="10" rx="2"/>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          </svg>
+          Vault Unlock
+        </button>
+
+        <button class="tb-btn" onclick="deleteAllVaultRecordingsFromConsole()">
+          <svg viewBox="0 0 24 24">
+            <polyline points="3 6 5 6 21 6"/>
+            <path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/>
+            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+          </svg>
+          Delete Vault Videos
+        </button>
+
+        <button class="tb-btn" onclick="openCameraSettingsModal()">
+          <svg viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/>
+          </svg>
+          Camera Settings
+        </button>
+
+        <button class="tb-btn tb-btn-alert" id="alerts-topbtn">
+          <svg viewBox="0 0 24 24">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+          </svg>
+          Alerts
+          <span class="alert-badge">—</span>
+        </button>
+
+        <div class="uavatar topbar-avatar" id="user-avatar"></div>
+      </div>
     </div>
-    <div class="topbar-right">
-      <span class="topbar-date" id="tb-date"></span>
-      <span class="topbar-time" id="tb-time"></span>
-      <button class="tb-btn" onclick="unlockVaultFromConsole()">
-        <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-        Vault Unlock
-      </button>
-      <button class="tb-btn" onclick="deleteAllVaultRecordingsFromConsole()">
-        <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
-        Delete Vault Videos
-      </button>
-      <button class="tb-btn">
-        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
-        Camera Settings
-      </button>
-      <button class="tb-btn tb-btn-alert" id="alerts-topbtn">
-        <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-        Alerts
-        <span class="alert-badge">3</span>
-      </button>
-      <div class="uavatar topbar-avatar" id="user-avatar"></div>
+
+    <!-- CONTENT -->
+    <div class="center">
+
+      <!-- STAT CARDS -->
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="stat-icon-wrap si-green">
+            <svg viewBox="0 0 24 24">
+              <rect x="2" y="7" width="20" height="15" rx="2"/>
+              <polyline points="17 2 12 7 7 2"/>
+            </svg>
+          </div>
+
+          <div>
+            <div class="stat-label">Total Cameras</div>
+            <div class="stat-value" id="st-total">—</div>
+            <div class="stat-sub">All locations</div>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon-wrap si-teal">
+            <svg viewBox="0 0 24 24">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+              <polyline points="22 4 12 14.01 9 11.01"/>
+            </svg>
+          </div>
+
+          <div>
+            <div class="stat-label">Online</div>
+            <div class="stat-value" id="st-online">—</div>
+            <div class="stat-sub">Live streaming</div>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon-wrap si-red">
+            <svg viewBox="0 0 24 24">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+              <line x1="12" y1="9" x2="12" y2="13"/>
+              <line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+          </div>
+
+          <div>
+            <div class="stat-label">Active Alerts</div>
+            <div class="stat-value" id="st-alerts">—</div>
+            <div class="stat-sub">Require attention</div>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon-wrap si-blue">
+            <svg viewBox="0 0 24 24">
+              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+            </svg>
+          </div>
+
+          <div>
+            <div class="stat-label">Events (24h)</div>
+            <div class="stat-value" id="st-events">—</div>
+            <div class="stat-sub">Motion detected</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TABS -->
+      <div class="page-tabs">
+        <button class="page-tab active" onclick="switchTab('live', this)">🔴 Live View</button>
+        <button class="page-tab" onclick="switchTab('playback', this)">▶ Playback</button>
+        <button class="page-tab" onclick="switchTab('alerts', this)">⚠ AI Alerts</button>
+      </div>
+
+      <!-- LIVE VIEW TAB -->
+      <div id="tab-live">
+        <div class="filters-bar">
+          <div class="search-wrap">
+            <svg viewBox="0 0 24 24">
+              <circle cx="11" cy="11" r="8"/>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+
+            <input 
+              class="search-input" 
+              id="cam-search" 
+              placeholder="Search by title, keyword, or type..." 
+              oninput="filterCameras()"
+            />
+          </div>
+
+          <select class="fsel" id="f-floor" onchange="filterCameras()">
+            <option value="">All Floors</option>
+            <option value="Floor 1">Floor 1</option>
+            <option value="Floor 2">Floor 2</option>
+            <option value="Floor 3">Floor 3</option>
+          </select>
+
+          <select class="fsel" id="f-camstatus" onchange="filterCameras()">
+            <option value="">All Status</option>
+            <option value="live">Online</option>
+            <option value="offline">Offline</option>
+          </select>
+
+          <button class="filter-alert-btn" id="alert-filter-btn" onclick="toggleAlertFilter()">
+            <svg viewBox="0 0 24 24">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+              <line x1="12" y1="9" x2="12" y2="13"/>
+              <line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+            Alerts Only
+          </button>
+
+          <div class="view-toggle">
+            <button class="vbtn active" id="vbtn-4" onclick="setGridCols(4)" title="4 columns">
+              <svg viewBox="0 0 24 24">
+                <rect x="3" y="3" width="7" height="7" rx="1"/>
+                <rect x="14" y="3" width="7" height="7" rx="1"/>
+                <rect x="3" y="14" width="7" height="7" rx="1"/>
+                <rect x="14" y="14" width="7" height="7" rx="1"/>
+              </svg>
+            </button>
+
+            <button class="vbtn" id="vbtn-2" onclick="setGridCols(2)" title="2 columns">
+              <svg viewBox="0 0 24 24">
+                <rect x="3" y="3" width="8" height="18" rx="1"/>
+                <rect x="13" y="3" width="8" height="18" rx="1"/>
+              </svg>
+            </button>
+
+            <button class="vbtn" id="vbtn-1" onclick="setGridCols(1)" title="Full width">
+              <svg viewBox="0 0 24 24">
+                <rect x="3" y="3" width="18" height="18" rx="1"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="camera-grid" id="camera-grid"></div>
+      </div>
+
+      <!-- PLAYBACK TAB -->
+      <div id="tab-playback" style="display:none;">
+        <div class="filters-bar" style="margin-bottom:20px;">
+          <div class="search-wrap">
+            <svg viewBox="0 0 24 24">
+              <circle cx="11" cy="11" r="8"/>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+
+            <input class="search-input" placeholder="Search recordings..."/>
+          </div>
+
+          <select class="fsel">
+            <option>All Residents</option>
+            <option>Sarah Johnson</option>
+            <option>Robert Martinez</option>
+            <option>George Patel</option>
+            <option>Hannah Li</option>
+          </select>
+
+          <select class="fsel">
+            <option>All Types</option>
+            <option>Motion Detected</option>
+            <option>Fall Alert</option>
+            <option>Scheduled</option>
+          </select>
+
+          <select class="fsel">
+            <option>All Dates</option>
+            <option>Today</option>
+            <option>This Week</option>
+            <option>This Month</option>
+          </select>
+        </div>
+
+        <div class="playback-grid" id="playback-grid"></div>
+      </div>
+
+      <!-- ALERTS TAB -->
+      <div id="tab-alerts" style="display:none;">
+        <div class="filters-bar" style="margin-bottom:20px;">
+          <select class="fsel">
+            <option>All Severity</option>
+            <option>Critical</option>
+            <option>Warning</option>
+            <option>Info</option>
+          </select>
+
+          <select class="fsel">
+            <option>All Cameras</option>
+            <option>Room 101</option>
+            <option>Room 202</option>
+            <option>Corridor A</option>
+          </select>
+
+          <select class="fsel">
+            <option>All Status</option>
+            <option>Active</option>
+            <option>Resolved</option>
+          </select>
+        </div>
+
+        <div class="alerts-list" id="alerts-list"></div>
+      </div>
+
     </div>
   </div>
+</div>
 
-  <!-- CONTENT -->
-  <div class="center">
+<!-- RECORDING CONSOLE ACTION MODALS -->
+<style>
+  .rc-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, .52);
+    backdrop-filter: blur(8px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 99998;
+    padding: 20px;
+  }
 
-    <!-- STAT CARDS -->
-    <div class="stat-grid">
-      <div class="stat-card">
-        <div class="stat-icon-wrap si-green"><svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="15" rx="2"/><polyline points="17 2 12 7 7 2"/></svg></div>
-        <div><div class="stat-label">Total Cameras</div><div class="stat-value" id="st-total">8</div><div class="stat-sub">All locations</div></div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-icon-wrap si-teal"><svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
-        <div><div class="stat-label">Online</div><div class="stat-value" id="st-online">8</div><div class="stat-sub">Live streaming</div></div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-icon-wrap si-red"><svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
-        <div><div class="stat-label">Active Alerts</div><div class="stat-value" id="st-alerts">3</div><div class="stat-sub">Require attention</div></div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-icon-wrap si-blue"><svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
-        <div><div class="stat-label">Events (24h)</div><div class="stat-value" id="st-events">5</div><div class="stat-sub">Motion detected</div></div>
-      </div>
-    </div>
+  .rc-modal-overlay.show {
+    display: flex;
+  }
 
-    <!-- TABS -->
-    <div class="page-tabs">
-      <button class="page-tab active" onclick="switchTab('live',this)">🔴 Live View</button>
-      <button class="page-tab" onclick="switchTab('playback',this)">▶ Playback</button>
-      <button class="page-tab" onclick="switchTab('alerts',this)">⚠ AI Alerts</button>
-    </div>
+  .rc-modal {
+    width: min(540px, 96vw);
+    max-height: 90vh;
+    overflow: auto;
+    background: #fff;
+    border: 1px solid rgba(226, 232, 240, .9);
+    border-radius: 24px;
+    box-shadow: 0 28px 90px rgba(15, 23, 42, .24);
+    font-family: Inter, sans-serif;
+  }
 
-    <!-- LIVE VIEW TAB -->
-    <div id="tab-live">
-      <div class="filters-bar">
-        <div class="search-wrap">
-          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input class="search-input" id="cam-search" placeholder="Search by title, keyword, or type..." oninput="filterCameras()"/>
+  .rc-modal-wide {
+    width: min(860px, 96vw);
+  }
+
+  .rc-modal-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 18px;
+    padding: 22px 24px 16px;
+    border-bottom: 1px solid #eef2f7;
+  }
+
+  .rc-modal-title {
+    font-size: 18px;
+    font-weight: 800;
+    color: #0f172a;
+    margin: 0;
+  }
+
+  .rc-modal-sub {
+    font-size: 13px;
+    line-height: 1.45;
+    color: #64748b;
+    margin-top: 4px;
+  }
+
+  .rc-modal-close {
+    width: 34px;
+    height: 34px;
+    border: 1px solid #e2e8f0;
+    background: #fff;
+    border-radius: 12px;
+    font-weight: 800;
+    color: #64748b;
+    cursor: pointer;
+  }
+
+  .rc-modal-body {
+    padding: 20px 24px 24px;
+  }
+
+  .rc-field {
+    margin-bottom: 14px;
+  }
+
+  .rc-field label {
+    display: block;
+    font-size: 12px;
+    font-weight: 800;
+    color: #475569;
+    margin-bottom: 7px;
+    letter-spacing: .02em;
+  }
+
+  .rc-input,
+  .rc-select,
+  .rc-textarea {
+    width: 100%;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 11px 13px;
+    font-size: 13px;
+    color: #0f172a;
+    outline: none;
+    background: #fff;
+  }
+
+  .rc-textarea {
+    min-height: 82px;
+    resize: vertical;
+  }
+
+  .rc-input:focus,
+  .rc-select:focus,
+  .rc-textarea:focus {
+    border-color: #14b8a6;
+    box-shadow: 0 0 0 4px rgba(20, 184, 166, .11);
+  }
+
+  .rc-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .rc-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 18px;
+    flex-wrap: wrap;
+  }
+
+  .rc-btn {
+    border: none;
+    border-radius: 14px;
+    padding: 10px 16px;
+    font-size: 13px;
+    font-weight: 800;
+    cursor: pointer;
+  }
+
+  .rc-btn-secondary {
+    background: #f8fafc;
+    color: #334155;
+    border: 1px solid #e2e8f0;
+  }
+
+  .rc-btn-primary {
+    background: #0f172a;
+    color: #fff;
+  }
+
+  .rc-btn-danger {
+    background: #dc2626;
+    color: #fff;
+  }
+
+  .rc-status {
+    margin-top: 12px;
+    font-size: 13px;
+    font-weight: 700;
+    display: none;
+  }
+
+  .rc-status.ok {
+    display: block;
+    color: #15803d;
+  }
+
+  .rc-status.err {
+    display: block;
+    color: #dc2626;
+  }
+
+  .rc-warning {
+    padding: 13px 14px;
+    border-radius: 16px;
+    background: #fff7ed;
+    border: 1px solid #fed7aa;
+    color: #9a3412;
+    font-size: 13px;
+    line-height: 1.45;
+    margin-bottom: 14px;
+  }
+
+  .rc-camera-list {
+    display: grid;
+    gap: 10px;
+    margin-top: 16px;
+  }
+
+  .rc-camera-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 12px;
+    align-items: center;
+    padding: 13px 14px;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    background: #f8fafc;
+  }
+
+  .rc-camera-name {
+    font-size: 13.5px;
+    font-weight: 800;
+    color: #0f172a;
+  }
+
+  .rc-camera-meta {
+    font-size: 12px;
+    color: #64748b;
+    margin-top: 3px;
+  }
+
+  .rc-mini-actions {
+    display: flex;
+    gap: 8px;
+  }
+
+  .rc-mini-btn {
+    border: 1px solid #e2e8f0;
+    background: #fff;
+    color: #334155;
+    border-radius: 10px;
+    padding: 7px 10px;
+    font-size: 12px;
+    font-weight: 800;
+    cursor: pointer;
+  }
+
+  @media(max-width: 640px) {
+    .rc-row {
+      grid-template-columns: 1fr;
+    }
+
+    .rc-camera-row {
+      grid-template-columns: 1fr;
+    }
+
+    .rc-mini-actions {
+      justify-content: flex-start;
+    }
+  }
+</style>
+
+<!-- VAULT UNLOCK MODAL -->
+<div class="rc-modal-overlay" id="vault-unlock-modal">
+  <div class="rc-modal">
+    <div class="rc-modal-head">
+      <div>
+        <h3 class="rc-modal-title" id="vault-unlock-title">Vault Unlock</h3>
+        <div class="rc-modal-sub" id="vault-unlock-sub">
+          Enter your vault password to unlock encrypted recordings.
         </div>
-        <select class="fsel" id="f-floor" onchange="filterCameras()">
-          <option value="">All Floors</option>
-          <option value="Floor 1">Floor 1</option>
-          <option value="Floor 2">Floor 2</option>
-          <option value="Floor 3">Floor 3</option>
-        </select>
-        <select class="fsel" id="f-camstatus" onchange="filterCameras()">
-          <option value="">All Status</option>
-          <option value="live">Online</option>
-          <option value="offline">Offline</option>
-        </select>
-        <button class="filter-alert-btn" id="alert-filter-btn" onclick="toggleAlertFilter()">
-          <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-          Alerts Only
+      </div>
+
+      <button class="rc-modal-close" onclick="closeRcModal('vault-unlock-modal')">✕</button>
+    </div>
+
+    <div class="rc-modal-body">
+      <div class="rc-field">
+        <label id="vault-password-label">Vault Password</label>
+        <input 
+          class="rc-input" 
+          id="vault-password-input" 
+          type="password" 
+          autocomplete="current-password" 
+          placeholder="Enter password"
+        >
+      </div>
+
+      <div class="rc-status" id="vault-unlock-status"></div>
+
+      <div class="rc-actions">
+        <button class="rc-btn rc-btn-secondary" onclick="closeRcModal('vault-unlock-modal')">
+          Cancel
         </button>
-        <div class="view-toggle">
-          <button class="vbtn active" id="vbtn-4" onclick="setGridCols(4)" title="4 columns">
-            <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-          </button>
-          <button class="vbtn" id="vbtn-2" onclick="setGridCols(2)" title="2 columns">
-            <svg viewBox="0 0 24 24"><rect x="3" y="3" width="8" height="18" rx="1"/><rect x="13" y="3" width="8" height="18" rx="1"/></svg>
-          </button>
-          <button class="vbtn" id="vbtn-1" onclick="setGridCols(1)" title="Full width">
-            <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="1"/></svg>
-          </button>
+
+        <button class="rc-btn rc-btn-primary" onclick="submitVaultUnlockModal()" id="vault-unlock-submit">
+          Unlock Vault
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- DELETE VAULT MODAL -->
+<div class="rc-modal-overlay" id="vault-delete-modal">
+  <div class="rc-modal">
+    <div class="rc-modal-head">
+      <div>
+        <h3 class="rc-modal-title">Delete Vault Videos</h3>
+        <div class="rc-modal-sub">
+          Remove encrypted local vault recordings from this browser and matching server records.
         </div>
       </div>
-      <div class="camera-grid" id="camera-grid"></div>
+
+      <button class="rc-modal-close" onclick="closeRcModal('vault-delete-modal')">✕</button>
     </div>
 
-    <!-- PLAYBACK TAB -->
-    <div id="tab-playback" style="display:none;">
-      <div class="filters-bar" style="margin-bottom:20px;">
-        <div class="search-wrap">
-          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input class="search-input" placeholder="Search recordings..."/>
+    <div class="rc-modal-body">
+      <div class="rc-warning">
+        <b>Warning:</b> this action cannot be undone. Type <b>DELETE</b> below to confirm.
+      </div>
+
+      <div class="rc-field">
+        <label>Confirmation</label>
+        <input class="rc-input" id="vault-delete-confirm" placeholder="Type DELETE">
+      </div>
+
+      <div class="rc-status" id="vault-delete-status"></div>
+
+      <div class="rc-actions">
+        <button class="rc-btn rc-btn-secondary" onclick="closeRcModal('vault-delete-modal')">
+          Cancel
+        </button>
+
+        <button class="rc-btn rc-btn-danger" onclick="submitDeleteVaultModal()">
+          Delete Videos
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CAMERA SETTINGS MODAL -->
+<div class="rc-modal-overlay" id="camera-settings-modal">
+  <div class="rc-modal rc-modal-wide">
+    <div class="rc-modal-head">
+      <div>
+        <h3 class="rc-modal-title">Camera Settings</h3>
+        <div class="rc-modal-sub">
+          Add a facility camera and manage stream status/description from the Recording Console.
         </div>
-        <select class="fsel"><option>All Residents</option><option>Sarah Johnson</option><option>Robert Martinez</option><option>George Patel</option><option>Hannah Li</option></select>
-        <select class="fsel"><option>All Types</option><option>Motion Detected</option><option>Fall Alert</option><option>Scheduled</option></select>
-        <select class="fsel"><option>All Dates</option><option>Today</option><option>This Week</option><option>This Month</option></select>
       </div>
-      <div class="playback-grid" id="playback-grid"></div>
+
+      <button class="rc-modal-close" onclick="closeRcModal('camera-settings-modal')">✕</button>
     </div>
 
-    <!-- ALERTS TAB -->
-    <div id="tab-alerts" style="display:none;">
-      <div class="filters-bar" style="margin-bottom:20px;">
-        <select class="fsel"><option>All Severity</option><option>Critical</option><option>Warning</option><option>Info</option></select>
-        <select class="fsel"><option>All Cameras</option><option>Room 101</option><option>Room 202</option><option>Corridor A</option></select>
-        <select class="fsel"><option>All Status</option><option>Active</option><option>Resolved</option></select>
-      </div>
-      <div class="alerts-list" id="alerts-list"></div>
-    </div>
+    <div class="rc-modal-body">
+      <form id="camera-settings-form" onsubmit="submitCameraSettingsForm(event)">
+        <input type="hidden" id="cam-edit-id">
 
-  </div><!-- /center -->
-</div><!-- /main -->
-</div><!-- /app -->
+        <div class="rc-row">
+          <div class="rc-field">
+            <label>Camera Title</label>
+            <input 
+              class="rc-input" 
+              id="cam-title-input" 
+              placeholder="Room 101 — Main View" 
+              required
+            >
+          </div>
+
+          <div class="rc-field">
+            <label>Resident Name</label>
+            <input 
+              class="rc-input" 
+              id="cam-resident-input" 
+              placeholder="Common Area / Resident name"
+            >
+          </div>
+        </div>
+
+        <div class="rc-row">
+          <div class="rc-field">
+            <label>Floor</label>
+            <input 
+              class="rc-input" 
+              id="cam-floor-input" 
+              placeholder="Floor 1"
+            >
+          </div>
+
+          <div class="rc-field">
+            <label>Stream Status</label>
+            <select class="rc-select" id="cam-stream-status-input">
+              <option value="live">Online / Live</option>
+              <option value="offline">Offline</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="rc-field">
+          <label>Stream URL</label>
+          <input 
+            class="rc-input" 
+            id="cam-stream-url-input" 
+            placeholder="https://example.com/camera.m3u8"
+          >
+        </div>
+
+        <div class="rc-field">
+          <label>Description</label>
+          <textarea 
+            class="rc-textarea" 
+            id="cam-description-input" 
+            placeholder="Camera position, room note, or care context"
+          ></textarea>
+        </div>
+
+        <div class="rc-status" id="camera-settings-status"></div>
+
+        <div class="rc-actions">
+          <button 
+            type="button" 
+            class="rc-btn rc-btn-secondary" 
+            onclick="turnOnLocalCamerasAgain()"
+          >
+            Refresh Local Cameras
+          </button>
+
+          <button 
+            type="button" 
+            class="rc-btn rc-btn-secondary" 
+            onclick="resetCameraSettingsForm()"
+          >
+            Clear
+          </button>
+
+          <button 
+            type="submit" 
+            class="rc-btn rc-btn-primary" 
+            id="camera-settings-submit"
+          >
+            Add Camera
+          </button>
+        </div>
+      </form>
+
+      <div class="rc-camera-list" id="camera-settings-list"></div>
+    </div>
+  </div>
+</div>
 
 <!-- VIDEO MODAL -->
 <div class="overlay" id="modal-video">
@@ -152,11 +712,9 @@
       <div class="vm-title" id="vm-title">Room 101 — Main View</div>
       <button class="vm-close" onclick="closeModal()">✕</button>
     </div>
+
     <div class="vm-screen">
       <div class="vm-screen-inner" id="vm-screen">
-        <!-- When real RTSP/HLS feed available, replace with:
-             <video id="vm-video" autoplay muted controls style="width:100%;height:100%;"></video>
-             and set src via HLS.js -->
         <div style="width:100%;height:100%;position:relative;background:#0a1628;">
           <div class="cctv-sim" style="width:100%;height:100%;">
             <div class="cctv-bg" style="width:100%;height:100%;"></div>
@@ -164,59 +722,150 @@
             <div class="cctv-person2" style="animation-direction:reverse;">🧑‍🦽</div>
             <div class="cctv-scanline"></div>
           </div>
+
           <div class="cctv-timestamp" id="vm-timestamp"></div>
-          <div class="cctv-recbadge"><div class="rec-dot"></div>REC</div>
+
+          <div class="cctv-recbadge">
+            <div class="rec-dot"></div>
+            REC
+          </div>
         </div>
       </div>
     </div>
+
     <div class="vm-controls">
-      <button class="vm-ctrl-btn" id="vm-prev-btn" title="Previous"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button>
-      <button class="vm-ctrl-btn" id="vm-playpause" onclick="togglePlay()" title="Play/Pause">
-        <svg id="vm-play-icon" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3" fill="white" stroke="none"/></svg>
+      <button class="vm-ctrl-btn" id="vm-prev-btn" title="Previous">
+        <svg viewBox="0 0 24 24">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
       </button>
-      <button class="vm-ctrl-btn" id="vm-next-btn" title="Next"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></button>
+
+      <button class="vm-ctrl-btn" id="vm-playpause" onclick="togglePlay()" title="Play/Pause">
+        <svg id="vm-play-icon" viewBox="0 0 24 24">
+          <polygon points="5 3 19 12 5 21 5 3" fill="white" stroke="none"/>
+        </svg>
+      </button>
+
+      <button class="vm-ctrl-btn" id="vm-next-btn" title="Next">
+        <svg viewBox="0 0 24 24">
+          <polyline points="9 18 15 12 9 6"/>
+        </svg>
+      </button>
+
       <div class="vm-progress" id="vm-progress" onclick="seekVideo(event)">
         <div class="vm-progress-fill" id="vm-progress-fill"></div>
       </div>
+
       <div class="vm-time" id="vm-time">08:24 / 24:32</div>
-      <button class="vm-ctrl-btn" id="vm-fullscreen-btn" title="Fullscreen"><svg viewBox="0 0 24 24"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg></button>
+
+      <button class="vm-ctrl-btn" id="vm-fullscreen-btn" title="Fullscreen">
+        <svg viewBox="0 0 24 24">
+          <polyline points="15 3 21 3 21 9"/>
+          <polyline points="9 21 3 21 3 15"/>
+          <line x1="21" y1="3" x2="14" y2="10"/>
+          <line x1="3" y1="21" x2="10" y2="14"/>
+        </svg>
+      </button>
     </div>
+
     <div class="vm-info">
-      <div class="vm-info-item"><div class="vm-info-label">CAMERA</div><div class="vm-info-val" id="vm-camera">Room 101 — Main View</div></div>
-      <div class="vm-info-item"><div class="vm-info-label">RESIDENT</div><div class="vm-info-val" id="vm-resident">Margaret Thompson</div></div>
-      <div class="vm-info-item"><div class="vm-info-label">DATE</div><div class="vm-info-val" id="vm-date">Oct 23, 2024</div></div>
-      <div class="vm-info-item"><div class="vm-info-label">TYPE</div><div class="vm-info-val" id="vm-type">Motion Detected</div></div>
-      <div class="vm-info-item"><div class="vm-info-label">STATUS</div><div class="vm-info-val" id="vm-status">🔴 Live</div></div>
+      <div class="vm-info-item">
+        <div class="vm-info-label">CAMERA</div>
+        <div class="vm-info-val" id="vm-camera">Room 101 — Main View</div>
+      </div>
+
+      <div class="vm-info-item">
+        <div class="vm-info-label">RESIDENT</div>
+        <div class="vm-info-val" id="vm-resident">Margaret Thompson</div>
+      </div>
+
+      <div class="vm-info-item">
+        <div class="vm-info-label">DATE</div>
+        <div class="vm-info-val" id="vm-date">Oct 23, 2024</div>
+      </div>
+
+      <div class="vm-info-item">
+        <div class="vm-info-label">TYPE</div>
+        <div class="vm-info-val" id="vm-type">Motion Detected</div>
+      </div>
+
+      <div class="vm-info-item">
+        <div class="vm-info-label">STATUS</div>
+        <div class="vm-info-val" id="vm-status">🔴 Live</div>
+      </div>
     </div>
   </div>
 </div>
 
-  <!-- skeleton shown while JS loads cameras -->
-  <div id="page-skeleton" class="p-4 placeholder-glow">
-    <div class="row g-3">
-      <div class="col-4"><div class="card p-0 overflow-hidden">
+<!-- SKELETON SHOWN WHILE JS LOADS CAMERAS -->
+<div id="page-skeleton" class="p-4 placeholder-glow">
+  <div class="row g-3">
+    <div class="col-4">
+      <div class="card p-0 overflow-hidden">
         <div class="placeholder bg-secondary w-100" style="height:160px;"></div>
-        <div class="p-2"><span class="placeholder bg-secondary w-75 d-block mb-1" style="height:12px;border-radius:4px;"></span><span class="placeholder bg-secondary w-40 d-block" style="height:12px;border-radius:4px;"></span></div>
-      </div></div><div class="col-4"><div class="card p-0 overflow-hidden">
-        <div class="placeholder bg-secondary w-100" style="height:160px;"></div>
-        <div class="p-2"><span class="placeholder bg-secondary w-75 d-block mb-1" style="height:12px;border-radius:4px;"></span><span class="placeholder bg-secondary w-40 d-block" style="height:12px;border-radius:4px;"></span></div>
-      </div></div><div class="col-4"><div class="card p-0 overflow-hidden">
-        <div class="placeholder bg-secondary w-100" style="height:160px;"></div>
-        <div class="p-2"><span class="placeholder bg-secondary w-75 d-block mb-1" style="height:12px;border-radius:4px;"></span><span class="placeholder bg-secondary w-40 d-block" style="height:12px;border-radius:4px;"></span></div>
-      </div></div><div class="col-4"><div class="card p-0 overflow-hidden">
-        <div class="placeholder bg-secondary w-100" style="height:160px;"></div>
-        <div class="p-2"><span class="placeholder bg-secondary w-75 d-block mb-1" style="height:12px;border-radius:4px;"></span><span class="placeholder bg-secondary w-40 d-block" style="height:12px;border-radius:4px;"></span></div>
-      </div></div><div class="col-4"><div class="card p-0 overflow-hidden">
-        <div class="placeholder bg-secondary w-100" style="height:160px;"></div>
-        <div class="p-2"><span class="placeholder bg-secondary w-75 d-block mb-1" style="height:12px;border-radius:4px;"></span><span class="placeholder bg-secondary w-40 d-block" style="height:12px;border-radius:4px;"></span></div>
-      </div></div><div class="col-4"><div class="card p-0 overflow-hidden">
-        <div class="placeholder bg-secondary w-100" style="height:160px;"></div>
-        <div class="p-2"><span class="placeholder bg-secondary w-75 d-block mb-1" style="height:12px;border-radius:4px;"></span><span class="placeholder bg-secondary w-40 d-block" style="height:12px;border-radius:4px;"></span></div>
-      </div></div>
+        <div class="p-2">
+          <span class="placeholder bg-secondary w-75 d-block mb-1" style="height:12px;border-radius:4px;"></span>
+          <span class="placeholder bg-secondary w-40 d-block" style="height:12px;border-radius:4px;"></span>
+        </div>
+      </div>
     </div>
-  </div><script src="../style/js/script.js"></script>
+
+    <div class="col-4">
+      <div class="card p-0 overflow-hidden">
+        <div class="placeholder bg-secondary w-100" style="height:160px;"></div>
+        <div class="p-2">
+          <span class="placeholder bg-secondary w-75 d-block mb-1" style="height:12px;border-radius:4px;"></span>
+          <span class="placeholder bg-secondary w-40 d-block" style="height:12px;border-radius:4px;"></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-4">
+      <div class="card p-0 overflow-hidden">
+        <div class="placeholder bg-secondary w-100" style="height:160px;"></div>
+        <div class="p-2">
+          <span class="placeholder bg-secondary w-75 d-block mb-1" style="height:12px;border-radius:4px;"></span>
+          <span class="placeholder bg-secondary w-40 d-block" style="height:12px;border-radius:4px;"></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-4">
+      <div class="card p-0 overflow-hidden">
+        <div class="placeholder bg-secondary w-100" style="height:160px;"></div>
+        <div class="p-2">
+          <span class="placeholder bg-secondary w-75 d-block mb-1" style="height:12px;border-radius:4px;"></span>
+          <span class="placeholder bg-secondary w-40 d-block" style="height:12px;border-radius:4px;"></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-4">
+      <div class="card p-0 overflow-hidden">
+        <div class="placeholder bg-secondary w-100" style="height:160px;"></div>
+        <div class="p-2">
+          <span class="placeholder bg-secondary w-75 d-block mb-1" style="height:12px;border-radius:4px;"></span>
+          <span class="placeholder bg-secondary w-40 d-block" style="height:12px;border-radius:4px;"></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-4">
+      <div class="card p-0 overflow-hidden">
+        <div class="placeholder bg-secondary w-100" style="height:160px;"></div>
+        <div class="p-2">
+          <span class="placeholder bg-secondary w-75 d-block mb-1" style="height:12px;border-radius:4px;"></span>
+          <span class="placeholder bg-secondary w-40 d-block" style="height:12px;border-radius:4px;"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="../style/js/script.js"></script>
 <script src="../style/js/recording_vault.js"></script>
 <script src="../style/js/recording.js"></script>
 <script src="/components/sidebar.js"></script>
+
 </body>
 </html>
