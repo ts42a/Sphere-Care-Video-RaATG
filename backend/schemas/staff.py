@@ -22,11 +22,12 @@ class StaffUpdate(BaseModel):
     status: Optional[str] = None
     role: Optional[str] = None
     department: Optional[str] = None
+    location: Optional[str] = None
 
 
 class StaffResponse(BaseModel):
     id: int
-    user_id: Optional[int] = None   # ← ADDED: needed by frontend to initiate calls
+    user_id: Optional[int] = None
     staff_code: str
     full_name: str
     role: str
@@ -34,6 +35,7 @@ class StaffResponse(BaseModel):
     shift_start: Optional[time] = None
     shift_end: Optional[time] = None
     assigned_unit: str
+    location: Optional[str] = None          # ← ADDED
     status: str
     approval_status: str
     hire_date: Optional[date] = None
