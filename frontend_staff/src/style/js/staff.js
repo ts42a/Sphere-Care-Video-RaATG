@@ -504,11 +504,14 @@ function exportPDF() {
 // ── ADD STAFF MODAL ──
 function openAddModal() {
   if (readOnlyMode) return;
-  document.getElementById('add-name').value = '';
-  document.getElementById('add-role').selectedIndex = 0;
-  document.getElementById('add-shift').selectedIndex = 0;
-  document.getElementById('add-unit').selectedIndex = 0;
+  var inp = document.getElementById('add-account-id');
+  if (inp) inp.value = '';
+  var errEl = document.getElementById('add-error');
+  var sucEl = document.getElementById('add-success');
+  if (errEl) errEl.style.display = 'none';
+  if (sucEl) sucEl.style.display = 'none';
   document.getElementById('modal-add').classList.add('open');
+  setTimeout(function(){ if(inp) inp.focus(); }, 100);
 }
 
 function closeAddModal() {
@@ -517,172 +520,47 @@ function closeAddModal() {
 
 async function submitAddStaff() {
   if (readOnlyMode) return;
-  const full_name = document.getElementById('add-name').value.trim();
-  if (!full_name) { alert('Please enter a full name.'); return; }
+  var inp   = document.getElementById('add-account-id');
+  var errEl = document.getElementById('add-error');
+  var sucEl = document.getElementById('add-success');
+  var btn   = document.getElementById('btn-add-submit');
+  var code  = inp ? inp.value.trim().toUpperCase() : '';
 
-  const payload = {
-    full_name,
-    shift_time:    document.getElementById('add-shift').value,
-    assigned_unit: document.getElementById('add-unit').value,
-    role:          document.getElementById('add-role').value,
-  };
+  if (errEl) errEl.style.display = 'none';
+  if (sucEl) sucEl.style.display = 'none';
 
-  try {
-    const q = new URLSearchParams({
-      full_name: payload.full_name,
-      assigned_unit: payload.assigned_unit,
-      role: payload.role,
-    });
-    const res = await fetch(`${API_BASE}/admin/staff/create?${q}`, {
-      method: 'POST',
-      headers: staffAuthHeaders()
-    });
-    if (!res.ok) throw new Error();
-    const created = await res.json();
-    const code = created.staff_code || created.staff_id;
-    staffData.push(normalizeStaffApiRow({
-      staff_code: code,
-      full_name: created.full_name || payload.full_name,
-      shift_time: payload.shift_time,
-      assigned_unit: created.assigned_unit || payload.assigned_unit,
-      status: 'active',
-      role: created.role || payload.role
-    }));
-  } catch {
-    // Fallback: add locally with generated ID
-    const ts = Date.now().toString().slice(-4);
-    const rnd = Math.floor(1000 + Math.random() * 9000);
-    staffData.push({
-      staff_id:      `ST-${ts}-${rnd}`,
-      full_name:     payload.full_name,
-      shift_time:    payload.shift_time,
-      assigned_unit: payload.assigned_unit,
-      status:        'active',
-      role:          payload.role
-    });
-  }
-  closeAddModal();
-  renderTable();
-  loadStats();
-}
-
-
-// ══════════════════════════════════════════════════
-// ── DOCTOR SUMMARY ────────────────────────────────
-// ══════════════════════════════════════════════════
-var _allBookings = [];
-var _myDoctorName = '';
-
-function _isDoctorRole() {
-  try {
-    var user = JSON.parse(sessionStorage.getItem('user') || '{}');
-    var role = (user.role || user.global_role || '').toLowerCase();
-    return role === 'doctor';
-  } catch(_) { return false; }
-}
-
-function _initDoctorTab() {
-  // All logged-in users can see Doctor Summary
-  try {
-    var user = JSON.parse(sessionStorage.getItem('user') || '{}');
-    var role = (user.role || user.global_role || '').toLowerCase();
-    // If doctor, pre-filter by their name; otherwise show all bookings
-    if (role === 'doctor') {
-      _myDoctorName = (user.full_name || '').toLowerCase();
-    }
-  } catch(_) {}
-}
-
-async function loadDoctorBookings() {
-  var tbody = document.getElementById('doctor-bookings-tbody');
-  if (!tbody) return;
-  try {
-    var res = await fetch(API_BASE + '/bookings/', { headers: staffAuthHeaders() });
-    if (!res.ok) throw new Error();
-    var data = await res.json();
-    _allBookings = _myDoctorName
-      ? data.filter(function(b) {
-          var bn = (b.doctor_name || '').toLowerCase();
-          return bn.includes(_myDoctorName) || _myDoctorName.includes(bn.replace('dr. ','').replace('dr ',''));
-        })
-      : data;
-  } catch(_) { _allBookings = []; }
-  _renderDoctorBookings(_allBookings);
-  _updateDocStats(_allBookings);
-}
-
-function filterBookings() {
-  var status = document.getElementById('doctor-filter-status').value;
-  var filtered = status ? _allBookings.filter(function(b){ return b.status === status; }) : _allBookings;
-  _renderDoctorBookings(filtered);
-  _updateDocStats(filtered);
-}
-
-function _updateDocStats(bookings) {
-  var today = new Date().toISOString().slice(0,10);
-  var el;
-  el = document.getElementById('doc-stat-total');     if(el) el.textContent = bookings.length;
-  el = document.getElementById('doc-stat-today');     if(el) el.textContent = bookings.filter(function(b){ return b.appointment_date === today; }).length;
-  el = document.getElementById('doc-stat-confirmed'); if(el) el.textContent = bookings.filter(function(b){ return b.status === 'confirmed'; }).length;
-  el = document.getElementById('doc-stat-pending');   if(el) el.textContent = bookings.filter(function(b){ return b.status === 'requested'; }).length;
-}
-
-function _statusBadge(status) {
-  var map = { requested:{cls:'status-pending',label:'Requested'}, confirmed:{cls:'status-active',label:'Confirmed'}, completed:{cls:'status-active',label:'Completed'}, cancelled:{cls:'status-leave',label:'Cancelled'} };
-  var s = map[status] || {cls:'status-pending',label:status};
-  return '<span class="status-badge ' + s.cls + '">' + s.label + '</span>';
-}
-
-function _fmtBookingDate(d) {
-  if (!d) return '—';
-  try { return new Date(d + 'T00:00:00').toLocaleDateString('en-AU', {day:'numeric',month:'short',year:'numeric'}); } catch(_){ return d; }
-}
-function _fmtTimePretty(t) {
-  if (!t) return '';
-  var parts = t.split(':'), h = parseInt(parts[0],10), m = parts[1]||'00';
-  return (h%12||12)+':'+m+(h>=12?' PM':' AM');
-}
-
-function _renderDoctorBookings(bookings) {
-  var tbody   = document.getElementById('doctor-bookings-tbody');
-  var countEl = document.getElementById('doctor-booking-count');
-  if (!bookings || !bookings.length) {
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#9aa0ac;padding:32px;">No appointments found.</td></tr>';
-    if (countEl) countEl.textContent = '';
+  if (!code) {
+    if (errEl) { errEl.textContent = 'Please enter an Account ID.'; errEl.style.display = 'block'; }
     return;
   }
-  var sorted = bookings.slice().sort(function(a,b){
-    return ((b.appointment_date||'')+(b.start_time||'')) > ((a.appointment_date||'')+(a.start_time||'')) ? 1 : -1;
-  });
-  tbody.innerHTML = sorted.map(function(b) {
-    var patientName = b.resident ? b.resident.full_name : ('Resident #' + b.resident_id);
-    var timeStr = _fmtTimePretty(b.start_time) + (b.end_time ? ' – ' + _fmtTimePretty(b.end_time) : '');
-    return '<tr>' +
-      '<td><div class="staff-name">' + escapeHtml(patientName) + '</div>' + (b.resident && b.resident.room ? '<div class="staff-id">Room ' + escapeHtml(String(b.resident.room)) + '</div>' : '') + '</td>' +
-      '<td>' + escapeHtml(b.booking_type) + (b.doctor_specialty ? '<div style="font-size:11.5px;color:var(--text3);">' + escapeHtml(b.doctor_specialty) + '</div>' : '') + '</td>' +
-      '<td><div style="font-weight:600;font-size:13px;">' + _fmtBookingDate(b.appointment_date) + '</div><div style="font-size:12px;color:var(--text2);">' + timeStr + '</div></td>' +
-      '<td style="font-size:13px;color:var(--text2);">' + escapeHtml(b.location || '—') + '</td>' +
-      '<td>' + _statusBadge(b.status) + '</td>' +
-      '<td style="font-size:12.5px;color:var(--text2);max-width:180px;">' + escapeHtml(b.notes || '—') + '</td>' +
-    '</tr>';
-  }).join('');
-  if (countEl) countEl.textContent = bookings.length + ' appointment' + (bookings.length !== 1 ? 's' : '');
-}
 
-// Wrap switchTab to lazy-load doctor bookings
-var _doctorTabLoaded = false;
-var _origSwitchTab = typeof switchTab !== 'undefined' ? switchTab : null;
-function switchTab(name, el) {
-  document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
-  document.querySelectorAll('.tab-panel').forEach(function(p){ p.classList.remove('active'); });
-  el.classList.add('active');
-  var target = document.getElementById('tab-' + name);
-  if (target) target.classList.add('active');
-  if (name === 'doctor' && !_doctorTabLoaded) {
-    _doctorTabLoaded = true;
-    loadDoctorBookings();
+  if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
+
+  try {
+    var res = await fetch(API_BASE + '/staff/invite', {
+      method: 'POST',
+      headers: staffAuthHeaders(),
+      body: JSON.stringify({ account_id: code })
+    });
+    var data = await res.json();
+
+    if (!res.ok) {
+      var msg = typeof data.detail === 'string' ? data.detail : (data.detail && data.detail.msg) ? data.detail.msg : 'Account ID not found or already added.';
+      if (errEl) { errEl.textContent = msg; errEl.style.display = 'block'; }
+      return;
+    }
+
+    if (sucEl) { sucEl.textContent = 'Invitation sent — staff member will be added once they accept.'; sucEl.style.display = 'block'; }
+    await loadStaff();
+    setTimeout(function() { closeAddModal(); }, 1800);
+
+  } catch(err) {
+    if (errEl) { errEl.textContent = 'Network error. Please try again.'; errEl.style.display = 'block'; }
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Send Invitation'; }
   }
 }
+
 
 // ── INIT ──
 document.addEventListener('DOMContentLoaded', function() {

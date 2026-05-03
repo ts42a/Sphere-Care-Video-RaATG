@@ -424,35 +424,156 @@ async function deleteConv() {
   filterConvs();
 }
 
+// ── Tab switcher ──────────────────────────────────────────────
+var _currentNewTab = 'team';
+var _selectedMembers = [];
+var _staffList = [];
+
+function switchNewTab(tab) {
+  _currentNewTab = tab;
+  var activeStyle   = 'background:none;border:none;border-bottom:2.5px solid #0f172a;padding:10px 16px;font-size:13px;font-weight:700;cursor:pointer;color:#0f172a;margin-bottom:-1.5px;';
+  var inactiveStyle = 'background:none;border:none;border-bottom:2.5px solid transparent;padding:10px 16px;font-size:13px;font-weight:500;cursor:pointer;color:#94a3b8;margin-bottom:-1.5px;';
+  var tTeam = document.getElementById('tab-team');
+  var tRes  = document.getElementById('tab-resident');
+  var pTeam = document.getElementById('new-tab-team');
+  var pRes  = document.getElementById('new-tab-resident');
+  var btn   = document.getElementById('new-modal-submit');
+  if (tTeam) tTeam.style.cssText     = tab==='team'     ? activeStyle : inactiveStyle;
+  if (tRes)  tRes.style.cssText      = tab==='resident' ? activeStyle : inactiveStyle;
+  if (pTeam) pTeam.style.display     = tab==='team'     ? '' : 'none';
+  if (pRes)  pRes.style.display      = tab==='resident' ? '' : 'none';
+  if (btn)   btn.textContent         = tab==='team' ? 'Create' : 'Send Invitation';
+  ['new-team-error','new-modal-error'].forEach(function(id){
+    var el = document.getElementById(id); if (el) el.style.display = 'none';
+  });
+}
+
+async function _loadStaffForPicker() {
+  if (_staffList.length) { _renderMemberPicker(); return; }
+  try {
+    var res = await fetch(API_BASE + '/staff/', { headers: authH() });
+    if (!res.ok) return;
+    _staffList = await res.json();
+    _renderMemberPicker();
+  } catch(_) {}
+}
+
+function _renderMemberPicker() {
+  var container = document.getElementById('new-member-picker');
+  if (!container) return;
+  if (!_staffList.length) {
+    container.innerHTML = '<div style="font-size:12px;color:#94a3b8;text-align:center;padding:8px;">No staff found.</div>';
+    return;
+  }
+  container.innerHTML = _staffList.map(function(s) {
+    var uid  = s.user_id || s.id;
+    var name = (s.full_name || 'Unknown').replace(/'/g, '');
+    var role = (s.role || 'Staff').replace(/'/g, '');
+    var av   = name.split(' ').map(function(w){return w[0]||'';}).join('').toUpperCase().slice(0,2);
+    var sel  = _selectedMembers.some(function(m){ return m.user_id == uid; });
+    var bg   = sel ? '#f0f9ff' : 'transparent';
+    var hbg  = sel ? '#e0f2fe' : '#f8fafc';
+    var tick = sel ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#38BDF8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>' : '';
+    return '<div onclick="_toggleMember(' + uid + ',\'' + name + '\',\'' + role + '\')" ' +
+      'style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;cursor:pointer;background:' + bg + ';transition:background .12s;" ' +
+      'onmouseover="this.style.background=\'' + hbg + '\'" onmouseout="this.style.background=\'' + bg + '\'"> ' +
+      '<div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#38BDF8,#6366F1);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0;">' + av + '</div>' +
+      '<div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:600;color:#1a2535;">' + name + '</div><div style="font-size:11.5px;color:#94a3b8;">' + role + '</div></div>' +
+      tick +
+    '</div>';
+  }).join('');
+}
+
+function _toggleMember(userId, name, role) {
+  var idx = _selectedMembers.findIndex(function(m){ return m.user_id == userId; });
+  if (idx >= 0) _selectedMembers.splice(idx, 1);
+  else _selectedMembers.push({ user_id: userId, display_name: name, role: role });
+  _renderMemberPicker();
+  var badge = document.getElementById('new-member-count');
+  if (badge) badge.textContent = _selectedMembers.length ? _selectedMembers.length + ' selected' : '';
+}
+
 function openNewModal() {
-  var f = document.getElementById('new-account-id');
-  if (f) f.value = '';
-  var err = document.getElementById('new-modal-error');
-  if (err) { err.textContent=''; err.style.display='none'; }
+  _currentNewTab = 'team';
+  // Reset team tab
+  var nameEl = document.getElementById('new-name'); if (nameEl) nameEl.value = '';
+  var errT = document.getElementById('new-team-error'); if (errT) errT.style.display = 'none';
+  // Reset resident tab
+  var f = document.getElementById('new-account-id'); if (f) f.value = '';
+  var errR = document.getElementById('new-modal-error'); if (errR) { errR.textContent=''; errR.style.display='none'; }
+  _selectedMembers = [];
   document.getElementById('modal-new').classList.add('open');
-  setTimeout(function () { var f2 = document.getElementById('new-account-id'); if(f2) f2.focus(); }, 80);
+  // Always start on Team Chat tab
+  switchNewTab('team');
+  // Load staff for picker
+  _loadStaffForPicker();
 }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 
 async function createConv() {
+  if (_currentNewTab === 'resident') {
+    await _createResidentConv();
+  } else {
+    await _createTeamConv();
+  }
+}
+
+async function _createTeamConv() {
+  var nameEl = document.getElementById('new-name');
+  var catEl  = document.getElementById('new-cat');
+  var errEl  = document.getElementById('new-team-error');
+  var btn    = document.getElementById('new-modal-submit');
+  var name   = nameEl ? nameEl.value.trim() : '';
+  if (errEl) errEl.style.display = 'none';
+  if (!name) {
+    if (errEl) { errEl.textContent = 'Please enter a conversation name.'; errEl.style.display = 'block'; }
+    return;
+  }
+  if (btn) { btn.disabled = true; btn.textContent = 'Creating…'; }
+  try {
+    var participants = _selectedMembers.map(function(m) {
+      return { user_id: m.user_id, participant_type: 'user', display_name: m.display_name, role: m.role };
+    });
+    var res = await fetch(API_BASE + '/messages/conversations', {
+      method: 'POST', headers: authH(),
+      body: JSON.stringify({ name: name, category: catEl ? catEl.value : 'team', participants: participants })
+    });
+    var data = await res.json();
+    if (!res.ok) {
+      if (errEl) { errEl.textContent = data.detail || 'Failed to create.'; errEl.style.display = 'block'; }
+      return;
+    }
+    var c = { id: data.id, name: data.name, category: data.category || 'team',
+      last_message: '', last_message_at: 'Just now', unread_count: 0,
+      sub: 'Team', color: CAT_CLR.team, online: false };
+    allConvs.unshift(c); localMsgs[data.id] = [];
+    filterConvs(); closeModal('modal-new'); openConv(data.id);
+    if (nameEl) nameEl.value = '';
+    _selectedMembers = [];
+  } catch(e) {
+    if (errEl) { errEl.textContent = 'Network error. Please try again.'; errEl.style.display = 'block'; }
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Create'; }
+  }
+}
+
+async function _createResidentConv() {
   var accountId = (document.getElementById('new-account-id') || {}).value;
   accountId = (accountId || '').trim().toUpperCase();
   var errEl = document.getElementById('new-modal-error');
+  var btn   = document.getElementById('new-modal-submit');
+  if (errEl) errEl.style.display = 'none';
   if (!accountId) {
-    if (errEl) { errEl.textContent = 'Please enter a Client Account ID.'; errEl.style.display='block'; }
+    if (errEl) { errEl.textContent = 'Please enter a Client Account ID.'; errEl.style.display = 'block'; }
     return;
   }
-  var btn = document.getElementById('new-modal-submit');
   if (btn) { btn.textContent = 'Sending…'; btn.disabled = true; }
   try {
-    // Send invitation — same API as residents page
     var invRes = await fetch(API_BASE + '/center-membership/admin/invite', {
       method: 'POST', headers: authH(),
       body: JSON.stringify({ account_id: accountId })
     });
     var invData = await invRes.json();
-
-    // Extract error message from detail object or string
     if (!invRes.ok) {
       var errMsg = 'Invalid Account ID.';
       if (invData) {
@@ -460,66 +581,37 @@ async function createConv() {
         else if (invData.detail && invData.detail.msg) errMsg = invData.detail.msg;
         else if (invData.msg) errMsg = invData.msg;
       }
-      if (errEl) { errEl.textContent = errMsg; errEl.style.display='block'; }
-      if (btn) { btn.textContent = 'Send Invitation'; btn.disabled = false; }
+      if (errEl) { errEl.textContent = errMsg; errEl.style.display = 'block'; }
       return;
     }
-
-    // Get client name from response
-    var clientName = invData.user_full_name || accountId;
-    // Create conversation for this resident
+    var clientName   = invData.user_full_name || accountId;
     var clientUserId = invData.user_id || invData.client_user_id || 0;
     var newId = Date.now();
     var convName = 'Resident Care: ' + clientName;
     var backendParticipants = [];
     try {
-      var convPayload = {
-        name: convName,
-        category: 'resident',
-        participants: []
-      };
-
-      // Important: mobile clients connect to WebSocket as user:<id>,
-      // so participant_type must be "user", not "client".
+      var convPayload = { name: convName, category: 'resident', participants: [] };
       if (clientUserId) {
-        convPayload.participants.push({
-          user_id: clientUserId,
-          participant_type: 'user',
-          display_name: clientName,
-          role: 'client'
-        });
+        convPayload.participants.push({ user_id: clientUserId, participant_type: 'user', display_name: clientName, role: 'client' });
       }
-
       var convRes = await fetch(API_BASE + '/messages/conversations', {
-        method: 'POST', headers: authH(),
-        body: JSON.stringify(convPayload)
+        method: 'POST', headers: authH(), body: JSON.stringify(convPayload)
       });
-<<<<<<< HEAD
-      if (convRes.ok) { var cd = await convRes.json(); newId = cd.id; }
-=======
       if (convRes.ok) {
-        var cd2 = await convRes.json();
-        newId = cd2.id;
-        backendParticipants = cd2.participants || [];
+        var cd = await convRes.json();
+        newId = cd.id;
+        backendParticipants = cd.participants || [];
       }
->>>>>>> 0ac943b54 (Update fix error)
     } catch(e) {}
-
     var c = { id: newId, name: convName, category: 'resident',
       last_message: 'Invitation sent', last_message_at: 'Just now',
       unread_count: 0, sub: 'Resident Care',
-<<<<<<< HEAD
-      color: CAT_CLR.resident, online: false };
-=======
       color: CAT_CLR.resident, online: false, participants: backendParticipants };
->>>>>>> 0ac943b54 (Update fix error)
-    allConvs.unshift(c);
-    localMsgs[newId] = [];
-    filterConvs();
-    closeModal('modal-new');
-    openConv(newId);
+    allConvs.unshift(c); localMsgs[newId] = [];
+    filterConvs(); closeModal('modal-new'); openConv(newId);
   } catch(e) {
-    if (errEl) { errEl.textContent = 'Network error. Please try again.'; errEl.style.display='block'; }
+    if (errEl) { errEl.textContent = 'Network error. Please try again.'; errEl.style.display = 'block'; }
+  } finally {
     if (btn) { btn.textContent = 'Send Invitation'; btn.disabled = false; }
   }
 }
