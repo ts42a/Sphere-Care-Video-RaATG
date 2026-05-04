@@ -12,3 +12,4 @@ from .flag import *
 from .dashboard import *
 from .analytics import *
 from .center_membership import *
+from .vault import *
