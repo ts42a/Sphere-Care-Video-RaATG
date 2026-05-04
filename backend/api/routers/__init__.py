@@ -6,19 +6,6 @@ from . import oauth
 from . import password_reset
 from . import residents
 from . import bookings
-from . import staff
-from . import alerts
-from . import dashboard
-from . import analytics
-from . import notifications
-from fastapi import APIRouter
-
-from . import health
-from . import auth
-from . import oauth
-from . import password_reset
-from . import residents
-from . import bookings
 from . import client_bookings
 from . import staff
 from . import alerts
@@ -35,6 +22,7 @@ from . import account
 from . import admin_console
 from . import center_membership
 from . import asl
+from . import vault
 
 api_router = APIRouter()
 
@@ -60,3 +48,4 @@ api_router.include_router(account.router, prefix="/account", tags=["Account"])
 api_router.include_router(admin_console.router, prefix="/admin", tags=["Admin Console"])
 api_router.include_router(center_membership.router)
 api_router.include_router(asl.router, prefix="/asl", tags=["ASL"])
+api_router.include_router(vault.router)
