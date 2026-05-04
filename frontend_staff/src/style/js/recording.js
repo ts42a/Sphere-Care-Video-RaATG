@@ -642,21 +642,87 @@ function renderPlayback() {
             ${escapeHtml(r.type)}
           </span>
 
-          <button 
-            type="button"
-            class="play-btn" 
-            onclick="event.preventDefault(); event.stopPropagation(); openPlayback(${JSON.stringify(r.id)});"
-          >
-            <svg viewBox="0 0 24 24">
-              <polygon points="23 7 16 12 23 17 23 7"/>
-              <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
-            </svg>
-            Play
-          </button>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            <button 
+              type="button"
+              class="play-btn" 
+              onclick="event.preventDefault(); event.stopPropagation(); openPlayback(${JSON.stringify(r.id)});"
+            >
+              <svg viewBox="0 0 24 24">
+                <polygon points="23 7 16 12 23 17 23 7"/>
+                <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+              </svg>
+              Play
+            </button>
+
+            <button 
+              type="button"
+              class="play-btn"
+              style="background:#fee2e2;color:#b91c1c;border:1px solid #fecaca;"
+              onclick="event.preventDefault(); event.stopPropagation(); deleteSinglePlayback(${JSON.stringify(r.id)});"
+            >
+              <svg viewBox="0 0 24 24">
+                <polyline points="3 6 5 6 21 6"/>
+                <path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/>
+                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+              </svg>
+              Delete
+            </button>
+          </div>
         </div>
       </div>
     </div>
   `).join("");
+}
+
+// DELETE SINGLE PLAYBACK VIDEO
+async function deleteSinglePlayback(id) {
+  const rec = recordings.find((r) => String(r.id) === String(id));
+
+  if (!rec) {
+    _showToast("⚠ Recording not found.");
+    return;
+  }
+
+  const ok = confirm(`Delete this recording?\n\n${rec.title}\n${rec.date}`);
+
+  if (!ok) return;
+
+  try {
+    // 1. If this is a local vault recording, delete from IndexedDB vault first
+    if (rec.fileUrl && String(rec.fileUrl).startsWith("localvault://")) {
+      const localVaultId = String(rec.fileUrl).replace("localvault://", "");
+
+      if (window.recordingVault?.vaultDeleteRecording) {
+        try {
+          await window.recordingVault.vaultDeleteRecording(localVaultId);
+          console.log("Deleted local vault recording:", localVaultId);
+        } catch (e) {
+          console.warn("Failed to delete local vault recording:", e);
+        }
+      }
+    }
+
+    // 2. Delete server record
+    const res = await fetch(`${API_BASE}/records/${encodeURIComponent(id)}`, {
+      method: "DELETE",
+      headers: authHeaders(),
+    });
+
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(text || `Delete failed with status ${res.status}`);
+    }
+
+    // 3. Remove from frontend list immediately
+    recordings = recordings.filter((r) => String(r.id) !== String(id));
+    renderPlayback();
+
+    _showToast("🗑 Recording deleted.");
+  } catch (err) {
+    console.error("Delete recording failed:", err);
+    _showToast("⚠ Failed to delete recording.");
+  }
 }
 
 // ALERTS
@@ -1065,27 +1131,56 @@ function openPlayback(id) {
 
   if (!screenEl) return;
 
-  if (rec.fileUrl && rec.fileUrl !== "#") {
-    const video = document.createElement("video");
+  function _attachVideoSrc(src, mimeType) {
+    // Fix ERR_FILE_NOT_FOUND: do not revoke the same blob URL before the video loads.
+    if (
+      window._modalBlobUrl &&
+      String(window._modalBlobUrl).startsWith("blob:") &&
+      window._modalBlobUrl !== src
+    ) {
+      URL.revokeObjectURL(window._modalBlobUrl);
+    }
 
-    video.style.cssText = "width:100%;height:100%;object-fit:cover;display:block;";
+    if (String(src).startsWith("blob:")) {
+      window._modalBlobUrl = src;
+    } else {
+      window._modalBlobUrl = null;
+    }
+
+    const video = document.createElement("video");
+    video.style.cssText = "width:100%;height:100%;object-fit:cover;display:block;background:#0b1220;";
     video.controls = false;
-    video.src = rec.fileUrl;
+    video.preload = "metadata";
+    video.playsInline = true;
+    video.src = src;
+
+    if (mimeType) {
+      video.setAttribute("type", mimeType);
+    }
 
     screenEl.innerHTML = "";
     screenEl.appendChild(video);
+
+    video.addEventListener("loadedmetadata", () => {
+      console.log("[playback] video metadata loaded");
+    });
+
+    video.addEventListener("error", () => {
+      console.error("[playback] video error:", video.error);
+      _showNoSource("Video source could not be loaded");
+    });
 
     video.addEventListener("timeupdate", () => {
       if (!video.duration) return;
 
       const pct = (video.currentTime / video.duration) * 100;
-
       const fill = document.getElementById("vm-progress-fill");
       const time = document.getElementById("vm-time");
 
       if (fill) fill.style.width = pct + "%";
 
-      const fmt = (s) => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
+      const fmt = (s) =>
+        `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
 
       if (time) {
         time.textContent = `${fmt(video.currentTime)} / ${fmt(video.duration)}`;
@@ -1093,17 +1188,83 @@ function openPlayback(id) {
     });
 
     window._modalVideo = video;
+  }
+
+  function _showNoSource(msg) {
+    window._modalVideo = null;
+    screenEl.innerHTML = `
+      <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#0b1220;color:#94a3b8;">
+        <div style="text-align:center;">
+          <div style="font-size:18px;margin-bottom:10px;">&#x1F512;</div>
+          <div style="font-size:14px;font-weight:700;margin-bottom:6px;">${msg}</div>
+          <div style="font-size:12px;color:#64748b;">Unlock the vault first, then open this recording.</div>
+        </div>
+      </div>`;
+  }
+
+  if (rec.fileUrl && rec.fileUrl !== "#") {
+    if (String(rec.fileUrl).startsWith("localvault://")) {
+      const vault = window.recordingVault;
+      const recordId = rec.fileUrl.replace("localvault://", "");
+
+      if (!vault || !vault.vaultIsUnlocked()) {
+        _showNoSource("Vault is locked");
+      } else {
+        screenEl.innerHTML = `
+          <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#0b1220;color:#94a3b8;">
+            <div style="text-align:center;font-size:13px;font-weight:600;">&#x1F513; Decrypting recording…</div>
+          </div>`;
+
+        window._modalVideo = null;
+
+        (async () => {
+          try {
+            const all = await vault.vaultListRecordings();
+            console.log("[vault] total entries:", all.length);
+
+            const entry = all.find((v) => v.id === recordId);
+            console.log("[vault] recordId:", recordId, "entry found:", !!entry);
+
+            if (!entry) {
+              _showNoSource("Recording not found in vault");
+              return;
+            }
+
+            console.log(
+              "[vault] ivB64 length:",
+              entry.ivB64 ? entry.ivB64.length : 0,
+              "cipherB64 length:",
+              entry.cipherB64 ? entry.cipherB64.length : 0
+            );
+
+            const plain = await vault.vaultDecryptToArrayBuffer(entry.ivB64, entry.cipherB64);
+            console.log("[vault] decrypted bytes:", plain.byteLength);
+
+            const mime = entry.mimeType || "video/webm";
+            const blob = new Blob([plain], { type: mime });
+            const blobUrl = URL.createObjectURL(blob);
+
+            console.log("[vault] blobUrl:", blobUrl);
+
+            _attachVideoSrc(blobUrl, mime);
+          } catch (err) {
+            console.error("[vault] decrypt failed:", err);
+            _showNoSource("Failed to decrypt recording");
+          }
+        })();
+      }
+    } else {
+      _attachVideoSrc(rec.fileUrl, null);
+    }
   } else {
     window._modalVideo = null;
-
     screenEl.innerHTML = `
       <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#0b1220;color:#94a3b8;">
         <div style="text-align:center;">
           <div style="font-size:14px;font-weight:700;margin-bottom:6px;">No playback source</div>
           <div style="font-size:12px;">This record does not have a playable URL.</div>
         </div>
-      </div>
-    `;
+      </div>`;
   }
 
   const modal = document.getElementById("modal-video");
@@ -1138,6 +1299,11 @@ function closeModal() {
   if (window._modalVideo) {
     window._modalVideo.pause();
     window._modalVideo = null;
+  }
+
+  if (window._modalBlobUrl) {
+    URL.revokeObjectURL(window._modalBlobUrl);
+    window._modalBlobUrl = null;
   }
 }
 
@@ -1752,6 +1918,17 @@ function toggleRecording(camId) {
 function startRecording(deviceId, cam) {
   console.log("startRecording called:", deviceId, cam);
 
+  // Vault must be unlocked before recording so video gets encrypted into IndexedDB
+  if (!window.recordingVault?.vaultIsUnlocked?.()) {
+    _showToast("\uD83D\uDD12 Unlock the Vault first — recordings won't be playable without it.");
+
+    if (typeof unlockVaultFromConsole === "function") {
+      setTimeout(() => unlockVaultFromConsole(), 300);
+    }
+
+    return;
+  }
+
   const stream = localCamStreams.get(deviceId);
 
   if (!stream) {
@@ -1883,6 +2060,15 @@ async function _processPipeline(blob, rec, endedAt, cam) {
   const durationMs = new Date(endedAt) - new Date(rec.startTime);
   const durationSec = Math.max(1, Math.round(durationMs / 1000));
 
+  // Convert blob to ArrayBuffer using FileReader
+  const arrBuf = await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsArrayBuffer(blob);
+  });
+
   let ivB64 = "";
   let cipherB64 = "";
 
@@ -1890,8 +2076,7 @@ async function _processPipeline(blob, rec, endedAt, cam) {
     const vault = window.recordingVault;
 
     if (vault && vault.vaultIsUnlocked()) {
-      const arrBuf = await blob.arrayBuffer();
-      const encrypted = await vault.vaultEncryptArrayBuffer(arrBuf);
+      const encrypted = await vault.vaultEncryptArrayBuffer(arrBuf.slice(0));
 
       ivB64 = encrypted.ivB64;
       cipherB64 = encrypted.cipherB64;
@@ -1900,7 +2085,7 @@ async function _processPipeline(blob, rec, endedAt, cam) {
         id: recordId,
         ivB64,
         cipherB64,
-        mimeType: blob.type,
+        mimeType: blob.type || "video/webm",
         cameraLabel: cam.title,
         startedAt: rec.startTime,
         endedAt,
@@ -1908,7 +2093,7 @@ async function _processPipeline(blob, rec, endedAt, cam) {
         sizePlain: blob.size,
       });
 
-      _showToast("🔐 Saved to encrypted vault");
+      _showToast("\uD83D\uDD10 Saved to encrypted vault");
     }
   } catch (e) {
     console.warn("Vault save failed:", e);
@@ -1920,7 +2105,7 @@ async function _processPipeline(blob, rec, endedAt, cam) {
     let rawB64 = "";
 
     if (!cipherB64 && window.recordingVault?.bufToB64) {
-      rawB64 = window.recordingVault.bufToB64(new Uint8Array(await blob.arrayBuffer()));
+      rawB64 = window.recordingVault.bufToB64(new Uint8Array(arrBuf.slice(0)));
     }
 
     const payload = {
@@ -1952,29 +2137,10 @@ async function _processPipeline(blob, rec, endedAt, cam) {
     console.warn("Record upload failed:", e);
   }
 
+  // Backend does not currently have POST /records/transcribe.
+  // Keep transcript disabled to avoid 405 Method Not Allowed in console.
   let transcriptText = "";
-
-  try {
-    const formData = new FormData();
-    formData.append("file", blob, recordId + ".webm");
-
-    const tRes = await fetch(API_BASE + "/records/transcribe", {
-      method: "POST",
-      headers: {
-        Authorization: authHeaders()["Authorization"],
-      },
-      body: formData,
-    });
-
-    if (tRes.ok) {
-      const tData = await tRes.json();
-      transcriptText = tData.transcript || tData.text || "";
-      _showToast("📝 Transcript ready");
-    }
-  } catch (e) {
-    console.warn("Transcription failed:", e);
-    transcriptText = "";
-  }
+  console.log("Transcription skipped: /records/transcribe endpoint is not available.");
 
   if (transcriptText && savedRecordId) {
     try {

@@ -311,12 +311,13 @@
   }
 
   async function vaultSaveRecording(meta) {
+    console.log("[vaultSave] saving id:", meta.id, "ivB64 len:", meta.ivB64 ? meta.ivB64.length : 0, "cipherB64 len:", meta.cipherB64 ? meta.cipherB64.length : 0);
     const db = await openDb();
     await new Promise((resolve, reject) => {
       const tx = db.transaction(STORE_RECORDINGS, "readwrite");
       tx.objectStore(STORE_RECORDINGS).put(meta);
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => reject(tx.error);
+      tx.oncomplete = () => { console.log("[vaultSave] IndexedDB save OK"); resolve(); };
+      tx.onerror = () => { console.error("[vaultSave] IndexedDB save FAILED:", tx.error); reject(tx.error); };
     });
     try {
       await apiFetch("/records/vault/upload", {
