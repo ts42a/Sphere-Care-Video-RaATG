@@ -16,6 +16,7 @@ from .routers import health
 from .routers import account
 from .routers import staff_invite
 from .routers import ws
+from .routers import vault
 
 all_routers = [
     health.router,
@@ -33,7 +34,8 @@ all_routers = [
     call.router,
     account.router,
     staff_invite.router,
-    ws.router
+    ws.router,
+    vault.router
 ]
 
 try:
