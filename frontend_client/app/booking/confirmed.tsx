@@ -61,7 +61,7 @@ export default function ConfirmedScreen() {
       try {
         await wsClient.connect();
         unsubscribe = wsClient.subscribe("booking.updated", async (payload) => {
-          if (payload?.bookingId !== bookingId) return;
+          if (String(payload?.bookingId) !== String(bookingId)) return;
 
           try {
             const latest = await bookingService.getBookingConfirmation(bookingId);
@@ -248,6 +248,11 @@ export default function ConfirmedScreen() {
                 <Feather name="bell" size={20} color="#425266" />
                 <Text style={styles.secondaryBtnText}>Open Notifications</Text>
               </Pressable>
+
+              <Pressable style={styles.homeBtn} onPress={() => router.replace("/(tab)") }>
+                <Feather name="home" size={20} color="#FFFFFF" />
+                <Text style={styles.homeBtnText}>Back to Home</Text>
+              </Pressable>
             </>
           ) : null}
         </View>
@@ -411,6 +416,21 @@ const styles = StyleSheet.create({
     color: "#425266",
     fontSize: 16,
     fontWeight: "600",
+  },
+  homeBtn: {
+    backgroundColor: "#425266",
+    borderRadius: 16,
+    paddingVertical: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 12,
+  },
+  homeBtnText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "700",
   },
   errorText: {
     color: "#D9534F",

@@ -156,6 +156,7 @@ export async function fetchCallContacts(search = ""): Promise<CallContact[]> {
     id: conversation.contactId,
     conversationId: conversation.id,
     userId: conversation.targetUserId,
+    participantType: conversation.otherParticipant?.participantType ?? "user",
     initials: conversation.initials,
     name: conversation.name,
     specialty: conversation.role || "Care team",
@@ -175,10 +176,17 @@ export async function fetchCallContactById(
 }
 
 export async function resolveIncomingCallContact(
-  userId: number
+  userId: number,
+  participantType = "user"
 ): Promise<CallContact | null> {
   const contacts = await fetchCallContacts("");
-  return contacts.find((item) => item.userId === userId) ?? null;
+  return (
+    contacts.find(
+      (item) =>
+        item.userId === userId &&
+        (item.participantType ?? "user") === (participantType ?? "user")
+    ) ?? contacts.find((item) => item.userId === userId) ?? null
+  );
 }
 
 export async function fetchCallSummary(timeZone?: string): Promise<CallSummary> {
@@ -226,6 +234,7 @@ export async function startCallRequest(
     method: "POST",
     body: {
       callee_user_id: payload.contact.userId,
+      callee_participant_type: payload.contact.participantType ?? "user",
       kind: payload.mode,
     },
   });
@@ -299,6 +308,8 @@ export function parseIncomingInvite(payload: any): IncomingCallInvite | null {
       typeof payload.caller_user_id === "number"
         ? payload.caller_user_id
         : undefined,
+    callerParticipantType:
+      payload.caller_participant_type ?? payload.callerParticipantType ?? "user",
     timestamp: payload.timestamp,
     roomId: payload.room_id,
     expiresAt: payload.expires_at,

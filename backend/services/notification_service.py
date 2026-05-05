@@ -43,6 +43,7 @@ def _persist_notification(
     related_entity_type: Optional[str] = None,
     related_entity_id: Optional[int] = None,
     is_priority: bool = False,
+    recipient_user_ids: Optional[list[int]] = None,
 ) -> Optional[models.Notification]:
     if db is None:
         return None
@@ -57,14 +58,26 @@ def _persist_notification(
         is_priority=is_priority,
     )
     db.add(notification)
+    db.flush()
+
+    for user_id in recipient_user_ids or []:
+        if user_id is None:
+            continue
+        db.add(
+            models.NotificationRecipient(
+                notification_id=notification.id,
+                user_id=int(user_id),
+            )
+        )
+
     db.commit()
     db.refresh(notification)
     return notification
 
 
-async def notify_booking_created(booking, admin_id: int, db: Optional[Session] = None):
+async def notify_booking_created(booking, admin_id: int, db: Optional[Session] = None, client_user_id: Optional[int] = None):
     title, body = _build_booking_summary(booking, prefix="New booking")
-    _persist_notification(
+    notification = _persist_notification(
         db,
         admin_id=admin_id,
         category="appointment",
@@ -72,10 +85,21 @@ async def notify_booking_created(booking, admin_id: int, db: Optional[Session] =
         body=body,
         related_entity_type="booking",
         related_entity_id=booking.id,
+        recipient_user_ids=[int(client_user_id)] if client_user_id else None,
     )
 
-    await ws_manager.broadcast(admin_id, {
+    payload = {
         "type": "booking_created",
+        "notification": {
+            "id": notification.id,
+            "category": notification.category,
+            "title": notification.title,
+            "body": notification.body,
+            "related_entity_type": notification.related_entity_type,
+            "related_entity_id": notification.related_entity_id,
+            "is_priority": notification.is_priority,
+            "created_at": notification.created_at.isoformat() if getattr(notification, "created_at", None) else None,
+        } if notification else None,
         "booking": {
             "id": booking.id,
             "appointment_date": str(booking.appointment_date),
@@ -86,7 +110,9 @@ async def notify_booking_created(booking, admin_id: int, db: Optional[Session] =
             "resident_id": booking.resident_id,
             "resident": {"full_name": _resident_name_from_booking(booking)},
         }
-    })
+    }
+
+    await ws_manager.broadcast(admin_id, payload)
 
 
 async def notify_booking_updated(booking, admin_id: int, db: Optional[Session] = None):

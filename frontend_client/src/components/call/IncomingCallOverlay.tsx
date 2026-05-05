@@ -51,6 +51,7 @@ function buildFallbackContact(
   return {
     id: String(callerUserId ?? callerName),
     userId: callerUserId,
+    participantType: callerRole === "admin" ? "admin" : "user",
     name: callerName,
     initials: String(callerName)
       .split(" ")
@@ -142,7 +143,8 @@ export default function IncomingCallOverlay() {
             if (invite.callerUserId) {
               try {
                 const resolvedContact = await callService.resolveIncomingContact(
-                  Number(invite.callerUserId)
+                  Number(invite.callerUserId),
+                  invite.callerParticipantType ?? "user"
                 );
 
                 if (resolvedContact) {
@@ -226,6 +228,7 @@ export default function IncomingCallOverlay() {
       currentInvite.callerUserId === undefined
         ? undefined
         : Number(currentInvite.callerUserId),
+    participantType: currentInvite.callerParticipantType ?? "user",
     name,
     initials,
     role,

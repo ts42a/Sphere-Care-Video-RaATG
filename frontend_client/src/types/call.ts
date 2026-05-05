@@ -22,6 +22,7 @@ export type CallContact = {
   id: string;
   conversationId?: string;
   userId?: number;
+  participantType?: string;
   initials: string;
   name: string;
   specialty: string;
@@ -106,6 +107,7 @@ export type IncomingCallInvite = {
   kind: "audio" | "video";
   state?: CallLifecycleState;
   callerUserId?: number | null;
+  callerParticipantType?: string | null;
   callerName?: string;
   callerRole?: string | null;
   timestamp?: string;

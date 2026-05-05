@@ -9,7 +9,7 @@ import {
   type NotificationFilter,
 } from "../api/notification";
 import { wsClient } from "./wsClient";
-import type { AlertRealtimePayload, BookingRealtimePayload } from "../types/notification";
+import { pushNotificationService } from "./pushNotificationService";
 
 let realtimeInitialized = false;
 let cleanupHandlers: Array<() => void> = [];
@@ -17,34 +17,55 @@ let cleanupHandlers: Array<() => void> = [];
 function initializeRealtime() {
   if (realtimeInitialized) return;
 
-  const forwardBooking = (payload: BookingRealtimePayload) => {
-    console.log("Realtime booking event received:", payload);
-    applyRealtimeNotificationEvent(payload).catch((error) => {
-      console.error("Failed to apply booking notification event", error);
-    });
-  };
+  const forwardEvent = (eventType: string) => (payload: any) => {
+    console.log(`Realtime ${eventType} event received:`, payload);
 
-  const forwardAlert = (payload: AlertRealtimePayload) => {
-    console.log("Realtime alert event received:", payload);
-    applyRealtimeNotificationEvent(payload).catch((error) => {
-      console.error("Failed to apply alert notification event", error);
-    });
+    applyRealtimeNotificationEvent(payload)
+      .then((item) => {
+        if (!item) return;
+
+        return pushNotificationService.showLocalNotification(
+          item.title,
+          item.message,
+          {
+            notificationId: item.id,
+            sourceId: item.sourceId,
+            sourceEvent: item.sourceEvent,
+            realtimeEventType: eventType,
+            relatedEntityType: item.relatedEntityType,
+            relatedEntityId: item.relatedEntityId,
+            type: item.type,
+          }
+        );
+      })
+      .catch((error) => {
+        console.error(`Failed to apply ${eventType} notification event`, error);
+      });
   };
 
   cleanupHandlers = [
-    wsClient.subscribe("booking_created", forwardBooking),
-    wsClient.subscribe("booking_updated", forwardBooking),
-    wsClient.subscribe("booking_deleted", forwardBooking),
-    wsClient.subscribe("ai_alert", forwardAlert),
+    wsClient.subscribe("booking_created", forwardEvent("booking_created")),
+    wsClient.subscribe("booking_updated", forwardEvent("booking_updated")),
+    wsClient.subscribe("booking_deleted", forwardEvent("booking_deleted")),
+    wsClient.subscribe("ai_alert", forwardEvent("ai_alert")),
   ];
 
   realtimeInitialized = true;
+
+  pushNotificationService.ensurePermission().catch((error) => {
+    console.warn("Notification permission was not granted", error);
+  });
+
+  wsClient.connect().catch((error) => {
+    console.warn("Notification WebSocket connection failed", error);
+  });
 }
 
 function resetRealtime() {
   cleanupHandlers.forEach((cleanup) => cleanup());
   cleanupHandlers = [];
   realtimeInitialized = false;
+  pushNotificationService.resetDuplicateCache();
 }
 
 export const notificationService = {

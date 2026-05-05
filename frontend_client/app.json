@@ -85,11 +85,17 @@
           }
         }
       ],
-      "@config-plugins/react-native-webrtc"
+      "@config-plugins/react-native-webrtc",
+      "expo-notifications"
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "notification": {
+      "icon": "./assets/images/M.png",
+      "color": "#46576D",
+      "iosDisplayInForeground": true
     }
   }
 }

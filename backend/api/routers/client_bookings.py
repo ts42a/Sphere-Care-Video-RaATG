@@ -227,7 +227,7 @@ async def create_client_booking(
         schedule_payload=schedule_payload,
     )
 
-    await notification_service.notify_booking_created(new_booking, int(admin_id), db=db)
+    await notification_service.notify_booking_created(new_booking, int(admin_id), db=db, client_user_id=int(user_id) if user_id else None)
     await notification_service.notify_client_booking_updated(
         admin_id=int(admin_id),
         booking_id=new_booking.id,

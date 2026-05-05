@@ -9,6 +9,7 @@ class WSClient {
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 
   private listeners = new Map<string, Set<WsListener>>();
+  private openListeners = new Set<() => void>();
 
   private connected = false;
   private manualClose = false;
@@ -108,6 +109,7 @@ class WSClient {
         this.clearReconnectTimer();
         console.log("WS connected:", url);
         this.connectPromise = null;
+        this.emitOpen();
         resolve();
       };
 
@@ -189,6 +191,22 @@ class WSClient {
     return this.connect(true);
   }
 
+  subscribeOpen(listener: () => void) {
+    this.openListeners.add(listener);
+
+    if (this.isConnected()) {
+      try {
+        listener();
+      } catch (error) {
+        console.error("WS open listener failed", error);
+      }
+    }
+
+    return () => {
+      this.openListeners.delete(listener);
+    };
+  }
+
   subscribe(eventType: string, listener: WsListener) {
     const key = eventType || "*";
     const set = this.listeners.get(key) ?? new Set<WsListener>();
@@ -205,7 +223,7 @@ class WSClient {
     };
   }
 
-  async send(payload: WsEventPayload) {
+  async send(typeOrPayload: string | WsEventPayload, payload: WsEventPayload = {}) {
     if (!this.isConnected()) {
       await this.connect();
     }
@@ -214,7 +232,22 @@ class WSClient {
       throw new Error("WebSocket is not connected");
     }
 
-    this.socket.send(JSON.stringify(payload));
+    const message =
+      typeof typeOrPayload === "string"
+        ? { type: typeOrPayload, payload }
+        : typeOrPayload;
+
+    this.socket.send(JSON.stringify(message));
+  }
+
+  private emitOpen() {
+    for (const listener of this.openListeners) {
+      try {
+        listener();
+      } catch (error) {
+        console.error("WS open listener failed", error);
+      }
+    }
   }
 
   private emit(eventType: string, payload: WsEventPayload) {
@@ -274,4 +307,10 @@ class WSClient {
   }
 }
 
-export const wsClient = new WSClient();
+const globalWsClientState = globalThis as typeof globalThis & {
+  __spherecareWsClient?: WSClient;
+};
+
+export const wsClient =
+  globalWsClientState.__spherecareWsClient ??
+  (globalWsClientState.__spherecareWsClient = new WSClient());

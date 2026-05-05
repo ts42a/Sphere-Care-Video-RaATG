@@ -13,7 +13,10 @@ import { USE_MOCK_API } from "../config/api";
 
 export type NotificationFilter = "all" | "unread";
 
-type NotificationSubscriber = (items: NotificationItem[], unreadCount: number) => void;
+type NotificationSubscriber = (
+  items: NotificationItem[],
+  unreadCount: number
+) => void;
 
 const READ_IDS_KEY = "spherecare_notification_read_ids";
 
@@ -75,7 +78,10 @@ function formatTimeAgo(value?: string) {
     return value;
   }
 
-  const diffMinutes = Math.max(0, Math.round((Date.now() - date.getTime()) / 60000));
+  const diffMinutes = Math.max(
+    0,
+    Math.round((Date.now() - date.getTime()) / 60000)
+  );
 
   if (diffMinutes < 1) return "Just now";
   if (diffMinutes < 60) return `${diffMinutes} min ago`;
@@ -104,6 +110,87 @@ function toNotificationType(category?: string): NotificationType {
   }
 }
 
+function normalizeText(value?: string | null) {
+  return String(value ?? "")
+    .trim()
+    .toLowerCase();
+}
+
+function inferBookingEventFromTitle(title?: string | null) {
+  const normalized = normalizeText(title);
+
+  if (normalized.startsWith("new booking")) {
+    return "booking_created";
+  }
+
+  if (
+    normalized.startsWith("booking cancelled") ||
+    normalized.startsWith("booking canceled")
+  ) {
+    return "booking_deleted";
+  }
+
+  if (normalized.startsWith("booking updated")) {
+    return "booking_updated";
+  }
+
+  return "booking";
+}
+
+function buildStableNotificationId(params: {
+  type?: string | null;
+  relatedEntityType?: string | null;
+  relatedEntityId?: number | string | null;
+  sourceId?: number | string | null;
+  sourceEvent?: string | null;
+  title?: string | null;
+}) {
+  const relatedEntityType = params.relatedEntityType ?? "";
+  const relatedEntityId = params.relatedEntityId ?? "";
+  const sourceEvent = params.sourceEvent ?? "";
+  const sourceId = params.sourceId ?? "";
+
+  if (relatedEntityType === "booking" && relatedEntityId) {
+    return `booking-${relatedEntityId}-${sourceEvent || inferBookingEventFromTitle(params.title)}`;
+  }
+
+  if (params.type === "appointment" && relatedEntityId) {
+    return `booking-${relatedEntityId}-${sourceEvent || inferBookingEventFromTitle(params.title)}`;
+  }
+
+  if (sourceEvent && sourceId) {
+    return `${sourceEvent}-${sourceId}`;
+  }
+
+  if (sourceId) {
+    return `server-${sourceId}`;
+  }
+
+  return `${params.type || "notification"}-${Date.now()}`;
+}
+
+function getDedupeKey(item: NotificationItem) {
+  const relatedEntityType = item.relatedEntityType ?? "";
+  const relatedEntityId = item.relatedEntityId ?? "";
+  const sourceEvent =
+    item.sourceEvent ||
+    inferBookingEventFromTitle(item.title);
+
+  if (relatedEntityType === "booking" && relatedEntityId) {
+    return `booking:${relatedEntityId}:${sourceEvent}`;
+  }
+
+  return [
+    item.type,
+    item.sourceId,
+    item.sourceEvent,
+    item.title,
+    item.message,
+  ]
+    .filter(Boolean)
+    .join(":");
+}
+
 function withReadState(item: Omit<NotificationItem, "isRead">): NotificationItem {
   return {
     ...item,
@@ -123,7 +210,23 @@ function getMergedNotifications() {
   const merged = new Map<string, NotificationItem>();
 
   for (const item of [...baseNotifications, ...realtimeNotifications]) {
-    merged.set(item.id, item);
+    const key = getDedupeKey(item);
+    const existing = merged.get(key);
+
+    if (!existing) {
+      merged.set(key, item);
+      continue;
+    }
+
+    const existingTime = existing.createdAt
+      ? new Date(existing.createdAt).getTime()
+      : 0;
+
+    const itemTime = item.createdAt
+      ? new Date(item.createdAt).getTime()
+      : 0;
+
+    merged.set(key, itemTime >= existingTime ? item : existing);
   }
 
   return sortNotifications(Array.from(merged.values()));
@@ -132,12 +235,16 @@ function getMergedNotifications() {
 function notifySubscribers() {
   const merged = getMergedNotifications();
   const unreadCount = merged.filter((item) => !item.isRead).length;
+
   subscribers.forEach((listener) => listener(merged, unreadCount));
 }
 
 export function subscribeToNotificationUpdates(listener: NotificationSubscriber) {
   subscribers.add(listener);
-  listener(getMergedNotifications(), getMergedNotifications().filter((item) => !item.isRead).length);
+  listener(
+    getMergedNotifications(),
+    getMergedNotifications().filter((item) => !item.isRead).length
+  );
 
   return () => {
     subscribers.delete(listener);
@@ -146,11 +253,27 @@ export function subscribeToNotificationUpdates(listener: NotificationSubscriber)
 
 function mapBackendNotification(notification: BackendNotification): NotificationItem {
   const isConversationNotification =
-    notification.category === "message" || notification.related_entity_type === "conversation";
+    notification.category === "message" ||
+    notification.related_entity_type === "conversation";
+
+  const type = toNotificationType(notification.category);
+  const sourceEvent =
+    notification.related_entity_type === "booking"
+      ? inferBookingEventFromTitle(notification.title)
+      : undefined;
+
+  const id = buildStableNotificationId({
+    type,
+    relatedEntityType: notification.related_entity_type ?? null,
+    relatedEntityId: notification.related_entity_id ?? null,
+    sourceId: notification.id,
+    sourceEvent,
+    title: notification.title,
+  });
 
   return withReadState({
-    id: `server-${notification.id}`,
-    type: toNotificationType(notification.category),
+    id,
+    type,
     title: notification.title,
     message: notification.body,
     timeAgo: formatTimeAgo(notification.created_at),
@@ -161,22 +284,27 @@ function mapBackendNotification(notification: BackendNotification): Notification
           ? "View details"
           : "Open",
       variant: notification.is_priority ? "red" : "blue",
-      actionType: isConversationNotification ? "open_conversation" : "view_details",
+      actionType: isConversationNotification
+        ? "open_conversation"
+        : "view_details",
     },
     sourceId: notification.id,
+    sourceEvent,
     relatedEntityType: notification.related_entity_type ?? null,
     relatedEntityId: notification.related_entity_id ?? null,
     createdAt: notification.created_at,
   });
 }
 
-function buildBookingNotification(payload: BookingRealtimePayload): NotificationItem | null {
+function buildBookingNotification(
+  payload: BookingRealtimePayload
+): NotificationItem | null {
   if (payload.type === "booking_deleted") {
     const bookingId = payload.booking_id;
     if (!bookingId) return null;
 
     return withReadState({
-      id: `booking-${bookingId}`,
+      id: `booking-${bookingId}-booking_deleted`,
       type: "appointment",
       title: "Booking cancelled",
       message: `Booking #${bookingId} was removed.`,
@@ -187,7 +315,9 @@ function buildBookingNotification(payload: BookingRealtimePayload): Notification
         actionType: "view_details",
       },
       sourceId: bookingId,
-      sourceEvent: payload.type,
+      sourceEvent: "booking_deleted",
+      relatedEntityType: "booking",
+      relatedEntityId: bookingId,
       createdAt: new Date().toISOString(),
     });
   }
@@ -195,15 +325,26 @@ function buildBookingNotification(payload: BookingRealtimePayload): Notification
   const booking = payload.booking;
   if (!booking) return null;
 
-  const residentName = booking.resident?.full_name || `Resident #${booking.resident_id ?? booking.id}`;
-  const when = [booking.appointment_date, booking.start_time].filter(Boolean).join(" at ");
-  const statusLabel = payload.type === "booking_created" ? "New booking" : "Booking updated";
+  const residentName =
+    booking.resident?.full_name ||
+    `Resident #${booking.resident_id ?? booking.id}`;
+
+  const when = [booking.appointment_date, booking.start_time]
+    .filter(Boolean)
+    .join(" at ");
+
+  const statusLabel =
+    payload.type === "booking_created"
+      ? "New booking"
+      : "Booking updated";
 
   return withReadState({
-    id: `booking-${booking.id}`,
+    id: `booking-${booking.id}-${payload.type}`,
     type: "appointment",
     title: `${statusLabel}: ${booking.booking_type ?? "Appointment"}`,
-    message: [residentName, booking.doctor_name, when, booking.status].filter(Boolean).join(" · "),
+    message: [residentName, booking.doctor_name, when, booking.status]
+      .filter(Boolean)
+      .join(" · "),
     timeAgo: "Just now",
     action: {
       label: "View details",
@@ -212,6 +353,8 @@ function buildBookingNotification(payload: BookingRealtimePayload): Notification
     },
     sourceId: booking.id,
     sourceEvent: payload.type,
+    relatedEntityType: "booking",
+    relatedEntityId: booking.id,
     createdAt: new Date().toISOString(),
   });
 }
@@ -230,6 +373,8 @@ function buildAlertNotification(payload: AlertRealtimePayload): NotificationItem
     },
     sourceId: payload.alert.id,
     sourceEvent: payload.type,
+    relatedEntityType: "alert",
+    relatedEntityId: payload.alert.id,
     createdAt: new Date().toISOString(),
   });
 }
@@ -288,12 +433,14 @@ export async function markNotificationAsRead(
   notificationId: string
 ): Promise<{ success: boolean }> {
   await ensureInitialized();
+
   readIds.add(notificationId);
   await persistReadIds();
 
   baseNotifications = baseNotifications.map((item) =>
     item.id === notificationId ? { ...item, isRead: true } : item
   );
+
   realtimeNotifications = realtimeNotifications.map((item) =>
     item.id === notificationId ? { ...item, isRead: true } : item
   );
@@ -310,8 +457,16 @@ export async function markAllNotificationsAsRead(): Promise<{ success: boolean }
   }
 
   await persistReadIds();
-  baseNotifications = baseNotifications.map((item) => ({ ...item, isRead: true }));
-  realtimeNotifications = realtimeNotifications.map((item) => ({ ...item, isRead: true }));
+
+  baseNotifications = baseNotifications.map((item) => ({
+    ...item,
+    isRead: true,
+  }));
+
+  realtimeNotifications = realtimeNotifications.map((item) => ({
+    ...item,
+    isRead: true,
+  }));
 
   notifySubscribers();
   return { success: true };
@@ -324,26 +479,16 @@ export async function applyRealtimeNotificationEvent(
 
   if (payload.type === "ai_alert") {
     const item = buildAlertNotification(payload);
+
     realtimeNotifications = sortNotifications([
       item,
-      ...realtimeNotifications.filter((current) => current.id !== item.id),
+      ...realtimeNotifications.filter(
+        (current) => getDedupeKey(current) !== getDedupeKey(item)
+      ),
     ]);
-    notifySubscribers();
-    return;
-  }
 
-  if (payload.type === "booking_deleted") {
-    const bookingId = payload.booking_id;
-    if (!bookingId) return;
-
-    realtimeNotifications = realtimeNotifications.filter(
-      (item) => item.id !== `booking-${bookingId}`
-    );
-    baseNotifications = baseNotifications.filter(
-      (item) => item.id !== `server-${bookingId}` && item.sourceId !== bookingId
-    );
     notifySubscribers();
-    return;
+    return item;
   }
 
   const item = buildBookingNotification(payload);
@@ -351,7 +496,11 @@ export async function applyRealtimeNotificationEvent(
 
   realtimeNotifications = sortNotifications([
     item,
-    ...realtimeNotifications.filter((current) => current.id !== item.id),
+    ...realtimeNotifications.filter(
+      (current) => getDedupeKey(current) !== getDedupeKey(item)
+    ),
   ]);
+
   notifySubscribers();
+  return item;
 }

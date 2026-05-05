@@ -6,6 +6,8 @@ import { getAccessToken } from "../src/services/sessionService";
 import MiniCallBar from "../src/components/call/MiniCallBar";
 import IncomingCallOverlay from "../src/components/call/IncomingCallOverlay";
 import CallLifecycleBridge from "../src/components/call/CallLifecycleBridge";
+import { notificationService } from "../src/services/notificationService";
+import { pushNotificationService } from "../src/services/pushNotificationService";
 
 export default function RootLayout() {
   const router = useRouter();
@@ -38,6 +40,18 @@ export default function RootLayout() {
       setCheckingAuth(false);
     }
   }
+
+
+  useEffect(() => {
+    if (!hasToken) return;
+
+    pushNotificationService.configureHandler();
+    notificationService.initializeRealtime();
+
+    return () => {
+      notificationService.resetRealtime();
+    };
+  }, [hasToken]);
 
   const showRealtimeUi = useMemo(() => {
     const currentPath = pathname || "";

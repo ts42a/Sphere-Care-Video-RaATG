@@ -23,8 +23,39 @@ router = APIRouter(prefix="/calls", tags=["Calls"])
 INVITE_TTL_SECONDS = 60  # 1 minute ringing timeout
 TERMINAL_CALL_STATES = {"declined", "canceled", "timeout", "ended", "failed"}
 
-# Admin IDs are offset to avoid colliding with users.id values
+# Admin IDs are offset to avoid colliding with users.id values in the calls table.
+# IMPORTANT: message conversations store admin participants as participant_type="admin"
+# with the real admin.id. Calls store a single numeric participant id, so admin
+# participants must be converted to/from this offset consistently.
 ADMIN_ID_OFFSET = 1_000_000
+
+
+def _normalize_actor_type(value: Optional[str]) -> str:
+    value = (value or "user").strip().lower()
+    if value in {"admin", "administrator"}:
+        return "admin"
+    return "user"
+
+
+def _to_call_storage_id(actor_type: Optional[str], user_id: int) -> int:
+    actor_type = _normalize_actor_type(actor_type)
+    raw_id = int(user_id)
+    if actor_type == "admin":
+        return raw_id if raw_id >= ADMIN_ID_OFFSET else raw_id + ADMIN_ID_OFFSET
+    return raw_id
+
+
+def _from_call_storage_id(storage_id: int, role_hint: Optional[str] = None) -> tuple[str, int]:
+    role = (role_hint or "").strip().lower()
+    raw_id = int(storage_id)
+    if role == "admin" or raw_id >= ADMIN_ID_OFFSET:
+        return "admin", raw_id - ADMIN_ID_OFFSET if raw_id >= ADMIN_ID_OFFSET else raw_id
+    return "user", raw_id
+
+
+def _actor_key_from_call_storage_id(storage_id: int, role_hint: Optional[str] = None) -> str:
+    actor_type, real_id = _from_call_storage_id(storage_id, role_hint)
+    return f"{actor_type}:{real_id}"
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
@@ -103,7 +134,7 @@ def _add_event(db: Session, call_id: int, event_type: str, actor_id: Optional[in
     ))
 
 async def _ws_broadcast_call_event(call: models.Call, event_type: str, extra: dict = None):
-    """Notify both caller and callee via WS."""
+    """Notify both caller and callee via WS using the same actor key rules as messages."""
     payload = {
         "type": event_type,
         "call_id": call.id,
@@ -113,27 +144,41 @@ async def _ws_broadcast_call_event(call: models.Call, event_type: str, extra: di
         "timestamp": _now().isoformat(),
         **(extra or {}),
     }
-    for uid in [call.created_by_user_id, call.callee_user_id]:
-        if uid:
-            actor_key = f"admin:{uid}" if False else f"user:{uid}"
-            await ws_manager.broadcast_actor(actor_key, payload)
-            # Also try admin key
-            await ws_manager.broadcast_actor(f"admin:{uid}", payload)
 
-async def _ws_send_to_user(user_id: int | None, payload: dict):
-    if not user_id:
+    for stored_uid in [call.created_by_user_id, call.callee_user_id]:
+        if not stored_uid:
+            continue
+        actor_key = _actor_key_from_call_storage_id(stored_uid)
+        await ws_manager.broadcast_actor(actor_key, payload)
+
+        # Compatibility fallback for older rows or older clients that may have
+        # connected under the wrong key during development.
+        actor_type, real_id = _from_call_storage_id(stored_uid)
+        await ws_manager.broadcast_actor(f"user:{real_id}", payload)
+        await ws_manager.broadcast_actor(f"admin:{real_id}", payload)
+
+
+async def _ws_send_to_call_participant(stored_user_id: int | None, payload: dict, role_hint: Optional[str] = None):
+    if not stored_user_id:
         return
 
-    actor_keys = [f"user:{user_id}", f"admin:{user_id}"]
-    print("DEBUG ws actor_keys", actor_keys)
+    actor_key = _actor_key_from_call_storage_id(stored_user_id, role_hint)
+    print("DEBUG ws actor_key", actor_key)
+    await ws_manager.broadcast_actor(actor_key, payload)
 
-    for actor_key in actor_keys:
-        await ws_manager.broadcast_actor(actor_key, payload)
+    # Compatibility fallback for old dev tokens / old rows.
+    _, real_id = _from_call_storage_id(stored_user_id, role_hint)
+    await ws_manager.broadcast_actor(f"user:{real_id}", payload)
+    await ws_manager.broadcast_actor(f"admin:{real_id}", payload)
+
 
 # ── Schemas ───────────────────────────────────────────────────────────────────
 
 class StartCallRequest(BaseModel):
     callee_user_id: int
+    # message conversations distinguish admin/user participants, but the old
+    # call API only accepted callee_user_id. Keep default user for compatibility.
+    callee_participant_type: Optional[str] = "user"
     kind: str = "audio"  # "audio" | "video"
 
 class JoinPayload(BaseModel):
@@ -219,27 +264,28 @@ def _format_duration_seconds(total_seconds: int) -> str:
 
 def _resolve_call_display_user(db: Session, user_id: int, role_hint: Optional[str] = None) -> tuple[str, str]:
     """Resolve a readable name for call history without depending on conversations."""
-    role = (role_hint or "").lower()
+    actor_type, real_user_id = _from_call_storage_id(user_id, role_hint)
+    role = (role_hint or actor_type or "").lower()
 
-    if role == "admin":
-        admin = db.query(models.Admin).filter(models.Admin.id == user_id).first()
+    if role == "admin" or actor_type == "admin":
+        admin = db.query(models.Admin).filter(models.Admin.id == real_user_id).first()
         if admin:
-            return admin.full_name or admin.email or f"Admin {user_id}", "admin"
+            return admin.full_name or admin.email or f"Admin {real_user_id}", "admin"
 
-    user = db.query(models.User).filter(models.User.id == user_id).first()
+    user = db.query(models.User).filter(models.User.id == real_user_id).first()
     if user:
-        return user.full_name or user.email or f"User {user_id}", user.global_role or role or "user"
+        return user.full_name or user.email or f"User {real_user_id}", user.global_role or role or "user"
 
-    staff = db.query(models.Staff).filter(models.Staff.user_id == user_id).first()
+    staff = db.query(models.Staff).filter(models.Staff.user_id == real_user_id).first()
     if staff:
-        return staff.full_name or f"Staff {user_id}", staff.role or "staff"
+        return staff.full_name or f"Staff {real_user_id}", staff.role or "staff"
 
-    admin = db.query(models.Admin).filter(models.Admin.id == user_id).first()
+    admin = db.query(models.Admin).filter(models.Admin.id == real_user_id).first()
     if admin:
-        return admin.full_name or admin.email or f"Admin {user_id}", "admin"
+        return admin.full_name or admin.email or f"Admin {real_user_id}", "admin"
 
     fallback_role = role_hint or "user"
-    return f"User {user_id}", fallback_role
+    return f"User {real_user_id}", fallback_role
 
 def _history_item_for_call(db: Session, call: models.Call, viewer_id: int) -> CallHistoryItem:
     is_outgoing = call.created_by_user_id == viewer_id
@@ -250,6 +296,7 @@ def _history_item_for_call(db: Session, call: models.Call, viewer_id: int) -> Ca
     ).first()
     remote_role_hint = remote_participant.role_at_call_time if remote_participant else None
     remote_name, remote_role = _resolve_call_display_user(db, remote_user_id, remote_role_hint)
+    _, remote_public_id = _from_call_storage_id(remote_user_id, remote_role_hint)
 
     duration_seconds = 0
     if call.started_at and call.ended_at and call.ended_at >= call.started_at:
@@ -260,7 +307,7 @@ def _history_item_for_call(db: Session, call: models.Call, viewer_id: int) -> Ca
         state=call.state,
         kind=call.kind,
         direction="outgoing" if is_outgoing else "incoming",
-        remote_user_id=remote_user_id,
+        remote_user_id=remote_public_id,
         remote_name=remote_name,
         remote_role=remote_role,
         started_at=call.started_at.isoformat() if call.started_at else None,
@@ -282,8 +329,10 @@ async def start_call(
     caller_id = _get_user_id(current_user)
     caller_role = _get_role(current_user)
     org_id = _get_org_id(current_user, db)
+    callee_actor_type = _normalize_actor_type(payload.callee_participant_type)
+    callee_id = _to_call_storage_id(callee_actor_type, payload.callee_user_id)
 
-    if caller_id == payload.callee_user_id:
+    if caller_id == callee_id:
         raise HTTPException(status_code=400, detail="Cannot call yourself.")
 
     caller_busy = db.query(models.Call).filter(
@@ -297,14 +346,14 @@ async def start_call(
         raise HTTPException(status_code=409, detail="You are already in another call.")
 
     active = db.query(models.Call).filter(
-        models.Call.callee_user_id == payload.callee_user_id,
+        models.Call.callee_user_id == callee_id,
         models.Call.state == "active",
     ).first()
     if active:
         raise HTTPException(status_code=409, detail="Callee is busy.")
 
     ringing = db.query(models.Call).filter(
-        models.Call.callee_user_id == payload.callee_user_id,
+        models.Call.callee_user_id == callee_id,
         models.Call.state == "ringing",
     ).first()
     if ringing:
@@ -335,7 +384,7 @@ async def start_call(
         state="ringing",
         kind=payload.kind,
         created_by_user_id=caller_id,
-        callee_user_id=payload.callee_user_id,
+        callee_user_id=callee_id,
         invite_expires_at=expires_at,
         livekit_url=_livekit_url(),
         caller_token=caller_token,
@@ -354,9 +403,9 @@ async def start_call(
     db.add(
         models.CallParticipant(
             call_id=call.id,
-            user_id=payload.callee_user_id,
-            role_at_call_time="callee",
-            livekit_identity=f"usr_{payload.callee_user_id}",
+            user_id=callee_id,
+            role_at_call_time=callee_actor_type if callee_actor_type == "admin" else "callee",
+            livekit_identity=f"usr_{callee_id}",
         )
     )
 
@@ -365,6 +414,7 @@ async def start_call(
     db.refresh(call)
 
     caller_name = getattr(current_user, "full_name", None) or getattr(current_user, "name", None) or getattr(current_user, "email", None) or str(caller_id)
+    caller_actor_type, caller_public_id = _from_call_storage_id(caller_id, caller_role)
 
     invite_payload = {
         "type": "call.invite",
@@ -373,7 +423,8 @@ async def start_call(
         "kind": call.kind,
         "room_id": call.room_id,
         "timestamp": _now().isoformat(),
-        "caller_user_id": caller_id,
+        "caller_user_id": caller_public_id,
+        "caller_participant_type": caller_actor_type,
         "caller_name": caller_name,
         "caller_role": caller_role,
         "expires_at": expires_at.isoformat(),
@@ -385,7 +436,7 @@ async def start_call(
         "payload": invite_payload,
     })
 
-    await _ws_send_to_user(call.callee_user_id, invite_payload)
+    await _ws_send_to_call_participant(call.callee_user_id, invite_payload, callee_actor_type)
 
     join = JoinPayload(
         call_id=call.id,
