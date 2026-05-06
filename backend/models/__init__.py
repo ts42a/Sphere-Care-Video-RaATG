@@ -26,3 +26,4 @@ from backend.models.attachment import Attachment
 from backend.models.audit_log import AuditLog
 from backend.models.call import Call, CallParticipant, CallEvent
 from backend.models.vault_security import VaultKeyEnvelope, VaultRetentionPolicy, VaultRecoveryRequest
+from .flag_review import FlagReview
