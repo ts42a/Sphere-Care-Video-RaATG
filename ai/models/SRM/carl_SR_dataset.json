@@ -1,1921 +1,961 @@
 [
   {
-    "category": "Staff-Resident",
-    "conversation_id": "SR_01",
-    "variation": 1,
-    "noise_type": "missing_words",
     "input": "good morning sleep well last night feeling any pain today i check blood pressure now sit comfortably chair breakfast arrive soon nurse bring medicine after breakfast like some water i come back thirty minutes press call button if need help",
     "output": "Good morning. Did you sleep well last night? Are you feeling any pain today? I will check your blood pressure now. Please sit comfortably on the chair. Your breakfast will arrive soon. The nurse will bring your medicine after breakfast. Would you like some water? I will come back in thirty minutes. Please press the call button if you need help."
   },
   {
-    "category": "Staff-Resident",
-    "conversation_id": "SR_01",
-    "variation": 2,
-    "noise_type": "broken_grammar",
     "input": "good morning you sleep well last night you feeling any pain today i check your blood pressure now please sit comfortably on the chair your breakfast will arrive soon the nurse will bring your medicine after breakfast would you like some weatr i come back in thirty minutes please press the call button if you need help",
     "output": "Good morning. Did you sleep well last night? Are you feeling any pain today? I will check your blood pressure now. Please sit comfortably on the chair. Your breakfast will arrive soon. The nurse will bring your medicine after breakfast. Would you like some water? I will come back in thirty minutes. Please press the call button if you need help."
   },
   {
-    "category": "Staff-Resident",
-    "conversation_id": "SR_01",
-    "variation": 3,
-    "noise_type": "no_punctuation",
     "input": "good morning did you sleep well last night are you feeling any pain today i will check your blood pressure now please sit comfortably on the chair your breakfast will arrive soon the nurse will bring your medicine after breakfast would you like some water i will come back in thirty minutes please press the call button if you need help",
     "output": "Good morning. Did you sleep well last night? Are you feeling any pain today? I will check your blood pressure now. Please sit comfortably on the chair. Your breakfast will arrive soon. The nurse will bring your medicine after breakfast. Would you like some water? I will come back in thirty minutes. Please press the call button if you need help."
   },
   {
-    "category": "Staff-Resident",
-    "conversation_id": "SR_01",
-    "variation": 4,
-    "noise_type": "word_order_repetition",
     "input": "morning good good did you sleep well last night you are are feeling any pain today i will your check check blood pressure now please sit comfortably the on on chair your breakfast will arrive soon nurse the the will bring your medicine after breakfast you would would like some water i will come in back back thirty minutes please press the call if button button you need help",
     "output": "Good morning. Did you sleep well last night? Are you feeling any pain today? I will check your blood pressure now. Please sit comfortably on the chair. Your breakfast will arrive soon. The nurse will bring your medicine after breakfast. Would you like some water? I will come back in thirty minutes. Please press the call button if you need help."
   },
   {
-    "category": "Staff-Resident",
-    "conversation_id": "SR_02",
-    "variation": 1,
-    "noise_type": "missing_words",
     "input": "hello time afternoon walk feel strong enough walk today i support while we move slowly we walk only short distance tell me if feel tired after walk rest room family called earlier check they said they visit tomorrow i remind again later",
     "output": "Hello. It is time for your afternoon walk. Do you feel strong enough to walk today? I can support you while we move slowly. We will walk only a short distance. Please tell me if you feel tired. After the walk, you can rest in your room. Your family called earlier to check on you. They said they will visit tomorrow. I will remind you again later."
   },
   {
-    "category": "Staff-Resident",
-    "conversation_id": "SR_02",
-    "variation": 2,
-    "noise_type": "broken_grammar",
     "input": "hello it time for your afternoon walk you feel strong enough to walk today i can support you while we move slowly we walk only a short distance please tell me if you feel tired after the walk you can rest in your room your family call earlier to check on you they said they will visit tomorrow i remind you again leatr",
     "output": "Hello. It is time for your afternoon walk. Do you feel strong enough to walk today? I can support you while we move slowly. We will walk only a short distance. Please tell me if you feel tired. After the walk, you can rest in your room. Your family called earlier to check on you. They said they will visit tomorrow. I will remind you again later."
   },
   {
-    "category": "Staff-Resident",
-    "conversation_id": "SR_02",
-    "variation": 3,
-    "noise_type": "no_punctuation",
     "input": "hello it is time for your afternoon walk do you feel strong enough to walk today i can support you while we move slowly we will walk only a short distance please tell me if you feel tired after the walk you can rest in your room your family called earlier to check on you they said they will visit tomorrow i will remind you again later",
     "output": "Hello. It is time for your afternoon walk. Do you feel strong enough to walk today? I can support you while we move slowly. We will walk only a short distance. Please tell me if you feel tired. After the walk, you can rest in your room. Your family called earlier to check on you. They said they will visit tomorrow. I will remind you again later."
   },
   {
-    "category": "Staff-Resident",
-    "conversation_id": "SR_02",
-    "variation": 4,
-    "noise_type": "word_order_repetition",
     "input": "it hello hello is time for your afternoon walk you do do feel strong enough to walk today can i i support you while we move slowly will we we walk only a short distance please me tell tell if you feel tired after the you walk walk can rest in your room your called family family earlier to check on you they they said said will visit tomorrow i will remind you again later",
     "output": "Hello. It is time for your afternoon walk. Do you feel strong enough to walk today? I can support you while we move slowly. We will walk only a short distance. Please tell me if you feel tired. After the walk, you can rest in your room. Your family called earlier to check on you. They said they will visit tomorrow. I will remind you again later."
   },
   {
-    "category": "Staff-Resident",
-    "conversation_id": "SR_03",
-    "variation": 1,
-    "noise_type": "missing_words",
     "input": "hi lunch ready like eat at table i help move from bed take time soup may still be warm drink some water meal after lunch we check medication doctor visit evening i update care notes after",
     "output": "Hi. Your lunch is ready. Would you like to eat at the table? I can help you move from the bed. Please take your time. The soup may still be warm. You should drink some water with your meal. After lunch, we will check your medication. The doctor will visit you this evening. I will update your care notes after this."
   },
   {
-    "category": "Staff-Resident",
-    "conversation_id": "SR_03",
-    "variation": 2,
-    "noise_type": "broken_grammar",
     "input": "hi your lunch is ready would you like to eat at the table i can help you move from the bed please take your time the soup may still be warm you should drink some weatr with your meal after lunch we check your medication the doctor will visit you this evening i updeat your care notes after this",
     "output": "Hi. Your lunch is ready. Would you like to eat at the table? I can help you move from the bed. Please take your time. The soup may still be warm. You should drink some water with your meal. After lunch, we will check your medication. The doctor will visit you this evening. I will update your care notes after this."
   },
   {
-    "category": "Staff-Resident",
-    "conversation_id": "SR_03",
-    "variation": 3,
-    "noise_type": "no_punctuation",
     "input": "hi your lunch is ready would you like to eat at the table i can help you move from the bed please take your time the soup may still be warm you should drink some water with your meal after lunch we will check your medication the doctor will visit you this evening i will update your care notes after this",
     "output": "Hi. Your lunch is ready. Would you like to eat at the table? I can help you move from the bed. Please take your time. The soup may still be warm. You should drink some water with your meal. After lunch, we will check your medication. The doctor will visit you this evening. I will update your care notes after this."
   },
   {
-    "category": "Staff-Resident",
-    "conversation_id": "SR_03",
-    "variation": 4,
-    "noise_type": "word_order_repetition",
     "input": "your hi hi lunch is ready would you like eat to to at the table i can help move you you from the bed please take your the time time soup may still be warm you drink should should some water with your meal after we lunch lunch will check your medication the doctor visit will will you this evening i will update care your your notes after this",
     "output": "Hi. Your lunch is ready. Would you like to eat at the table? I can help you move from the bed. Please take your time. The soup may still be warm. You should drink some water with your meal. After lunch, we will check your medication. The doctor will visit you this evening. I will update your care notes after this."
   },
   {
-    "category": "Staff-Resident",
-    "conversation_id": "SR_04",
-    "variation": 1,
-    "noise_type": "missing_words",
     "input": "good evening i here help get ready bed have brushed teeth i prepare night clothes room temperature comfortable i close curtains now night medicine tray take water i switch off main light call me if need anything during night",
     "output": "Good evening. I am here to help you get ready for bed. Have you brushed your teeth? I will prepare your night clothes. Your room temperature is comfortable. I will close the curtains now. Your night medicine is on the tray. Please take it with water. I will switch off the main light. Call me if you need anything during the night."
   },
   {
-    "category": "Staff-Resident",
-    "conversation_id": "SR_04",
-    "variation": 2,
-    "noise_type": "broken_grammar",
     "input": "good evening i here to help you get ready for bed have you brushed your teeth i prepyour night clothes your room temperature is comfortable i close the curtains now your night medicine is on the tray please take it with weatr i switch off the main light call me if you need anything during the night",
     "output": "Good evening. I am here to help you get ready for bed. Have you brushed your teeth? I will prepare your night clothes. Your room temperature is comfortable. I will close the curtains now. Your night medicine is on the tray. Please take it with water. I will switch off the main light. Call me if you need anything during the night."
   },
   {
-    "category": "Staff-Resident",
-    "conversation_id": "SR_04",
-    "variation": 3,
-    "noise_type": "no_punctuation",
     "input": "good evening i am here to help you get ready for bed have you brushed your teeth i will prepare your night clothes your room temperature is comfortable i will close the curtains now your night medicine is on the tray please take it with water i will switch off the main light call me if you need anything during the night",
     "output": "Good evening. I am here to help you get ready for bed. Have you brushed your teeth? I will prepare your night clothes. Your room temperature is comfortable. I will close the curtains now. Your night medicine is on the tray. Please take it with water. I will switch off the main light. Call me if you need anything during the night."
   },
   {
-    "category": "Staff-Resident",
-    "conversation_id": "SR_04",
-    "variation": 4,
-    "noise_type": "word_order_repetition",
     "input": "evening good good i am here to help you ready get get for bed have you brushed your i teeth teeth will prepare your night clothes your temperature room room is comfortable i will close the now curtains curtains your night medicine is on the please tray tray take it with water i will off switch switch the main light call me if need you you anything during the night",
     "output": "Good evening. I am here to help you get ready for bed. Have you brushed your teeth? I will prepare your night clothes. Your room temperature is comfortable. I will close the curtains now. Your night medicine is on the tray. Please take it with water. I will switch off the main light. Call me if you need anything during the night."
   },
   {
-    "category": "Staff-Resident",
-    "conversation_id": "SR_05",
-    "variation": 1,
-    "noise_type": "missing_words",
     "input": "hello physiotherapist see today they help gentle exercises wear comfortable shoes i bring walking frame not rush when stand up tell us if feel dizzy session take about twenty minutes after rest i record progress system",
     "output": "Hello. The physiotherapist will see you today. They will help you with gentle exercises. Please wear comfortable shoes. I will bring your walking frame. Do not rush when you stand up. Tell us if you feel dizzy. The session should take about twenty minutes. After that, you can rest. I will record your progress in the system."
   },
   {
-    "category": "Staff-Resident",
-    "conversation_id": "SR_05",
-    "variation": 2,
-    "noise_type": "broken_grammar",
     "input": "hello the physiotherapist will see you today they will help you with gentle exercises please wear comfortable shoes i bring your walking frame do not rush when you stand up tell us if you feel dizzy the session should take about tgoy minutes after that you can rest i record your progress in the system",
     "output": "Hello. The physiotherapist will see you today. They will help you with gentle exercises. Please wear comfortable shoes. I will bring your walking frame. Do not rush when you stand up. Tell us if you feel dizzy. The session should take about twenty minutes. After that, you can rest. I will record your progress in the system."
   },
   {
-    "category": "Staff-Resident",
-    "conversation_id": "SR_05",
-    "variation": 3,
-    "noise_type": "no_punctuation",
     "input": "hello the physiotherapist will see you today they will help you with gentle exercises please wear comfortable shoes i will bring your walking frame do not rush when you stand up tell us if you feel dizzy the session should take about twenty minutes after that you can rest i will record your progress in the system",
     "output": "Hello. The physiotherapist will see you today. They will help you with gentle exercises. Please wear comfortable shoes. I will bring your walking frame. Do not rush when you stand up. Tell us if you feel dizzy. The session should take about twenty minutes. After that, you can rest. I will record your progress in the system."
   },
   {
-    "category": "Staff-Resident",
-    "conversation_id": "SR_05",
-    "variation": 4,
-    "noise_type": "word_order_repetition",
     "input": "the hello hello physiotherapist will see you today they help will will you with gentle exercises please wear shoes comfortable comfortable i will bring your walking frame not do do rush when you stand up tell if us us you feel dizzy the session should about take take twenty minutes after that you can i rest rest will record your progress in the system",
     "output": "Hello. The physiotherapist will see you today. They will help you with gentle exercises. Please wear comfortable shoes. I will bring your walking frame. Do not rush when you stand up. Tell us if you feel dizzy. The session should take about twenty minutes. After that, you can rest. I will record your progress in the system."
   },
   {
-    "category": "Staff-Resident",
-    "conversation_id": "SR_06",
-    "variation": 1,
-    "noise_type": "missing_words",
     "input": "good morning appointment scheduled ten oclock i help get ready soon bring glasses transport arrive at nine thirty we leave room early i have packed medical documents doctor review condition today i stay during appointment we return before lunch if everything time",
     "output": "Good morning. Your appointment is scheduled for ten o'clock. I will help you get ready soon. Please bring your glasses with you. The transport will arrive at nine thirty. We should leave the room early. I have packed your medical documents. The doctor will review your condition today. I will stay with you during the appointment. We will return before lunch if everything is on time."
   },
   {
-    "category": "Staff-Resident",
-    "conversation_id": "SR_06",
-    "variation": 2,
-    "noise_type": "broken_grammar",
     "input": "good morning your appointment is scheduled for ten oclock i help you get ready soon please bring your glasses with you the transport will arrive at nine thirty we should leave the room early i have packed your medical documents the doctor will review your condition today i stay with you during the appointment we return before lunch if everything is on time",
     "output": "Good morning. Your appointment is scheduled for ten o'clock. I will help you get ready soon. Please bring your glasses with you. The transport will arrive at nine thirty. We should leave the room early. I have packed your medical documents. The doctor will review your condition today. I will stay with you during the appointment. We will return before lunch if everything is on time."
   },
   {
-    "category": "Staff-Resident",
-    "conversation_id": "SR_06",
-    "variation": 3,
-    "noise_type": "no_punctuation",
     "input": "good morning your appointment is scheduled for ten oclock i will help you get ready soon please bring your glasses with you the transport will arrive at nine thirty we should leave the room early i have packed your medical documents the doctor will review your condition today i will stay with you during the appointment we will return before lunch if everything is on time",
     "output": "Good morning. Your appointment is scheduled for ten o'clock. I will help you get ready soon. Please bring your glasses with you. The transport will arrive at nine thirty. We should leave the room early. I have packed your medical documents. The doctor will review your condition today. I will stay with you during the appointment. We will return before lunch if everything is on time."
   },
   {
-    "category": "Staff-Resident",
-    "conversation_id": "SR_06",
-    "variation": 4,
-    "noise_type": "word_order_repetition",
     "input": "morning good good your appointment is scheduled for ten i oclock oclock will help you get ready soon bring please please your glasses with you the transport arrive will will at nine thirty we should leave room the the early i have packed your medical the documents documents doctor will review your condition today will i i stay with you during the appointment will we we return before lunch if everything is on time",
     "output": "Good morning. Your appointment is scheduled for ten o'clock. I will help you get ready soon. Please bring your glasses with you. The transport will arrive at nine thirty. We should leave the room early. I have packed your medical documents. The doctor will review your condition today. I will stay with you during the appointment. We will return before lunch if everything is on time."
   },
   {
-    "category": "Staff-Resident",
-    "conversation_id": "SR_07",
-    "variation": 1,
-    "noise_type": "missing_words",
     "input": "hi i noticed not eat much today feeling unwell like lighter meal i ask kitchen some soup important eat little medicine may upset stomach if skip meals i inform nurse about try few bites first i check again later",
     "output": "Hi. I noticed you did not eat much today. Are you feeling unwell? Would you like a lighter meal? I can ask the kitchen for some soup. It is important to eat a little. Your medicine may upset your stomach if you skip meals. I will inform the nurse about this. Please try a few bites first. I will check on you again later."
   },
   {
-    "category": "Staff-Resident",
-    "conversation_id": "SR_07",
-    "variation": 2,
-    "noise_type": "broken_grammar",
     "input": "hi i noticed you did not eat much today you feeling unwell would you like a lighter meal i can ask the kitchen for some soup it important to eat a little your medicine may upset your stomach if you skip meals i inform the nurse about this please try a few bites first i check on you again leatr",
     "output": "Hi. I noticed you did not eat much today. Are you feeling unwell? Would you like a lighter meal? I can ask the kitchen for some soup. It is important to eat a little. Your medicine may upset your stomach if you skip meals. I will inform the nurse about this. Please try a few bites first. I will check on you again later."
   },
   {
-    "category": "Staff-Resident",
-    "conversation_id": "SR_07",
-    "variation": 3,
-    "noise_type": "no_punctuation",
     "input": "hi i noticed you did not eat much today are you feeling unwell would you like a lighter meal i can ask the kitchen for some soup it is important to eat a little your medicine may upset your stomach if you skip meals i will inform the nurse about this please try a few bites first i will check on you again later",
     "output": "Hi. I noticed you did not eat much today. Are you feeling unwell? Would you like a lighter meal? I can ask the kitchen for some soup. It is important to eat a little. Your medicine may upset your stomach if you skip meals. I will inform the nurse about this. Please try a few bites first. I will check on you again later."
   },
   {
-    "category": "Staff-Resident",
-    "conversation_id": "SR_07",
-    "variation": 4,
-    "noise_type": "word_order_repetition",
     "input": "i hi hi noticed you did not eat much are today today you feeling unwell would you like lighter a a meal i can ask the kitchen some for for soup it is important to eat little a a your medicine may upset your stomach you if if skip meals i will inform the about nurse nurse this please try a few bites i first first will check on you again later",
     "output": "Hi. I noticed you did not eat much today. Are you feeling unwell? Would you like a lighter meal? I can ask the kitchen for some soup. It is important to eat a little. Your medicine may upset your stomach if you skip meals. I will inform the nurse about this. Please try a few bites first. I will check on you again later."
   },
   {
-    "category": "Staff-Resident",
-    "conversation_id": "SR_08",
-    "variation": 1,
-    "noise_type": "missing_words",
     "input": "hello daughter sent message she said she misses like me read aloud she call evening i help answer phone looked happy when she visited last week she also asked about health i told her were doing better today i remind before call",
     "output": "Hello. Your daughter sent you a message. She said she misses you. Would you like me to read it aloud? She will call you this evening. I can help you answer the phone. You looked happy when she visited last week. She also asked about your health. I told her you were doing better today. I will remind you before the call."
   },
   {
-    "category": "Staff-Resident",
-    "conversation_id": "SR_08",
-    "variation": 2,
-    "noise_type": "broken_grammar",
     "input": "hello your daughter sent you a message she said she misses you would you like me to read it aloud she will call you this evening i can help you answer the phone you looked happy when she visit last week she also asked about your health i told her you is doing better today i remind you before the call",
     "output": "Hello. Your daughter sent you a message. She said she misses you. Would you like me to read it aloud? She will call you this evening. I can help you answer the phone. You looked happy when she visited last week. She also asked about your health. I told her you were doing better today. I will remind you before the call."
   },
   {
-    "category": "Staff-Resident",
-    "conversation_id": "SR_08",
-    "variation": 3,
-    "noise_type": "no_punctuation",
     "input": "hello your daughter sent you a message she said she misses you would you like me to read it aloud she will call you this evening i can help you answer the phone you looked happy when she visited last week she also asked about your health i told her you were doing better today i will remind you before the call",
     "output": "Hello. Your daughter sent you a message. She said she misses you. Would you like me to read it aloud? She will call you this evening. I can help you answer the phone. You looked happy when she visited last week. She also asked about your health. I told her you were doing better today. I will remind you before the call."
   },
   {
-    "category": "Staff-Resident",
-    "conversation_id": "SR_08",
-    "variation": 4,
-    "noise_type": "word_order_repetition",
     "input": "your hello hello daughter sent you a message she she said said misses you would you like me read to to it aloud she will call you evening this this i can help you answer the you phone phone looked happy when she visited last she week week also asked about your health i her told told you were doing better today i remind will will you before the call",
     "output": "Hello. Your daughter sent you a message. She said she misses you. Would you like me to read it aloud? She will call you this evening. I can help you answer the phone. You looked happy when she visited last week. She also asked about your health. I told her you were doing better today. I will remind you before the call."
   },
   {
-    "category": "Staff-Resident",
-    "conversation_id": "SR_09",
-    "variation": 1,
-    "noise_type": "missing_words",
     "input": "good afternoon time check wound dressing lie down carefully i wash my hands first may feel slight discomfort tell me immediately if hurts wound looks cleaner today i replace dressing now nurse review again tomorrow healing well",
     "output": "Good afternoon. It is time to check your wound dressing. Please lie down carefully. I will wash my hands first. You may feel slight discomfort. Tell me immediately if it hurts. The wound looks cleaner today. I will replace the dressing now. The nurse will review it again tomorrow. You are healing well."
   },
   {
-    "category": "Staff-Resident",
-    "conversation_id": "SR_09",
-    "variation": 2,
-    "noise_type": "broken_grammar",
     "input": "good afternoon it time to check your wound dressing please lie down carefully i ish my hands first you may feel slight discomfort tell me immedieatly if it hurts the wound looks cleaner today i replace the dressing now the nurse will review it again tomorrow you are healing well",
     "output": "Good afternoon. It is time to check your wound dressing. Please lie down carefully. I will wash my hands first. You may feel slight discomfort. Tell me immediately if it hurts. The wound looks cleaner today. I will replace the dressing now. The nurse will review it again tomorrow. You are healing well."
   },
   {
-    "category": "Staff-Resident",
-    "conversation_id": "SR_09",
-    "variation": 3,
-    "noise_type": "no_punctuation",
     "input": "good afternoon it is time to check your wound dressing please lie down carefully i will wash my hands first you may feel slight discomfort tell me immediately if it hurts the wound looks cleaner today i will replace the dressing now the nurse will review it again tomorrow you are healing well",
     "output": "Good afternoon. It is time to check your wound dressing. Please lie down carefully. I will wash my hands first. You may feel slight discomfort. Tell me immediately if it hurts. The wound looks cleaner today. I will replace the dressing now. The nurse will review it again tomorrow. You are healing well."
   },
   {
-    "category": "Staff-Resident",
-    "conversation_id": "SR_09",
-    "variation": 4,
-    "noise_type": "word_order_repetition",
     "input": "afternoon good good it is time to check your dressing wound wound please lie down carefully i will my wash wash hands first you may feel slight tell discomfort discomfort me immediately if it hurts the looks wound wound cleaner today i will replace the now dressing dressing the nurse will review it again you tomorrow tomorrow are healing well",
     "output": "Good afternoon. It is time to check your wound dressing. Please lie down carefully. I will wash my hands first. You may feel slight discomfort. Tell me immediately if it hurts. The wound looks cleaner today. I will replace the dressing now. The nurse will review it again tomorrow. You are healing well."
   },
   {
-    "category": "Staff-Resident",
-    "conversation_id": "SR_10",
-    "variation": 1,
-    "noise_type": "missing_words",
     "input": "hello have group activity afternoon activity music and memory games like join some of friends be there i take activity room not need stay if feel tired may help feel more relaxed session starts at two oclock let me know decision",
     "output": "Hello. You have a group activity this afternoon. The activity is music and memory games. Would you like to join? Some of your friends will be there. I can take you to the activity room. You do not need to stay if you feel tired. It may help you feel more relaxed. The session starts at two o'clock. Please let me know your decision."
   },
   {
-    "category": "Staff-Resident",
-    "conversation_id": "SR_10",
-    "variation": 2,
-    "noise_type": "broken_grammar",
     "input": "hello you have a group activity this afternoon the activity is music and memory games would you like to join some of your friends will be there i can take you to the activity room you do not need to stay if you feel tired it may help you feel more relaxed the session starts at two oclock please let me know your decision",
     "output": "Hello. You have a group activity this afternoon. The activity is music and memory games. Would you like to join? Some of your friends will be there. I can take you to the activity room. You do not need to stay if you feel tired. It may help you feel more relaxed. The session starts at two o'clock. Please let me know your decision."
   },
   {
-    "category": "Staff-Resident",
-    "conversation_id": "SR_10",
-    "variation": 3,
-    "noise_type": "no_punctuation",
     "input": "hello you have a group activity this afternoon the activity is music and memory games would you like to join some of your friends will be there i can take you to the activity room you do not need to stay if you feel tired it may help you feel more relaxed the session starts at two oclock please let me know your decision",
     "output": "Hello. You have a group activity this afternoon. The activity is music and memory games. Would you like to join? Some of your friends will be there. I can take you to the activity room. You do not need to stay if you feel tired. It may help you feel more relaxed. The session starts at two o'clock. Please let me know your decision."
   },
   {
-    "category": "Staff-Resident",
-    "conversation_id": "SR_10",
-    "variation": 4,
-    "noise_type": "word_order_repetition",
     "input": "you hello hello have a group activity this afternoon activity the the is music and memory games would like you you to join some of your friends be will will there i can take you to activity the the room you do not need to if stay stay you feel tired it may help feel you you more relaxed the session starts at oclock two two please let me know your decision",
     "output": "Hello. You have a group activity this afternoon. The activity is music and memory games. Would you like to join? Some of your friends will be there. I can take you to the activity room. You do not need to stay if you feel tired. It may help you feel more relaxed. The session starts at two o'clock. Please let me know your decision."
   },
   {
-    "category": "Staff-Doctor",
-    "conversation_id": "SD_01",
-    "variation": 1,
-    "noise_type": "missing_words",
     "input": "doctor i calling about resident he has had mild fever since morning his temperature thirty eight degrees he also reported feeling weak his blood pressure stable he has taken his morning medicine he drinking water normally there no shortness of breath we continue monitoring him advise if any medication needed",
     "output": "Doctor, I am calling about the resident. He has had a mild fever since this morning. His temperature is thirty eight degrees. He also reported feeling weak. His blood pressure is stable. He has taken his morning medicine. He is drinking water normally. There is no shortness of breath. Should we continue monitoring him? Please advise if any medication is needed."
   },
   {
-    "category": "Staff-Doctor",
-    "conversation_id": "SD_01",
-    "variation": 2,
-    "noise_type": "broken_grammar",
     "input": "doctor i calling about the resident he has had a mild fever since this morning his temperature is thirty eight degrees he also report feeling weak his blood pressure is stable he has taken his morning medicine he drinking weatr normally there is no shortness of breath should we continue monitoring him please advise if any medication is needed",
     "output": "Doctor, I am calling about the resident. He has had a mild fever since this morning. His temperature is thirty eight degrees. He also reported feeling weak. His blood pressure is stable. He has taken his morning medicine. He is drinking water normally. There is no shortness of breath. Should we continue monitoring him? Please advise if any medication is needed."
   },
   {
-    "category": "Staff-Doctor",
-    "conversation_id": "SD_01",
-    "variation": 3,
-    "noise_type": "no_punctuation",
     "input": "doctor i am calling about the resident he has had a mild fever since this morning his temperature is thirty eight degrees he also reported feeling weak his blood pressure is stable he has taken his morning medicine he is drinking water normally there is no shortness of breath should we continue monitoring him please advise if any medication is needed",
     "output": "Doctor, I am calling about the resident. He has had a mild fever since this morning. His temperature is thirty eight degrees. He also reported feeling weak. His blood pressure is stable. He has taken his morning medicine. He is drinking water normally. There is no shortness of breath. Should we continue monitoring him? Please advise if any medication is needed."
   },
   {
-    "category": "Staff-Doctor",
-    "conversation_id": "SD_01",
-    "variation": 4,
-    "noise_type": "word_order_repetition",
     "input": "i doctor doctor am calling about the resident he had has has a mild fever since this morning temperature his his is thirty eight degrees he also feeling reported reported weak his blood pressure is stable has he he taken his morning medicine he is water drinking drinking normally there is no shortness of should breath breath we continue monitoring him please advise any if if medication is needed",
     "output": "Doctor, I am calling about the resident. He has had a mild fever since this morning. His temperature is thirty eight degrees. He also reported feeling weak. His blood pressure is stable. He has taken his morning medicine. He is drinking water normally. There is no shortness of breath. Should we continue monitoring him? Please advise if any medication is needed."
   },
   {
-    "category": "Staff-Doctor",
-    "conversation_id": "SD_02",
-    "variation": 1,
-    "noise_type": "missing_words",
     "input": "doctor resident fell bathroom she not lose consciousness there slight swelling her left ankle she says pain moderate we helped her back bed safely her vital signs normal she move her toes we have applied cold pack like examine her today i keep her family updated",
     "output": "Doctor, the resident fell in the bathroom. She did not lose consciousness. There is slight swelling on her left ankle. She says the pain is moderate. We helped her back to bed safely. Her vital signs are normal. She can move her toes. We have applied a cold pack. Would you like to examine her today? I will keep her family updated."
   },
   {
-    "category": "Staff-Doctor",
-    "conversation_id": "SD_02",
-    "variation": 2,
-    "noise_type": "broken_grammar",
     "input": "doctor the resident fell in the bathroom she did not lose consciousness there is slight swelling on her left ankle she says the pain is modereat we help her back to bed safely her vital signs are normal she can move her toes we have applied a cold pack would you like to examine her today i keep her family updeatd",
     "output": "Doctor, the resident fell in the bathroom. She did not lose consciousness. There is slight swelling on her left ankle. She says the pain is moderate. We helped her back to bed safely. Her vital signs are normal. She can move her toes. We have applied a cold pack. Would you like to examine her today? I will keep her family updated."
   },
   {
-    "category": "Staff-Doctor",
-    "conversation_id": "SD_02",
-    "variation": 3,
-    "noise_type": "no_punctuation",
     "input": "doctor the resident fell in the bathroom she did not lose consciousness there is slight swelling on her left ankle she says the pain is moderate we helped her back to bed safely her vital signs are normal she can move her toes we have applied a cold pack would you like to examine her today i will keep her family updated",
     "output": "Doctor, the resident fell in the bathroom. She did not lose consciousness. There is slight swelling on her left ankle. She says the pain is moderate. We helped her back to bed safely. Her vital signs are normal. She can move her toes. We have applied a cold pack. Would you like to examine her today? I will keep her family updated."
   },
   {
-    "category": "Staff-Doctor",
-    "conversation_id": "SD_02",
-    "variation": 4,
-    "noise_type": "word_order_repetition",
     "input": "the doctor doctor resident fell in the bathroom she not did did lose consciousness there is slight swelling her on on left ankle she says the pain moderate is is we helped her back to bed her safely safely vital signs are normal she can her move move toes we have applied a cold would pack pack you like to examine her today will i i keep her family updated",
     "output": "Doctor, the resident fell in the bathroom. She did not lose consciousness. There is slight swelling on her left ankle. She says the pain is moderate. We helped her back to bed safely. Her vital signs are normal. She can move her toes. We have applied a cold pack. Would you like to examine her today? I will keep her family updated."
   },
   {
-    "category": "Staff-Doctor",
-    "conversation_id": "SD_03",
-    "variation": 1,
-    "noise_type": "missing_words",
     "input": "doctor i need advice about residents medication he refused his evening tablets he said they made him feel dizzy yesterday he has not vomited today his appetite slightly reduced his blood pressure lower than usual nurse asked me contact we hold medication tonight confirm next step i document instruction",
     "output": "Doctor, I need advice about the resident's medication. He refused his evening tablets. He said they made him feel dizzy yesterday. He has not vomited today. His appetite is slightly reduced. His blood pressure is lower than usual. The nurse asked me to contact you. Should we hold the medication tonight? Please confirm the next step. I will document your instruction."
   },
   {
-    "category": "Staff-Doctor",
-    "conversation_id": "SD_03",
-    "variation": 2,
-    "noise_type": "broken_grammar",
     "input": "doctor i need advice about the residents medication he refuse his evening tablets he said they made him feel dizzy yesterday he has not vomited today his appetite is slightly reduced his blood pressure is lower than usual the nurse asked me to contact you should we hold the medication tonight please confirm the next step i document your instruction",
     "output": "Doctor, I need advice about the resident's medication. He refused his evening tablets. He said they made him feel dizzy yesterday. He has not vomited today. His appetite is slightly reduced. His blood pressure is lower than usual. The nurse asked me to contact you. Should we hold the medication tonight? Please confirm the next step. I will document your instruction."
   },
   {
-    "category": "Staff-Doctor",
-    "conversation_id": "SD_03",
-    "variation": 3,
-    "noise_type": "no_punctuation",
     "input": "doctor i need advice about the residents medication he refused his evening tablets he said they made him feel dizzy yesterday he has not vomited today his appetite is slightly reduced his blood pressure is lower than usual the nurse asked me to contact you should we hold the medication tonight please confirm the next step i will document your instruction",
     "output": "Doctor, I need advice about the resident's medication. He refused his evening tablets. He said they made him feel dizzy yesterday. He has not vomited today. His appetite is slightly reduced. His blood pressure is lower than usual. The nurse asked me to contact you. Should we hold the medication tonight? Please confirm the next step. I will document your instruction."
   },
   {
-    "category": "Staff-Doctor",
-    "conversation_id": "SD_03",
-    "variation": 4,
-    "noise_type": "word_order_repetition",
     "input": "i doctor doctor need advice about the residents medication refused he he his evening tablets he said they him made made feel dizzy yesterday he has not today vomited vomited his appetite is slightly reduced his pressure blood blood is lower than usual the nurse me asked asked to contact you should we hold medication the the tonight please confirm the next step will i i document your instruction",
     "output": "Doctor, I need advice about the resident's medication. He refused his evening tablets. He said they made him feel dizzy yesterday. He has not vomited today. His appetite is slightly reduced. His blood pressure is lower than usual. The nurse asked me to contact you. Should we hold the medication tonight? Please confirm the next step. I will document your instruction."
   },
   {
-    "category": "Staff-Doctor",
-    "conversation_id": "SD_04",
-    "variation": 1,
-    "noise_type": "missing_words",
     "input": "doctor resident has been coughing frequently cough started two days ago she does not have chest pain her oxygen level ninety six percent she feels tired but remains alert she eating small meals we encouraged her drink warm water there no visible breathing difficulty recommend review advise if we need further observation",
     "output": "Doctor, the resident has been coughing frequently. The cough started two days ago. She does not have chest pain. Her oxygen level is ninety six percent. She feels tired but remains alert. She is eating small meals. We encouraged her to drink warm water. There is no visible breathing difficulty. Would you recommend a review? Please advise if we need further observation."
   },
   {
-    "category": "Staff-Doctor",
-    "conversation_id": "SD_04",
-    "variation": 2,
-    "noise_type": "broken_grammar",
     "input": "doctor the resident have been coughing frequently the cough started two days ago she does not have chest pain her oxygen level is ninety six percent she feels tired but remains alert she eating small meals we encouraged her to drink warm weatr there is no visible breathing difficulty would you recommend a review please advise if we need further observation",
     "output": "Doctor, the resident has been coughing frequently. The cough started two days ago. She does not have chest pain. Her oxygen level is ninety six percent. She feels tired but remains alert. She is eating small meals. We encouraged her to drink warm water. There is no visible breathing difficulty. Would you recommend a review? Please advise if we need further observation."
   },
   {
-    "category": "Staff-Doctor",
-    "conversation_id": "SD_04",
-    "variation": 3,
-    "noise_type": "no_punctuation",
     "input": "doctor the resident has been coughing frequently the cough started two days ago she does not have chest pain her oxygen level is ninety six percent she feels tired but remains alert she is eating small meals we encouraged her to drink warm water there is no visible breathing difficulty would you recommend a review please advise if we need further observation",
     "output": "Doctor, the resident has been coughing frequently. The cough started two days ago. She does not have chest pain. Her oxygen level is ninety six percent. She feels tired but remains alert. She is eating small meals. We encouraged her to drink warm water. There is no visible breathing difficulty. Would you recommend a review? Please advise if we need further observation."
   },
   {
-    "category": "Staff-Doctor",
-    "conversation_id": "SD_04",
-    "variation": 4,
-    "noise_type": "word_order_repetition",
     "input": "the doctor doctor resident has been coughing frequently the started cough cough two days ago she does not chest have have pain her oxygen level is ninety percent six six she feels tired but remains alert is she she eating small meals we encouraged her drink to to warm water there is no visible difficulty breathing breathing would you recommend a review please if advise advise we need further observation",
     "output": "Doctor, the resident has been coughing frequently. The cough started two days ago. She does not have chest pain. Her oxygen level is ninety six percent. She feels tired but remains alert. She is eating small meals. We encouraged her to drink warm water. There is no visible breathing difficulty. Would you recommend a review? Please advise if we need further observation."
   },
   {
-    "category": "Staff-Doctor",
-    "conversation_id": "SD_05",
-    "variation": 1,
-    "noise_type": "missing_words",
     "input": "doctor resident seems more confused today he asked same question many times he not recognise one staff member unusual him his temperature normal his blood sugar was checked morning result was within range he slept poorly last night we monitor delirium let us know if need more information",
     "output": "Doctor, the resident seems more confused today. He asked the same question many times. He did not recognise one staff member. This is unusual for him. His temperature is normal. His blood sugar was checked this morning. The result was within range. He slept poorly last night. Should we monitor for delirium? Please let us know if you need more information."
   },
   {
-    "category": "Staff-Doctor",
-    "conversation_id": "SD_05",
-    "variation": 2,
-    "noise_type": "broken_grammar",
     "input": "doctor the resident seems more confused today he asked the same question many times he did not recognise one staff member this is unusual for him his temperature is normal his blood sugar is check this morning the result is within range he sleep poorly last night should we monitor for delirium please let us know if you need more information",
     "output": "Doctor, the resident seems more confused today. He asked the same question many times. He did not recognise one staff member. This is unusual for him. His temperature is normal. His blood sugar was checked this morning. The result was within range. He slept poorly last night. Should we monitor for delirium? Please let us know if you need more information."
   },
   {
-    "category": "Staff-Doctor",
-    "conversation_id": "SD_05",
-    "variation": 3,
-    "noise_type": "no_punctuation",
     "input": "doctor the resident seems more confused today he asked the same question many times he did not recognise one staff member this is unusual for him his temperature is normal his blood sugar was checked this morning the result was within range he slept poorly last night should we monitor for delirium please let us know if you need more information",
     "output": "Doctor, the resident seems more confused today. He asked the same question many times. He did not recognise one staff member. This is unusual for him. His temperature is normal. His blood sugar was checked this morning. The result was within range. He slept poorly last night. Should we monitor for delirium? Please let us know if you need more information."
   },
   {
-    "category": "Staff-Doctor",
-    "conversation_id": "SD_05",
-    "variation": 4,
-    "noise_type": "word_order_repetition",
     "input": "the doctor doctor resident seems more confused today he the asked asked same question many times he did recognise not not one staff member this is unusual him for for his temperature is normal his blood was sugar sugar checked this morning the result was range within within he slept poorly last night should monitor we we for delirium please let us know you if if need more information",
     "output": "Doctor, the resident seems more confused today. He asked the same question many times. He did not recognise one staff member. This is unusual for him. His temperature is normal. His blood sugar was checked this morning. The result was within range. He slept poorly last night. Should we monitor for delirium? Please let us know if you need more information."
   },
   {
-    "category": "Staff-Doctor",
-    "conversation_id": "SD_06",
-    "variation": 1,
-    "noise_type": "missing_words",
     "input": "doctor resident has reduced mobility today she says her right knee painful there no redness around joint she still stand support she refused walking exercise morning we gave her time rest her pain score six out of ten she has taken her prescribed pain relief like adjust her care plan i update physiotherapist as well",
     "output": "Doctor, the resident has reduced mobility today. She says her right knee is painful. There is no redness around the joint. She can still stand with support. She refused the walking exercise this morning. We gave her time to rest. Her pain score is six out of ten. She has taken her prescribed pain relief. Would you like to adjust her care plan? I will update the physiotherapist as well."
   },
   {
-    "category": "Staff-Doctor",
-    "conversation_id": "SD_06",
-    "variation": 2,
-    "noise_type": "broken_grammar",
     "input": "doctor the resident has reduced mobility today she says her right knee is painful there is no redness around the joint she can still stand with support she refuse the walking exercise this morning we gave her time to rest her pain score is six out of ten she has taken her prescribed pain relief would you like to adjust her care plan i updeat the physiotherapist as well",
     "output": "Doctor, the resident has reduced mobility today. She says her right knee is painful. There is no redness around the joint. She can still stand with support. She refused the walking exercise this morning. We gave her time to rest. Her pain score is six out of ten. She has taken her prescribed pain relief. Would you like to adjust her care plan? I will update the physiotherapist as well."
   },
   {
-    "category": "Staff-Doctor",
-    "conversation_id": "SD_06",
-    "variation": 3,
-    "noise_type": "no_punctuation",
     "input": "doctor the resident has reduced mobility today she says her right knee is painful there is no redness around the joint she can still stand with support she refused the walking exercise this morning we gave her time to rest her pain score is six out of ten she has taken her prescribed pain relief would you like to adjust her care plan i will update the physiotherapist as well",
     "output": "Doctor, the resident has reduced mobility today. She says her right knee is painful. There is no redness around the joint. She can still stand with support. She refused the walking exercise this morning. We gave her time to rest. Her pain score is six out of ten. She has taken her prescribed pain relief. Would you like to adjust her care plan? I will update the physiotherapist as well."
   },
   {
-    "category": "Staff-Doctor",
-    "conversation_id": "SD_06",
-    "variation": 4,
-    "noise_type": "word_order_repetition",
     "input": "the doctor doctor resident has reduced mobility today she her says says right knee is painful there is redness no no around the joint she can still with stand stand support she refused the walking exercise morning this this we gave her time to rest pain her her score is six out of ten has she she taken her prescribed pain relief would like you you to adjust her care plan i update will will the physiotherapist as well",
     "output": "Doctor, the resident has reduced mobility today. She says her right knee is painful. There is no redness around the joint. She can still stand with support. She refused the walking exercise this morning. We gave her time to rest. Her pain score is six out of ten. She has taken her prescribed pain relief. Would you like to adjust her care plan? I will update the physiotherapist as well."
   },
   {
-    "category": "Staff-Doctor",
-    "conversation_id": "SD_07",
-    "variation": 1,
-    "noise_type": "missing_words",
     "input": "doctor resident has not opened his bowels three days he feels uncomfortable after meals his abdomen slightly bloated he still passing gas he has no vomiting he has been drinking less water we encouraged more fluids today he taking his regular medication we give laxative confirm before we proceed",
     "output": "Doctor, the resident has not opened his bowels for three days. He feels uncomfortable after meals. His abdomen is slightly bloated. He is still passing gas. He has no vomiting. He has been drinking less water. We encouraged more fluids today. He is taking his regular medication. Should we give a laxative? Please confirm before we proceed."
   },
   {
-    "category": "Staff-Doctor",
-    "conversation_id": "SD_07",
-    "variation": 2,
-    "noise_type": "broken_grammar",
     "input": "doctor the resident has not opened his bowels for three days he feels uncomfortable after meals his abdomen is slightly bloeatd he still passing gas he has no vomiting he have been drinking less weatr we encouraged more fluids today he taking his regular medication should we give a laxative please confirm before we proceed",
     "output": "Doctor, the resident has not opened his bowels for three days. He feels uncomfortable after meals. His abdomen is slightly bloated. He is still passing gas. He has no vomiting. He has been drinking less water. We encouraged more fluids today. He is taking his regular medication. Should we give a laxative? Please confirm before we proceed."
   },
   {
-    "category": "Staff-Doctor",
-    "conversation_id": "SD_07",
-    "variation": 3,
-    "noise_type": "no_punctuation",
     "input": "doctor the resident has not opened his bowels for three days he feels uncomfortable after meals his abdomen is slightly bloated he is still passing gas he has no vomiting he has been drinking less water we encouraged more fluids today he is taking his regular medication should we give a laxative please confirm before we proceed",
     "output": "Doctor, the resident has not opened his bowels for three days. He feels uncomfortable after meals. His abdomen is slightly bloated. He is still passing gas. He has no vomiting. He has been drinking less water. We encouraged more fluids today. He is taking his regular medication. Should we give a laxative? Please confirm before we proceed."
   },
   {
-    "category": "Staff-Doctor",
-    "conversation_id": "SD_07",
-    "variation": 4,
-    "noise_type": "word_order_repetition",
     "input": "the doctor doctor resident has not opened his bowels three for for days he feels uncomfortable after meals abdomen his his is slightly bloated he is still gas passing passing he has no vomiting he has drinking been been less water we encouraged more fluids he today today is taking his regular medication should give we we a laxative please confirm before we proceed",
     "output": "Doctor, the resident has not opened his bowels for three days. He feels uncomfortable after meals. His abdomen is slightly bloated. He is still passing gas. He has no vomiting. He has been drinking less water. We encouraged more fluids today. He is taking his regular medication. Should we give a laxative? Please confirm before we proceed."
   },
   {
-    "category": "Staff-Doctor",
-    "conversation_id": "SD_08",
-    "variation": 1,
-    "noise_type": "missing_words",
     "input": "doctor resident reported chest tightness symptom started after breakfast she anxious but alert her oxygen level ninety seven percent her pulse slightly fast we asked her rest bed nurse monitoring her closely she says tightness improving want urgent assessment advise us as soon as possible",
     "output": "Doctor, the resident reported chest tightness. The symptom started after breakfast. She is anxious but alert. Her oxygen level is ninety seven percent. Her pulse is slightly fast. We asked her to rest in bed. The nurse is monitoring her closely. She says the tightness is improving. Do you want an urgent assessment? Please advise us as soon as possible."
   },
   {
-    "category": "Staff-Doctor",
-    "conversation_id": "SD_08",
-    "variation": 2,
-    "noise_type": "broken_grammar",
     "input": "doctor the resident report chest tightness the symptom started after breakfast she anxious but alert her oxygen level is ninety seven percent her pulse is slightly fast we asked her to rest in bed the nurse is monitoring her closely she says the tightness is improving you want an urgent assessment please advise us as soon as possible",
     "output": "Doctor, the resident reported chest tightness. The symptom started after breakfast. She is anxious but alert. Her oxygen level is ninety seven percent. Her pulse is slightly fast. We asked her to rest in bed. The nurse is monitoring her closely. She says the tightness is improving. Do you want an urgent assessment? Please advise us as soon as possible."
   },
   {
-    "category": "Staff-Doctor",
-    "conversation_id": "SD_08",
-    "variation": 3,
-    "noise_type": "no_punctuation",
     "input": "doctor the resident reported chest tightness the symptom started after breakfast she is anxious but alert her oxygen level is ninety seven percent her pulse is slightly fast we asked her to rest in bed the nurse is monitoring her closely she says the tightness is improving do you want an urgent assessment please advise us as soon as possible",
     "output": "Doctor, the resident reported chest tightness. The symptom started after breakfast. She is anxious but alert. Her oxygen level is ninety seven percent. Her pulse is slightly fast. We asked her to rest in bed. The nurse is monitoring her closely. She says the tightness is improving. Do you want an urgent assessment? Please advise us as soon as possible."
   },
   {
-    "category": "Staff-Doctor",
-    "conversation_id": "SD_08",
-    "variation": 4,
-    "noise_type": "word_order_repetition",
     "input": "the doctor doctor resident reported chest tightness the symptom after started started breakfast she is anxious but alert oxygen her her level is ninety seven percent her is pulse pulse slightly fast we asked her to in rest rest bed the nurse is monitoring her she closely closely says the tightness is improving do want you you an urgent assessment please advise us soon as as as possible",
     "output": "Doctor, the resident reported chest tightness. The symptom started after breakfast. She is anxious but alert. Her oxygen level is ninety seven percent. Her pulse is slightly fast. We asked her to rest in bed. The nurse is monitoring her closely. She says the tightness is improving. Do you want an urgent assessment? Please advise us as soon as possible."
   },
   {
-    "category": "Staff-Doctor",
-    "conversation_id": "SD_09",
-    "variation": 1,
-    "noise_type": "missing_words",
     "input": "doctor residents wound dressing was changed today wound looks less red than yesterday there small amount of clear fluid there no bad smell he says pain has reduced his temperature normal we cleaned area carefully new dressing was applied we continue same dressing plan i send photo if needed",
     "output": "Doctor, the resident's wound dressing was changed today. The wound looks less red than yesterday. There is a small amount of clear fluid. There is no bad smell. He says the pain has reduced. His temperature is normal. We cleaned the area carefully. A new dressing was applied. Should we continue the same dressing plan? I will send a photo if needed."
   },
   {
-    "category": "Staff-Doctor",
-    "conversation_id": "SD_09",
-    "variation": 2,
-    "noise_type": "broken_grammar",
     "input": "doctor the residents wound dressing is changed today the wound looks less red than yesterday there is a small amount of clear fluid there is no bad smell he says the pain has reduced his temperature is normal we cleaned the area carefully a new dressing is applied should we continue the same dressing plan i send a photo if needed",
     "output": "Doctor, the resident's wound dressing was changed today. The wound looks less red than yesterday. There is a small amount of clear fluid. There is no bad smell. He says the pain has reduced. His temperature is normal. We cleaned the area carefully. A new dressing was applied. Should we continue the same dressing plan? I will send a photo if needed."
   },
   {
-    "category": "Staff-Doctor",
-    "conversation_id": "SD_09",
-    "variation": 3,
-    "noise_type": "no_punctuation",
     "input": "doctor the residents wound dressing was changed today the wound looks less red than yesterday there is a small amount of clear fluid there is no bad smell he says the pain has reduced his temperature is normal we cleaned the area carefully a new dressing was applied should we continue the same dressing plan i will send a photo if needed",
     "output": "Doctor, the resident's wound dressing was changed today. The wound looks less red than yesterday. There is a small amount of clear fluid. There is no bad smell. He says the pain has reduced. His temperature is normal. We cleaned the area carefully. A new dressing was applied. Should we continue the same dressing plan? I will send a photo if needed."
   },
   {
-    "category": "Staff-Doctor",
-    "conversation_id": "SD_09",
-    "variation": 4,
-    "noise_type": "word_order_repetition",
     "input": "the doctor doctor residents wound dressing was changed today wound the the looks less red than yesterday there a is is small amount of clear fluid there no is is bad smell he says the pain reduced has has his temperature is normal we cleaned area the the carefully a new dressing was applied we should should continue the same dressing plan i send will will a photo if needed",
     "output": "Doctor, the resident's wound dressing was changed today. The wound looks less red than yesterday. There is a small amount of clear fluid. There is no bad smell. He says the pain has reduced. His temperature is normal. We cleaned the area carefully. A new dressing was applied. Should we continue the same dressing plan? I will send a photo if needed."
   },
   {
-    "category": "Staff-Doctor",
-    "conversation_id": "SD_10",
-    "variation": 1,
-    "noise_type": "missing_words",
     "input": "doctor resident has been refusing food she says she has no appetite she drank tea morning she ate only two spoons of porridge her mood seems low she answered questions slowly her family visited yesterday there was no reported argument we arrange mental health review advise how we support her",
     "output": "Doctor, the resident has been refusing food. She says she has no appetite. She drank tea this morning. She ate only two spoons of porridge. Her mood seems low. She answered questions slowly. Her family visited yesterday. There was no reported argument. Should we arrange a mental health review? Please advise how we should support her."
   },
   {
-    "category": "Staff-Doctor",
-    "conversation_id": "SD_10",
-    "variation": 2,
-    "noise_type": "broken_grammar",
     "input": "doctor the resident have been refusing food she says she has no appetite she drank tea this morning she eat only two spoons of porridge her mood seems low she ansisd questions slowly her family visit yesterday there is no report argument should we arrange a mental health review please advise how we should support her",
     "output": "Doctor, the resident has been refusing food. She says she has no appetite. She drank tea this morning. She ate only two spoons of porridge. Her mood seems low. She answered questions slowly. Her family visited yesterday. There was no reported argument. Should we arrange a mental health review? Please advise how we should support her."
   },
   {
-    "category": "Staff-Doctor",
-    "conversation_id": "SD_10",
-    "variation": 3,
-    "noise_type": "no_punctuation",
     "input": "doctor the resident has been refusing food she says she has no appetite she drank tea this morning she ate only two spoons of porridge her mood seems low she answered questions slowly her family visited yesterday there was no reported argument should we arrange a mental health review please advise how we should support her",
     "output": "Doctor, the resident has been refusing food. She says she has no appetite. She drank tea this morning. She ate only two spoons of porridge. Her mood seems low. She answered questions slowly. Her family visited yesterday. There was no reported argument. Should we arrange a mental health review? Please advise how we should support her."
   },
   {
-    "category": "Staff-Doctor",
-    "conversation_id": "SD_10",
-    "variation": 4,
-    "noise_type": "word_order_repetition",
     "input": "the doctor doctor resident has been refusing food she she says says has no appetite she drank tea morning this this she ate only two spoons of her porridge porridge mood seems low she answered questions her slowly slowly family visited yesterday there was no argument reported reported should we arrange a mental health please review review advise how we should support her",
     "output": "Doctor, the resident has been refusing food. She says she has no appetite. She drank tea this morning. She ate only two spoons of porridge. Her mood seems low. She answered questions slowly. Her family visited yesterday. There was no reported argument. Should we arrange a mental health review? Please advise how we should support her."
   },
   {
-    "category": "Staff-Family",
-    "conversation_id": "SF_01",
-    "variation": 1,
-    "noise_type": "missing_words",
     "input": "hello i calling about father he doing well today he ate most of his breakfast he joined morning activity he was little tired afterward nurse checked his blood pressure result was stable he asked when visit visit tomorrow afternoon call us if need change time",
     "output": "Hello, I am calling about your father. He is doing well today. He ate most of his breakfast. He joined the morning activity. He was a little tired afterward. The nurse checked his blood pressure. The result was stable. He asked when you will visit. You can visit tomorrow afternoon. Please call us if you need to change the time."
   },
   {
-    "category": "Staff-Family",
-    "conversation_id": "SF_01",
-    "variation": 2,
-    "noise_type": "broken_grammar",
     "input": "hello i calling about your father he doing well today he eat most of his breakfast he joined the morning activity he is a little tired afterward the nurse check his blood pressure the result is stable he asked when you will visit you can visit tomorrow afternoon please call us if you need to change the time",
     "output": "Hello, I am calling about your father. He is doing well today. He ate most of his breakfast. He joined the morning activity. He was a little tired afterward. The nurse checked his blood pressure. The result was stable. He asked when you will visit. You can visit tomorrow afternoon. Please call us if you need to change the time."
   },
   {
-    "category": "Staff-Family",
-    "conversation_id": "SF_01",
-    "variation": 3,
-    "noise_type": "no_punctuation",
     "input": "hello i am calling about your father he is doing well today he ate most of his breakfast he joined the morning activity he was a little tired afterward the nurse checked his blood pressure the result was stable he asked when you will visit you can visit tomorrow afternoon please call us if you need to change the time",
     "output": "Hello, I am calling about your father. He is doing well today. He ate most of his breakfast. He joined the morning activity. He was a little tired afterward. The nurse checked his blood pressure. The result was stable. He asked when you will visit. You can visit tomorrow afternoon. Please call us if you need to change the time."
   },
   {
-    "category": "Staff-Family",
-    "conversation_id": "SF_01",
-    "variation": 4,
-    "noise_type": "word_order_repetition",
     "input": "i hello hello am calling about your father he doing is is well today he ate most of breakfast his his he joined the morning activity he a was was little tired afterward the nurse checked blood his his pressure the result was stable he when asked asked you will visit you can visit afternoon tomorrow tomorrow please call us if you need change to to the time",
     "output": "Hello, I am calling about your father. He is doing well today. He ate most of his breakfast. He joined the morning activity. He was a little tired afterward. The nurse checked his blood pressure. The result was stable. He asked when you will visit. You can visit tomorrow afternoon. Please call us if you need to change the time."
   },
   {
-    "category": "Staff-Family",
-    "conversation_id": "SF_02",
-    "variation": 1,
-    "noise_type": "missing_words",
     "input": "hi i want update about mother she had small fall morning she safe now doctor has been informed there slight swelling her ankle she resting bed we monitoring her closely she not lose consciousness we contact if anything changes welcome visit later today",
     "output": "Hi, I want to update you about your mother. She had a small fall this morning. She is safe now. The doctor has been informed. There is slight swelling on her ankle. She is resting in bed. We are monitoring her closely. She did not lose consciousness. We will contact you if anything changes. You are welcome to visit later today."
   },
   {
-    "category": "Staff-Family",
-    "conversation_id": "SF_02",
-    "variation": 2,
-    "noise_type": "broken_grammar",
     "input": "hi i want to updeat you about your mother she had a small fall this morning she safe now the doctor have been informed there is slight swelling on her ankle she resting in bed we are monitoring her closely she did not lose consciousness we contact you if anything changes you are welcome to visit leatr today",
     "output": "Hi, I want to update you about your mother. She had a small fall this morning. She is safe now. The doctor has been informed. There is slight swelling on her ankle. She is resting in bed. We are monitoring her closely. She did not lose consciousness. We will contact you if anything changes. You are welcome to visit later today."
   },
   {
-    "category": "Staff-Family",
-    "conversation_id": "SF_02",
-    "variation": 3,
-    "noise_type": "no_punctuation",
     "input": "hi i want to update you about your mother she had a small fall this morning she is safe now the doctor has been informed there is slight swelling on her ankle she is resting in bed we are monitoring her closely she did not lose consciousness we will contact you if anything changes you are welcome to visit later today",
     "output": "Hi, I want to update you about your mother. She had a small fall this morning. She is safe now. The doctor has been informed. There is slight swelling on her ankle. She is resting in bed. We are monitoring her closely. She did not lose consciousness. We will contact you if anything changes. You are welcome to visit later today."
   },
   {
-    "category": "Staff-Family",
-    "conversation_id": "SF_02",
-    "variation": 4,
-    "noise_type": "word_order_repetition",
     "input": "i hi hi want to update you about your she mother mother had a small fall this morning is she she safe now the doctor has been there informed informed is slight swelling on her ankle is she she resting in bed we are monitoring closely her her she did not lose consciousness we contact will will you if anything changes you are to welcome welcome visit later today",
     "output": "Hi, I want to update you about your mother. She had a small fall this morning. She is safe now. The doctor has been informed. There is slight swelling on her ankle. She is resting in bed. We are monitoring her closely. She did not lose consciousness. We will contact you if anything changes. You are welcome to visit later today."
   },
   {
-    "category": "Staff-Family",
-    "conversation_id": "SF_03",
-    "variation": 1,
-    "noise_type": "missing_words",
     "input": "hello grandmother was cheerful today she joined music session she sang along group she also ate lunch other residents her appetite was better than yesterday she asked about children i told her may call evening she smiled when she heard call before seven if possible i help her answer phone",
     "output": "Hello, your grandmother was cheerful today. She joined the music session. She sang along with the group. She also ate lunch with other residents. Her appetite was better than yesterday. She asked about your children. I told her you may call this evening. She smiled when she heard that. Please call before seven if possible. I will help her answer the phone."
   },
   {
-    "category": "Staff-Family",
-    "conversation_id": "SF_03",
-    "variation": 2,
-    "noise_type": "broken_grammar",
     "input": "hello your grandmother is cheerful today she joined the music session she sang along with the group she also eat lunch with other residents her appetite is better than yesterday she asked about your children i told her you may call this evening she smiled when she heard that please call before seven if possible i help her answer the phone",
     "output": "Hello, your grandmother was cheerful today. She joined the music session. She sang along with the group. She also ate lunch with other residents. Her appetite was better than yesterday. She asked about your children. I told her you may call this evening. She smiled when she heard that. Please call before seven if possible. I will help her answer the phone."
   },
   {
-    "category": "Staff-Family",
-    "conversation_id": "SF_03",
-    "variation": 3,
-    "noise_type": "no_punctuation",
     "input": "hello your grandmother was cheerful today she joined the music session she sang along with the group she also ate lunch with other residents her appetite was better than yesterday she asked about your children i told her you may call this evening she smiled when she heard that please call before seven if possible i will help her answer the phone",
     "output": "Hello, your grandmother was cheerful today. She joined the music session. She sang along with the group. She also ate lunch with other residents. Her appetite was better than yesterday. She asked about your children. I told her you may call this evening. She smiled when she heard that. Please call before seven if possible. I will help her answer the phone."
   },
   {
-    "category": "Staff-Family",
-    "conversation_id": "SF_03",
-    "variation": 4,
-    "noise_type": "word_order_repetition",
     "input": "your hello hello grandmother was cheerful today she joined music the the session she sang along with the she group group also ate lunch with other residents appetite her her was better than yesterday she asked your about about children i told her you may this call call evening she smiled when she heard please that that call before seven if possible i help will will her answer the phone",
     "output": "Hello, your grandmother was cheerful today. She joined the music session. She sang along with the group. She also ate lunch with other residents. Her appetite was better than yesterday. She asked about your children. I told her you may call this evening. She smiled when she heard that. Please call before seven if possible. I will help her answer the phone."
   },
   {
-    "category": "Staff-Family",
-    "conversation_id": "SF_04",
-    "variation": 1,
-    "noise_type": "missing_words",
     "input": "good afternoon i updating about resident he has doctors appointment tomorrow transport has already been arranged we packed his documents and medication list staff member accompany him appointment at ten oclock we expect return before lunch we inform of result send any questions want us ask we include them notes",
     "output": "Good afternoon, I am updating you about the resident. He has a doctor's appointment tomorrow. Transport has already been arranged. We packed his documents and medication list. A staff member will accompany him. The appointment is at ten o'clock. We expect to return before lunch. We will inform you of the result. Please send any questions you want us to ask. We will include them in the notes."
   },
   {
-    "category": "Staff-Family",
-    "conversation_id": "SF_04",
-    "variation": 2,
-    "noise_type": "broken_grammar",
     "input": "good afternoon i updating you about the resident he has a doctors appointment tomorrow transport has already been arranged we packed his documents and medication list a staff member will accompany him the appointment is at ten oclock we expect to return before lunch we inform you of the result please send any questions you want us to ask we include them in the notes",
     "output": "Good afternoon, I am updating you about the resident. He has a doctor's appointment tomorrow. Transport has already been arranged. We packed his documents and medication list. A staff member will accompany him. The appointment is at ten o'clock. We expect to return before lunch. We will inform you of the result. Please send any questions you want us to ask. We will include them in the notes."
   },
   {
-    "category": "Staff-Family",
-    "conversation_id": "SF_04",
-    "variation": 3,
-    "noise_type": "no_punctuation",
     "input": "good afternoon i am updating you about the resident he has a doctors appointment tomorrow transport has already been arranged we packed his documents and medication list a staff member will accompany him the appointment is at ten oclock we expect to return before lunch we will inform you of the result please send any questions you want us to ask we will include them in the notes",
     "output": "Good afternoon, I am updating you about the resident. He has a doctor's appointment tomorrow. Transport has already been arranged. We packed his documents and medication list. A staff member will accompany him. The appointment is at ten o'clock. We expect to return before lunch. We will inform you of the result. Please send any questions you want us to ask. We will include them in the notes."
   },
   {
-    "category": "Staff-Family",
-    "conversation_id": "SF_04",
-    "variation": 4,
-    "noise_type": "word_order_repetition",
     "input": "afternoon good good i am updating you about the he resident resident has a doctors appointment tomorrow transport already has has been arranged we packed his documents medication and and list a staff member will accompany the him him appointment is at ten oclock we to expect expect return before lunch we will inform of you you the result please send any questions want you you us to ask we will include in them them the notes",
     "output": "Good afternoon, I am updating you about the resident. He has a doctor's appointment tomorrow. Transport has already been arranged. We packed his documents and medication list. A staff member will accompany him. The appointment is at ten o'clock. We expect to return before lunch. We will inform you of the result. Please send any questions you want us to ask. We will include them in the notes."
   },
   {
-    "category": "Staff-Family",
-    "conversation_id": "SF_05",
-    "variation": 1,
-    "noise_type": "missing_words",
     "input": "hello mother refused lunch today she said she not feel hungry we offered soup and fruit instead she ate small amount later her mood seemed quiet nurse checked her there were no urgent concerns we continue encourage meals may call her evening voice may help comfort her",
     "output": "Hello, your mother refused lunch today. She said she did not feel hungry. We offered soup and fruit instead. She ate a small amount later. Her mood seemed quiet. The nurse checked on her. There were no urgent concerns. We will continue to encourage meals. You may call her this evening. Your voice may help comfort her."
   },
   {
-    "category": "Staff-Family",
-    "conversation_id": "SF_05",
-    "variation": 2,
-    "noise_type": "broken_grammar",
     "input": "hello your mother refuse lunch today she said she did not feel hungry we offered soup and fruit instead she eat a small amount leatr her mood seemed quiet the nurse check on her there is no urgent concerns we continue to encourage meals you may call her this evening your voice may help comfort her",
     "output": "Hello, your mother refused lunch today. She said she did not feel hungry. We offered soup and fruit instead. She ate a small amount later. Her mood seemed quiet. The nurse checked on her. There were no urgent concerns. We will continue to encourage meals. You may call her this evening. Your voice may help comfort her."
   },
   {
-    "category": "Staff-Family",
-    "conversation_id": "SF_05",
-    "variation": 3,
-    "noise_type": "no_punctuation",
     "input": "hello your mother refused lunch today she said she did not feel hungry we offered soup and fruit instead she ate a small amount later her mood seemed quiet the nurse checked on her there were no urgent concerns we will continue to encourage meals you may call her this evening your voice may help comfort her",
     "output": "Hello, your mother refused lunch today. She said she did not feel hungry. We offered soup and fruit instead. She ate a small amount later. Her mood seemed quiet. The nurse checked on her. There were no urgent concerns. We will continue to encourage meals. You may call her this evening. Your voice may help comfort her."
   },
   {
-    "category": "Staff-Family",
-    "conversation_id": "SF_05",
-    "variation": 4,
-    "noise_type": "word_order_repetition",
     "input": "your hello hello mother refused lunch today she said did she she not feel hungry we offered soup fruit and and instead she ate a small amount her later later mood seemed quiet the nurse checked her on on there were no urgent concerns we continue will will to encourage meals you may call this her her evening your voice may help comfort her",
     "output": "Hello, your mother refused lunch today. She said she did not feel hungry. We offered soup and fruit instead. She ate a small amount later. Her mood seemed quiet. The nurse checked on her. There were no urgent concerns. We will continue to encourage meals. You may call her this evening. Your voice may help comfort her."
   },
   {
-    "category": "Staff-Family",
-    "conversation_id": "SF_06",
-    "variation": 1,
-    "noise_type": "missing_words",
     "input": "hi i calling from care facility father needs more comfortable shoes physiotherapist noticed his shoes loose may increase risk of falling bring safer pair when visit shoes good grip preferred we label them his name he otherwise doing well he completed his exercise today thank support",
     "output": "Hi, I am calling from the care facility. Your father needs more comfortable shoes. The physiotherapist noticed his shoes are loose. This may increase the risk of falling. Please bring a safer pair when you visit. Shoes with good grip are preferred. We can label them with his name. He is otherwise doing well. He completed his exercise today. Thank you for your support."
   },
   {
-    "category": "Staff-Family",
-    "conversation_id": "SF_06",
-    "variation": 2,
-    "noise_type": "broken_grammar",
     "input": "hi i calling from the care facility your father needs more comfortable shoes the physiotherapist noticed his shoes are loose this may increase the risk of falling please bring a safer pair when you visit shoes with good grip are preferred we can label them with his name he otherwise doing well he completed his exercise today thank you for your support",
     "output": "Hi, I am calling from the care facility. Your father needs more comfortable shoes. The physiotherapist noticed his shoes are loose. This may increase the risk of falling. Please bring a safer pair when you visit. Shoes with good grip are preferred. We can label them with his name. He is otherwise doing well. He completed his exercise today. Thank you for your support."
   },
   {
-    "category": "Staff-Family",
-    "conversation_id": "SF_06",
-    "variation": 3,
-    "noise_type": "no_punctuation",
     "input": "hi i am calling from the care facility your father needs more comfortable shoes the physiotherapist noticed his shoes are loose this may increase the risk of falling please bring a safer pair when you visit shoes with good grip are preferred we can label them with his name he is otherwise doing well he completed his exercise today thank you for your support",
     "output": "Hi, I am calling from the care facility. Your father needs more comfortable shoes. The physiotherapist noticed his shoes are loose. This may increase the risk of falling. Please bring a safer pair when you visit. Shoes with good grip are preferred. We can label them with his name. He is otherwise doing well. He completed his exercise today. Thank you for your support."
   },
   {
-    "category": "Staff-Family",
-    "conversation_id": "SF_06",
-    "variation": 4,
-    "noise_type": "word_order_repetition",
     "input": "i hi hi am calling from the care facility father your your needs more comfortable shoes the physiotherapist his noticed noticed shoes are loose this may increase risk the the of falling please bring a safer when pair pair you visit shoes with good grip preferred are are we can label them with his he name name is otherwise doing well he completed exercise his his today thank you for your support",
     "output": "Hi, I am calling from the care facility. Your father needs more comfortable shoes. The physiotherapist noticed his shoes are loose. This may increase the risk of falling. Please bring a safer pair when you visit. Shoes with good grip are preferred. We can label them with his name. He is otherwise doing well. He completed his exercise today. Thank you for your support."
   },
   {
-    "category": "Staff-Family",
-    "conversation_id": "SF_07",
-    "variation": 1,
-    "noise_type": "missing_words",
     "input": "hello aunt received parcel today she was very happy open cardigan fits her well she asked me thank she wore during afternoon tea several residents complimented colour she seemed more relaxed after she also kept card beside her bed i remind her call tomorrow let us know if send anything else",
     "output": "Hello, your aunt received your parcel today. She was very happy to open it. The cardigan fits her well. She asked me to thank you. She wore it during the afternoon tea. Several residents complimented the colour. She seemed more relaxed after that. She also kept the card beside her bed. I will remind her to call you tomorrow. Please let us know if you send anything else."
   },
   {
-    "category": "Staff-Family",
-    "conversation_id": "SF_07",
-    "variation": 2,
-    "noise_type": "broken_grammar",
     "input": "hello your aunt received your parcel today she is very happy to open it the cardigan fits her well she asked me to thank you she wore it during the afternoon tea several residents complimented the colour she seemed more relaxed after that she also kept the card beside her bed i remind her to call you tomorrow please let us know if you send anything else",
     "output": "Hello, your aunt received your parcel today. She was very happy to open it. The cardigan fits her well. She asked me to thank you. She wore it during the afternoon tea. Several residents complimented the colour. She seemed more relaxed after that. She also kept the card beside her bed. I will remind her to call you tomorrow. Please let us know if you send anything else."
   },
   {
-    "category": "Staff-Family",
-    "conversation_id": "SF_07",
-    "variation": 3,
-    "noise_type": "no_punctuation",
     "input": "hello your aunt received your parcel today she was very happy to open it the cardigan fits her well she asked me to thank you she wore it during the afternoon tea several residents complimented the colour she seemed more relaxed after that she also kept the card beside her bed i will remind her to call you tomorrow please let us know if you send anything else",
     "output": "Hello, your aunt received your parcel today. She was very happy to open it. The cardigan fits her well. She asked me to thank you. She wore it during the afternoon tea. Several residents complimented the colour. She seemed more relaxed after that. She also kept the card beside her bed. I will remind her to call you tomorrow. Please let us know if you send anything else."
   },
   {
-    "category": "Staff-Family",
-    "conversation_id": "SF_07",
-    "variation": 4,
-    "noise_type": "word_order_repetition",
     "input": "your hello hello aunt received your parcel today she very was was happy to open it the cardigan her fits fits well she asked me to thank she you you wore it during the afternoon tea residents several several complimented the colour she seemed more after relaxed relaxed that she also kept the card her beside beside bed i will remind her to you call call tomorrow please let us know if send you you anything else",
     "output": "Hello, your aunt received your parcel today. She was very happy to open it. The cardigan fits her well. She asked me to thank you. She wore it during the afternoon tea. Several residents complimented the colour. She seemed more relaxed after that. She also kept the card beside her bed. I will remind her to call you tomorrow. Please let us know if you send anything else."
   },
   {
-    "category": "Staff-Family",
-    "conversation_id": "SF_08",
-    "variation": 1,
-    "noise_type": "missing_words",
     "input": "good evening i want discuss care plan mother has been sleeping more during day affects her night routine we encouraging more daytime activity she enjoys light exercise and music support plan doctor also review her medication we want improve her sleep pattern input important us reply when available",
     "output": "Good evening, I want to discuss the care plan. Your mother has been sleeping more during the day. This affects her night routine. We are encouraging more daytime activity. She enjoys light exercise and music. Would you support this plan? The doctor will also review her medication. We want to improve her sleep pattern. Your input is important to us. Please reply when you are available."
   },
   {
-    "category": "Staff-Family",
-    "conversation_id": "SF_08",
-    "variation": 2,
-    "noise_type": "broken_grammar",
     "input": "good evening i want to discuss the care plan your mother have been sleeping more during the day this affects her night routine we are encouraging more daytime activity she enjoys light exercise and music would you support this plan the doctor will also review her medication we want to improve her sleep pattern your input is important to us please reply when you are available",
     "output": "Good evening, I want to discuss the care plan. Your mother has been sleeping more during the day. This affects her night routine. We are encouraging more daytime activity. She enjoys light exercise and music. Would you support this plan? The doctor will also review her medication. We want to improve her sleep pattern. Your input is important to us. Please reply when you are available."
   },
   {
-    "category": "Staff-Family",
-    "conversation_id": "SF_08",
-    "variation": 3,
-    "noise_type": "no_punctuation",
     "input": "good evening i want to discuss the care plan your mother has been sleeping more during the day this affects her night routine we are encouraging more daytime activity she enjoys light exercise and music would you support this plan the doctor will also review her medication we want to improve her sleep pattern your input is important to us please reply when you are available",
     "output": "Good evening, I want to discuss the care plan. Your mother has been sleeping more during the day. This affects her night routine. We are encouraging more daytime activity. She enjoys light exercise and music. Would you support this plan? The doctor will also review her medication. We want to improve her sleep pattern. Your input is important to us. Please reply when you are available."
   },
   {
-    "category": "Staff-Family",
-    "conversation_id": "SF_08",
-    "variation": 4,
-    "noise_type": "word_order_repetition",
     "input": "evening good good i want to discuss the care your plan plan mother has been sleeping more during day the the this affects her night routine we encouraging are are more daytime activity she enjoys light and exercise exercise music would you support this plan doctor the the will also review her medication we to want want improve her sleep pattern your input important is is to us please reply when you are available",
     "output": "Good evening, I want to discuss the care plan. Your mother has been sleeping more during the day. This affects her night routine. We are encouraging more daytime activity. She enjoys light exercise and music. Would you support this plan? The doctor will also review her medication. We want to improve her sleep pattern. Your input is important to us. Please reply when you are available."
   },
   {
-    "category": "Staff-Family",
-    "conversation_id": "SF_09",
-    "variation": 1,
-    "noise_type": "missing_words",
     "input": "hello father attended his wound review today nurse said wound improving there no sign of infection dressing continue daily he reported less pain he was able sit comfortably we encouraged him not scratch area he understood instruction we keep monitoring wound i update again next week",
     "output": "Hello, your father attended his wound review today. The nurse said the wound is improving. There is no sign of infection. The dressing will continue daily. He reported less pain. He was able to sit comfortably. We encouraged him not to scratch the area. He understood the instruction. We will keep monitoring the wound. I will update you again next week."
   },
   {
-    "category": "Staff-Family",
-    "conversation_id": "SF_09",
-    "variation": 2,
-    "noise_type": "broken_grammar",
     "input": "hello your father attended his wound review today the nurse said the wound is improving there is no sign of infection the dressing will continue daily he report less pain he is able to sit comfortably we encouraged him not to scratch the area he understood the instruction we keep monitoring the wound i updeat you again next week",
     "output": "Hello, your father attended his wound review today. The nurse said the wound is improving. There is no sign of infection. The dressing will continue daily. He reported less pain. He was able to sit comfortably. We encouraged him not to scratch the area. He understood the instruction. We will keep monitoring the wound. I will update you again next week."
   },
   {
-    "category": "Staff-Family",
-    "conversation_id": "SF_09",
-    "variation": 3,
-    "noise_type": "no_punctuation",
     "input": "hello your father attended his wound review today the nurse said the wound is improving there is no sign of infection the dressing will continue daily he reported less pain he was able to sit comfortably we encouraged him not to scratch the area he understood the instruction we will keep monitoring the wound i will update you again next week",
     "output": "Hello, your father attended his wound review today. The nurse said the wound is improving. There is no sign of infection. The dressing will continue daily. He reported less pain. He was able to sit comfortably. We encouraged him not to scratch the area. He understood the instruction. We will keep monitoring the wound. I will update you again next week."
   },
   {
-    "category": "Staff-Family",
-    "conversation_id": "SF_09",
-    "variation": 4,
-    "noise_type": "word_order_repetition",
     "input": "your hello hello father attended his wound review today nurse the the said the wound is improving there no is is sign of infection the dressing will daily continue continue he reported less pain he was to able able sit comfortably we encouraged him not scratch to to the area he understood the instruction will we we keep monitoring the wound i will you update update again next week",
     "output": "Hello, your father attended his wound review today. The nurse said the wound is improving. There is no sign of infection. The dressing will continue daily. He reported less pain. He was able to sit comfortably. We encouraged him not to scratch the area. He understood the instruction. We will keep monitoring the wound. I will update you again next week."
   },
   {
-    "category": "Staff-Family",
-    "conversation_id": "SF_10",
-    "variation": 1,
-    "noise_type": "missing_words",
     "input": "hi sister seemed anxious today she asked many times about going home we reassured her gently she became calmer after lunch she spent time garden staff member stayed her we watch her mood closely send family photo if possible may help her feel settled thank working us",
     "output": "Hi, your sister seemed anxious today. She asked many times about going home. We reassured her gently. She became calmer after lunch. She spent time in the garden. A staff member stayed with her. We will watch her mood closely. Please send a family photo if possible. It may help her feel settled. Thank you for working with us."
   },
   {
-    "category": "Staff-Family",
-    "conversation_id": "SF_10",
-    "variation": 2,
-    "noise_type": "broken_grammar",
     "input": "hi your sister seemed anxious today she asked many times about going home we reassured her gently she became calmer after lunch she spent time in the garden a staff member stayed with her we watch her mood closely please send a family photo if possible it may help her feel settled thank you for working with us",
     "output": "Hi, your sister seemed anxious today. She asked many times about going home. We reassured her gently. She became calmer after lunch. She spent time in the garden. A staff member stayed with her. We will watch her mood closely. Please send a family photo if possible. It may help her feel settled. Thank you for working with us."
   },
   {
-    "category": "Staff-Family",
-    "conversation_id": "SF_10",
-    "variation": 3,
-    "noise_type": "no_punctuation",
     "input": "hi your sister seemed anxious today she asked many times about going home we reassured her gently she became calmer after lunch she spent time in the garden a staff member stayed with her we will watch her mood closely please send a family photo if possible it may help her feel settled thank you for working with us",
     "output": "Hi, your sister seemed anxious today. She asked many times about going home. We reassured her gently. She became calmer after lunch. She spent time in the garden. A staff member stayed with her. We will watch her mood closely. Please send a family photo if possible. It may help her feel settled. Thank you for working with us."
   },
   {
-    "category": "Staff-Family",
-    "conversation_id": "SF_10",
-    "variation": 4,
-    "noise_type": "word_order_repetition",
     "input": "your hi hi sister seemed anxious today she asked times many many about going home we reassured her she gently gently became calmer after lunch she spent in time time the garden a staff member stayed her with with we will watch her mood closely send please please a family photo if possible it help may may her feel settled thank you for working with us",
     "output": "Hi, your sister seemed anxious today. She asked many times about going home. We reassured her gently. She became calmer after lunch. She spent time in the garden. A staff member stayed with her. We will watch her mood closely. Please send a family photo if possible. It may help her feel settled. Thank you for working with us."
   },
   {
-    "category": "Resident-Family",
-    "conversation_id": "RF_01",
-    "variation": 1,
-    "noise_type": "missing_words",
     "input": "hello my dear i happy hear voice i slept better last night staff helped me breakfast i joined small activity morning i missed today visit me weekend bring family photos i want see children again take care and call me tomorrow",
     "output": "Hello, my dear. I am happy to hear your voice. I slept better last night. The staff helped me with breakfast. I joined a small activity this morning. I missed you today. Can you visit me this weekend? Please bring the family photos. I want to see the children again. Take care and call me tomorrow."
   },
   {
-    "category": "Resident-Family",
-    "conversation_id": "RF_01",
-    "variation": 2,
-    "noise_type": "broken_grammar",
     "input": "hello my dear i happy to hear your voice i sleep better last night the staff help me with breakfast i joined a small activity this morning i missed you today can you visit me this weekend please bring the family photos i want to see the children again take care and call me tomorrow",
     "output": "Hello, my dear. I am happy to hear your voice. I slept better last night. The staff helped me with breakfast. I joined a small activity this morning. I missed you today. Can you visit me this weekend? Please bring the family photos. I want to see the children again. Take care and call me tomorrow."
   },
   {
-    "category": "Resident-Family",
-    "conversation_id": "RF_01",
-    "variation": 3,
-    "noise_type": "no_punctuation",
     "input": "hello my dear i am happy to hear your voice i slept better last night the staff helped me with breakfast i joined a small activity this morning i missed you today can you visit me this weekend please bring the family photos i want to see the children again take care and call me tomorrow",
     "output": "Hello, my dear. I am happy to hear your voice. I slept better last night. The staff helped me with breakfast. I joined a small activity this morning. I missed you today. Can you visit me this weekend? Please bring the family photos. I want to see the children again. Take care and call me tomorrow."
   },
   {
-    "category": "Resident-Family",
-    "conversation_id": "RF_01",
-    "variation": 4,
-    "noise_type": "word_order_repetition",
     "input": "my hello hello dear i am happy to hear voice your your i slept better last night the helped staff staff me with breakfast i joined a activity small small this morning i missed you today you can can visit me this weekend please bring family the the photos i want to see the again children children take care and call me tomorrow",
     "output": "Hello, my dear. I am happy to hear your voice. I slept better last night. The staff helped me with breakfast. I joined a small activity this morning. I missed you today. Can you visit me this weekend? Please bring the family photos. I want to see the children again. Take care and call me tomorrow."
   },
   {
-    "category": "Resident-Family",
-    "conversation_id": "RF_02",
-    "variation": 1,
-    "noise_type": "missing_words",
     "input": "hi son i went short walk today staff walked beside me i felt tired but happy my knee still hurts little nurse gave me medicine i ate soup lunch tasted quite good not worry too much i rest early tonight",
     "output": "Hi, son. I went for a short walk today. The staff walked beside me. I felt tired but happy. My knee still hurts a little. The nurse gave me medicine. I ate soup for lunch. It tasted quite good. Please do not worry too much. I will rest early tonight."
   },
   {
-    "category": "Resident-Family",
-    "conversation_id": "RF_02",
-    "variation": 2,
-    "noise_type": "broken_grammar",
     "input": "hi son i go for a short walk today the staff walked beside me i felt tired but happy my knee still hurts a little the nurse gave me medicine i eat soup for lunch it tasted quite good please do not worry too much i rest early tonight",
     "output": "Hi, son. I went for a short walk today. The staff walked beside me. I felt tired but happy. My knee still hurts a little. The nurse gave me medicine. I ate soup for lunch. It tasted quite good. Please do not worry too much. I will rest early tonight."
   },
   {
-    "category": "Resident-Family",
-    "conversation_id": "RF_02",
-    "variation": 3,
-    "noise_type": "no_punctuation",
     "input": "hi son i went for a short walk today the staff walked beside me i felt tired but happy my knee still hurts a little the nurse gave me medicine i ate soup for lunch it tasted quite good please do not worry too much i will rest early tonight",
     "output": "Hi, son. I went for a short walk today. The staff walked beside me. I felt tired but happy. My knee still hurts a little. The nurse gave me medicine. I ate soup for lunch. It tasted quite good. Please do not worry too much. I will rest early tonight."
   },
   {
-    "category": "Resident-Family",
-    "conversation_id": "RF_02",
-    "variation": 4,
-    "noise_type": "word_order_repetition",
     "input": "son hi hi i went for a short walk the today today staff walked beside me i felt but tired tired happy my knee still hurts a the little little nurse gave me medicine i ate for soup soup lunch it tasted quite good please not do do worry too much i will rest early tonight",
     "output": "Hi, son. I went for a short walk today. The staff walked beside me. I felt tired but happy. My knee still hurts a little. The nurse gave me medicine. I ate soup for lunch. It tasted quite good. Please do not worry too much. I will rest early tonight."
   },
   {
-    "category": "Resident-Family",
-    "conversation_id": "RF_03",
-    "variation": 1,
-    "noise_type": "missing_words",
     "input": "hello mum i received card today message made me smile i keep near my bed room feels warmer now staff kind me i still miss home sometimes call me after dinner i want tell about my day i love very much",
     "output": "Hello, Mum. I received your card today. The message made me smile. I keep it near my bed. The room feels warmer now. The staff are kind to me. I still miss home sometimes. Can you call me after dinner? I want to tell you about my day. I love you very much."
   },
   {
-    "category": "Resident-Family",
-    "conversation_id": "RF_03",
-    "variation": 2,
-    "noise_type": "broken_grammar",
     "input": "hello mum i received your card today the message made me smile i keep it near my bed the room feels warmer now the staff are kind to me i still miss home sometimes can you call me after dinner i want to tell you about my day i love you very much",
     "output": "Hello, Mum. I received your card today. The message made me smile. I keep it near my bed. The room feels warmer now. The staff are kind to me. I still miss home sometimes. Can you call me after dinner? I want to tell you about my day. I love you very much."
   },
   {
-    "category": "Resident-Family",
-    "conversation_id": "RF_03",
-    "variation": 3,
-    "noise_type": "no_punctuation",
     "input": "hello mum i received your card today the message made me smile i keep it near my bed the room feels warmer now the staff are kind to me i still miss home sometimes can you call me after dinner i want to tell you about my day i love you very much",
     "output": "Hello, Mum. I received your card today. The message made me smile. I keep it near my bed. The room feels warmer now. The staff are kind to me. I still miss home sometimes. Can you call me after dinner? I want to tell you about my day. I love you very much."
   },
   {
-    "category": "Resident-Family",
-    "conversation_id": "RF_03",
-    "variation": 4,
-    "noise_type": "word_order_repetition",
     "input": "mum hello hello i received your card today the made message message me smile i keep it near bed my my the room feels warmer now the are staff staff kind to me i still miss sometimes home home can you call me after dinner want i i to tell you about my day love i i you very much",
     "output": "Hello, Mum. I received your card today. The message made me smile. I keep it near my bed. The room feels warmer now. The staff are kind to me. I still miss home sometimes. Can you call me after dinner? I want to tell you about my day. I love you very much."
   },
   {
-    "category": "Resident-Family",
-    "conversation_id": "RF_04",
-    "variation": 1,
-    "noise_type": "missing_words",
     "input": "hi i watched music show today reminded me of old songs i sang other residents staff said i well i wish were here maybe we sing together next time bring my blue scarf weather feels cold now i hope see soon",
     "output": "Hi. I watched the music show today. It reminded me of old songs. I sang with the other residents. The staff said I did well. I wish you were here. Maybe we can sing together next time. Please bring my blue scarf. The weather feels cold now. I hope to see you soon."
   },
   {
-    "category": "Resident-Family",
-    "conversation_id": "RF_04",
-    "variation": 2,
-    "noise_type": "broken_grammar",
     "input": "hi i watched the music show today it reminded me of old songs i sang with the other residents the staff said i did well i wish you is here maybe we can sing together next time please bring my blue scarf the weather feels cold now i hope to see you soon",
     "output": "Hi. I watched the music show today. It reminded me of old songs. I sang with the other residents. The staff said I did well. I wish you were here. Maybe we can sing together next time. Please bring my blue scarf. The weather feels cold now. I hope to see you soon."
   },
   {
-    "category": "Resident-Family",
-    "conversation_id": "RF_04",
-    "variation": 3,
-    "noise_type": "no_punctuation",
     "input": "hi i watched the music show today it reminded me of old songs i sang with the other residents the staff said i did well i wish you were here maybe we can sing together next time please bring my blue scarf the weather feels cold now i hope to see you soon",
     "output": "Hi. I watched the music show today. It reminded me of old songs. I sang with the other residents. The staff said I did well. I wish you were here. Maybe we can sing together next time. Please bring my blue scarf. The weather feels cold now. I hope to see you soon."
   },
   {
-    "category": "Resident-Family",
-    "conversation_id": "RF_04",
-    "variation": 4,
-    "noise_type": "word_order_repetition",
     "input": "i hi hi watched the music show today it me reminded reminded of old songs i sang with other the the residents the staff said i did i well well wish you were here maybe we sing can can together next time please bring my scarf blue blue the weather feels cold now i to hope hope see you soon",
     "output": "Hi. I watched the music show today. It reminded me of old songs. I sang with the other residents. The staff said I did well. I wish you were here. Maybe we can sing together next time. Please bring my blue scarf. The weather feels cold now. I hope to see you soon."
   },
   {
-    "category": "Resident-Family",
-    "conversation_id": "RF_05",
-    "variation": 1,
-    "noise_type": "missing_words",
     "input": "dear family i feeling better today doctor checked me morning they said i drink more water i try remember lunch was rice and vegetables i ate slowly but finished most of i rested after lunch visit when free i miss everyone at home",
     "output": "Dear family. I am feeling better today. The doctor checked me this morning. They said I should drink more water. I will try to remember. Lunch was rice and vegetables. I ate slowly but finished most of it. I rested after lunch. Please visit when you are free. I miss everyone at home."
   },
   {
-    "category": "Resident-Family",
-    "conversation_id": "RF_05",
-    "variation": 2,
-    "noise_type": "broken_grammar",
     "input": "dear family i feeling better today the doctor check me this morning they said i should drink more weatr i try to remember lunch is rice and vegetables i eat slowly but finish most of it i rested after lunch please visit when you are free i miss everyone at home",
     "output": "Dear family. I am feeling better today. The doctor checked me this morning. They said I should drink more water. I will try to remember. Lunch was rice and vegetables. I ate slowly but finished most of it. I rested after lunch. Please visit when you are free. I miss everyone at home."
   },
   {
-    "category": "Resident-Family",
-    "conversation_id": "RF_05",
-    "variation": 3,
-    "noise_type": "no_punctuation",
     "input": "dear family i am feeling better today the doctor checked me this morning they said i should drink more water i will try to remember lunch was rice and vegetables i ate slowly but finished most of it i rested after lunch please visit when you are free i miss everyone at home",
     "output": "Dear family. I am feeling better today. The doctor checked me this morning. They said I should drink more water. I will try to remember. Lunch was rice and vegetables. I ate slowly but finished most of it. I rested after lunch. Please visit when you are free. I miss everyone at home."
   },
   {
-    "category": "Resident-Family",
-    "conversation_id": "RF_05",
-    "variation": 4,
-    "noise_type": "word_order_repetition",
     "input": "family dear dear i am feeling better today the checked doctor doctor me this morning they said i drink should should more water i will try to lunch remember remember was rice and vegetables i ate but slowly slowly finished most of it i rested lunch after after please visit when you are free miss i i everyone at home",
     "output": "Dear family. I am feeling better today. The doctor checked me this morning. They said I should drink more water. I will try to remember. Lunch was rice and vegetables. I ate slowly but finished most of it. I rested after lunch. Please visit when you are free. I miss everyone at home."
   },
   {
-    "category": "Resident-Family",
-    "conversation_id": "RF_06",
-    "variation": 1,
-    "noise_type": "missing_words",
     "input": "hello daughter i felt lonely afternoon staff sat me while helped me calm down i looked at photo again made me feel close bring more photos next time i want one my table tell children i love them i hope they studying well",
     "output": "Hello, daughter. I felt lonely this afternoon. The staff sat with me for a while. That helped me calm down. I looked at your photo again. It made me feel close to you. Can you bring more photos next time? I want one for my table. Please tell the children I love them. I hope they are studying well."
   },
   {
-    "category": "Resident-Family",
-    "conversation_id": "RF_06",
-    "variation": 2,
-    "noise_type": "broken_grammar",
     "input": "hello daughter i felt lonely this afternoon the staff sat with me for a while that help me calm down i looked at your photo again it made me feel close to you can you bring more photos next time i want one for my table please tell the children i love them i hope they studying well",
     "output": "Hello, daughter. I felt lonely this afternoon. The staff sat with me for a while. That helped me calm down. I looked at your photo again. It made me feel close to you. Can you bring more photos next time? I want one for my table. Please tell the children I love them. I hope they are studying well."
   },
   {
-    "category": "Resident-Family",
-    "conversation_id": "RF_06",
-    "variation": 3,
-    "noise_type": "no_punctuation",
     "input": "hello daughter i felt lonely this afternoon the staff sat with me for a while that helped me calm down i looked at your photo again it made me feel close to you can you bring more photos next time i want one for my table please tell the children i love them i hope they are studying well",
     "output": "Hello, daughter. I felt lonely this afternoon. The staff sat with me for a while. That helped me calm down. I looked at your photo again. It made me feel close to you. Can you bring more photos next time? I want one for my table. Please tell the children I love them. I hope they are studying well."
   },
   {
-    "category": "Resident-Family",
-    "conversation_id": "RF_06",
-    "variation": 4,
-    "noise_type": "word_order_repetition",
     "input": "daughter hello hello i felt lonely this afternoon the sat staff staff with me for a while that me helped helped calm down i looked at your again photo photo it made me feel close to can you you you bring more photos next time want i i one for my table please tell children the the i love them i hope they are studying well",
     "output": "Hello, daughter. I felt lonely this afternoon. The staff sat with me for a while. That helped me calm down. I looked at your photo again. It made me feel close to you. Can you bring more photos next time? I want one for my table. Please tell the children I love them. I hope they are studying well."
   },
   {
-    "category": "Resident-Family",
-    "conversation_id": "RF_07",
-    "variation": 1,
-    "noise_type": "missing_words",
     "input": "hi brother i remembered our old house today we used sit outside after dinner memory made me happy garden here nice too i walked there morning flowers beautiful visit and see them we drink tea together come when have time",
     "output": "Hi, brother. I remembered our old house today. We used to sit outside after dinner. That memory made me happy. The garden here is nice too. I walked there this morning. The flowers are beautiful. You should visit and see them. We can drink tea together. Please come when you have time."
   },
   {
-    "category": "Resident-Family",
-    "conversation_id": "RF_07",
-    "variation": 2,
-    "noise_type": "broken_grammar",
     "input": "hi brother i remembered our old house today we used to sit outside after dinner that memory made me happy the garden here is nice too i walked there this morning the flowers are beautiful you should visit and see them we can drink tea together please come when you have time",
     "output": "Hi, brother. I remembered our old house today. We used to sit outside after dinner. That memory made me happy. The garden here is nice too. I walked there this morning. The flowers are beautiful. You should visit and see them. We can drink tea together. Please come when you have time."
   },
   {
-    "category": "Resident-Family",
-    "conversation_id": "RF_07",
-    "variation": 3,
-    "noise_type": "no_punctuation",
     "input": "hi brother i remembered our old house today we used to sit outside after dinner that memory made me happy the garden here is nice too i walked there this morning the flowers are beautiful you should visit and see them we can drink tea together please come when you have time",
     "output": "Hi, brother. I remembered our old house today. We used to sit outside after dinner. That memory made me happy. The garden here is nice too. I walked there this morning. The flowers are beautiful. You should visit and see them. We can drink tea together. Please come when you have time."
   },
   {
-    "category": "Resident-Family",
-    "conversation_id": "RF_07",
-    "variation": 4,
-    "noise_type": "word_order_repetition",
     "input": "brother hi hi i remembered our old house today used we we to sit outside after dinner that made memory memory me happy the garden here is too nice nice i walked there this morning the are flowers flowers beautiful you should visit and see we them them can drink tea together please come you when when have time",
     "output": "Hi, brother. I remembered our old house today. We used to sit outside after dinner. That memory made me happy. The garden here is nice too. I walked there this morning. The flowers are beautiful. You should visit and see them. We can drink tea together. Please come when you have time."
   },
   {
-    "category": "Resident-Family",
-    "conversation_id": "RF_08",
-    "variation": 1,
-    "noise_type": "missing_words",
     "input": "hello everyone i had quiet day i not feel very hungry staff gave me soup i ate little and felt better i slept one hour after lunch nurse said i rest more not worry i try eat more tomorrow call me when",
     "output": "Hello, everyone. I had a quiet day. I did not feel very hungry. The staff gave me soup. I ate a little and felt better. I slept for one hour after lunch. The nurse said I should rest more. Please do not worry. I will try to eat more tomorrow. Call me when you can."
   },
   {
-    "category": "Resident-Family",
-    "conversation_id": "RF_08",
-    "variation": 2,
-    "noise_type": "broken_grammar",
     "input": "hello everyone i had a quiet day i did not feel very hungry the staff gave me soup i eat a little and felt better i sleep for one hour after lunch the nurse said i should rest more please do not worry i try to eat more tomorrow call me when you can",
     "output": "Hello, everyone. I had a quiet day. I did not feel very hungry. The staff gave me soup. I ate a little and felt better. I slept for one hour after lunch. The nurse said I should rest more. Please do not worry. I will try to eat more tomorrow. Call me when you can."
   },
   {
-    "category": "Resident-Family",
-    "conversation_id": "RF_08",
-    "variation": 3,
-    "noise_type": "no_punctuation",
     "input": "hello everyone i had a quiet day i did not feel very hungry the staff gave me soup i ate a little and felt better i slept for one hour after lunch the nurse said i should rest more please do not worry i will try to eat more tomorrow call me when you can",
     "output": "Hello, everyone. I had a quiet day. I did not feel very hungry. The staff gave me soup. I ate a little and felt better. I slept for one hour after lunch. The nurse said I should rest more. Please do not worry. I will try to eat more tomorrow. Call me when you can."
   },
   {
-    "category": "Resident-Family",
-    "conversation_id": "RF_08",
-    "variation": 4,
-    "noise_type": "word_order_repetition",
     "input": "everyone hello hello i had a quiet day i not did did feel very hungry the staff gave soup me me i ate a little and felt i better better slept for one hour after lunch nurse the the said i should rest more please not do do worry i will try to eat tomorrow more more call me when you can",
     "output": "Hello, everyone. I had a quiet day. I did not feel very hungry. The staff gave me soup. I ate a little and felt better. I slept for one hour after lunch. The nurse said I should rest more. Please do not worry. I will try to eat more tomorrow. Call me when you can."
   },
   {
-    "category": "Resident-Family",
-    "conversation_id": "RF_09",
-    "variation": 1,
-    "noise_type": "missing_words",
     "input": "hi my dear grandson thank drawing picture i put my wall makes my room brighter i showed nurse she said was beautiful i proud of study hard and be kind i hope visit soon grandma loves",
     "output": "Hi, my dear grandson. Thank you for drawing the picture. I put it on my wall. It makes my room brighter. I showed it to the nurse. She said it was beautiful. I am proud of you. Study hard and be kind. I hope you visit soon. Grandma loves you."
   },
   {
-    "category": "Resident-Family",
-    "conversation_id": "RF_09",
-    "variation": 2,
-    "noise_type": "broken_grammar",
     "input": "hi my dear grandson thank you for drawing the picture i put it on my wall it makes my room brighter i showed it to the nurse she said it is beautiful i proud of you study hard and be kind i hope you visit soon grandma loves you",
     "output": "Hi, my dear grandson. Thank you for drawing the picture. I put it on my wall. It makes my room brighter. I showed it to the nurse. She said it was beautiful. I am proud of you. Study hard and be kind. I hope you visit soon. Grandma loves you."
   },
   {
-    "category": "Resident-Family",
-    "conversation_id": "RF_09",
-    "variation": 3,
-    "noise_type": "no_punctuation",
     "input": "hi my dear grandson thank you for drawing the picture i put it on my wall it makes my room brighter i showed it to the nurse she said it was beautiful i am proud of you study hard and be kind i hope you visit soon grandma loves you",
     "output": "Hi, my dear grandson. Thank you for drawing the picture. I put it on my wall. It makes my room brighter. I showed it to the nurse. She said it was beautiful. I am proud of you. Study hard and be kind. I hope you visit soon. Grandma loves you."
   },
   {
-    "category": "Resident-Family",
-    "conversation_id": "RF_09",
-    "variation": 4,
-    "noise_type": "word_order_repetition",
     "input": "my hi hi dear grandson thank you for drawing picture the the i put it on my wall makes it it my room brighter i showed it the to to nurse she said it was beautiful am i i proud of you study hard and kind be be i hope you visit soon grandma loves you",
     "output": "Hi, my dear grandson. Thank you for drawing the picture. I put it on my wall. It makes my room brighter. I showed it to the nurse. She said it was beautiful. I am proud of you. Study hard and be kind. I hope you visit soon. Grandma loves you."
   },
   {
-    "category": "Resident-Family",
-    "conversation_id": "RF_10",
-    "variation": 1,
-    "noise_type": "missing_words",
     "input": "hello sweetheart i had my hair cut today staff helped me choose style i feel fresh and comfortable i wish could see maybe we video call later help me set up phone i want see face have good day at work i love",
     "output": "Hello, sweetheart. I had my hair cut today. The staff helped me choose the style. I feel fresh and comfortable. I wish you could see it. Maybe we can video call later. Please help me set up the phone. I want to see your face. Have a good day at work. I love you."
   },
   {
-    "category": "Resident-Family",
-    "conversation_id": "RF_10",
-    "variation": 2,
-    "noise_type": "broken_grammar",
     "input": "hello sweetheart i had my hair cut today the staff help me choose the style i feel fresh and comfortable i wish you could see it maybe we can video call leatr please help me set up the phone i want to see your face have a good day at work i love you",
     "output": "Hello, sweetheart. I had my hair cut today. The staff helped me choose the style. I feel fresh and comfortable. I wish you could see it. Maybe we can video call later. Please help me set up the phone. I want to see your face. Have a good day at work. I love you."
   },
   {
-    "category": "Resident-Family",
-    "conversation_id": "RF_10",
-    "variation": 3,
-    "noise_type": "no_punctuation",
     "input": "hello sweetheart i had my hair cut today the staff helped me choose the style i feel fresh and comfortable i wish you could see it maybe we can video call later please help me set up the phone i want to see your face have a good day at work i love you",
     "output": "Hello, sweetheart. I had my hair cut today. The staff helped me choose the style. I feel fresh and comfortable. I wish you could see it. Maybe we can video call later. Please help me set up the phone. I want to see your face. Have a good day at work. I love you."
   },
   {
-    "category": "Resident-Family",
-    "conversation_id": "RF_10",
-    "variation": 4,
-    "noise_type": "word_order_repetition",
     "input": "sweetheart hello hello i had my hair cut today staff the the helped me choose the style i fresh feel feel and comfortable i wish you could it see see maybe we can video call later help please please me set up the phone i to want want see your face have a good at day day work i love you",
     "output": "Hello, sweetheart. I had my hair cut today. The staff helped me choose the style. I feel fresh and comfortable. I wish you could see it. Maybe we can video call later. Please help me set up the phone. I want to see your face. Have a good day at work. I love you."
   },
   {
-    "category": "Staff-Staff",
-    "conversation_id": "SS_01",
-    "variation": 1,
-    "noise_type": "missing_words",
     "input": "i finished morning round room 204 still needs medication resident refused breakfast check her again later resident has doctor review at ten his documents ready transport arrive at nine thirty i updated care notes remind nurse about wound dressing i take my break after handover",
     "output": "I finished the morning round. Room 204 still needs medication. The resident refused breakfast. Please check on her again later. The resident has a doctor review at ten. His documents are ready. The transport will arrive at nine thirty. I updated the care notes. Please remind the nurse about the wound dressing. I will take my break after handover."
   },
   {
-    "category": "Staff-Staff",
-    "conversation_id": "SS_01",
-    "variation": 2,
-    "noise_type": "broken_grammar",
     "input": "i finish the morning round room 204 still needs medication the resident refuse breakfast please check on her again leatr the resident has a doctor review at ten his documents are ready the transport will arrive at nine thirty i updeatd the care notes please remind the nurse about the wound dressing i take my break after handover",
     "output": "I finished the morning round. Room 204 still needs medication. The resident refused breakfast. Please check on her again later. The resident has a doctor review at ten. His documents are ready. The transport will arrive at nine thirty. I updated the care notes. Please remind the nurse about the wound dressing. I will take my break after handover."
   },
   {
-    "category": "Staff-Staff",
-    "conversation_id": "SS_01",
-    "variation": 3,
-    "noise_type": "no_punctuation",
     "input": "i finished the morning round room 204 still needs medication the resident refused breakfast please check on her again later the resident has a doctor review at ten his documents are ready the transport will arrive at nine thirty i updated the care notes please remind the nurse about the wound dressing i will take my break after handover",
     "output": "I finished the morning round. Room 204 still needs medication. The resident refused breakfast. Please check on her again later. The resident has a doctor review at ten. His documents are ready. The transport will arrive at nine thirty. I updated the care notes. Please remind the nurse about the wound dressing. I will take my break after handover."
   },
   {
-    "category": "Staff-Staff",
-    "conversation_id": "SS_01",
-    "variation": 4,
-    "noise_type": "word_order_repetition",
     "input": "finished i i the morning round room 204 still medication needs needs the resident refused breakfast please check her on on again later the resident has a review doctor doctor at ten his documents are ready transport the the will arrive at nine thirty i the updated updated care notes please remind the nurse the about about wound dressing i will take my break after handover",
     "output": "I finished the morning round. Room 204 still needs medication. The resident refused breakfast. Please check on her again later. The resident has a doctor review at ten. His documents are ready. The transport will arrive at nine thirty. I updated the care notes. Please remind the nurse about the wound dressing. I will take my break after handover."
   },
   {
-    "category": "Staff-Staff",
-    "conversation_id": "SS_02",
-    "variation": 1,
-    "noise_type": "missing_words",
     "input": "help me room 108 resident needs assistance moving chair he weaker than usual today use walking frame physiotherapist come after lunch his daughter may visit at three room has been cleaned his water bottle needs refilling i prepare his medication chart let me know when he settled",
     "output": "Can you help me with room 108? The resident needs assistance moving to the chair. He is weaker than usual today. Please use the walking frame. The physiotherapist will come after lunch. His daughter may visit at three. The room has been cleaned. His water bottle needs refilling. I will prepare his medication chart. Let me know when he is settled."
   },
   {
-    "category": "Staff-Staff",
-    "conversation_id": "SS_02",
-    "variation": 2,
-    "noise_type": "broken_grammar",
     "input": "can you help me with room 108 the resident needs assistance moving to the chair he weaker than usual today please use the walking frame the physiotherapist will come after lunch his daughter may visit at three the room have been cleaned his weatr bottle needs refilling i prepare his medication chart let me know when he settled",
     "output": "Can you help me with room 108? The resident needs assistance moving to the chair. He is weaker than usual today. Please use the walking frame. The physiotherapist will come after lunch. His daughter may visit at three. The room has been cleaned. His water bottle needs refilling. I will prepare his medication chart. Let me know when he is settled."
   },
   {
-    "category": "Staff-Staff",
-    "conversation_id": "SS_02",
-    "variation": 3,
-    "noise_type": "no_punctuation",
     "input": "can you help me with room 108 the resident needs assistance moving to the chair he is weaker than usual today please use the walking frame the physiotherapist will come after lunch his daughter may visit at three the room has been cleaned his water bottle needs refilling i will prepare his medication chart let me know when he is settled",
     "output": "Can you help me with room 108? The resident needs assistance moving to the chair. He is weaker than usual today. Please use the walking frame. The physiotherapist will come after lunch. His daughter may visit at three. The room has been cleaned. His water bottle needs refilling. I will prepare his medication chart. Let me know when he is settled."
   },
   {
-    "category": "Staff-Staff",
-    "conversation_id": "SS_02",
-    "variation": 4,
-    "noise_type": "word_order_repetition",
     "input": "you can can help me with room 108 the needs resident resident assistance moving to the chair he weaker is is than usual today please use the frame walking walking the physiotherapist will come after lunch daughter his his may visit at three the room been has has cleaned his water bottle needs refilling will i i prepare his medication chart let me when know know he is settled",
     "output": "Can you help me with room 108? The resident needs assistance moving to the chair. He is weaker than usual today. Please use the walking frame. The physiotherapist will come after lunch. His daughter may visit at three. The room has been cleaned. His water bottle needs refilling. I will prepare his medication chart. Let me know when he is settled."
   },
   {
-    "category": "Staff-Staff",
-    "conversation_id": "SS_03",
-    "variation": 1,
-    "noise_type": "missing_words",
     "input": "afternoon activity starts at two bring residents from west wing resident wants join today resident may need encouragement activity room already prepared there enough chairs everyone snacks arrive at two thirty record attendance system i take photos family update make sure consent checked first",
     "output": "The afternoon activity starts at two. Please bring residents from the west wing. The resident wants to join today. The resident may need encouragement. The activity room is already prepared. There are enough chairs for everyone. Snacks will arrive at two thirty. Please record attendance in the system. I will take photos for the family update. Make sure consent is checked first."
   },
   {
-    "category": "Staff-Staff",
-    "conversation_id": "SS_03",
-    "variation": 2,
-    "noise_type": "broken_grammar",
     "input": "the afternoon activity starts at two please bring residents from the west wing the resident wants to join today the resident may need encouragement the activity room is already prepared there are enough chairs for everyone snacks will arrive at two thirty please record attendance in the system i take photos for the family updeat make sure consent is check first",
     "output": "The afternoon activity starts at two. Please bring residents from the west wing. The resident wants to join today. The resident may need encouragement. The activity room is already prepared. There are enough chairs for everyone. Snacks will arrive at two thirty. Please record attendance in the system. I will take photos for the family update. Make sure consent is checked first."
   },
   {
-    "category": "Staff-Staff",
-    "conversation_id": "SS_03",
-    "variation": 3,
-    "noise_type": "no_punctuation",
     "input": "the afternoon activity starts at two please bring residents from the west wing the resident wants to join today the resident may need encouragement the activity room is already prepared there are enough chairs for everyone snacks will arrive at two thirty please record attendance in the system i will take photos for the family update make sure consent is checked first",
     "output": "The afternoon activity starts at two. Please bring residents from the west wing. The resident wants to join today. The resident may need encouragement. The activity room is already prepared. There are enough chairs for everyone. Snacks will arrive at two thirty. Please record attendance in the system. I will take photos for the family update. Make sure consent is checked first."
   },
   {
-    "category": "Staff-Staff",
-    "conversation_id": "SS_03",
-    "variation": 4,
-    "noise_type": "word_order_repetition",
     "input": "afternoon the the activity starts at two please bring from residents residents the west wing the resident wants join to to today the resident may need encouragement activity the the room is already prepared there are chairs enough enough for everyone snacks will arrive at thirty two two please record attendance in the system will i i take photos for the family update sure make make consent is checked first",
     "output": "The afternoon activity starts at two. Please bring residents from the west wing. The resident wants to join today. The resident may need encouragement. The activity room is already prepared. There are enough chairs for everyone. Snacks will arrive at two thirty. Please record attendance in the system. I will take photos for the family update. Make sure consent is checked first."
   },
   {
-    "category": "Staff-Staff",
-    "conversation_id": "SS_04",
-    "variation": 1,
-    "noise_type": "missing_words",
     "input": "night shift report ready resident slept poorly last night she used call bell three times residents wound dressing remained dry room 112 needs extra towels kitchen delivered breakfast labels medication trolley one has been restocked check fridge temperature before handover doctor visit at eight thirty i stay until handover complete",
     "output": "The night shift report is ready. The resident slept poorly last night. She used the call bell three times. The resident's wound dressing remained dry. Room 112 needs extra towels. The kitchen delivered breakfast labels. Medication trolley one has been restocked. Please check fridge temperature before handover. The doctor will visit at eight thirty. I will stay until the handover is complete."
   },
   {
-    "category": "Staff-Staff",
-    "conversation_id": "SS_04",
-    "variation": 2,
-    "noise_type": "broken_grammar",
     "input": "the night shift report is ready the resident sleep poorly last night she used the call bell three times the residents wound dressing remained dry room 112 needs extra towels the kitchen delivered breakfast labels medication trolley one have been restocked please check fridge temperature before handover the doctor will visit at eight thirty i stay until the handover is complete",
     "output": "The night shift report is ready. The resident slept poorly last night. She used the call bell three times. The resident's wound dressing remained dry. Room 112 needs extra towels. The kitchen delivered breakfast labels. Medication trolley one has been restocked. Please check fridge temperature before handover. The doctor will visit at eight thirty. I will stay until the handover is complete."
   },
   {
-    "category": "Staff-Staff",
-    "conversation_id": "SS_04",
-    "variation": 3,
-    "noise_type": "no_punctuation",
     "input": "the night shift report is ready the resident slept poorly last night she used the call bell three times the residents wound dressing remained dry room 112 needs extra towels the kitchen delivered breakfast labels medication trolley one has been restocked please check fridge temperature before handover the doctor will visit at eight thirty i will stay until the handover is complete",
     "output": "The night shift report is ready. The resident slept poorly last night. She used the call bell three times. The resident's wound dressing remained dry. Room 112 needs extra towels. The kitchen delivered breakfast labels. Medication trolley one has been restocked. Please check fridge temperature before handover. The doctor will visit at eight thirty. I will stay until the handover is complete."
   },
   {
-    "category": "Staff-Staff",
-    "conversation_id": "SS_04",
-    "variation": 4,
-    "noise_type": "word_order_repetition",
     "input": "night the the shift report is ready the resident poorly slept slept last night she used the call three bell bell times the residents wound dressing remained room dry dry 112 needs extra towels the kitchen breakfast delivered delivered labels medication trolley one has been please restocked restocked check fridge temperature before handover the will doctor doctor visit at eight thirty i will until stay stay the handover is complete",
     "output": "The night shift report is ready. The resident slept poorly last night. She used the call bell three times. The resident's wound dressing remained dry. Room 112 needs extra towels. The kitchen delivered breakfast labels. Medication trolley one has been restocked. Please check fridge temperature before handover. The doctor will visit at eight thirty. I will stay until the handover is complete."
   },
   {
-    "category": "Staff-Staff",
-    "conversation_id": "SS_05",
-    "variation": 1,
-    "noise_type": "missing_words",
     "input": "i uploaded todays notes system review entries room 206 there may be one missing observation blood pressure reading was written paper i left paper at nurse station enter before audit manager asked updates by five family call summary complete only meal record pending thank checking",
     "output": "I uploaded today's notes to the system. Please review the entries for room 206. There may be one missing observation. The blood pressure reading was written on paper. I left the paper at the nurse station. Can you enter it before the audit? The manager asked for updates by five. The family call summary is complete. Only the meal record is pending. Thank you for checking it."
   },
   {
-    "category": "Staff-Staff",
-    "conversation_id": "SS_05",
-    "variation": 2,
-    "noise_type": "broken_grammar",
     "input": "i uploaded todays notes to the system please review the entries for room 206 there may be one missing observation the blood pressure reading is written on paper i left the paper at the nurse station can you enter it before the audit the manager asked for updeats by five the family call summary is complete only the meal record is pending thank you for checking it",
     "output": "I uploaded today's notes to the system. Please review the entries for room 206. There may be one missing observation. The blood pressure reading was written on paper. I left the paper at the nurse station. Can you enter it before the audit? The manager asked for updates by five. The family call summary is complete. Only the meal record is pending. Thank you for checking it."
   },
   {
-    "category": "Staff-Staff",
-    "conversation_id": "SS_05",
-    "variation": 3,
-    "noise_type": "no_punctuation",
     "input": "i uploaded todays notes to the system please review the entries for room 206 there may be one missing observation the blood pressure reading was written on paper i left the paper at the nurse station can you enter it before the audit the manager asked for updates by five the family call summary is complete only the meal record is pending thank you for checking it",
     "output": "I uploaded today's notes to the system. Please review the entries for room 206. There may be one missing observation. The blood pressure reading was written on paper. I left the paper at the nurse station. Can you enter it before the audit? The manager asked for updates by five. The family call summary is complete. Only the meal record is pending. Thank you for checking it."
   },
   {
-    "category": "Staff-Staff",
-    "conversation_id": "SS_05",
-    "variation": 4,
-    "noise_type": "word_order_repetition",
     "input": "uploaded i i todays notes to the system please the review review entries for room 206 there may one be be missing observation the blood pressure reading written was was on paper i left the paper the at at nurse station can you enter it the before before audit the manager asked for updates five by by the family call summary is complete the only only meal record is pending thank you for checking it",
     "output": "I uploaded today's notes to the system. Please review the entries for room 206. There may be one missing observation. The blood pressure reading was written on paper. I left the paper at the nurse station. Can you enter it before the audit? The manager asked for updates by five. The family call summary is complete. Only the meal record is pending. Thank you for checking it."
   },
   {
-    "category": "Staff-Staff",
-    "conversation_id": "SS_06",
-    "variation": 1,
-    "noise_type": "missing_words",
     "input": "we need prepare family meeting meeting at three oclock residents daughter attend online doctor may join ten minutes print latest care plan i prepare medication summary resident wants discuss sleep issues we also mention her appetite meeting room booked bring laptop video call",
     "output": "We need to prepare for the family meeting. The meeting is at three o'clock. The resident's daughter will attend online. The doctor may join for ten minutes. Please print the latest care plan. I will prepare the medication summary. The resident wants to discuss sleep issues. We should also mention her appetite. The meeting room is booked. Please bring a laptop for the video call."
   },
   {
-    "category": "Staff-Staff",
-    "conversation_id": "SS_06",
-    "variation": 2,
-    "noise_type": "broken_grammar",
     "input": "we need to prepare for the family meeting the meeting is at three oclock the residents daughter will attend online the doctor may join for ten minutes please print the leatst care plan i prepare the medication summary the resident wants to discuss sleep issues we should also mention her appetite the meeting room is booked please bring a laptop for the video call",
     "output": "We need to prepare for the family meeting. The meeting is at three o'clock. The resident's daughter will attend online. The doctor may join for ten minutes. Please print the latest care plan. I will prepare the medication summary. The resident wants to discuss sleep issues. We should also mention her appetite. The meeting room is booked. Please bring a laptop for the video call."
   },
   {
-    "category": "Staff-Staff",
-    "conversation_id": "SS_06",
-    "variation": 3,
-    "noise_type": "no_punctuation",
     "input": "we need to prepare for the family meeting the meeting is at three oclock the residents daughter will attend online the doctor may join for ten minutes please print the latest care plan i will prepare the medication summary the resident wants to discuss sleep issues we should also mention her appetite the meeting room is booked please bring a laptop for the video call",
     "output": "We need to prepare for the family meeting. The meeting is at three o'clock. The resident's daughter will attend online. The doctor may join for ten minutes. Please print the latest care plan. I will prepare the medication summary. The resident wants to discuss sleep issues. We should also mention her appetite. The meeting room is booked. Please bring a laptop for the video call."
   },
   {
-    "category": "Staff-Staff",
-    "conversation_id": "SS_06",
-    "variation": 4,
-    "noise_type": "word_order_repetition",
     "input": "need we we to prepare for the family meeting meeting the the is at three oclock the residents will daughter daughter attend online the doctor may join ten for for minutes please print the latest care i plan plan will prepare the medication summary the wants resident resident to discuss sleep issues we should mention also also her appetite the meeting room is please booked booked bring a laptop for the video call",
     "output": "We need to prepare for the family meeting. The meeting is at three o'clock. The resident's daughter will attend online. The doctor may join for ten minutes. Please print the latest care plan. I will prepare the medication summary. The resident wants to discuss sleep issues. We should also mention her appetite. The meeting room is booked. Please bring a laptop for the video call."
   },
   {
-    "category": "Staff-Staff",
-    "conversation_id": "SS_07",
-    "variation": 1,
-    "noise_type": "missing_words",
     "input": "laundry delivery arrived morning some clothes not labelled check residents before putting them away resident missing blue cardigan may be shared laundry basket i ask evening staff look again clean towels storage room room 105 needs new bed sheets update task list after finishing i help after medication round",
     "output": "The laundry delivery arrived this morning. Some clothes are not labelled. Please check with the residents before putting them away. The resident is missing a blue cardigan. It may be in the shared laundry basket. I will ask the evening staff to look again. The clean towels are in the storage room. Room 105 needs new bed sheets. Please update the task list after finishing. I will help after medication round."
   },
   {
-    "category": "Staff-Staff",
-    "conversation_id": "SS_07",
-    "variation": 2,
-    "noise_type": "broken_grammar",
     "input": "the laundry delivery arrive this morning some clothes are not labelled please check with the residents before putting them away the resident is missing a blue cardigan it may be in the shared laundry basket i ask the evening staff to look again the clean towels are in the storage room room 105 needs new bed sheets please updeat the task list after finishing i help after medication round",
     "output": "The laundry delivery arrived this morning. Some clothes are not labelled. Please check with the residents before putting them away. The resident is missing a blue cardigan. It may be in the shared laundry basket. I will ask the evening staff to look again. The clean towels are in the storage room. Room 105 needs new bed sheets. Please update the task list after finishing. I will help after medication round."
   },
   {
-    "category": "Staff-Staff",
-    "conversation_id": "SS_07",
-    "variation": 3,
-    "noise_type": "no_punctuation",
     "input": "the laundry delivery arrived this morning some clothes are not labelled please check with the residents before putting them away the resident is missing a blue cardigan it may be in the shared laundry basket i will ask the evening staff to look again the clean towels are in the storage room room 105 needs new bed sheets please update the task list after finishing i will help after medication round",
     "output": "The laundry delivery arrived this morning. Some clothes are not labelled. Please check with the residents before putting them away. The resident is missing a blue cardigan. It may be in the shared laundry basket. I will ask the evening staff to look again. The clean towels are in the storage room. Room 105 needs new bed sheets. Please update the task list after finishing. I will help after medication round."
   },
   {
-    "category": "Staff-Staff",
-    "conversation_id": "SS_07",
-    "variation": 4,
-    "noise_type": "word_order_repetition",
     "input": "laundry the the delivery arrived this morning some clothes not are are labelled please check with the residents putting before before them away the resident is missing blue a a cardigan it may be in the laundry shared shared basket i will ask the evening to staff staff look again the clean towels are the in in storage room room 105 needs new sheets bed bed please update the task list after i finishing finishing will help after medication round",
     "output": "The laundry delivery arrived this morning. Some clothes are not labelled. Please check with the residents before putting them away. The resident is missing a blue cardigan. It may be in the shared laundry basket. I will ask the evening staff to look again. The clean towels are in the storage room. Room 105 needs new bed sheets. Please update the task list after finishing. I will help after medication round."
   },
   {
-    "category": "Staff-Staff",
-    "conversation_id": "SS_08",
-    "variation": 1,
-    "noise_type": "missing_words",
     "input": "new resident arrives tomorrow his room be ready by noon check bed and call bell welcome pack desk family bring his clothes nurse complete admission assessment we need prepare dietary form he prefers soft food manager asked us greet family i update roster",
     "output": "The new resident arrives tomorrow. His room should be ready by noon. Please check the bed and call bell. The welcome pack is on the desk. The family will bring his clothes. The nurse will complete the admission assessment. We need to prepare the dietary form. He prefers soft food. The manager asked us to greet the family. I will update the roster."
   },
   {
-    "category": "Staff-Staff",
-    "conversation_id": "SS_08",
-    "variation": 2,
-    "noise_type": "broken_grammar",
     "input": "the new resident arrives tomorrow his room should be ready by noon please check the bed and call bell the welcome pack is on the desk the family will bring his clothes the nurse will complete the admission assessment we need to prepare the dietary form he prefers soft food the manager asked us to greet the family i updeat the roster",
     "output": "The new resident arrives tomorrow. His room should be ready by noon. Please check the bed and call bell. The welcome pack is on the desk. The family will bring his clothes. The nurse will complete the admission assessment. We need to prepare the dietary form. He prefers soft food. The manager asked us to greet the family. I will update the roster."
   },
   {
-    "category": "Staff-Staff",
-    "conversation_id": "SS_08",
-    "variation": 3,
-    "noise_type": "no_punctuation",
     "input": "the new resident arrives tomorrow his room should be ready by noon please check the bed and call bell the welcome pack is on the desk the family will bring his clothes the nurse will complete the admission assessment we need to prepare the dietary form he prefers soft food the manager asked us to greet the family i will update the roster",
     "output": "The new resident arrives tomorrow. His room should be ready by noon. Please check the bed and call bell. The welcome pack is on the desk. The family will bring his clothes. The nurse will complete the admission assessment. We need to prepare the dietary form. He prefers soft food. The manager asked us to greet the family. I will update the roster."
   },
   {
-    "category": "Staff-Staff",
-    "conversation_id": "SS_08",
-    "variation": 4,
-    "noise_type": "word_order_repetition",
     "input": "new the the resident arrives tomorrow his room should ready be be by noon please check the bed call and and bell the welcome pack is on desk the the the family will bring his clothes nurse the the will complete the admission assessment we to need need prepare the dietary form he prefers food soft soft the manager asked us to greet family the the i will update the roster",
     "output": "The new resident arrives tomorrow. His room should be ready by noon. Please check the bed and call bell. The welcome pack is on the desk. The family will bring his clothes. The nurse will complete the admission assessment. We need to prepare the dietary form. He prefers soft food. The manager asked us to greet the family. I will update the roster."
   },
   {
-    "category": "Staff-Staff",
-    "conversation_id": "SS_09",
-    "variation": 1,
-    "noise_type": "missing_words",
     "input": "there was small spill near dining room i placed warning sign there ask cleaning staff mop residents avoid area now resident almost slipped earlier he was not injured i reported incident system supervisor has been informed remove sign after floor dries i check area again later",
     "output": "There was a small spill near the dining room. I placed a warning sign there. Please ask cleaning staff to mop it. Residents should avoid that area for now. The resident almost slipped earlier. He was not injured. I reported the incident in the system. The supervisor has been informed. Please remove the sign after the floor dries. I will check the area again later."
   },
   {
-    "category": "Staff-Staff",
-    "conversation_id": "SS_09",
-    "variation": 2,
-    "noise_type": "broken_grammar",
     "input": "there is a small spill near the dining room i placed a warning sign there please ask cleaning staff to mop it residents should avoid that area for now the resident almost slipped earlier he is not injured i report the incident in the system the supervisor have been informed please remove the sign after the floor dries i check the area again leatr",
     "output": "There was a small spill near the dining room. I placed a warning sign there. Please ask cleaning staff to mop it. Residents should avoid that area for now. The resident almost slipped earlier. He was not injured. I reported the incident in the system. The supervisor has been informed. Please remove the sign after the floor dries. I will check the area again later."
   },
   {
-    "category": "Staff-Staff",
-    "conversation_id": "SS_09",
-    "variation": 3,
-    "noise_type": "no_punctuation",
     "input": "there was a small spill near the dining room i placed a warning sign there please ask cleaning staff to mop it residents should avoid that area for now the resident almost slipped earlier he was not injured i reported the incident in the system the supervisor has been informed please remove the sign after the floor dries i will check the area again later",
     "output": "There was a small spill near the dining room. I placed a warning sign there. Please ask cleaning staff to mop it. Residents should avoid that area for now. The resident almost slipped earlier. He was not injured. I reported the incident in the system. The supervisor has been informed. Please remove the sign after the floor dries. I will check the area again later."
   },
   {
-    "category": "Staff-Staff",
-    "conversation_id": "SS_09",
-    "variation": 4,
-    "noise_type": "word_order_repetition",
     "input": "was there there a small spill near the dining i room room placed a warning sign there please cleaning ask ask staff to mop it residents should that avoid avoid area for now the resident almost earlier slipped slipped he was not injured i reported incident the the in the system the supervisor has informed been been please remove the sign after the dries floor floor i will check the area again later",
     "output": "There was a small spill near the dining room. I placed a warning sign there. Please ask cleaning staff to mop it. Residents should avoid that area for now. The resident almost slipped earlier. He was not injured. I reported the incident in the system. The supervisor has been informed. Please remove the sign after the floor dries. I will check the area again later."
   },
   {
-    "category": "Staff-Staff",
-    "conversation_id": "SS_10",
-    "variation": 1,
-    "noise_type": "missing_words",
     "input": "cover my break at one oclock i need call pharmacy one prescription still missing delivery arrive afternoon watch room 210 during time resident may press call bell she needs assistance bathroom i return within twenty minutes i have already completed her lunch record thank helping me",
     "output": "Can you cover my break at one o'clock? I need to call the pharmacy. One prescription is still missing. The delivery should arrive this afternoon. Please watch room 210 during that time. The resident may press the call bell. She needs assistance to the bathroom. I will return within twenty minutes. I have already completed her lunch record. Thank you for helping me."
   },
   {
-    "category": "Staff-Staff",
-    "conversation_id": "SS_10",
-    "variation": 2,
-    "noise_type": "broken_grammar",
     "input": "can you cover my break at one oclock i need to call the pharmacy one prescription is still missing the delivery should arrive this afternoon please watch room 210 during that time the resident may press the call bell she needs assistance to the bathroom i return within tgoy minutes i have already completed her lunch record thank you for helping me",
     "output": "Can you cover my break at one o'clock? I need to call the pharmacy. One prescription is still missing. The delivery should arrive this afternoon. Please watch room 210 during that time. The resident may press the call bell. She needs assistance to the bathroom. I will return within twenty minutes. I have already completed her lunch record. Thank you for helping me."
   },
   {
-    "category": "Staff-Staff",
-    "conversation_id": "SS_10",
-    "variation": 3,
-    "noise_type": "no_punctuation",
     "input": "can you cover my break at one oclock i need to call the pharmacy one prescription is still missing the delivery should arrive this afternoon please watch room 210 during that time the resident may press the call bell she needs assistance to the bathroom i will return within twenty minutes i have already completed her lunch record thank you for helping me",
     "output": "Can you cover my break at one o'clock? I need to call the pharmacy. One prescription is still missing. The delivery should arrive this afternoon. Please watch room 210 during that time. The resident may press the call bell. She needs assistance to the bathroom. I will return within twenty minutes. I have already completed her lunch record. Thank you for helping me."
   },
   {
-    "category": "Staff-Staff",
-    "conversation_id": "SS_10",
-    "variation": 4,
-    "noise_type": "word_order_repetition",
     "input": "you can can cover my break at one oclock need i i to call the pharmacy one prescription still is is missing the delivery should arrive this please afternoon afternoon watch room 210 during that time resident the the may press the call bell she assistance needs needs to the bathroom i will return twenty within within minutes i have already completed her record lunch lunch thank you for helping me",
     "output": "Can you cover my break at one o'clock? I need to call the pharmacy. One prescription is still missing. The delivery should arrive this afternoon. Please watch room 210 during that time. The resident may press the call bell. She needs assistance to the bathroom. I will return within twenty minutes. I have already completed her lunch record. Thank you for helping me."
   },
   {
-    "category": "General Daily Communication",
-    "conversation_id": "GD_01",
-    "variation": 1,
-    "noise_type": "missing_words",
     "input": "hello free afternoon i need help my appointment clinic near train station i not sure which bus take come me appointment starts at two oclock we leave before one thirty i bring documents remind me take my card thank helping me",
     "output": "Hello, are you free this afternoon? I need help with my appointment. The clinic is near the train station. I am not sure which bus to take. Can you come with me? The appointment starts at two o'clock. We should leave before one thirty. I will bring the documents. Please remind me to take my card. Thank you for helping me."
   },
   {
-    "category": "General Daily Communication",
-    "conversation_id": "GD_01",
-    "variation": 2,
-    "noise_type": "broken_grammar",
     "input": "hello you free this afternoon i need help with my appointment the clinic is near the train station i not sure which bus to take can you come with me the appointment starts at two oclock we should leave before one thirty i bring the documents please remind me to take my card thank you for helping me",
     "output": "Hello, are you free this afternoon? I need help with my appointment. The clinic is near the train station. I am not sure which bus to take. Can you come with me? The appointment starts at two o'clock. We should leave before one thirty. I will bring the documents. Please remind me to take my card. Thank you for helping me."
   },
   {
-    "category": "General Daily Communication",
-    "conversation_id": "GD_01",
-    "variation": 3,
-    "noise_type": "no_punctuation",
     "input": "hello are you free this afternoon i need help with my appointment the clinic is near the train station i am not sure which bus to take can you come with me the appointment starts at two oclock we should leave before one thirty i will bring the documents please remind me to take my card thank you for helping me",
     "output": "Hello, are you free this afternoon? I need help with my appointment. The clinic is near the train station. I am not sure which bus to take. Can you come with me? The appointment starts at two o'clock. We should leave before one thirty. I will bring the documents. Please remind me to take my card. Thank you for helping me."
   },
   {
-    "category": "General Daily Communication",
-    "conversation_id": "GD_01",
-    "variation": 4,
-    "noise_type": "word_order_repetition",
     "input": "are hello hello you free this afternoon i need with help help my appointment the clinic is near train the the station i am not sure which to bus bus take can you come with me appointment the the starts at two oclock we should before leave leave one thirty i will bring the please documents documents remind me to take my card you thank thank for helping me",
     "output": "Hello, are you free this afternoon? I need help with my appointment. The clinic is near the train station. I am not sure which bus to take. Can you come with me? The appointment starts at two o'clock. We should leave before one thirty. I will bring the documents. Please remind me to take my card. Thank you for helping me."
   },
   {
-    "category": "General Daily Communication",
-    "conversation_id": "GD_02",
-    "variation": 1,
-    "noise_type": "missing_words",
     "input": "hi i going supermarket need anything i buy milk and bread we also need eggs check if there enough rice i leave ten minutes send me message if remember something i may come back before dinner not forget lock door see later",
     "output": "Hi, I am going to the supermarket. Do you need anything? I can buy milk and bread. We also need eggs. Please check if there is enough rice. I will leave in ten minutes. Send me a message if you remember something. I may come back before dinner. Do not forget to lock the door. See you later."
   },
   {
-    "category": "General Daily Communication",
-    "conversation_id": "GD_02",
-    "variation": 2,
-    "noise_type": "broken_grammar",
     "input": "hi i going to the supermarket you need anything i can buy milk and bread we also need eggs please check if there is enough rice i leave in ten minutes send me a message if you remember something i may come back before dinner do not forget to lock the door see you leatr",
     "output": "Hi, I am going to the supermarket. Do you need anything? I can buy milk and bread. We also need eggs. Please check if there is enough rice. I will leave in ten minutes. Send me a message if you remember something. I may come back before dinner. Do not forget to lock the door. See you later."
   },
   {
-    "category": "General Daily Communication",
-    "conversation_id": "GD_02",
-    "variation": 3,
-    "noise_type": "no_punctuation",
     "input": "hi i am going to the supermarket do you need anything i can buy milk and bread we also need eggs please check if there is enough rice i will leave in ten minutes send me a message if you remember something i may come back before dinner do not forget to lock the door see you later",
     "output": "Hi, I am going to the supermarket. Do you need anything? I can buy milk and bread. We also need eggs. Please check if there is enough rice. I will leave in ten minutes. Send me a message if you remember something. I may come back before dinner. Do not forget to lock the door. See you later."
   },
   {
-    "category": "General Daily Communication",
-    "conversation_id": "GD_02",
-    "variation": 4,
-    "noise_type": "word_order_repetition",
     "input": "i hi hi am going to the supermarket do need you you anything i can buy milk and we bread bread also need eggs please check if is there there enough rice i will leave in minutes ten ten send me a message if you something remember remember i may come back before dinner not do do forget to lock the door see you later",
     "output": "Hi, I am going to the supermarket. Do you need anything? I can buy milk and bread. We also need eggs. Please check if there is enough rice. I will leave in ten minutes. Send me a message if you remember something. I may come back before dinner. Do not forget to lock the door. See you later."
   },
   {
-    "category": "General Daily Communication",
-    "conversation_id": "GD_03",
-    "variation": 1,
-    "noise_type": "missing_words",
     "input": "good morning weather looks cloudy today bring umbrella bus may be late because of rain i check timetable wear jacket may become colder tonight we meet at station call me when arrive i wait near entrance",
     "output": "Good morning. The weather looks cloudy today. You should bring an umbrella. The bus may be late because of rain. I will check the timetable. Please wear a jacket. It may become colder tonight. We can meet at the station. Call me when you arrive. I will wait near the entrance."
   },
   {
-    "category": "General Daily Communication",
-    "conversation_id": "GD_03",
-    "variation": 2,
-    "noise_type": "broken_grammar",
     "input": "good morning the weather looks cloudy today you should bring an umbrella the bus may be leat because of rain i check the timetable please wear a jacket it may become colder tonight we can meet at the station call me when you arrive i wait near the entrance",
     "output": "Good morning. The weather looks cloudy today. You should bring an umbrella. The bus may be late because of rain. I will check the timetable. Please wear a jacket. It may become colder tonight. We can meet at the station. Call me when you arrive. I will wait near the entrance."
   },
   {
-    "category": "General Daily Communication",
-    "conversation_id": "GD_03",
-    "variation": 3,
-    "noise_type": "no_punctuation",
     "input": "good morning the weather looks cloudy today you should bring an umbrella the bus may be late because of rain i will check the timetable please wear a jacket it may become colder tonight we can meet at the station call me when you arrive i will wait near the entrance",
     "output": "Good morning. The weather looks cloudy today. You should bring an umbrella. The bus may be late because of rain. I will check the timetable. Please wear a jacket. It may become colder tonight. We can meet at the station. Call me when you arrive. I will wait near the entrance."
   },
   {
-    "category": "General Daily Communication",
-    "conversation_id": "GD_03",
-    "variation": 4,
-    "noise_type": "word_order_repetition",
     "input": "morning good good the weather looks cloudy today you bring should should an umbrella the bus may be because late late of rain i will check the please timetable timetable wear a jacket it may become tonight colder colder we can meet at the station me call call when you arrive i will wait near the entrance",
     "output": "Good morning. The weather looks cloudy today. You should bring an umbrella. The bus may be late because of rain. I will check the timetable. Please wear a jacket. It may become colder tonight. We can meet at the station. Call me when you arrive. I will wait near the entrance."
   },
   {
-    "category": "General Daily Communication",
-    "conversation_id": "GD_04",
-    "variation": 1,
-    "noise_type": "missing_words",
     "input": "hello i cannot attend class today i feeling unwell i email tutor share notes me i review them tonight tell me if there homework i not want miss deadline group meeting still tomorrow i join online if needed thank understanding",
     "output": "Hello, I cannot attend class today. I am feeling unwell. I will email the tutor. Can you share the notes with me? I will review them tonight. Please tell me if there is homework. I do not want to miss the deadline. The group meeting is still tomorrow. I can join online if needed. Thank you for understanding."
   },
   {
-    "category": "General Daily Communication",
-    "conversation_id": "GD_04",
-    "variation": 2,
-    "noise_type": "broken_grammar",
     "input": "hello i cannot attend class today i feeling unwell i email the tutor can you share the notes with me i review them tonight please tell me if there is homework i do not want to miss the deadline the group meeting is still tomorrow i can join online if needed thank you for understanding",
     "output": "Hello, I cannot attend class today. I am feeling unwell. I will email the tutor. Can you share the notes with me? I will review them tonight. Please tell me if there is homework. I do not want to miss the deadline. The group meeting is still tomorrow. I can join online if needed. Thank you for understanding."
   },
   {
-    "category": "General Daily Communication",
-    "conversation_id": "GD_04",
-    "variation": 3,
-    "noise_type": "no_punctuation",
     "input": "hello i cannot attend class today i am feeling unwell i will email the tutor can you share the notes with me i will review them tonight please tell me if there is homework i do not want to miss the deadline the group meeting is still tomorrow i can join online if needed thank you for understanding",
     "output": "Hello, I cannot attend class today. I am feeling unwell. I will email the tutor. Can you share the notes with me? I will review them tonight. Please tell me if there is homework. I do not want to miss the deadline. The group meeting is still tomorrow. I can join online if needed. Thank you for understanding."
   },
   {
-    "category": "General Daily Communication",
-    "conversation_id": "GD_04",
-    "variation": 4,
-    "noise_type": "word_order_repetition",
     "input": "i hello hello cannot attend class today i am unwell feeling feeling i will email the tutor can share you you the notes with me i will them review review tonight please tell me if there homework is is i do not want to miss deadline the the the group meeting is still tomorrow can i i join online if needed thank you for understanding",
     "output": "Hello, I cannot attend class today. I am feeling unwell. I will email the tutor. Can you share the notes with me? I will review them tonight. Please tell me if there is homework. I do not want to miss the deadline. The group meeting is still tomorrow. I can join online if needed. Thank you for understanding."
   },
   {
-    "category": "General Daily Communication",
-    "conversation_id": "GD_05",
-    "variation": 1,
-    "noise_type": "missing_words",
     "input": "hi internet not working i restarted router already light still red check cable i need submit my assignment tonight maybe we contact support i use mobile data now not stream videos connection very slow i hope works again soon",
     "output": "Hi, the internet is not working. I restarted the router already. The light is still red. Can you check the cable? I need to submit my assignment tonight. Maybe we should contact support. I will use mobile data for now. Please do not stream videos. The connection is very slow. I hope it works again soon."
   },
   {
-    "category": "General Daily Communication",
-    "conversation_id": "GD_05",
-    "variation": 2,
-    "noise_type": "broken_grammar",
     "input": "hi the internet is not working i restarted the router already the light is still red can you check the cable i need to submit my assignment tonight maybe we should contact support i use mobile data for now please do not stream videos the connection is very slow i hope it works again soon",
     "output": "Hi, the internet is not working. I restarted the router already. The light is still red. Can you check the cable? I need to submit my assignment tonight. Maybe we should contact support. I will use mobile data for now. Please do not stream videos. The connection is very slow. I hope it works again soon."
   },
   {
-    "category": "General Daily Communication",
-    "conversation_id": "GD_05",
-    "variation": 3,
-    "noise_type": "no_punctuation",
     "input": "hi the internet is not working i restarted the router already the light is still red can you check the cable i need to submit my assignment tonight maybe we should contact support i will use mobile data for now please do not stream videos the connection is very slow i hope it works again soon",
     "output": "Hi, the internet is not working. I restarted the router already. The light is still red. Can you check the cable? I need to submit my assignment tonight. Maybe we should contact support. I will use mobile data for now. Please do not stream videos. The connection is very slow. I hope it works again soon."
   },
   {
-    "category": "General Daily Communication",
-    "conversation_id": "GD_05",
-    "variation": 4,
-    "noise_type": "word_order_repetition",
     "input": "the hi hi internet is not working i restarted router the the already the light is still red you can can check the cable i need to my submit submit assignment tonight maybe we should contact i support support will use mobile data for now do please please not stream videos the connection is slow very very i hope it works again soon",
     "output": "Hi, the internet is not working. I restarted the router already. The light is still red. Can you check the cable? I need to submit my assignment tonight. Maybe we should contact support. I will use mobile data for now. Please do not stream videos. The connection is very slow. I hope it works again soon."
   },
   {
-    "category": "General Daily Communication",
-    "conversation_id": "GD_06",
-    "variation": 1,
-    "noise_type": "missing_words",
     "input": "good evening dinner almost ready wash hands rice table soup still hot bring plates i turn off stove after dinner we clean together put leftovers fridge thank helping",
     "output": "Good evening. Dinner is almost ready. Please wash your hands. The rice is on the table. The soup is still hot. Can you bring the plates? I will turn off the stove. After dinner, we can clean together. Please put leftovers in the fridge. Thank you for helping."
   },
   {
-    "category": "General Daily Communication",
-    "conversation_id": "GD_06",
-    "variation": 2,
-    "noise_type": "broken_grammar",
     "input": "good evening dinner is almost ready please ish your hands the rice is on the table the soup is still hot can you bring the pleats i turn off the stove after dinner we can clean together please put leftovers in the fridge thank you for helping",
     "output": "Good evening. Dinner is almost ready. Please wash your hands. The rice is on the table. The soup is still hot. Can you bring the plates? I will turn off the stove. After dinner, we can clean together. Please put leftovers in the fridge. Thank you for helping."
   },
   {
-    "category": "General Daily Communication",
-    "conversation_id": "GD_06",
-    "variation": 3,
-    "noise_type": "no_punctuation",
     "input": "good evening dinner is almost ready please wash your hands the rice is on the table the soup is still hot can you bring the plates i will turn off the stove after dinner we can clean together please put leftovers in the fridge thank you for helping",
     "output": "Good evening. Dinner is almost ready. Please wash your hands. The rice is on the table. The soup is still hot. Can you bring the plates? I will turn off the stove. After dinner, we can clean together. Please put leftovers in the fridge. Thank you for helping."
   },
   {
-    "category": "General Daily Communication",
-    "conversation_id": "GD_06",
-    "variation": 4,
-    "noise_type": "word_order_repetition",
     "input": "evening good good dinner is almost ready please wash hands your your the rice is on the table soup the the is still hot can you bring plates the the i will turn off the stove dinner after after we can clean together please put in leftovers leftovers the fridge thank you for helping",
     "output": "Good evening. Dinner is almost ready. Please wash your hands. The rice is on the table. The soup is still hot. Can you bring the plates? I will turn off the stove. After dinner, we can clean together. Please put leftovers in the fridge. Thank you for helping."
   },
   {
-    "category": "General Daily Communication",
-    "conversation_id": "GD_07",
-    "variation": 1,
-    "noise_type": "missing_words",
     "input": "hi i running late train was delayed i may arrive twenty minutes order first if hungry i sorry making wait i message when i get closer restaurant near station save me seat i come as fast as i thank waiting",
     "output": "Hi, I am running late. The train was delayed. I may arrive in twenty minutes. Please order first if you are hungry. I am sorry for making you wait. I will message you when I get closer. The restaurant is near the station. Can you save me a seat? I will come as fast as I can. Thank you for waiting."
   },
   {
-    "category": "General Daily Communication",
-    "conversation_id": "GD_07",
-    "variation": 2,
-    "noise_type": "broken_grammar",
     "input": "hi i running leat the train is delayed i may arrive in tgoy minutes please order first if you are hungry i sorry for making you wait i message you when i get closer the restaurant is near the station can you save me a seat i come as fast as i can thank you for waiting",
     "output": "Hi, I am running late. The train was delayed. I may arrive in twenty minutes. Please order first if you are hungry. I am sorry for making you wait. I will message you when I get closer. The restaurant is near the station. Can you save me a seat? I will come as fast as I can. Thank you for waiting."
   },
   {
-    "category": "General Daily Communication",
-    "conversation_id": "GD_07",
-    "variation": 3,
-    "noise_type": "no_punctuation",
     "input": "hi i am running late the train was delayed i may arrive in twenty minutes please order first if you are hungry i am sorry for making you wait i will message you when i get closer the restaurant is near the station can you save me a seat i will come as fast as i can thank you for waiting",
     "output": "Hi, I am running late. The train was delayed. I may arrive in twenty minutes. Please order first if you are hungry. I am sorry for making you wait. I will message you when I get closer. The restaurant is near the station. Can you save me a seat? I will come as fast as I can. Thank you for waiting."
   },
   {
-    "category": "General Daily Communication",
-    "conversation_id": "GD_07",
-    "variation": 4,
-    "noise_type": "word_order_repetition",
     "input": "i hi hi am running late the train was i delayed delayed may arrive in twenty minutes please first order order if you are hungry i am for sorry sorry making you wait i will message when you you i get closer the restaurant is the near near station can you save me a i seat seat will come as fast as i thank can can you for waiting",
     "output": "Hi, I am running late. The train was delayed. I may arrive in twenty minutes. Please order first if you are hungry. I am sorry for making you wait. I will message you when I get closer. The restaurant is near the station. Can you save me a seat? I will come as fast as I can. Thank you for waiting."
   },
   {
-    "category": "General Daily Communication",
-    "conversation_id": "GD_08",
-    "variation": 1,
-    "noise_type": "missing_words",
     "input": "hello help me carry box heavier than i expected we need move upstairs hold bottom carefully not lift too quickly we take break halfway room second floor after we move smaller bags i really appreciate help let us start when ready",
     "output": "Hello, can you help me carry this box? It is heavier than I expected. We need to move it upstairs. Please hold the bottom carefully. Do not lift too quickly. We can take a break halfway. The room is on the second floor. After that, we can move the smaller bags. I really appreciate your help. Let us start when you are ready."
   },
   {
-    "category": "General Daily Communication",
-    "conversation_id": "GD_08",
-    "variation": 2,
-    "noise_type": "broken_grammar",
     "input": "hello can you help me carry this box it heavier than i expected we need to move it upstairs please hold the bottom carefully do not lift too quickly we can take a break halfway the room is on the second floor after that we can move the smaller bags i really apprecieat your help let us start when you are ready",
     "output": "Hello, can you help me carry this box? It is heavier than I expected. We need to move it upstairs. Please hold the bottom carefully. Do not lift too quickly. We can take a break halfway. The room is on the second floor. After that, we can move the smaller bags. I really appreciate your help. Let us start when you are ready."
   },
   {
-    "category": "General Daily Communication",
-    "conversation_id": "GD_08",
-    "variation": 3,
-    "noise_type": "no_punctuation",
     "input": "hello can you help me carry this box it is heavier than i expected we need to move it upstairs please hold the bottom carefully do not lift too quickly we can take a break halfway the room is on the second floor after that we can move the smaller bags i really appreciate your help let us start when you are ready",
     "output": "Hello, can you help me carry this box? It is heavier than I expected. We need to move it upstairs. Please hold the bottom carefully. Do not lift too quickly. We can take a break halfway. The room is on the second floor. After that, we can move the smaller bags. I really appreciate your help. Let us start when you are ready."
   },
   {
-    "category": "General Daily Communication",
-    "conversation_id": "GD_08",
-    "variation": 4,
-    "noise_type": "word_order_repetition",
     "input": "can hello hello you help me carry this box is it it heavier than i expected we need move to to it upstairs please hold the bottom do carefully carefully not lift too quickly we can a take take break halfway the room is on second the the floor after that we can move smaller the the bags i really appreciate your help us let let start when you are ready",
     "output": "Hello, can you help me carry this box? It is heavier than I expected. We need to move it upstairs. Please hold the bottom carefully. Do not lift too quickly. We can take a break halfway. The room is on the second floor. After that, we can move the smaller bags. I really appreciate your help. Let us start when you are ready."
   },
   {
-    "category": "General Daily Communication",
-    "conversation_id": "GD_09",
-    "variation": 1,
-    "noise_type": "missing_words",
     "input": "hi i forgot my password i cannot log website i tried resetting twice email has not arrived check spam folder maybe i typed address wrong i need access before tomorrow i contact support if still fails let me know if find email thank",
     "output": "Hi, I forgot my password. I cannot log in to the website. I tried resetting it twice. The email has not arrived. Can you check the spam folder? Maybe I typed the address wrong. I need access before tomorrow. I will contact support if it still fails. Please let me know if you find the email. Thank you."
   },
   {
-    "category": "General Daily Communication",
-    "conversation_id": "GD_09",
-    "variation": 2,
-    "noise_type": "broken_grammar",
     "input": "hi i forgot my password i cannot log in to the website i tried resetting it twice the email has not arrive can you check the spam folder maybe i typed the address wrong i need access before tomorrow i contact support if it still fails please let me know if you find the email thank you",
     "output": "Hi, I forgot my password. I cannot log in to the website. I tried resetting it twice. The email has not arrived. Can you check the spam folder? Maybe I typed the address wrong. I need access before tomorrow. I will contact support if it still fails. Please let me know if you find the email. Thank you."
   },
   {
-    "category": "General Daily Communication",
-    "conversation_id": "GD_09",
-    "variation": 3,
-    "noise_type": "no_punctuation",
     "input": "hi i forgot my password i cannot log in to the website i tried resetting it twice the email has not arrived can you check the spam folder maybe i typed the address wrong i need access before tomorrow i will contact support if it still fails please let me know if you find the email thank you",
     "output": "Hi, I forgot my password. I cannot log in to the website. I tried resetting it twice. The email has not arrived. Can you check the spam folder? Maybe I typed the address wrong. I need access before tomorrow. I will contact support if it still fails. Please let me know if you find the email. Thank you."
   },
   {
-    "category": "General Daily Communication",
-    "conversation_id": "GD_09",
-    "variation": 4,
-    "noise_type": "word_order_repetition",
     "input": "i hi hi forgot my password i cannot log to in in the website i tried resetting it the twice twice email has not arrived can you the check check spam folder maybe i typed the wrong address address i need access before tomorrow i contact will will support if it still fails please me let let know if you find the email thank you",
     "output": "Hi, I forgot my password. I cannot log in to the website. I tried resetting it twice. The email has not arrived. Can you check the spam folder? Maybe I typed the address wrong. I need access before tomorrow. I will contact support if it still fails. Please let me know if you find the email. Thank you."
   },
   {
-    "category": "General Daily Communication",
-    "conversation_id": "GD_10",
-    "variation": 1,
-    "noise_type": "missing_words",
     "input": "good afternoon we plan weekend trip weather may be sunny we leave early saturday check train schedule i prepare some snacks we bring water as well walk may take two hours comfortable shoes important let us confirm plan tonight",
     "output": "Good afternoon. We should plan the weekend trip. The weather may be sunny. We can leave early on Saturday. Please check the train schedule. I will prepare some snacks. We should bring water as well. The walk may take two hours. Comfortable shoes are important. Let us confirm the plan tonight."
   },
   {
-    "category": "General Daily Communication",
-    "conversation_id": "GD_10",
-    "variation": 2,
-    "noise_type": "broken_grammar",
     "input": "good afternoon we should plan the weekend trip the weather may be sunny we can leave early on saturday please check the train schedule i prepare some snacks we should bring weatr as well the walk may take two hours comfortable shoes are important let us confirm the plan tonight",
     "output": "Good afternoon. We should plan the weekend trip. The weather may be sunny. We can leave early on Saturday. Please check the train schedule. I will prepare some snacks. We should bring water as well. The walk may take two hours. Comfortable shoes are important. Let us confirm the plan tonight."
   },
   {
-    "category": "General Daily Communication",
-    "conversation_id": "GD_10",
-    "variation": 3,
-    "noise_type": "no_punctuation",
     "input": "good afternoon we should plan the weekend trip the weather may be sunny we can leave early on saturday please check the train schedule i will prepare some snacks we should bring water as well the walk may take two hours comfortable shoes are important let us confirm the plan tonight",
     "output": "Good afternoon. We should plan the weekend trip. The weather may be sunny. We can leave early on Saturday. Please check the train schedule. I will prepare some snacks. We should bring water as well. The walk may take two hours. Comfortable shoes are important. Let us confirm the plan tonight."
   },
   {
-    "category": "General Daily Communication",
-    "conversation_id": "GD_10",
-    "variation": 4,
-    "noise_type": "word_order_repetition",
     "input": "afternoon good good we should plan the weekend trip weather the the may be sunny we can leave on early early saturday please check the train schedule will i i prepare some snacks we should bring as water water well the walk may take two comfortable hours hours shoes are important let us confirm the plan tonight",
     "output": "Good afternoon. We should plan the weekend trip. The weather may be sunny. We can leave early on Saturday. Please check the train schedule. I will prepare some snacks. We should bring water as well. The walk may take two hours. Comfortable shoes are important. Let us confirm the plan tonight."
   }
