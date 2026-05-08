@@ -115,10 +115,15 @@ async def notify_booking_created(booking, admin_id: int, db: Optional[Session] =
     await ws_manager.broadcast(admin_id, payload)
 
 
-async def notify_booking_updated(booking, admin_id: int, db: Optional[Session] = None):
+async def notify_booking_updated(
+    booking,
+    admin_id: int,
+    db: Optional[Session] = None,
+    client_user_id: Optional[int] = None,
+):
     prefix = "Booking cancelled" if str(getattr(booking, "status", "")).lower() in {"cancelled", "canceled"} else "Booking updated"
     title, body = _build_booking_summary(booking, prefix=prefix)
-    _persist_notification(
+    notification = _persist_notification(
         db,
         admin_id=admin_id,
         category="appointment",
@@ -126,10 +131,21 @@ async def notify_booking_updated(booking, admin_id: int, db: Optional[Session] =
         body=body,
         related_entity_type="booking",
         related_entity_id=booking.id,
+        recipient_user_ids=[int(client_user_id)] if client_user_id else None,
     )
 
     await ws_manager.broadcast(admin_id, {
         "type": "booking_updated",
+        "notification": {
+            "id": notification.id,
+            "category": notification.category,
+            "title": notification.title,
+            "body": notification.body,
+            "related_entity_type": notification.related_entity_type,
+            "related_entity_id": notification.related_entity_id,
+            "is_priority": notification.is_priority,
+            "created_at": notification.created_at.isoformat() if getattr(notification, "created_at", None) else None,
+        } if notification else None,
         "booking": {
             "id": booking.id,
             "status": booking.status,
@@ -227,6 +243,8 @@ async def notify_schedule_updated(admin_id: int, doctor_id: str, date: str, sche
                         "id": slot.id,
                         "label": slot.label,
                         "available": slot.available,
+                        "start": slot.start,
+                        "end": slot.end,
                     }
                     for slot in schedule_payload["time_slots"]
                 ],
