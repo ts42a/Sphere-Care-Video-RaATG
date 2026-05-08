@@ -21,6 +21,17 @@ DOCTORS = [
         "specialty": "General Care",
         "appointment_type_ids": ["general-checkup", "follow-up", "consultation"],
         "room": "Room 203 - Main Care Unit",
+        "working_days": [0, 1, 2, 3, 4],
+        "slots": [
+            ("08:30", "09:00"),
+            ("09:00", "09:30"),
+            ("09:30", "10:00"),
+            ("10:30", "11:00"),
+            ("11:00", "11:30"),
+            ("13:30", "14:00"),
+            ("14:30", "15:00"),
+            ("16:00", "16:30"),
+        ],
     },
     {
         "id": "doc-2",
@@ -33,6 +44,14 @@ DOCTORS = [
         "specialty": "Family Care",
         "appointment_type_ids": ["general-checkup", "follow-up"],
         "room": "Room 205 - Main Care Unit",
+        "working_days": [0, 1, 2, 3, 4],
+        "slots": [
+            ("10:00", "10:30"),
+            ("10:30", "11:00"),
+            ("11:00", "11:30"),
+            ("13:00", "13:30"),
+            ("15:30", "16:00"),
+        ],
     },
     {
         "id": "doc-3",
@@ -45,6 +64,14 @@ DOCTORS = [
         "specialty": "General Care",
         "appointment_type_ids": ["general-checkup", "follow-up", "consultation", "review-med"],
         "room": "Room 207 - Main Care Unit",
+        "working_days": [0, 2, 4],
+        "slots": [
+            ("09:00", "09:30"),
+            ("10:00", "10:30"),
+            ("14:00", "14:30"),
+            ("15:00", "15:30"),
+            ("17:00", "17:30"),
+        ],
     },
     {
         "id": "doc-4",
@@ -57,6 +84,8 @@ DOCTORS = [
         "specialty": "General Care",
         "appointment_type_ids": ["general-checkup", "lab-test", "vaccination"],
         "room": "Room 209 - Main Care Unit",
+        "working_days": [],
+        "slots": [],
     },
     {
         "id": "doc-5",
@@ -69,15 +98,33 @@ DOCTORS = [
         "specialty": "General Care",
         "appointment_type_ids": ["general-checkup", "follow-up", "consultation"],
         "room": "Room 211 - Main Care Unit",
+        "working_days": [1, 3],
+        "slots": [
+            ("09:30", "10:00"),
+            ("10:30", "11:00"),
+            ("13:00", "13:30"),
+            ("14:00", "14:30"),
+            ("15:00", "15:30"),
+        ],
     },
 ]
 
-SLOT_TEMPLATES = [
-    {"id": "slot-0900", "label": "9:00 AM - 9:30 AM", "start": "09:00", "end": "09:30"},
-    {"id": "slot-0930", "label": "9:30 AM - 10:00 AM", "start": "09:30", "end": "10:00"},
-    {"id": "slot-1030", "label": "10:30 AM - 11:00 AM", "start": "10:30", "end": "11:00"},
-    {"id": "slot-1100", "label": "11:00 AM - 11:30 AM", "start": "11:00", "end": "11:30"},
-]
+
+def format_time_label(value: str):
+    parsed = datetime.strptime(value, "%H:%M")
+    hour = parsed.hour % 12 or 12
+    minute = parsed.minute
+    meridiem = "AM" if parsed.hour < 12 else "PM"
+    return f"{hour}:{minute:02d} {meridiem}"
+
+
+def make_slot(start: str, end: str):
+    return {
+        "id": f"slot-{start.replace(':', '')}",
+        "label": f"{format_time_label(start)} - {format_time_label(end)}",
+        "start": start,
+        "end": end,
+    }
 
 
 def get_appointment_types():
@@ -101,21 +148,25 @@ def get_doctor_by_id(doctor_id: str):
     return next((item for item in DOCTORS if item["id"] == doctor_id), None)
 
 
-def get_slot_templates():
-    return SLOT_TEMPLATES
+def get_slot_templates(doctor_id: str | None = None):
+    doctor = get_doctor_by_id(doctor_id) if doctor_id else None
+    slots = doctor.get("slots", []) if doctor else DOCTORS[0]["slots"]
+    return [make_slot(start, end) for start, end in slots]
 
 
-def get_slot_template_by_id(slot_id: str):
-    return next((slot for slot in SLOT_TEMPLATES if slot["id"] == slot_id), None)
+def get_slot_template_by_id(slot_id: str, doctor_id: str | None = None):
+    return next((slot for slot in get_slot_templates(doctor_id) if slot["id"] == slot_id), None)
 
 
-def get_available_dates(days_ahead: int = 28):
+def get_available_dates(doctor_id: str | None = None, days_ahead: int = 28):
     today = datetime.now().date()
     dates: list[str] = []
+    doctor = get_doctor_by_id(doctor_id) if doctor_id else None
+    working_days = doctor.get("working_days", [0, 1, 2, 3, 4]) if doctor else [0, 1, 2, 3, 4]
 
     for i in range(1, days_ahead + 1):
         d = today + timedelta(days=i)
-        if d.weekday() < 5:
+        if d.weekday() in working_days:
             dates.append(d.isoformat())
 
     return dates
