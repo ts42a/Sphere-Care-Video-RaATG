@@ -103,16 +103,32 @@ function normalizeDoctor(item: any): Doctor {
 }
 
 function normalizeTimeSlot(item: any): TimeSlot {
+  const start =
+    typeof item?.start === "string"
+      ? item.start
+      : typeof item?.start_time === "string"
+      ? item.start_time
+      : undefined;
+
+  const end =
+    typeof item?.end === "string"
+      ? item.end
+      : typeof item?.end_time === "string"
+      ? item.end_time
+      : undefined;
+
   const label =
     item?.label ??
     item?.time ??
     item?.displayTime ??
-    (item?.start && item?.end ? `${item.start} - ${item.end}` : "Unknown time");
+    (start && end ? `${start} - ${end}` : "Unknown time");
 
   return {
     id: String(item?.id ?? item?.timeSlotId ?? item?.slotId ?? label),
     label: String(label),
     available: Boolean(item?.available ?? item?.isAvailable ?? true),
+    start,
+    end,
   };
 }
 
@@ -141,6 +157,12 @@ function normalizeSchedule(item: any): ScheduleResponse {
       role: String(
         rawDoctor?.role ?? rawDoctor?.specialty ?? "General Practitioner"
       ),
+      availabilitySummary:
+        typeof rawDoctor?.availabilitySummary === "string"
+          ? rawDoctor.availabilitySummary
+          : typeof rawDoctor?.availability_summary === "string"
+          ? rawDoctor.availability_summary
+          : undefined,
     },
     date: String(item?.date ?? rawDates[0] ?? ""),
     availableDates: rawDates.map((date: unknown) => String(date)),
@@ -195,13 +217,35 @@ function normalizeBookingConfirmation(item: any): BookingConfirmation {
   };
 }
 
-function buildMockTimeSlots(): TimeSlot[] {
-  return [
-    { id: "slot-0900", label: "9:00 AM - 9:30 AM", available: true },
-    { id: "slot-0930", label: "9:30 AM - 10:00 AM", available: true },
-    { id: "slot-1030", label: "10:30 AM - 11:00 AM", available: true },
-    { id: "slot-1100", label: "11:00 AM - 11:30 AM", available: true },
-  ];
+function buildMockTimeSlots(doctorId?: string): TimeSlot[] {
+  const slotMap: Record<string, TimeSlot[]> = {
+    "doc-1": [
+      { id: "slot-0830", label: "8:30 AM - 9:00 AM", available: true, start: "08:30", end: "09:00" },
+      { id: "slot-0900", label: "9:00 AM - 9:30 AM", available: true, start: "09:00", end: "09:30" },
+      { id: "slot-0930", label: "9:30 AM - 10:00 AM", available: false, start: "09:30", end: "10:00" },
+      { id: "slot-1030", label: "10:30 AM - 11:00 AM", available: true, start: "10:30", end: "11:00" },
+      { id: "slot-1100", label: "11:00 AM - 11:30 AM", available: true, start: "11:00", end: "11:30" },
+      { id: "slot-1330", label: "1:30 PM - 2:00 PM", available: true, start: "13:30", end: "14:00" },
+      { id: "slot-1430", label: "2:30 PM - 3:00 PM", available: true, start: "14:30", end: "15:00" },
+      { id: "slot-1600", label: "4:00 PM - 4:30 PM", available: true, start: "16:00", end: "16:30" },
+    ],
+    "doc-2": [
+      { id: "slot-1000", label: "10:00 AM - 10:30 AM", available: true, start: "10:00", end: "10:30" },
+      { id: "slot-1030", label: "10:30 AM - 11:00 AM", available: true, start: "10:30", end: "11:00" },
+      { id: "slot-1100", label: "11:00 AM - 11:30 AM", available: true, start: "11:00", end: "11:30" },
+      { id: "slot-1300", label: "1:00 PM - 1:30 PM", available: true, start: "13:00", end: "13:30" },
+      { id: "slot-1530", label: "3:30 PM - 4:00 PM", available: true, start: "15:30", end: "16:00" },
+    ],
+    "doc-3": [
+      { id: "slot-0900", label: "9:00 AM - 9:30 AM", available: true, start: "09:00", end: "09:30" },
+      { id: "slot-1000", label: "10:00 AM - 10:30 AM", available: true, start: "10:00", end: "10:30" },
+      { id: "slot-1400", label: "2:00 PM - 2:30 PM", available: true, start: "14:00", end: "14:30" },
+      { id: "slot-1500", label: "3:00 PM - 3:30 PM", available: true, start: "15:00", end: "15:30" },
+      { id: "slot-1700", label: "5:00 PM - 5:30 PM", available: true, start: "17:00", end: "17:30" },
+    ],
+  };
+
+  return slotMap[doctorId ?? ""] ?? slotMap["doc-1"];
 }
 
 async function getMockAppointmentTypes(): Promise<AppointmentType[]> {
@@ -292,7 +336,7 @@ async function getMockSchedule(
     },
     date: resolvedDate,
     availableDates,
-    timeSlots: buildMockTimeSlots(),
+    timeSlots: buildMockTimeSlots(doctorId),
     version: 1,
   };
 }
@@ -375,6 +419,7 @@ export async function createBooking(
   const schedule = await getMockSchedule(input.doctorId, input.date);
   const selectedSlot =
     schedule.timeSlots.find((slot) => slot.id === input.timeSlotId) ??
+    schedule.timeSlots.find((slot) => slot.available) ??
     schedule.timeSlots[0];
 
   const booking: BookingConfirmation = {
