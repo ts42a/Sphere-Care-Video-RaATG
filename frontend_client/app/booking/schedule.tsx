@@ -46,17 +46,74 @@ function getNextWeekdayDateKey() {
 }
 
 function normalizeRealtimeSlot(item: any): TimeSlot {
+  const start =
+    typeof item?.start === "string"
+      ? item.start
+      : typeof item?.start_time === "string"
+        ? item.start_time
+        : undefined;
+
+  const end =
+    typeof item?.end === "string"
+      ? item.end
+      : typeof item?.end_time === "string"
+        ? item.end_time
+        : undefined;
+
   const label =
     item?.label ??
     item?.time ??
     item?.displayTime ??
-    (item?.start && item?.end ? `${item.start} - ${item.end}` : "Unknown time");
+    (start && end ? `${start} - ${end}` : "Unknown time");
 
   return {
     id: String(item?.id ?? item?.timeSlotId ?? item?.slotId ?? label),
     label: String(label),
     available: Boolean(item?.available ?? item?.isAvailable ?? true),
+    start,
+    end,
   };
+}
+
+function parseTimeToMinutes(value?: string) {
+  if (!value) return Number.POSITIVE_INFINITY;
+
+  const normalized = value.trim();
+  const twentyFourHourMatch = normalized.match(/^(\d{1,2}):(\d{2})$/);
+
+  if (twentyFourHourMatch) {
+    const hours = Number(twentyFourHourMatch[1]);
+    const minutes = Number(twentyFourHourMatch[2]);
+    return hours * 60 + minutes;
+  }
+
+  const twelveHourMatch = normalized.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+
+  if (twelveHourMatch) {
+    let hours = Number(twelveHourMatch[1]);
+    const minutes = Number(twelveHourMatch[2]);
+    const meridiem = twelveHourMatch[3].toUpperCase();
+
+    if (meridiem === "PM" && hours !== 12) hours += 12;
+    if (meridiem === "AM" && hours === 12) hours = 0;
+
+    return hours * 60 + minutes;
+  }
+
+  return Number.POSITIVE_INFINITY;
+}
+
+function getSlotStartMinutes(slot: TimeSlot) {
+  return parseTimeToMinutes(slot.start ?? slot.label);
+}
+
+function getSlotPeriod(slot: TimeSlot) {
+  const minutes = getSlotStartMinutes(slot);
+
+  if (minutes < 12 * 60) return "Morning";
+  if (minutes < 17 * 60) return "Afternoon";
+
+  return "Evening";
 }
 
 export default function ScheduleScreen() {
@@ -230,8 +287,38 @@ export default function ScheduleScreen() {
   const doctor = scheduleData?.doctor;
 
   const availableSlots = useMemo(() => {
-    return scheduleData?.timeSlots ?? [];
+    return (scheduleData?.timeSlots ?? [])
+      .filter((slot) => slot.available)
+      .sort((a, b) => getSlotStartMinutes(a) - getSlotStartMinutes(b));
   }, [scheduleData?.timeSlots]);
+
+  const timeSlotGroups = useMemo(() => {
+    const groups = [
+      {
+        title: "Morning",
+        description: "Before 12:00 PM",
+        slots: [] as TimeSlot[],
+      },
+      {
+        title: "Afternoon",
+        description: "12:00 PM to 5:00 PM",
+        slots: [] as TimeSlot[],
+      },
+      {
+        title: "Evening",
+        description: "After 5:00 PM",
+        slots: [] as TimeSlot[],
+      },
+    ];
+
+    availableSlots.forEach((slot) => {
+      const period = getSlotPeriod(slot);
+      const group = groups.find((item) => item.title === period);
+      group?.slots.push(slot);
+    });
+
+    return groups.filter((group) => group.slots.length > 0);
+  }, [availableSlots]);
 
   function formatDateLabel(dateString: string) {
     const date = parseLocalDate(dateString);
@@ -245,8 +332,8 @@ export default function ScheduleScreen() {
     const date = parseLocalDate(dateString);
     return date.toLocaleDateString("en-AU", {
       weekday: "long",
-      month: "short",
       day: "numeric",
+      month: "long",
       year: "numeric",
     });
   }
@@ -293,12 +380,16 @@ export default function ScheduleScreen() {
         err instanceof Error ? err.message : "Failed to create booking.";
 
       if (message.toLowerCase().includes("no longer available")) {
-        setError("This time slot is no longer available. Please choose another one.");
+        setError(
+          "This time slot is no longer available. Please choose another one."
+        );
 
         try {
           await reloadCurrentSchedule();
         } catch {
-          setError("This time slot is no longer available. Please refresh and try again.");
+          setError(
+            "This time slot is no longer available. Please refresh and try again."
+          );
         }
       } else {
         setError(message || "Failed to create booking.");
@@ -350,52 +441,70 @@ export default function ScheduleScreen() {
                 maxDate={maxDate}
               />
 
-              <View style={styles.availableHeader}>
-                <Feather name="clock" size={24} color="#68778C" />
-                <Text style={styles.availableTitle}>
-                  Available Times
-                  {selectedDate ? ` · ${formatDateFull(selectedDate)}` : ""}
-                </Text>
-                {refreshingTimes ? (
-                  <ActivityIndicator size="small" color="#68778C" />
-                ) : null}
+              <View style={styles.scheduleSummaryCard}>
+                <View style={styles.scheduleSummaryTop}>
+                  <View style={styles.scheduleSummaryIcon}>
+                    <Feather name="clock" size={18} color="#6B7A90" />
+                  </View>
+
+                  <View style={styles.scheduleSummaryText}>
+                    <Text style={styles.scheduleEyebrow}>Available times</Text>
+                    <Text style={styles.scheduleDoctorName}>{doctor.name}</Text>
+                    <Text style={styles.scheduleDate}>
+                      {selectedDate ? formatDateFull(selectedDate) : ""}
+                    </Text>
+                  </View>
+
+                  {refreshingTimes ? (
+                    <ActivityIndicator size="small" color="#6B7A90" />
+                  ) : null}
+                </View>
               </View>
 
               {error ? <Text style={styles.inlineErrorText}>{error}</Text> : null}
 
-              <View style={styles.timeGrid}>
+              <View style={styles.timeSection}>
                 {availableSlots.length === 0 ? (
                   <Text style={styles.emptyText}>
-                    No available time slots for this date.
+                    No available time slots for this doctor on this date.
                   </Text>
                 ) : (
-                  availableSlots.map((slot) => {
-                    const active = selectedSlot?.id === slot.id;
-                    const disabled = !slot.available;
-
-                    return (
-                      <Pressable
-                        key={slot.id}
-                        style={[
-                          styles.timeBtn,
-                          active && styles.timeBtnSelected,
-                          disabled && styles.timeBtnDisabled,
-                        ]}
-                        onPress={() => setSelectedSlot(slot)}
-                        disabled={disabled}
-                      >
-                        <Text
-                          style={[
-                            styles.timeBtnText,
-                            active && styles.timeBtnTextSelected,
-                            disabled && styles.timeBtnTextDisabled,
-                          ]}
-                        >
-                          {slot.label}
+                  timeSlotGroups.map((group) => (
+                    <View key={group.title} style={styles.timeGroup}>
+                      <View style={styles.timeGroupHeader}>
+                        <Text style={styles.timeGroupTitle}>{group.title}</Text>
+                        <Text style={styles.timeGroupDescription}>
+                          {group.description}
                         </Text>
-                      </Pressable>
-                    );
-                  })
+                      </View>
+
+                      <View style={styles.timeGrid}>
+                        {group.slots.map((slot) => {
+                          const active = selectedSlot?.id === slot.id;
+
+                          return (
+                            <Pressable
+                              key={slot.id}
+                              style={[
+                                styles.timeBtn,
+                                active && styles.timeBtnSelected,
+                              ]}
+                              onPress={() => setSelectedSlot(slot)}
+                            >
+                              <Text
+                                style={[
+                                  styles.timeBtnText,
+                                  active && styles.timeBtnTextSelected,
+                                ]}
+                              >
+                                {slot.label}
+                              </Text>
+                            </Pressable>
+                          );
+                        })}
+                      </View>
+                    </View>
+                  ))
                 )}
               </View>
 
@@ -462,44 +571,103 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   doctorName: {
-    fontSize: 17,
+    fontSize: 18,
+    fontFamily: "Montserrat-Bold",
     color: "#1D2740",
-    marginBottom: 3,
+    marginBottom: 4,
   },
   doctorRole: {
     fontSize: 14,
-    color: "#1D2740",
-    marginBottom: 8,
+    fontFamily: "OpenSans-Regular",
+    color: "#5E6D81",
+    marginBottom: 6,
   },
   typeText: {
-    fontSize: 15,
-    color: "#5E6D81",
+    fontSize: 14,
+    fontFamily: "OpenSans-Regular",
+    color: "#6B7A90",
   },
   rightInfo: {
     alignItems: "flex-end",
   },
   dateText: {
     color: "#FF8A2B",
-    fontSize: 15,
-    marginBottom: 8,
+    fontSize: 14,
+    fontFamily: "OpenSans-Regular",
   },
-  availableHeader: {
+  scheduleSummaryCard: {
+    backgroundColor: "#F1F3F6",
+    borderRadius: 22,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    marginBottom: 20,
+  },
+
+  scheduleSummaryTop: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 18,
   },
-  availableTitle: {
-    fontSize: 18,
-    color: "#425266",
-    marginLeft: 10,
+
+  scheduleSummaryIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 14,
+  },
+
+  scheduleSummaryText: {
     flex: 1,
+  },
+
+  scheduleEyebrow: {
+    fontSize: 13,
+    fontFamily: "OpenSans-Regular",
+    color: "#7A8798",
+    marginBottom: 2,
+  },
+
+  scheduleDoctorName: {
+    fontSize: 19,
+    fontFamily: "Montserrat-Bold",
+    color: "#46576D",
+    marginBottom: 2,
+  },
+
+  scheduleDate: {
+    fontSize: 14,
+    fontFamily: "OpenSans-Regular",
+    color: "#6B7A90",
+    lineHeight: 20,
+  },
+  timeSection: {
+    marginBottom: 90,
+  },
+  timeGroup: {
+    marginBottom: 24,
+  },
+  timeGroupHeader: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    justifyContent: "space-between",
+    marginBottom: 12,
+  },
+  timeGroupTitle: {
+    fontSize: 16,
+    fontFamily: "Montserrat-Bold",
+    color: "#1D2740",
+  },
+  timeGroupDescription: {
+    fontSize: 12,
+    fontFamily: "OpenSans-Regular",
+    color: "#8A95A5",
   },
   timeGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
     rowGap: 14,
-    marginBottom: 110,
   },
   timeBtn: {
     width: "47%",
@@ -514,21 +682,14 @@ const styles = StyleSheet.create({
     backgroundColor: "#465A72",
     borderColor: "#465A72",
   },
-  timeBtnDisabled: {
-    backgroundColor: "#F2F4F7",
-    borderColor: "#E1E6EC",
-  },
   timeBtnText: {
     fontSize: 15,
-    fontWeight: "600",
+    fontFamily: "Montserrat-Bold",
     color: "#1D2740",
     textAlign: "center",
   },
   timeBtnTextSelected: {
     color: "#FFFFFF",
-  },
-  timeBtnTextDisabled: {
-    color: "#A5AFBC",
   },
   footerRow: {
     flexDirection: "row",
@@ -547,9 +708,9 @@ const styles = StyleSheet.create({
   },
   backActionText: {
     marginLeft: 8,
-    fontSize: 16,
+    fontSize: 15,
+    fontFamily: "Montserrat-Bold",
     color: "#1D2740",
-    fontWeight: "500",
   },
   nextAction: {
     flexDirection: "row",
@@ -564,22 +725,26 @@ const styles = StyleSheet.create({
   },
   nextActionText: {
     color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "600",
+    fontSize: 15,
+    fontFamily: "Montserrat-Bold",
     marginRight: 8,
   },
   errorText: {
     color: "#D9534F",
     fontSize: 15,
+    fontFamily: "OpenSans-Regular",
   },
   inlineErrorText: {
     color: "#D9534F",
     fontSize: 14,
+    fontFamily: "OpenSans-Regular",
     marginBottom: 14,
   },
   emptyText: {
     fontSize: 15,
+    fontFamily: "OpenSans-Regular",
     color: "#6A7487",
     marginTop: 4,
+    lineHeight: 22,
   },
 });
