@@ -1,8 +1,8 @@
 """
 backend/api/routers/ws.py
 
-New message types handled:
-  audio_chunk  — base64 audio from Expo/Web → Whisper → call.caption broadcast
+Message types handled:
+  audio_chunk  — legacy fallback only. Phase A ASR should come from LiveKit audio.
   asl_frame    — base64 image from Expo/Web → asl.py → call.asl.result broadcast
 
 All existing handlers (schedule.watch, call_join, call_leave, etc.) unchanged.
@@ -37,7 +37,10 @@ async def _handle_audio_chunk(
     actor_key: str,
 ) -> None:
     """
-    Receive a base64 audio chunk, run Whisper, broadcast call.caption.
+    Legacy fallback: receive a base64 audio chunk, run Whisper, broadcast call.caption.
+
+    New frontend code should no longer send this. Backend ASR should subscribe to
+    LiveKit audio via `livekit_asr_service` instead.
 
     Expected payload:
     {

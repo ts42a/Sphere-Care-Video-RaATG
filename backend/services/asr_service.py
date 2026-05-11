@@ -26,6 +26,7 @@ WHISPER_MODEL_SIZE = os.getenv("WHISPER_MODEL_SIZE", "base")
 
 _model = None
 _model_lock = asyncio.Lock()
+_transcribe_lock = asyncio.Lock()
 
 
 def _load_model_sync():
@@ -54,9 +55,14 @@ async def _get_model():
         return _model
 
 
-def _transcribe_sync(model, audio_bytes: bytes, language: Optional[str]) -> dict:
+def _transcribe_sync(
+    model,
+    audio_bytes: bytes,
+    language: Optional[str],
+    file_suffix: str,
+) -> dict:
     """Write bytes to temp file and run Whisper (requires file path)."""
-    with tempfile.NamedTemporaryFile(suffix=".webm", delete=False) as tmp:
+    with tempfile.NamedTemporaryFile(suffix=file_suffix, delete=False) as tmp:
         tmp.write(audio_bytes)
         tmp_path = tmp.name
 
@@ -65,6 +71,10 @@ def _transcribe_sync(model, audio_bytes: bytes, language: Optional[str]) -> dict
             "fp16": False,
             "task": "transcribe",
             "condition_on_previous_text": False,
+            "verbose": False,
+            "temperature": 0,
+            "no_speech_threshold": 0.6,
+            "logprob_threshold": -1.0,
         }
         if language:
             kwargs["language"] = language
@@ -88,6 +98,7 @@ def _transcribe_sync(model, audio_bytes: bytes, language: Optional[str]) -> dict
 async def transcribe(
     audio_bytes: bytes,
     language: Optional[str] = None,
+    file_suffix: str = ".webm",
 ) -> dict:
     """
     Async transcription entry point.
@@ -106,9 +117,17 @@ async def transcribe(
     loop = asyncio.get_event_loop()
 
     try:
-        return await loop.run_in_executor(None, _transcribe_sync, model, audio_bytes, language)
-    except Exception as e:
-        logger.error(f"[ASR] Transcription error: {e}")
+        async with _transcribe_lock:
+            return await loop.run_in_executor(
+                None,
+                _transcribe_sync,
+                model,
+                audio_bytes,
+                language,
+                file_suffix,
+            )
+    except Exception:
+        logger.exception("[ASR] Transcription error")
         return {"text": "", "language": "en", "segments": []}
 
 

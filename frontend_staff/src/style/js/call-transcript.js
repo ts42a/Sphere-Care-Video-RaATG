@@ -4,9 +4,13 @@
  * Web (staff/admin browser) side of the ASR + ASL transcript system.
  *
  * Responsibilities:
- *   1. Record microphone in 2-second chunks → send as audio_chunk WS message
- *   2. Capture video frames at ~2fps → send as asl_frame WS message
- *   3. Receive call.caption and call.asl.result → render in transcript panel
+ *   1. Capture video frames at ~2fps → send as asl_frame WS message
+ *   2. Receive backend-broadcast call.caption and call.asl.result events
+ *   3. Upsert interim/final transcript segments by segment_id
+ *
+ * Audio is no longer recorded in the browser for ASR. The backend now owns ASR
+ * by subscribing to LiveKit room audio, so staff and client render the same
+ * transcript stream.
  *
  * HOW TO INITIALISE (call this once the call becomes active):
  *
@@ -37,14 +41,10 @@ const CallTranscript = (() => {
   let _videoEl  = null;
   let _enabled  = false;
 
-  let _mediaRecorder  = null;
-  let _audioStream    = null;
-  let _chunkInterval  = null;
   let _frameInterval  = null;
   let _offscreenCanvas = null;
   let _offscreenCtx    = null;
 
-  const CHUNK_INTERVAL_MS  = 2000;   // audio chunk every 2s
   const FRAME_INTERVAL_MS  = 500;    // ASL frame every 500ms (~2fps)
   const ASL_MODE           = "static"; // "static" | "motion"
 
@@ -62,22 +62,28 @@ const CallTranscript = (() => {
     }
   }
 
-  function _appendItem({ speaker, text, type, timestamp }) {
+  function _upsertItem({ segmentId, speaker, text, type, timestamp, isFinal = true }) {
     if (!_panelEl) return;
 
-    const item = document.createElement("div");
-    item.className = `transcript-item ${type}`;
+    const selector = segmentId ? `[data-segment-id="${CSS.escape(String(segmentId))}"]` : null;
+    let item = selector ? _panelEl.querySelector(selector) : null;
+
+    if (!item) {
+      item = document.createElement("div");
+      item.className = `transcript-item ${type}`;
+      if (segmentId) item.dataset.segmentId = String(segmentId);
+      _panelEl.appendChild(item);
+    }
+
+    item.className = `transcript-item ${type}${isFinal ? " final" : " interim"}`;
     item.innerHTML = `
       <span class="transcript-speaker">${_escHtml(speaker)}</span>
       <span class="transcript-text">${_escHtml(text)}</span>
       <span class="transcript-time">${_escHtml(timestamp)}</span>
     `;
-    _panelEl.appendChild(item);
 
-    // Auto-scroll
     _panelEl.scrollTop = _panelEl.scrollHeight;
 
-    // Trim old items (keep last 100)
     while (_panelEl.children.length > 100) {
       _panelEl.removeChild(_panelEl.firstChild);
     }
@@ -88,86 +94,6 @@ const CallTranscript = (() => {
       .replace(/&/g, "&amp;")
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;");
-  }
-
-  // ── Audio recording ────────────────────────────────────────────────────
-
-  async function _startAudio() {
-    try {
-      _audioStream = await navigator.mediaDevices.getUserMedia({
-        audio: { sampleRate: 16000, channelCount: 1, echoCancellation: true },
-        video: false,
-      });
-    } catch (err) {
-      console.warn("[CallTranscript] Mic access denied:", err);
-      return;
-    }
-
-    const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
-      ? "audio/webm;codecs=opus"
-      : "audio/webm";
-
-    const startRecorder = () => {
-      if (!_enabled) return;
-
-      const chunks = [];
-      const recorder = new MediaRecorder(_audioStream, { mimeType });
-
-      recorder.ondataavailable = (e) => {
-        if (e.data && e.data.size > 0) chunks.push(e.data);
-      };
-
-      recorder.onstop = async () => {
-        if (!chunks.length || !_enabled) return;
-
-        const blob = new Blob(chunks, { type: mimeType });
-        const arrayBuffer = await blob.arrayBuffer();
-        const b64 = _arrayBufferToBase64(arrayBuffer);
-
-        _send({
-          type: "audio_chunk",
-          payload: {
-            call_id: String(_callId),
-            audio_b64: b64,
-            language: null, // auto-detect
-          },
-        });
-      };
-
-      recorder.start();
-      _mediaRecorder = recorder;
-
-      // Stop after chunk interval → triggers onstop → sends chunk
-      setTimeout(() => {
-        try {
-          if (recorder.state === "recording") recorder.stop();
-        } catch (_) {}
-      }, CHUNK_INTERVAL_MS);
-    };
-
-    startRecorder();
-    _chunkInterval = setInterval(startRecorder, CHUNK_INTERVAL_MS);
-  }
-
-  function _stopAudio() {
-    if (_chunkInterval) { clearInterval(_chunkInterval); _chunkInterval = null; }
-    if (_mediaRecorder && _mediaRecorder.state === "recording") {
-      try { _mediaRecorder.stop(); } catch (_) {}
-    }
-    _mediaRecorder = null;
-    if (_audioStream) {
-      _audioStream.getTracks().forEach((t) => t.stop());
-      _audioStream = null;
-    }
-  }
-
-  function _arrayBufferToBase64(buffer) {
-    let binary = "";
-    const bytes = new Uint8Array(buffer);
-    for (let i = 0; i < bytes.byteLength; i++) {
-      binary += String.fromCharCode(bytes[i]);
-    }
-    return btoa(binary);
   }
 
   // ── ASL frame capture ──────────────────────────────────────────────────
@@ -224,22 +150,26 @@ const CallTranscript = (() => {
     if (msg.type === "call.caption" && msg.payload) {
       const p = msg.payload;
       if (String(p.call_id) !== String(_callId)) return;
-      _appendItem({
-        speaker: p.speaker || "Staff",
-        text:    p.text,
-        type:    "asr",
+      _upsertItem({
+        segmentId: p.segment_id,
+        speaker: p.speaker_name || p.speaker || "Unknown speaker",
+        text: p.text,
+        type: "asr",
         timestamp: _ts(p.ts),
+        isFinal: p.is_final !== false,
       });
     }
 
     if (msg.type === "call.asl.result" && msg.payload) {
       const p = msg.payload;
       if (String(p.call_id) !== String(_callId)) return;
-      _appendItem({
-        speaker:   p.speaker || "ASL",
-        text:      p.word ? `[ASL] ${p.word}` : `[ASL] ${p.letter}`,
-        type:      "asl",
+      _upsertItem({
+        segmentId: p.segment_id,
+        speaker: p.speaker || "ASL",
+        text: p.word ? `[ASL] ${p.word}` : `[ASL] ${p.letter}`,
+        type: "asl",
         timestamp: _ts(p.ts),
+        isFinal: true,
       });
     }
   }
@@ -257,13 +187,11 @@ const CallTranscript = (() => {
 
     _ws.addEventListener("message", _onMessage);
 
-    await _startAudio();
     _startFrameCapture();
   }
 
   function stop() {
     _enabled = false;
-    _stopAudio();
     _stopFrameCapture();
     if (_ws) _ws.removeEventListener("message", _onMessage);
     _ws     = null;
@@ -273,7 +201,6 @@ const CallTranscript = (() => {
   function setEnabled(val) {
     _enabled = val;
     if (!val) {
-      _stopAudio();
       _stopFrameCapture();
     }
   }

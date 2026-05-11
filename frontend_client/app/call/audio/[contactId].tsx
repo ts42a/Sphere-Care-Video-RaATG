@@ -14,10 +14,10 @@ import { callService } from "../../../src/services/callService";
 import { miniCallService } from "../../../src/services/miniCallService";
 import { useCallSession } from "../../../src/hooks/useCallSession";
 import { useAiTranscript } from "../../../src/hooks/useAiTranscript";
-import { useAudioChunks } from "../../../src/hooks/useAudioChunks";
 import { useAslBroadcast } from "../../../src/hooks/useAslBroadcast";
 import { useRtcEngine } from "../../../src/hooks/useRtcEngine";
 import { rtcEngine } from "../../../src/services/rtc/rtcEngineInstance";
+import { callSignalingService } from "../../../src/services/call/callSignalingService";
 import type { CallContact } from "../../../src/types/call";
 import CallHeader from "../../../src/components/call/CallHeader";
 import TranscriptPanel from "../../../src/components/call/TranscriptPanel";
@@ -37,11 +37,16 @@ function getConnectionLabel(callState: string, rtcState: string) {
   if (callState === "ended") return "Call ended";
 
   switch (rtcState) {
-    case "connecting":    return "Connecting";
-    case "reconnecting":  return "Reconnecting";
-    case "connected":     return "Excellent connection";
-    case "ended":         return "Call ended";
-    case "disconnected":  return "Disconnected";
+    case "connecting":
+      return "Connecting";
+    case "reconnecting":
+      return "Reconnecting";
+    case "connected":
+      return "Excellent connection";
+    case "ended":
+      return "Call ended";
+    case "disconnected":
+      return "Disconnected";
     default:
       return callState === "active" ? "Connecting" : "Preparing call";
   }
@@ -49,8 +54,12 @@ function getConnectionLabel(callState: string, rtcState: string) {
 
 export default function AudioCallScreen() {
   const params = useLocalSearchParams<{ contactId: string; callId?: string }>();
-  const contactId = Array.isArray(params.contactId) ? params.contactId[0] : params.contactId;
-  const routeCallId = Number(Array.isArray(params.callId) ? params.callId[0] : params.callId);
+  const contactId = Array.isArray(params.contactId)
+    ? params.contactId[0]
+    : params.contactId;
+  const routeCallId = Number(
+    Array.isArray(params.callId) ? params.callId[0] : params.callId
+  );
 
   const [contact, setContact] = useState<CallContact | null>(null);
   const [contactLoading, setContactLoading] = useState(true);
@@ -61,6 +70,7 @@ export default function AudioCallScreen() {
 
   useEffect(() => {
     if (!contactId) return;
+
     async function loadContact() {
       try {
         setContactLoading(true);
@@ -68,11 +78,14 @@ export default function AudioCallScreen() {
         const data = await callService.getContactById(contactId);
         setContact(data);
       } catch (err) {
-        setContactError(err instanceof Error ? err.message : "Unable to load contact");
+        setContactError(
+          err instanceof Error ? err.message : "Unable to load contact"
+        );
       } finally {
         setContactLoading(false);
       }
     }
+
     loadContact();
   }, [contactId]);
 
@@ -95,14 +108,6 @@ export default function AudioCallScreen() {
     Boolean(session?.transcribing)
   );
 
-  // ── NEW: Send audio chunks → Whisper ASR ────────────────────────────
-  useAudioChunks(session?.callId, {
-    enabled: Boolean(session?.callState === "active" && transcribing),
-  });
-
-  // ── NEW: ASL frame sender + word assembler ───────────────────────────
-  // sendFrame is passed to your camera component if you add one to this screen.
-  // aslWord is the running assembled word — you can display it if needed.
   const { sendFrame: sendAslFrame, aslWord } = useAslBroadcast(session?.callId, {
     enabled: Boolean(session?.callState === "active" && transcribing),
   });
@@ -123,7 +128,48 @@ export default function AudioCallScreen() {
   const error = contactError || sessionError || rtc.error;
 
   useEffect(() => {
-    if (!session || !contact || session.mode !== "video" || switchingToVideo) return;
+    if (!session || !contact || session.callState !== "active") return;
+
+    const callId = String(session.callId);
+    const localUserId = String(session.patient.userId ?? session.patient.name);
+    const remoteUserId = String(contact.userId ?? contact.id);
+
+    callSignalingService
+      .joinCall({
+        callId,
+        mode: "audio",
+        localUserId,
+        remoteUserId,
+      })
+      .then(() => {
+        console.log("[call] joined WS call room", { callId, mode: "audio" });
+      })
+      .catch((err) => {
+        console.warn("[call] failed to join WS call room", err);
+      });
+
+    return () => {
+      callSignalingService
+        .leaveCall({
+          callId,
+          localUserId,
+        })
+        .catch(() => undefined);
+    };
+  }, [
+    session?.callId,
+    session?.callState,
+    session?.patient.userId,
+    session?.patient.name,
+    contact?.userId,
+    contact?.id,
+  ]);
+
+  useEffect(() => {
+    if (!session || !contact || session.mode !== "video" || switchingToVideo) {
+      return;
+    }
+
     setSwitchingToVideo(true);
     router.replace({
       pathname: "/call/video/[contactId]",
@@ -133,15 +179,21 @@ export default function AudioCallScreen() {
 
   useEffect(() => {
     if (!session || !session.ended) return;
+
     const timer = setTimeout(() => {
       rtc.leaveCall().catch(() => undefined);
       router.replace("/call");
     }, 900);
+
     return () => clearTimeout(timer);
   }, [session?.ended, session?.callState]);
 
   const connectionLabel = useMemo(
-    () => getConnectionLabel(session?.callState ?? "ringing", rtc.snapshot.connectionState),
+    () =>
+      getConnectionLabel(
+        session?.callState ?? "ringing",
+        rtc.snapshot.connectionState
+      ),
     [session?.callState, rtc.snapshot.connectionState]
   );
 
@@ -157,7 +209,10 @@ export default function AudioCallScreen() {
     return (
       <SafeAreaView style={styles.loadingContainer}>
         <Text style={styles.errorText}>{error || "Unable to start call."}</Text>
-        <Pressable style={styles.backToListBtn} onPress={() => router.replace("/call")}>
+        <Pressable
+          style={styles.backToListBtn}
+          onPress={() => router.replace("/call")}
+        >
           <Text style={styles.backToListText}>Back to call center</Text>
         </Pressable>
       </SafeAreaView>
@@ -169,7 +224,13 @@ export default function AudioCallScreen() {
       key: "mute",
       label: "Mute",
       active: muted,
-      icon: <Feather name={muted ? "mic-off" : "mic"} size={22} color={colors.icon} />,
+      icon: (
+        <Feather
+          name={muted ? "mic-off" : "mic"}
+          size={22}
+          color={colors.icon}
+        />
+      ),
       onPress: async () => {
         await rtc.setMuted(!muted);
         await toggleMute();
@@ -179,7 +240,13 @@ export default function AudioCallScreen() {
       key: "speaker",
       label: "Speaker",
       active: speakerOn,
-      icon: <Feather name={speakerOn ? "volume-2" : "volume-x"} size={22} color={colors.icon} />,
+      icon: (
+        <Feather
+          name={speakerOn ? "volume-2" : "volume-x"}
+          size={22}
+          color={colors.icon}
+        />
+      ),
       onPress: () => setSpeakerOn((prev) => !prev),
     },
     {
@@ -188,6 +255,7 @@ export default function AudioCallScreen() {
       icon: <Feather name="video" size={22} color={colors.icon} />,
       onPress: async () => {
         if (!session || switchingToVideo) return;
+
         setSwitchingToVideo(true);
         try {
           await callService.updateMode(session.callId, "video");
@@ -230,7 +298,13 @@ export default function AudioCallScreen() {
     {
       key: "message",
       label: "",
-      icon: <Ionicons name="chatbubble-ellipses-outline" size={20} color={colors.icon} />,
+      icon: (
+        <Ionicons
+          name="chatbubble-ellipses-outline"
+          size={20}
+          color={colors.icon}
+        />
+      ),
       onPress: () =>
         router.push({
           pathname: "/messages/[contactId]",
@@ -298,7 +372,9 @@ export default function AudioCallScreen() {
             }
             size={22}
             color={
-              ["declined", "canceled", "timeout", "ended"].includes(session.callState)
+              ["declined", "canceled", "timeout", "ended"].includes(
+                session.callState
+              )
                 ? colors.danger
                 : colors.success
             }
@@ -306,7 +382,9 @@ export default function AudioCallScreen() {
           <Text
             style={[
               styles.connectionText,
-              ["declined", "canceled", "timeout", "ended"].includes(session.callState)
+              ["declined", "canceled", "timeout", "ended"].includes(
+                session.callState
+              )
                 ? styles.connectionTextEnded
                 : null,
             ]}

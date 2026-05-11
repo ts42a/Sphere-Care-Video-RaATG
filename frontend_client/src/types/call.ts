@@ -16,6 +16,10 @@ export type TranscriptItem = {
   role: TranscriptRole;
   content: string;
   created_at: string;
+  segmentId?: string;
+  source?: "asr" | "asl";
+  isFinal?: boolean;
+  confidence?: number;
 };
 
 export type CallContact = {

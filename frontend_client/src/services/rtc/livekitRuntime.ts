@@ -1,3 +1,14 @@
+import {
+  AudioSession,
+  registerGlobals,
+} from "@livekit/react-native";
+
+import {
+  Room,
+  RoomEvent,
+  Track,
+} from "livekit-client";
+
 let globalsRegistered = false;
 
 type LiveKitRuntime = {
@@ -14,32 +25,13 @@ type LiveKitRuntime = {
   };
 };
 
-function tryRequire(moduleName: string): any | null {
-  try {
-    // eslint-disable-next-line no-eval
-    const req = eval("require");
-    return req(moduleName);
-  } catch {
-    return null;
-  }
-}
-
 export function ensureLiveKitRuntime(): LiveKitRuntime {
-  const reactNativeModule = tryRequire("@livekit/react-native");
-  const clientModule = tryRequire("livekit-client");
-
-  if (!reactNativeModule || !clientModule) {
-    throw new Error(
-      "LiveKit native packages are not installed yet. Run npm install, then create an Expo development build before testing calls."
-    );
-  }
-
   return {
-    AudioSession: reactNativeModule.AudioSession,
-    registerGlobals: reactNativeModule.registerGlobals,
-    Room: clientModule.Room,
-    RoomEvent: clientModule.RoomEvent,
-    Track: clientModule.Track,
+    AudioSession,
+    registerGlobals,
+    Room,
+    RoomEvent,
+    Track,
   };
 }
 
@@ -47,8 +39,7 @@ export function registerLiveKitGlobalsOnce() {
   if (globalsRegistered) return true;
 
   try {
-    const runtime = ensureLiveKitRuntime();
-    runtime.registerGlobals?.();
+    registerGlobals();
     globalsRegistered = true;
     return true;
   } catch (error) {

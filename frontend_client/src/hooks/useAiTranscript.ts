@@ -1,61 +1,79 @@
 /**
  * src/hooks/useAiTranscript.ts
  *
- * Extends the original hook with real-time ASR + ASL support.
+ * Live transcript hook shared by the current phase A backend and a future
+ * streaming STT backend.
  *
- * New behaviour:
- *   - Subscribes to `call.caption`    → Whisper ASR segments
- *   - Subscribes to `call.asl.result` → ASL gesture results
- *   - Both arrive via wsClient.subscribe() — same WS connection already open
- *   - Existing polling (every 12s) and callSignalingService.onTranscriptUpdated
- *     are kept unchanged for backwards compatibility
+ * Phase A: backend emits only final `call.caption` events.
+ * Phase B: backend may emit interim and final events with the same `segment_id`.
+ * This hook already upserts by segment id so upgrading the backend later does
+ * not require redesigning the frontend transcript state.
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { callService } from "../services/callService";
 import { callSignalingService } from "../services/call/callSignalingService";
 import { wsClient } from "../services/wsClient";
 import type { TranscriptItem } from "../types/call";
 
-function sortTranscript(items: TranscriptItem[]) {
-  return [...items].sort((a, b) => a.id - b.id);
+type LiveTranscriptItem = TranscriptItem & {
+  segmentId?: string;
+  source?: "asr" | "asl";
+  isFinal?: boolean;
+  confidence?: number;
+};
+
+function sortTranscript(items: LiveTranscriptItem[]) {
+  return [...items].sort((a, b) => {
+    const aTime = new Date(a.created_at).getTime();
+    const bTime = new Date(b.created_at).getTime();
+    if (aTime !== bTime) return aTime - bTime;
+    return a.id - b.id;
+  });
 }
 
-function upsertTranscriptItem(items: TranscriptItem[], next: TranscriptItem) {
-  const existing = items.find((item) => item.id === next.id);
+function upsertTranscriptItem(items: LiveTranscriptItem[], next: LiveTranscriptItem) {
+  const existing = next.segmentId
+    ? items.find((item) => item.segmentId === next.segmentId)
+    : items.find((item) => item.id === next.id);
+
   if (existing) {
-    return sortTranscript(items.map((item) => (item.id === next.id ? next : item)));
+    return sortTranscript(
+      items.map((item) =>
+        item.segmentId === next.segmentId || item.id === next.id ? { ...item, ...next } : item
+      )
+    );
   }
+
   return sortTranscript([...items, next]);
 }
 
-// Auto-incrementing id for real-time items (avoids collision with DB ids)
 let _rtId = -1;
 function nextRtId() {
   return _rtId--;
 }
 
-function formatTs(unixSec: number): string {
-  const d = new Date(unixSec * 1000);
-  return [d.getHours(), d.getMinutes(), d.getSeconds()]
-    .map((n) => String(n).padStart(2, "0"))
-    .join(":");
+function toIso(unixSec?: number): string {
+  return new Date((unixSec ?? Date.now() / 1000) * 1000).toISOString();
+}
+
+function normaliseLoadedItem(item: TranscriptItem): LiveTranscriptItem {
+  return item;
 }
 
 export function useAiTranscript(callId?: number, enabled = true) {
-  const [items, setItems] = useState<TranscriptItem[]>([]);
+  const [items, setItems] = useState<LiveTranscriptItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [transcribing, setTranscribing] = useState(enabled);
 
-  // ── Initial load from server ───────────────────────────────────────────
   const load = useCallback(async () => {
     if (!callId) return;
     try {
       setError("");
       setLoading(true);
       const data = await callService.getTranscript(callId);
-      setItems(sortTranscript(data));
+      setItems(sortTranscript(data.map(normaliseLoadedItem)));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to load transcript");
     } finally {
@@ -67,7 +85,6 @@ export function useAiTranscript(callId?: number, enabled = true) {
     setTranscribing(enabled);
   }, [enabled]);
 
-  // ── callSignalingService (existing) ───────────────────────────────────
   useEffect(() => {
     if (!callId) return;
 
@@ -75,7 +92,7 @@ export function useAiTranscript(callId?: number, enabled = true) {
 
     const unsubscribe = callSignalingService.subscribe(String(callId), {
       onTranscriptUpdated: (item) => {
-        setItems((prev) => upsertTranscriptItem(prev, item));
+        setItems((prev) => upsertTranscriptItem(prev, normaliseLoadedItem(item)));
       },
       onTranscribingUpdated: (next) => {
         setTranscribing(next);
@@ -88,61 +105,54 @@ export function useAiTranscript(callId?: number, enabled = true) {
     return unsubscribe;
   }, [callId, load]);
 
-  // ── Polling fallback (existing) ────────────────────────────────────────
   useEffect(() => {
     if (!callId || !enabled) return;
     const timer = setInterval(load, 12000);
     return () => clearInterval(timer);
   }, [callId, enabled, load]);
 
-  // ── NEW: call.caption — Whisper ASR real-time segments ────────────────
   useEffect(() => {
     if (!callId || !enabled) return;
 
     const unsubscribe = wsClient.subscribe("call.caption", (msg) => {
       const p = msg?.payload ?? msg;
+      if (!p || String(p.call_id) !== String(callId) || !p.text) return;
 
-      // Only process segments for this call
-      if (!p || String(p.call_id) !== String(callId)) return;
-      if (!p.text) return;
-
-      const item: TranscriptItem = {
+      const item: LiveTranscriptItem = {
         id: nextRtId(),
-        // @ts-ignore — extend TranscriptItem with source if you want styling
+        segmentId: p.segment_id,
         source: "asr",
-        speaker: p.speaker ?? "Staff",
-        text: p.text,
-        timestamp: formatTs(p.ts ?? Date.now() / 1000),
+        speaker: p.speaker_name ?? p.speaker ?? "Unknown speaker",
+        role: p.participant_role === "client" ? "patient" : "doctor",
+        content: p.text,
+        created_at: toIso(p.ts),
+        isFinal: p.is_final ?? true,
         confidence: p.confidence,
       };
 
       setItems((prev) => upsertTranscriptItem(prev, item));
+      console.log("[mobile transcript] call.caption received", msg);
     });
 
     return unsubscribe;
   }, [callId, enabled]);
 
-  // ── NEW: call.asl.result — ASL gesture real-time segments ─────────────
   useEffect(() => {
     if (!callId || !enabled) return;
 
     const unsubscribe = wsClient.subscribe("call.asl.result", (msg) => {
       const p = msg?.payload ?? msg;
+      if (!p || String(p.call_id) !== String(callId) || !p.letter) return;
 
-      if (!p || String(p.call_id) !== String(callId)) return;
-      if (!p.letter) return;
-
-      const displayText = p.word
-        ? `[ASL] ${p.word}`
-        : `[ASL] ${p.letter}`;
-
-      const item: TranscriptItem = {
+      const item: LiveTranscriptItem = {
         id: nextRtId(),
-        // @ts-ignore
+        segmentId: p.segment_id,
         source: "asl",
         speaker: p.speaker ?? "ASL",
-        text: displayText,
-        timestamp: formatTs(p.ts ?? Date.now() / 1000),
+        role: "ai",
+        content: p.word ? `[ASL] ${p.word}` : `[ASL] ${p.letter}`,
+        created_at: toIso(p.ts),
+        isFinal: true,
         confidence: p.confidence,
       };
 
@@ -152,14 +162,15 @@ export function useAiTranscript(callId?: number, enabled = true) {
     return unsubscribe;
   }, [callId, enabled]);
 
-  // ── Reset on call change ───────────────────────────────────────────────
   useEffect(() => {
     setItems([]);
     setError("");
   }, [callId]);
 
+  const visibleItems = useMemo(() => items, [items]);
+
   return {
-    items,
+    items: visibleItems,
     loading,
     error,
     transcribing,

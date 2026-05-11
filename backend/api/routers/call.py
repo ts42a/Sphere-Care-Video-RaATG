@@ -17,6 +17,7 @@ from backend.api.deps import get_db
 from backend.api.routers.auth import _get_current_user
 from backend import models
 from backend.ws.ws_manager import ws_manager
+from backend.services.livekit_asr_service import livekit_asr_manager
 
 router = APIRouter(prefix="/calls", tags=["Calls"])
 
@@ -120,6 +121,38 @@ def _mint_livekit_token(room_id: str, identity: str, display_name: str) -> tuple
         return token, expires_at
     except Exception:
         return None, None
+
+def _display_name_for_call_user(db: Session, storage_id: int, role_hint: Optional[str] = None) -> str:
+    actor_type, real_id = _from_call_storage_id(storage_id, role_hint)
+
+    if actor_type == "admin":
+        admin = db.query(models.Admin).filter(models.Admin.id == real_id).first()
+        if admin:
+            return admin.full_name or admin.email or f"Admin {real_id}"
+        return f"Admin {real_id}"
+
+    user = db.query(models.User).filter(models.User.id == real_id).first()
+    if user:
+        if getattr(user, "global_role", None) == "client":
+            resident = (
+                db.query(models.Resident)
+                .filter(models.Resident.client_user_id == real_id)
+                .first()
+            )
+            if resident:
+                return resident.full_name or user.full_name or user.email or f"Client {real_id}"
+
+        staff = (
+            db.query(models.Staff)
+            .filter(models.Staff.user_id == real_id)
+            .first()
+        )
+        if staff:
+            return staff.full_name or user.full_name or user.email or f"Staff {real_id}"
+
+        return user.full_name or user.email or f"User {real_id}"
+
+    return f"User {real_id}"
 
 def _livekit_url() -> Optional[str]:
     import os
@@ -363,10 +396,12 @@ async def start_call(
     expires_at = _now() + timedelta(seconds=INVITE_TTL_SECONDS)
 
     caller_identity = f"usr_{caller_id}"
+    caller_display_name = _display_name_for_call_user(db, caller_id, caller_role)
+
     caller_token, caller_token_expires_at = _mint_livekit_token(
         room_id,
         caller_identity,
-        str(caller_id),
+        caller_display_name,
     )
 
     print("DEBUG caller join payload", {
@@ -413,7 +448,7 @@ async def start_call(
     db.commit()
     db.refresh(call)
 
-    caller_name = getattr(current_user, "full_name", None) or getattr(current_user, "name", None) or getattr(current_user, "email", None) or str(caller_id)
+    caller_name = caller_display_name
     caller_actor_type, caller_public_id = _from_call_storage_id(caller_id, caller_role)
 
     invite_payload = {
@@ -626,6 +661,11 @@ async def accept_call(
         )
 
         print("DEBUG callee existing join", join.model_dump())
+        await livekit_asr_manager.start_call(
+            call_id=call.id,
+            room_id=call.room_id,
+            livekit_url=call.livekit_url,
+        )
         return _fmt_call(call, join)
 
     if call.state != "ringing":
@@ -638,10 +678,12 @@ async def accept_call(
         raise HTTPException(status_code=410, detail="Invite has expired.")
 
     callee_identity = f"usr_{callee_id}"
+    callee_display_name = _display_name_for_call_user(db, callee_id, callee_role)
+
     callee_token, callee_token_expires_at = _mint_livekit_token(
         call.room_id,
         callee_identity,
-        str(callee_id),
+        callee_display_name,
     )
 
     print("DEBUG callee join payload", {
@@ -674,6 +716,15 @@ async def accept_call(
         "started_at": call.started_at.isoformat() if call.started_at else None,
         "kind": call.kind,
     })
+
+    # Phase A transcript worker: backend joins the LiveKit room and performs ASR.
+    # If LiveKit env vars or the Python SDK are missing, this safely no-ops so the
+    # call flow itself still works.
+    await livekit_asr_manager.start_call(
+        call_id=call.id,
+        room_id=call.room_id,
+        livekit_url=call.livekit_url,
+    )
 
     join = JoinPayload(
         call_id=call.id,
@@ -836,6 +887,10 @@ async def end_call(
     db.refresh(call)
 
     await _ws_broadcast_call_event(call, ws_event, extra_payload)
+
+    if call.state in TERMINAL_CALL_STATES:
+        await livekit_asr_manager.stop_call(call.id)
+
     return _fmt_call(call)
 
 

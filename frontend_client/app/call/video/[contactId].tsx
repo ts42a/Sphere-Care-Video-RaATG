@@ -15,6 +15,7 @@ import { activeCallService } from "../../../src/services/activeCallService";
 import { useCallSession } from "../../../src/hooks/useCallSession";
 import { useAiTranscript } from "../../../src/hooks/useAiTranscript";
 import { rtcEngine } from "../../../src/services/rtc/rtcEngineInstance";
+import { callSignalingService } from "../../../src/services/call/callSignalingService";
 import type {
   CallContact,
   CallJoinPayload,
@@ -25,18 +26,23 @@ import CallVideoStage from "../../../src/components/call/CallVideoStage";
 import { colors } from "../../../src/theme/colors";
 
 const LiveKitRoomComponent: any = (LiveKit as any).LiveKitRoom;
-const audioSession = (((LiveKit as any).AudioSession ?? {}) as unknown) as {
+const audioSession = ((LiveKit as any).AudioSession ?? {}) as {
   startAudioSession?: () => Promise<void>;
   stopAudioSession?: () => Promise<void>;
 };
 
-
 function buildRouteFallbackContact(
   contactId: string | undefined,
   callId: number,
-  params: { contactName?: string; contactUserId?: string; contactRole?: string }
+  params: {
+    contactName?: string;
+    contactUserId?: string;
+    contactRole?: string;
+  }
 ): CallContact | null {
-  const active = Number.isFinite(callId) ? activeCallService.getByCallId(callId) : null;
+  const active = Number.isFinite(callId)
+    ? activeCallService.getByCallId(callId)
+    : null;
 
   if (active?.doctor) {
     return {
@@ -95,7 +101,14 @@ function formatStatus(session: CallSession) {
 }
 
 export default function VideoCallScreen() {
-  const params = useLocalSearchParams<{ contactId: string; callId?: string; contactName?: string; contactUserId?: string; contactRole?: string }>();
+  const params = useLocalSearchParams<{
+    contactId: string;
+    callId?: string;
+    contactName?: string;
+    contactUserId?: string;
+    contactRole?: string;
+  }>();
+
   const contactId = Array.isArray(params.contactId)
     ? params.contactId[0]
     : params.contactId;
@@ -117,13 +130,21 @@ export default function VideoCallScreen() {
       try {
         setContactLoading(true);
         setContactError("");
+
         const data = await callService.getContactById(contactId);
+
         setContact(
           data ??
             buildRouteFallbackContact(contactId, routeCallId, {
-              contactName: Array.isArray(params.contactName) ? params.contactName[0] : params.contactName,
-              contactUserId: Array.isArray(params.contactUserId) ? params.contactUserId[0] : params.contactUserId,
-              contactRole: Array.isArray(params.contactRole) ? params.contactRole[0] : params.contactRole,
+              contactName: Array.isArray(params.contactName)
+                ? params.contactName[0]
+                : params.contactName,
+              contactUserId: Array.isArray(params.contactUserId)
+                ? params.contactUserId[0]
+                : params.contactUserId,
+              contactRole: Array.isArray(params.contactRole)
+                ? params.contactRole[0]
+                : params.contactRole,
             })
         );
       } catch (err) {
@@ -136,7 +157,13 @@ export default function VideoCallScreen() {
     }
 
     loadContact();
-  }, [contactId, routeCallId, params.contactName, params.contactUserId, params.contactRole]);
+  }, [
+    contactId,
+    routeCallId,
+    params.contactName,
+    params.contactUserId,
+    params.contactRole,
+  ]);
 
   const {
     session,
@@ -164,6 +191,44 @@ export default function VideoCallScreen() {
       Promise.resolve(audioSession.stopAudioSession?.()).catch(() => undefined);
     };
   }, []);
+
+  useEffect(() => {
+    if (!session || !contact || session.callState !== "active") return;
+
+    const callId = String(session.callId);
+    const localUserId = String(session.patient.userId ?? session.patient.name);
+    const remoteUserId = String(contact.userId ?? contact.id);
+
+    callSignalingService
+      .joinCall({
+        callId,
+        mode: "video",
+        localUserId,
+        remoteUserId,
+      })
+      .then(() => {
+        console.log("[call] joined WS call room", { callId, mode: "video" });
+      })
+      .catch((err) => {
+        console.warn("[call] failed to join WS call room", err);
+      });
+
+    return () => {
+      callSignalingService
+        .leaveCall({
+          callId,
+          localUserId,
+        })
+        .catch(() => undefined);
+    };
+  }, [
+    session?.callId,
+    session?.callState,
+    session?.patient.userId,
+    session?.patient.name,
+    contact?.userId,
+    contact?.id,
+  ]);
 
   useEffect(() => {
     if (!session || !contact) return;
@@ -261,8 +326,8 @@ export default function VideoCallScreen() {
   const pendingSubtitle = !roomReady
     ? "Preparing video room"
     : !serverUrl || !token
-      ? "LiveKit credentials are missing"
-      : formatStatus(session);
+    ? "LiveKit credentials are missing"
+    : formatStatus(session);
 
   return (
     <SafeAreaView style={styles.container}>

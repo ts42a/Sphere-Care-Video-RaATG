@@ -1,22 +1,20 @@
 """
 backend/services/transcript_service.py
 
-Handles two side-channel transcript streams for active calls:
-  1. ASR  — Whisper speech-to-text
-  2. ASL  — Gesture recognition from asl.py
+Broadcasts call transcript side-channel events to every watcher in the same call.
 
-Both broadcast via existing ws_manager.broadcast_call(call_id, payload)
-so all call_watchers in the room receive them simultaneously.
+`call.caption` is intentionally shaped for both the current chunked Whisper flow
+and a future streaming STT flow:
 
-WebSocket event shapes (received by both Expo and Web clients):
-
-  call.caption  (ASR):
   {
     "type": "call.caption",
     "payload": {
       "call_id": "123",
-      "segment_id": "uuid",
-      "speaker": "usr_42",
+      "segment_id": "uuid-or-provider-segment-id",
+      "speaker": "usr_42",              # backwards-compatible display key
+      "speaker_id": "usr_42",           # stable machine-readable identity
+      "speaker_name": "Sarah Nurse",    # optional display name
+      "participant_role": "staff",      # optional
       "text": "Hello how are you",
       "language": "en",
       "confidence": 0.92,
@@ -25,20 +23,9 @@ WebSocket event shapes (received by both Expo and Web clients):
     }
   }
 
-  call.asl.result  (ASL gesture):
-  {
-    "type": "call.asl.result",
-    "payload": {
-      "call_id": "123",
-      "segment_id": "uuid",
-      "speaker": "usr_42",
-      "letter": "H",
-      "word": "HELLO",          // null if only letter detected
-      "confidence": 0.88,
-      "mode": "static",         // "static" | "motion"
-      "ts": 1715000005.0
-    }
-  }
+For phase A, every caption is final. A future streaming STT engine can reuse the
+same event and emit interim updates by keeping the same `segment_id` while
+setting `is_final=false`, then send one final update with `is_final=true`.
 """
 
 from __future__ import annotations
@@ -66,20 +53,24 @@ async def broadcast_caption(
     confidence: float = 1.0,
     ts: Optional[float] = None,
     is_final: bool = True,
+    segment_id: Optional[str] = None,
+    speaker_id: Optional[str] = None,
+    speaker_name: Optional[str] = None,
+    participant_role: Optional[str] = None,
 ) -> None:
-    """
-    Broadcast an ASR transcript segment to all participants in the call room.
-    Called from ws.py after Whisper returns a result.
-    """
+    """Broadcast one ASR transcript segment to all participants in the call."""
     if not text:
         return
 
     payload = {
         "type": "call.caption",
         "payload": {
-            "call_id": call_id,
-            "segment_id": _sid(),
+            "call_id": str(call_id),
+            "segment_id": segment_id or _sid(),
             "speaker": speaker,
+            "speaker_id": speaker_id or speaker,
+            "speaker_name": speaker_name,
+            "participant_role": participant_role,
             "text": text,
             "language": language,
             "confidence": round(confidence, 3),
@@ -88,8 +79,13 @@ async def broadcast_caption(
         },
     }
 
-    await ws_manager.broadcast_call(call_id, payload)
-    logger.debug(f"[transcript] call.caption → {call_id}: {text[:60]}")
+    await ws_manager.broadcast_call(str(call_id), payload)
+    logger.debug(
+        "[transcript] call.caption → %s [%s]: %s",
+        call_id,
+        "final" if is_final else "interim",
+        text[:60],
+    )
 
 
 async def broadcast_asl_result(
@@ -102,18 +98,14 @@ async def broadcast_asl_result(
     mode: str = "static",
     ts: Optional[float] = None,
 ) -> None:
-    """
-    Broadcast an ASL gesture result to all participants in the call room.
-    Called from ws.py after the frontend sends an asl_frame message
-    and asl.py returns a detection result.
-    """
+    """Broadcast an ASL gesture result to all participants in the call room."""
     if not letter:
         return
 
     payload = {
         "type": "call.asl.result",
         "payload": {
-            "call_id": call_id,
+            "call_id": str(call_id),
             "segment_id": _sid(),
             "speaker": speaker,
             "letter": letter,
@@ -124,5 +116,5 @@ async def broadcast_asl_result(
         },
     }
 
-    await ws_manager.broadcast_call(call_id, payload)
-    logger.debug(f"[transcript] call.asl.result → {call_id}: {letter}")
+    await ws_manager.broadcast_call(str(call_id), payload)
+    logger.debug("[transcript] call.asl.result → %s: %s", call_id, letter)
