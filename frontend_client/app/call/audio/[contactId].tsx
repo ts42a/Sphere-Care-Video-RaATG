@@ -11,10 +11,11 @@ import { router, useLocalSearchParams } from "expo-router";
 import { Feather, MaterialIcons, Ionicons } from "@expo/vector-icons";
 
 import { callService } from "../../../src/services/callService";
-import { activeCallService } from "../../../src/services/activeCallService";
 import { miniCallService } from "../../../src/services/miniCallService";
 import { useCallSession } from "../../../src/hooks/useCallSession";
 import { useAiTranscript } from "../../../src/hooks/useAiTranscript";
+import { useAudioChunks } from "../../../src/hooks/useAudioChunks";
+import { useAslBroadcast } from "../../../src/hooks/useAslBroadcast";
 import { useRtcEngine } from "../../../src/hooks/useRtcEngine";
 import { rtcEngine } from "../../../src/services/rtc/rtcEngineInstance";
 import type { CallContact } from "../../../src/types/call";
@@ -28,60 +29,6 @@ import { colors } from "../../../src/theme/colors";
 import { spacing } from "../../../src/theme/spacing";
 import { typography } from "../../../src/theme/typography";
 
-
-function buildRouteFallbackContact(
-  contactId: string | undefined,
-  callId: number,
-  params: { contactName?: string; contactUserId?: string; contactRole?: string }
-): CallContact | null {
-  const active = Number.isFinite(callId) ? activeCallService.getByCallId(callId) : null;
-
-  if (active?.doctor) {
-    return {
-      id: contactId || String(active.remoteUserId ?? active.callId),
-      userId: active.remoteUserId ?? active.doctor.userId,
-      name: active.doctor.name || params.contactName || "Incoming call",
-      initials: active.doctor.initials || String(active.doctor.name || params.contactName || "IC")
-        .split(" ")
-        .map((part) => part[0])
-        .join("")
-        .slice(0, 2)
-        .toUpperCase(),
-      role: active.doctor.role || params.contactRole || "Care team",
-      specialty: active.doctor.role || params.contactRole || "Care team",
-      lastSeen: "",
-      online: true,
-      avatarColor: "#4C6EF5",
-      conversationId: active.conversationId,
-    };
-  }
-
-  const name = params.contactName || "Incoming call";
-  const userId = Number(params.contactUserId || contactId);
-
-  if (!contactId && !Number.isFinite(userId)) {
-    return null;
-  }
-
-  return {
-    id: contactId || String(userId),
-    userId: Number.isFinite(userId) ? userId : undefined,
-    name,
-    initials: String(name)
-      .split(" ")
-      .map((part) => part[0])
-      .join("")
-      .slice(0, 2)
-      .toUpperCase(),
-    role: params.contactRole || "Care team",
-    specialty: params.contactRole || "Care team",
-    lastSeen: "",
-    online: true,
-    avatarColor: "#4C6EF5",
-    conversationId: undefined,
-  };
-}
-
 function getConnectionLabel(callState: string, rtcState: string) {
   if (callState === "ringing") return "Ringing";
   if (callState === "declined") return "Call declined";
@@ -90,25 +37,21 @@ function getConnectionLabel(callState: string, rtcState: string) {
   if (callState === "ended") return "Call ended";
 
   switch (rtcState) {
-    case "connecting":
-      return "Connecting";
-    case "reconnecting":
-      return "Reconnecting";
-    case "connected":
-      return "Excellent connection";
-    case "ended":
-      return "Call ended";
-    case "disconnected":
-      return "Disconnected";
+    case "connecting":    return "Connecting";
+    case "reconnecting":  return "Reconnecting";
+    case "connected":     return "Excellent connection";
+    case "ended":         return "Call ended";
+    case "disconnected":  return "Disconnected";
     default:
       return callState === "active" ? "Connecting" : "Preparing call";
   }
 }
 
 export default function AudioCallScreen() {
-  const params = useLocalSearchParams<{ contactId: string; callId?: string; contactName?: string; contactUserId?: string; contactRole?: string }>();
+  const params = useLocalSearchParams<{ contactId: string; callId?: string }>();
   const contactId = Array.isArray(params.contactId) ? params.contactId[0] : params.contactId;
   const routeCallId = Number(Array.isArray(params.callId) ? params.callId[0] : params.callId);
+
   const [contact, setContact] = useState<CallContact | null>(null);
   const [contactLoading, setContactLoading] = useState(true);
   const [contactError, setContactError] = useState("");
@@ -118,29 +61,20 @@ export default function AudioCallScreen() {
 
   useEffect(() => {
     if (!contactId) return;
-
     async function loadContact() {
       try {
         setContactLoading(true);
         setContactError("");
         const data = await callService.getContactById(contactId);
-        setContact(
-          data ??
-            buildRouteFallbackContact(contactId, routeCallId, {
-              contactName: Array.isArray(params.contactName) ? params.contactName[0] : params.contactName,
-              contactUserId: Array.isArray(params.contactUserId) ? params.contactUserId[0] : params.contactUserId,
-              contactRole: Array.isArray(params.contactRole) ? params.contactRole[0] : params.contactRole,
-            })
-        );
+        setContact(data);
       } catch (err) {
         setContactError(err instanceof Error ? err.message : "Unable to load contact");
       } finally {
         setContactLoading(false);
       }
     }
-
     loadContact();
-  }, [contactId, routeCallId, params.contactName, params.contactUserId, params.contactRole]);
+  }, [contactId]);
 
   const {
     session,
@@ -152,12 +86,26 @@ export default function AudioCallScreen() {
     toggleMute,
     stopTranscribing,
     endCurrentCall,
-  } = useCallSession(contact, "audio", { callId: Number.isFinite(routeCallId) ? routeCallId : undefined });
+  } = useCallSession(contact, "audio", {
+    callId: Number.isFinite(routeCallId) ? routeCallId : undefined,
+  });
 
   const { items: transcriptItems } = useAiTranscript(
     session?.callId,
     Boolean(session?.transcribing)
   );
+
+  // ── NEW: Send audio chunks → Whisper ASR ────────────────────────────
+  useAudioChunks(session?.callId, {
+    enabled: Boolean(session?.callState === "active" && transcribing),
+  });
+
+  // ── NEW: ASL frame sender + word assembler ───────────────────────────
+  // sendFrame is passed to your camera component if you add one to this screen.
+  // aslWord is the running assembled word — you can display it if needed.
+  const { sendFrame: sendAslFrame, aslWord } = useAslBroadcast(session?.callId, {
+    enabled: Boolean(session?.callState === "active" && transcribing),
+  });
 
   const rtcOptions =
     session && contact && session.callState === "active"
@@ -172,12 +120,10 @@ export default function AudioCallScreen() {
       : undefined;
 
   const rtc = useRtcEngine(rtcEngine, rtcOptions);
-
   const error = contactError || sessionError || rtc.error;
 
   useEffect(() => {
     if (!session || !contact || session.mode !== "video" || switchingToVideo) return;
-
     setSwitchingToVideo(true);
     router.replace({
       pathname: "/call/video/[contactId]",
@@ -187,14 +133,13 @@ export default function AudioCallScreen() {
 
   useEffect(() => {
     if (!session || !session.ended) return;
-
     const timer = setTimeout(() => {
       rtc.leaveCall().catch(() => undefined);
       router.replace("/call");
     }, 900);
-
     return () => clearTimeout(timer);
   }, [session?.ended, session?.callState]);
+
   const connectionLabel = useMemo(
     () => getConnectionLabel(session?.callState ?? "ringing", rtc.snapshot.connectionState),
     [session?.callState, rtc.snapshot.connectionState]
@@ -224,13 +169,7 @@ export default function AudioCallScreen() {
       key: "mute",
       label: "Mute",
       active: muted,
-      icon: (
-        <Feather
-          name={muted ? "mic-off" : "mic"}
-          size={22}
-          color={colors.icon}
-        />
-      ),
+      icon: <Feather name={muted ? "mic-off" : "mic"} size={22} color={colors.icon} />,
       onPress: async () => {
         await rtc.setMuted(!muted);
         await toggleMute();
@@ -240,13 +179,7 @@ export default function AudioCallScreen() {
       key: "speaker",
       label: "Speaker",
       active: speakerOn,
-      icon: (
-        <Feather
-          name={speakerOn ? "volume-2" : "volume-x"}
-          size={22}
-          color={colors.icon}
-        />
-      ),
+      icon: <Feather name={speakerOn ? "volume-2" : "volume-x"} size={22} color={colors.icon} />,
       onPress: () => setSpeakerOn((prev) => !prev),
     },
     {
@@ -297,13 +230,7 @@ export default function AudioCallScreen() {
     {
       key: "message",
       label: "",
-      icon: (
-        <Ionicons
-          name="chatbubble-ellipses-outline"
-          size={20}
-          color={colors.icon}
-        />
-      ),
+      icon: <Ionicons name="chatbubble-ellipses-outline" size={20} color={colors.icon} />,
       onPress: () =>
         router.push({
           pathname: "/messages/[contactId]",
