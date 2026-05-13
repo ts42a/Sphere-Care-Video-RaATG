@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   View,
   Text,
@@ -6,12 +6,14 @@ import {
   Pressable,
 } from "react-native";
 import { Feather, Ionicons, MaterialIcons } from "@expo/vector-icons";
+import { captureRef } from "react-native-view-shot";
 import * as LiveKit from "@livekit/react-native";
 import { Track } from "livekit-client";
 
 import TranscriptPanel from "./TranscriptPanel";
+import { useAslBroadcast } from "../../hooks/useAslBroadcast";
 import { colors } from "../../theme/colors";
-import type { CallContact, CallSession } from "../../types/call";
+import type { CallContact, CallSession, TranscriptItem } from "../../types/call";
 
 const VideoTrackComponent: any = (LiveKit as any).VideoTrack;
 const useTracksHook = (((LiveKit as any).useTracks ?? (() => [])) as unknown) as (
@@ -24,11 +26,13 @@ const isTrackReferenceValue = (((LiveKit as any).isTrackReference ??
 
 type TrackReferenceLike = any;
 
-type TranscriptViewItem = {
-  id: number;
-  speaker: string;
-  content: string;
-};
+type TranscriptViewItem = TranscriptItem;
+type TranscriptMode = "speech" | "asl";
+type AslGestureMode = "static" | "motion";
+
+const ASL_FRAME_INTERVAL_MS = 500;
+const ASL_FRAME_WIDTH = 320;
+const ASL_FRAME_HEIGHT = 240;
 
 type CallVideoStageProps = {
   contact: CallContact;
@@ -38,7 +42,6 @@ type CallVideoStageProps = {
   transcriptItems: TranscriptViewItem[];
   expanded: boolean;
   setExpanded: (value: boolean) => void;
-  onStopTranscribing: () => Promise<void>;
   onEnd: () => Promise<void>;
 };
 
@@ -60,7 +63,6 @@ export default function CallVideoStage({
   transcriptItems,
   expanded,
   setExpanded,
-  onStopTranscribing,
   onEnd,
 }: CallVideoStageProps) {
   const room = useRoomContextHook();
@@ -71,6 +73,22 @@ export default function CallVideoStage({
   const [cameraFacing, setCameraFacing] = useState<"front" | "back">("front");
   const [muted, setMuted] = useState(false);
   const [cameraEnabled, setCameraEnabled] = useState(false);
+  const [transcriptMode, setTranscriptMode] = useState<TranscriptMode>("speech");
+  const [aslMode, setAslMode] = useState<AslGestureMode>("static");
+  const [hiddenAslSegmentIds, setHiddenAslSegmentIds] = useState<Set<string>>(
+    () => new Set()
+  );
+  const [manualAslSpaces, setManualAslSpaces] = useState(0);
+  const localPreviewRef = useRef<View | null>(null);
+  const captureWarnedRef = useRef(false);
+
+  const aslCaptureActive = Boolean(
+    session.callState === "active" && transcriptMode === "asl"
+  );
+
+  const { sendFrame, lastSegment } = useAslBroadcast(session.callId, {
+    enabled: aslCaptureActive,
+  });
 
   const remoteParticipants = useMemo(
     () => Array.from(room?.remoteParticipants?.values?.() ?? []),
@@ -179,12 +197,122 @@ export default function CallVideoStage({
   const hasRemoteVideo = !!remoteTrackRef;
   const hasLocalVideo = !!localPreviewTrackRef && cameraEnabled;
 
+  useEffect(() => {
+    const canCaptureAslFrame = Boolean(aslCaptureActive && hasLocalVideo);
+
+    if (!canCaptureAslFrame) {
+      captureWarnedRef.current = false;
+      return;
+    }
+
+    let stopped = false;
+    let inFlight = false;
+
+    const captureAndSendFrame = async () => {
+      if (stopped || inFlight || !localPreviewRef.current) return;
+
+      inFlight = true;
+
+      try {
+        const imageB64 = await captureRef(localPreviewRef.current, {
+          format: "jpg",
+          quality: 0.6,
+          result: "base64",
+          width: ASL_FRAME_WIDTH,
+          height: ASL_FRAME_HEIGHT,
+        });
+
+        if (!stopped && imageB64) {
+          sendFrame(imageB64, aslMode);
+          captureWarnedRef.current = false;
+        }
+      } catch (error) {
+        if (!captureWarnedRef.current) {
+          console.warn("[ASL] Failed to capture local video frame", error);
+          captureWarnedRef.current = true;
+        }
+      } finally {
+        inFlight = false;
+      }
+    };
+
+    void captureAndSendFrame();
+    const interval = setInterval(captureAndSendFrame, ASL_FRAME_INTERVAL_MS);
+
+    return () => {
+      stopped = true;
+      clearInterval(interval);
+    };
+  }, [aslCaptureActive, aslMode, hasLocalVideo, sendFrame]);
+
+  const visibleTranscriptItems = useMemo(() => {
+    const activeItems = transcriptItems.filter((item) => {
+      const isAsl = item.source === "asl" || item.content.startsWith("[ASL]");
+      return transcriptMode === "asl" ? isAsl : !isAsl;
+    });
+
+    if (transcriptMode !== "asl") return activeItems;
+
+    return activeItems.filter((item) => {
+      const segmentKey = item.segmentId ?? String(item.id);
+      return !hiddenAslSegmentIds.has(segmentKey);
+    });
+  }, [hiddenAslSegmentIds, transcriptItems, transcriptMode]);
+
   const latestTranscript = useMemo(() => {
     if (!transcribing) return "AI transcript is paused.";
-    if (transcriptItems.length === 0) return "Listening for transcript...";
-    const last = transcriptItems[transcriptItems.length - 1];
-    return `${last.speaker}: ${last.content}`;
-  }, [transcribing, transcriptItems]);
+    if (visibleTranscriptItems.length === 0) {
+      return transcriptMode === "asl"
+        ? "Waiting for ASL signs..."
+        : "Listening for transcript...";
+    }
+
+    const last = visibleTranscriptItems[visibleTranscriptItems.length - 1];
+    const spaces = transcriptMode === "asl" ? " ".repeat(manualAslSpaces) : "";
+    return `${last.speaker}: ${last.content}${spaces}`;
+  }, [manualAslSpaces, transcribing, transcriptMode, visibleTranscriptItems]);
+
+  async function openAslMode() {
+    const willEnableAsl = transcriptMode !== "asl";
+
+    setTranscriptMode(willEnableAsl ? "asl" : "speech");
+    setExpanded(true);
+
+    if (!willEnableAsl || cameraEnabled) return;
+
+    try {
+      await room?.localParticipant?.setCameraEnabled?.(true);
+
+      setTimeout(() => {
+        syncLocalMediaState();
+      }, 250);
+
+      setTimeout(() => {
+        syncLocalMediaState();
+      }, 700);
+    } catch (error) {
+      console.warn("[ASL] Failed to enable camera for ASL detection", error);
+    }
+  }
+
+  function clearAslTranscript() {
+    setHiddenAslSegmentIds(
+      new Set(
+        transcriptItems
+          .filter((item) => item.source === "asl" || item.content.startsWith("[ASL]"))
+          .map((item) => item.segmentId ?? String(item.id))
+      )
+    );
+    setManualAslSpaces(0);
+  }
+
+  function addAslSpace() {
+    setManualAslSpaces((prev) => Math.min(prev + 1, 12));
+  }
+
+  function toggleAslMode() {
+    setAslMode((prev) => (prev === "static" ? "motion" : "static"));
+  }
 
   async function toggleMute() {
     const nextMuted = !muted;
@@ -260,7 +388,7 @@ export default function CallVideoStage({
       </View>
 
       <View style={styles.topRightOverlay}>
-        <View style={styles.localPreviewShell}>
+        <View ref={localPreviewRef} collapsable={false} style={styles.localPreviewShell}>
           {hasLocalVideo ? (
             <VideoTrackComponent
               trackRef={localPreviewTrackRef as any}
@@ -287,19 +415,35 @@ export default function CallVideoStage({
       {expanded ? (
         <View style={styles.transcriptExpandedWrap}>
           <TranscriptPanel
-            items={transcriptItems as any}
+            items={visibleTranscriptItems as any}
             transcribing={transcribing}
             expanded={expanded}
             onToggleExpanded={() => setExpanded(false)}
             containerStyle={styles.transcriptExpandedPanel}
+            title={transcriptMode === "asl" ? "ASL Transcript" : "AI Live Transcript"}
+            mode={transcriptMode}
+            onModeChange={setTranscriptMode}
+            showModeTabs
+            aslMode={aslMode}
+            onToggleAslMode={toggleAslMode}
+            onClearAsl={clearAslTranscript}
+            onSpaceAsl={addAslSpace}
+            aslLiveLetter={lastSegment?.letter}
+            aslConfidence={lastSegment?.confidence}
           />
         </View>
       ) : (
         <Pressable style={styles.transcriptDock} onPress={() => setExpanded(true)}>
           <View style={styles.transcriptDockHeader}>
             <View style={styles.transcriptDockTitleRow}>
-              <MaterialIcons name="smart-toy" size={16} color={colors.surface} />
-              <Text style={styles.transcriptDockTitle}>AI Transcript</Text>
+              <MaterialIcons
+                name={transcriptMode === "asl" ? "pan-tool" : "smart-toy"}
+                size={16}
+                color={colors.surface}
+              />
+              <Text style={styles.transcriptDockTitle}>
+                {transcriptMode === "asl" ? "ASL Transcript" : "AI Transcript"}
+              </Text>
             </View>
             <Feather name="chevron-up" size={16} color="#DCE3FF" />
           </View>
@@ -350,9 +494,10 @@ export default function CallVideoStage({
           onPress={switchCamera}
         />
         <ControlButton
-          label={transcribing ? "Stop AI" : "AI Off"}
-          icon={<MaterialIcons name="smart-toy" size={22} color={colors.surface} />}
-          onPress={onStopTranscribing}
+          label="ASL"
+          active={transcriptMode === "asl"}
+          icon={<MaterialIcons name="pan-tool" size={22} color={colors.surface} />}
+          onPress={openAslMode}
         />
       </View>
     </View>
@@ -363,16 +508,22 @@ function ControlButton({
   label,
   icon,
   danger,
+  active,
   onPress,
 }: {
   label: string;
   icon: ReactNode;
   danger?: boolean;
+  active?: boolean;
   onPress: () => void | Promise<void>;
 }) {
   return (
     <Pressable
-      style={[styles.controlBtn, danger && styles.controlBtnDanger]}
+      style={[
+        styles.controlBtn,
+        active && styles.controlBtnActive,
+        danger && styles.controlBtnDanger,
+      ]}
       onPress={onPress}
     >
       {icon}
@@ -513,6 +664,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
+  },
+  controlBtnActive: {
+    backgroundColor: "rgba(56,189,248,0.92)",
   },
   controlBtnDanger: {
     backgroundColor: "#E5484D",

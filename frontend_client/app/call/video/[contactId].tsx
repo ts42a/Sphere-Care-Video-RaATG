@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
+import { Feather } from "@expo/vector-icons";
 import * as LiveKit from "@livekit/react-native";
 
 import { callService } from "../../../src/services/callService";
@@ -171,7 +172,6 @@ export default function VideoCallScreen() {
     error: sessionError,
     formattedDuration,
     transcribing,
-    stopTranscribing,
     endCurrentCall,
   } = useCallSession(contact, "video", {
     callId: Number.isFinite(routeCallId) ? routeCallId : undefined,
@@ -179,7 +179,7 @@ export default function VideoCallScreen() {
 
   const { items: transcriptItems } = useAiTranscript(
     session?.callId,
-    Boolean(session?.transcribing)
+    Boolean(session?.callState === "active" || session?.transcribing)
   );
 
   useEffect(() => {
@@ -368,7 +368,6 @@ export default function VideoCallScreen() {
               transcriptItems={transcriptItems}
               expanded={expanded}
               setExpanded={setExpanded}
-              onStopTranscribing={stopTranscribing}
               onEnd={async () => {
                 await endCurrentCall();
                 router.replace("/call");
@@ -382,6 +381,19 @@ export default function VideoCallScreen() {
             </View>
             <Text style={styles.pendingTitle}>{contact.name}</Text>
             <Text style={styles.pendingSubtitle}>{pendingSubtitle}</Text>
+
+            <View style={styles.pendingEndArea}>
+              <Pressable
+                style={styles.pendingEndButton}
+                onPress={async () => {
+                  await endCurrentCall();
+                  router.replace("/call");
+                }}
+              >
+                <Feather name="phone" size={28} color={colors.surface} />
+              </Pressable>
+              <Text style={styles.pendingEndText}>End call</Text>
+            </View>
           </View>
         )}
       </View>
@@ -403,6 +415,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: "#07101F",
     gap: 12,
+    position: "relative",
   },
   pendingAvatar: {
     width: 96,
@@ -425,6 +438,29 @@ const styles = StyleSheet.create({
   pendingSubtitle: {
     color: "#C1D0F2",
     fontSize: 16,
+    marginBottom: 28,
+  },
+  pendingEndArea: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 34,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  pendingEndButton: {
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    backgroundColor: "#E5484D",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  pendingEndText: {
+    color: colors.surface,
+    fontSize: 14,
+    fontWeight: "700",
   },
   loadingContainer: {
     flex: 1,
