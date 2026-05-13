@@ -468,7 +468,7 @@ def _format_conversation(
         unread_count=_compute_unread_count(conversation, participant, actor_type, actor_id),
         created_at=conversation.created_at,
         participant_count=len(participants),
-        participants=[_format_participant(item) for item in participants],
+        participants=[_format_participant(item) for item in participants if item.id is not None],
     )
 
 

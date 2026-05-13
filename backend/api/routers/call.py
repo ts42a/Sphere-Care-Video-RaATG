@@ -94,17 +94,17 @@ def _get_role(current_user) -> str:
         return "admin"
     return getattr(current_user, 'global_role', 'staff') or 'staff'
 
-TOKEN_TTL_MINUTES = 15
+from backend.core import config as _cfg
+
+TOKEN_TTL_MINUTES = _cfg.LIVEKIT_TOKEN_TTL_MINUTES
+
 
 def _mint_livekit_token(room_id: str, identity: str, display_name: str) -> tuple[Optional[str], Optional[datetime]]:
-    """
-    Mint a participant token when LIVEKIT_* env vars are configured.
-    Returns both the JWT and its expiry so the mobile app can rehydrate calls.
-    """
-    import os
-    lk_key = os.getenv("LIVEKIT_API_KEY")
-    lk_secret = os.getenv("LIVEKIT_API_SECRET")
+    """Mint a participant token server-side. Returns (jwt, expires_at) or (None, None) when LiveKit is not configured."""
+    lk_key = _cfg.LIVEKIT_API_KEY
+    lk_secret = _cfg.LIVEKIT_API_SECRET
     if not lk_key or not lk_secret:
+        logger.warning("[livekit] LIVEKIT_API_KEY or LIVEKIT_API_SECRET not set — token minting skipped")
         return None, None
     expires_at = _now() + timedelta(minutes=TOKEN_TTL_MINUTES)
     try:
@@ -119,7 +119,8 @@ def _mint_livekit_token(room_id: str, identity: str, display_name: str) -> tuple
             .to_jwt()
         )
         return token, expires_at
-    except Exception:
+    except Exception as exc:
+        logger.error("[livekit] token minting failed for identity=%s room=%s: %s", identity, room_id, exc)
         return None, None
 
 def _display_name_for_call_user(db: Session, storage_id: int, role_hint: Optional[str] = None) -> str:
@@ -155,8 +156,7 @@ def _display_name_for_call_user(db: Session, storage_id: int, role_hint: Optiona
     return f"User {real_id}"
 
 def _livekit_url() -> Optional[str]:
-    import os
-    return os.getenv("LIVEKIT_URL")
+    return _cfg.LIVEKIT_URL or None
 
 def _add_event(db: Session, call_id: int, event_type: str, actor_id: Optional[int] = None, meta: dict = None):
     db.add(models.CallEvent(
@@ -351,6 +351,69 @@ def _history_item_for_call(db: Session, call: models.Call, viewer_id: int) -> Ca
     )
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
+
+class DevJoinRequest(BaseModel):
+    room_id: Optional[str] = None
+    display_name: Optional[str] = None
+
+
+@router.post("/dev/join", tags=["Calls"])
+async def dev_join(
+    body: DevJoinRequest,
+    current_user=Depends(_get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Dev tool: mint a LiveKit token for an arbitrary room without a DB call record.
+    Use for two-tab join tests (Rollout Step 2)."""
+    user_id = _get_user_id(current_user)
+    role = _get_role(current_user)
+    room_id = (body.room_id or "").strip() or _gen_room_id()
+    display_name = (body.display_name or "").strip() or _display_name_for_call_user(db, user_id, role)
+    identity = f"dev_{user_id}_{uuid.uuid4().hex[:6]}"
+    token, expires_at = _mint_livekit_token(room_id, identity, display_name)
+    if not token:
+        raise HTTPException(
+            status_code=503,
+            detail="LiveKit is not configured — check LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET in .env",
+        )
+    return {
+        "room_id": room_id,
+        "livekit_url": _livekit_url(),
+        "access_token": token,
+        "identity": identity,
+        "display_name": display_name,
+        "expires_at": expires_at.isoformat(),
+    }
+
+
+@router.get("/livekit-status", tags=["Calls"])
+def livekit_status():
+    """Dev endpoint: verify LiveKit credentials are configured and token minting works."""
+    lk_url = _cfg.LIVEKIT_URL
+    lk_key = _cfg.LIVEKIT_API_KEY
+    lk_secret = _cfg.LIVEKIT_API_SECRET
+    configured = bool(lk_url and lk_key and lk_secret)
+
+    mint_ok = False
+    mint_error: Optional[str] = None
+    if configured:
+        try:
+            from livekit.api import AccessToken, VideoGrants
+            AccessToken(lk_key, lk_secret).with_identity("_health_check").with_grants(
+                VideoGrants(room_join=True, room="_health_check")
+            ).with_ttl(timedelta(minutes=1)).to_jwt()
+            mint_ok = True
+        except Exception as exc:
+            mint_error = str(exc)
+
+    return {
+        "configured": configured,
+        "livekit_url": lk_url or None,
+        "token_ttl_minutes": TOKEN_TTL_MINUTES,
+        "mint_ok": mint_ok,
+        "mint_error": mint_error,
+    }
+
 
 @router.post("", response_model=CallResponse)
 async def start_call(
