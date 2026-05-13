@@ -1,6 +1,7 @@
+import time
 from pathlib import Path
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -14,11 +15,23 @@ from backend.db.runtime_migrations import run_runtime_migrations
 from backend import models  # noqa: F401
 
 
+import logging as _logging
+_startup_logger = _logging.getLogger("sphere_care.startup")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Create all tables from ORM metadata (no-op if they already exist)
     Base.metadata.create_all(bind=engine)
     run_runtime_migrations(engine)
+
+    # LiveKit startup check (Rollout Step 1)
+    from backend.core.config import LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET
+    if LIVEKIT_URL and LIVEKIT_API_KEY and LIVEKIT_API_SECRET:
+        _startup_logger.info("[livekit] configured — url=%s key=%s...", LIVEKIT_URL, LIVEKIT_API_KEY[:8])
+    else:
+        _startup_logger.warning("[livekit] NOT configured — LIVEKIT_URL / LIVEKIT_API_KEY / LIVEKIT_API_SECRET missing; calls will work without media")
+
     # Seed test data when DB is fresh (no-op if data already exists)
     from backend.db.seed import seed_database
     seed_database()
@@ -69,6 +82,14 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.middleware("http")
+async def add_response_time_header(request: Request, call_next):
+    start = time.perf_counter()
+    response = await call_next(request)
+    duration_ms = (time.perf_counter() - start) * 1000
+    response.headers["X-Response-Time-Ms"] = f"{duration_ms:.1f}"
+    return response
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 FRONTEND_DIR = BASE_DIR / "frontend_staff" / "src"
