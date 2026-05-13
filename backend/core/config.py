@@ -20,6 +20,12 @@ SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
 SMTP_EMAIL = os.getenv("SMTP_EMAIL", "")
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
 
+# LiveKit
+LIVEKIT_URL = os.getenv("LIVEKIT_URL", "")
+LIVEKIT_API_KEY = os.getenv("LIVEKIT_API_KEY", "")
+LIVEKIT_API_SECRET = os.getenv("LIVEKIT_API_SECRET", "")
+LIVEKIT_TOKEN_TTL_MINUTES = int(os.getenv("LIVEKIT_TOKEN_TTL_MINUTES", "15"))
+
 # ASL Gesture Recognition
 AI_MEDIAPIPE_HAND_MODEL = os.getenv(
     "AI_MEDIAPIPE_HAND_MODEL",
