@@ -140,3 +140,6 @@ async def notify_alert_read(admin_id: int, db: Session) -> None:
 async def notify_message_read(admin_id: int, db: Session) -> None:
     """Called when a conversation is opened / messages marked read."""
     await broadcast_badge_update(admin_id, db)
+
+async def notify_conversation_changed(admin_id, deliveries=None):
+    pass

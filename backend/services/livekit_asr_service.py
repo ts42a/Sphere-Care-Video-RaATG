@@ -52,16 +52,15 @@ def _pcm16_to_wav_bytes(pcm_bytes: bytes) -> bytes:
 
 
 def _mint_worker_token(room_id: str, identity: str) -> Optional[str]:
-    lk_key = os.getenv("LIVEKIT_API_KEY")
-    lk_secret = os.getenv("LIVEKIT_API_SECRET")
-    if not lk_key or not lk_secret:
+    from backend.core.config import LIVEKIT_API_KEY, LIVEKIT_API_SECRET
+    if not LIVEKIT_API_KEY or not LIVEKIT_API_SECRET:
         return None
 
     try:
         from livekit.api import AccessToken, VideoGrants
 
         return (
-            AccessToken(lk_key, lk_secret)
+            AccessToken(LIVEKIT_API_KEY, LIVEKIT_API_SECRET)
             .with_identity(identity)
             .with_name("ASR Worker")
             .with_grants(VideoGrants(room_join=True, room=room_id))
