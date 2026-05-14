@@ -23,6 +23,7 @@ from typing import Optional
 logger = logging.getLogger(__name__)
 
 WHISPER_MODEL_SIZE = os.getenv("WHISPER_MODEL_SIZE", "base")
+WHISPER_LANGUAGE = os.getenv("WHISPER_LANGUAGE", None)
 # Ensure ffmpeg is in PATH
 _FFMPEG_PATH = r'C:\Users\25371\AppData\Local\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-8.1.1-full_build\bin'
 if _FFMPEG_PATH not in os.environ.get('PATH', ''):
