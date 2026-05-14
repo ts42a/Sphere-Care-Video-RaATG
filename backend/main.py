@@ -110,6 +110,13 @@ if FRONTEND_DIR.exists():
     app.mount("/assets", StaticFiles(directory=FRONTEND_DIR / "assets"), name="assets")
     app.mount("/public", StaticFiles(directory=FRONTEND_DIR), name="public")
 
+UPLOADS_DIR = BASE_DIR / "uploads"
+UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
+(UPLOADS_DIR / "videos").mkdir(parents=True, exist_ok=True)
+(UPLOADS_DIR / "images").mkdir(parents=True, exist_ok=True)
+(UPLOADS_DIR / "documents").mkdir(parents=True, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=UPLOADS_DIR), name="uploads")
+
 @app.get("/", include_in_schema=False)
 def serve_index():
     return FileResponse(FRONTEND_DIR / "index.html")
