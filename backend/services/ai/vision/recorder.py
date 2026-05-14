@@ -198,33 +198,34 @@ def _write_clips(
 
 
 # ---------------------------------------------------------------------------
-# Per-clip AI analysis
+# Per-clip AI analysis — delegated to the global serialized analysis queue
 # ---------------------------------------------------------------------------
-def _analyze_clip(session: RecordingSession, clip_path: Path) -> List:
-    """Run the AI detection pipeline on one clip and return (flag_id, ins_id) pairs."""
-    from backend.db.session import SessionLocal
-    from backend.services.ai.vision.pipeline import run_detection_pipeline
-    from backend.services.ai.vision.video_ingest import iter_video_frames
+async def _submit_clip_for_analysis(session: RecordingSession, clip_path: Path) -> List:
+    """
+    Submit one clip to the process-global AnalysisQueue and await the result.
 
-    db = SessionLocal()
+    The queue enforces that only one clip is processed at a time across ALL
+    recording sessions, preventing GPU contention when multiple cameras record
+    simultaneously.  The job is temporary — it is destroyed after the result
+    is returned here.
+    """
+    from backend.services.ai.analysis_queue import analysis_queue, QueueFullError
+
     try:
-        results = run_detection_pipeline(
-            db,
-            admin_id=session.admin_id,
-            resident_name=session.resident_name,
-            resident_id=session.resident_id,
+        return await analysis_queue.submit(
+            session_id=session.session_id,
             camera_id=session.camera_id,
-            frame_iter=iter_video_frames(str(clip_path), max_fps=2.0),
-            detector_kind="mock",
-            use_llm=getattr(app_config, "AI_USE_LLM", True),
-            model_label="sphere-care-recorder",
+            clip_path=clip_path,
+            admin_id=session.admin_id,
+            resident_id=session.resident_id,
+            resident_name=session.resident_name,
         )
-        return results
+    except QueueFullError as exc:
+        log.warning("[recorder] queue full, skipping analysis for %s: %s", clip_path.name, exc)
+        return []
     except Exception as exc:
         log.exception("[recorder] analysis failed for %s: %s", clip_path.name, exc)
         return []
-    finally:
-        db.close()
 
 
 # ---------------------------------------------------------------------------
@@ -302,10 +303,10 @@ async def _run_session(session: RecordingSession, stop_event: asyncio.Event) -> 
     session.stopped = True
     log.info("[recorder] recording stopped — %d clips collected", len(session.clips))
 
-    # Phase 2 — analyze clips
+    # Phase 2 — submit clips to the serialized analysis queue (one at a time globally)
     for clip_path in session.clips:
-        log.info("[recorder] analysing %s …", clip_path.name)
-        results = await asyncio.to_thread(_analyze_clip, session, clip_path)
+        log.info("[recorder] queuing %s for analysis …", clip_path.name)
+        results = await _submit_clip_for_analysis(session, clip_path)
         session.analysis_results.append(results)
         log.info("[recorder] %s → %d events", clip_path.name, len(results))
 
