@@ -36,6 +36,10 @@ async def lifespan(app: FastAPI):
     from backend.db.seed import seed_database
     seed_database()
 
+    # Start the AI analysis queue worker (serializes GPU access across all cameras)
+    from backend.services.ai.analysis_queue import analysis_queue
+    analysis_queue.start()
+
     # Start message outbox processor (fan-out queue)
     import asyncio
     from backend.outbox.outbox_processor import run_outbox_processor
@@ -57,6 +61,10 @@ async def lifespan(app: FastAPI):
     call_timeout_task = asyncio.create_task(_call_timeout_loop())
 
     yield
+
+    # Shutdown analysis queue worker
+    from backend.services.ai.analysis_queue import analysis_queue as _aq
+    _aq.stop()
 
     # Shutdown outbox processor
     outbox_task.cancel()
