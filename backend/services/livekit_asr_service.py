@@ -35,7 +35,7 @@ logger = logging.getLogger(__name__)
 
 SAMPLE_RATE = int(os.getenv("ASR_SAMPLE_RATE", "16000"))
 NUM_CHANNELS = int(os.getenv("ASR_NUM_CHANNELS", "1"))
-CHUNK_SECONDS = float(os.getenv("ASR_CHUNK_SECONDS", "3.0"))
+CHUNK_SECONDS = float(os.getenv("ASR_CHUNK_SECONDS", "1.5"))
 MIN_CHUNK_BYTES = int(SAMPLE_RATE * NUM_CHANNELS * 2 * CHUNK_SECONDS)
 MIN_RMS = int(os.getenv("ASR_MIN_RMS", "350"))
 MIN_VOICE_BYTES = int(SAMPLE_RATE * NUM_CHANNELS * 2 * 1.0)
@@ -233,9 +233,10 @@ class LiveKitAsrManager:
 
                 wav_bytes = _pcm16_to_wav_bytes(pcm_chunk)
 
+                _lang = os.getenv("WHISPER_LANGUAGE", None)
                 result = await asr_service.transcribe(
                     wav_bytes,
-                    language=None,
+                    language=_lang,
                     file_suffix=".wav",
                 )
                 text = result.get("text", "").strip()
