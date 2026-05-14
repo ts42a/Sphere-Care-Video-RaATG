@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>LiveKit Dev Test – Sphere Care</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
+<style>
+body { background: #F1F5F9; }
+.app { display: flex; min-height: 100vh; }
+.main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 28px; height: 64px; background: #fff;
+  border-bottom: 1px solid #E2E8F0; flex-shrink: 0;
+}
+.topbar-title { font-family: Poppins, sans-serif; font-size: 18px; font-weight: 700; color: #0F1B2D; }
+.content { padding: 28px; flex: 1; overflow-y: auto; }
+
+.card-section {
+  background: #fff; border-radius: 16px; border: 1px solid #E2E8F0;
+  padding: 24px; margin-bottom: 20px;
+}
+.card-section h5 { font-family: Poppins, sans-serif; font-weight: 700; font-size: 15px; color: #0F1B2D; margin-bottom: 16px; }
+
+/* Status badge */
+.status-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 6px 14px; border-radius: 999px; font-size: 13px; font-weight: 600;
+}
+.status-idle    { background: #F1F5F9; color: #64748B; }
+.status-connecting { background: #FEF9C3; color: #92400E; }
+.status-connected  { background: #DCFCE7; color: #166534; }
+.status-error      { background: #FEE2E2; color: #991B1B; }
+.status-dot {
+  width: 8px; height: 8px; border-radius: 50%; background: currentColor;
+}
+
+/* Video grid */
+.video-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px;
+}
+.video-tile {
+  position: relative; background: #0F1B2D; border-radius: 12px; overflow: hidden;
+  aspect-ratio: 4/3;
+}
+.video-tile video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.video-label {
+  position: absolute; bottom: 8px; left: 8px;
+  background: rgba(0,0,0,0.55); color: #fff; font-size: 12px; font-weight: 600;
+  padding: 3px 8px; border-radius: 6px;
+}
+.video-placeholder {
+  width: 100%; height: 100%; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; color: #94A3B8; gap: 8px;
+}
+.video-placeholder svg { width: 40px; height: 40px; stroke: currentColor; fill: none; stroke-width: 1.5; }
+
+/* Buttons */
+.btn-join  { background: #2563EB; color: #fff; border: none; padding: 10px 24px; border-radius: 10px; font-weight: 600; font-size: 14px; }
+.btn-join:hover { background: #1D4ED8; }
+.btn-leave { background: #EF4444; color: #fff; border: none; padding: 10px 24px; border-radius: 10px; font-weight: 600; font-size: 14px; }
+.btn-leave:hover { background: #DC2626; }
+.btn-gen   { background: #F1F5F9; color: #334155; border: 1px solid #CBD5E1; padding: 10px 16px; border-radius: 10px; font-weight: 600; font-size: 14px; }
+.btn-gen:hover { background: #E2E8F0; }
+.btn-copy  { background: #F1F5F9; color: #334155; border: 1px solid #CBD5E1; padding: 10px 16px; border-radius: 10px; font-weight: 600; font-size: 14px; }
+.btn-copy:hover { background: #E2E8F0; }
+
+/* Warning banner */
+.banner-warn {
+  background: #FFF7ED; border: 1px solid #FED7AA; border-radius: 12px;
+  padding: 14px 18px; color: #92400E; font-size: 13px; margin-bottom: 20px;
+  display: flex; align-items: flex-start; gap: 10px;
+}
+.banner-warn svg { width: 18px; height: 18px; flex-shrink: 0; margin-top: 1px; }
+
+.log-box {
+  background: #0F1B2D; border-radius: 10px; padding: 14px 16px;
+  font-family: monospace; font-size: 12px; color: #94A3B8;
+  max-height: 180px; overflow-y: auto;
+}
+.log-entry { margin: 0; line-height: 1.6; }
+.log-ok  { color: #4ADE80; }
+.log-err { color: #F87171; }
+.log-info{ color: #60A5FA; }
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- SIDEBAR -->
+<div id="sidebar-container"></div>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-title">LiveKit Dev Test</div>
+    <div id="status-area">
+      <span class="status-badge status-idle" id="status-badge">
+        <span class="status-dot"></span>
+        <span id="status-text">Not connected</span>
+      </span>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- LiveKit-not-configured warning (hidden by default) -->
+    <div class="banner-warn d-none" id="lk-warn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+        <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+      </svg>
+      <div>
+        <strong>LiveKit not configured.</strong>
+        <span id="lk-warn-msg"> Check LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET in <code>backend/.env</code>.</span>
+      </div>
+    </div>
+
+    <!-- Room setup card -->
+    <div class="card-section">
+      <h5>Room</h5>
+      <div class="d-flex gap-2 align-items-end flex-wrap">
+        <div class="flex-grow-1">
+          <label class="form-label text-muted" style="font-size:12px;font-weight:600;">ROOM ID</label>
+          <input type="text" class="form-control" id="room-id-input" placeholder="room_…" style="font-family:monospace;"/>
+        </div>
+        <button class="btn-gen" onclick="generateRoomId()">Generate</button>
+        <button class="btn-copy" id="copy-btn" onclick="copyLink()">Copy Link</button>
+      </div>
+      <div class="d-flex gap-2 mt-3">
+        <button class="btn-join" id="join-btn" onclick="joinRoom()">Join Room</button>
+        <button class="btn-leave d-none" id="leave-btn" onclick="leaveRoom()">Leave</button>
+      </div>
+    </div>
+
+    <!-- Video grid card -->
+    <div class="card-section">
+      <h5>Participants</h5>
+      <div class="video-grid" id="video-grid">
+        <!-- tiles injected here -->
+      </div>
+      <div class="text-muted mt-2" style="font-size:12px;" id="participant-count">No participants yet.</div>
+    </div>
+
+    <!-- Log card -->
+    <div class="card-section">
+      <h5>Log</h5>
+      <div class="log-box" id="log-box"></div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+</div><!-- /app -->
+
+<script src="https://cdn.jsdelivr.net/npm/livekit-client@2.5.5/dist/livekit-client.umd.min.js"></script>
+<script src="../style/js/script.js"></script>
+<script src="/components/sidebar.js"></script>
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+let _room = null;
+let _localParticipant = null;
+const _remoteTracks = new Map(); // participantIdentity → Set<trackSid>
+
+// ── Logging ─────────────────────────────────────────────────────────────────
+function log(msg, type = 'info') {
+  const box = document.getElementById('log-box');
+  const p = document.createElement('p');
+  p.className = 'log-entry log-' + type;
+  const ts = new Date().toLocaleTimeString();
+  p.textContent = `[${ts}] ${msg}`;
+  box.appendChild(p);
+  box.scrollTop = box.scrollHeight;
+}
+
+// ── Status badge ─────────────────────────────────────────────────────────────
+function setStatus(label, type) {
+  const badge = document.getElementById('status-badge');
+  const text  = document.getElementById('status-text');
+  badge.className = 'status-badge status-' + type;
+  text.textContent = label;
+}
+
+// ── Room ID helpers ───────────────────────────────────────────────────────────
+function generateRoomId() {
+  const id = 'room_' + Math.random().toString(36).slice(2, 10);
+  document.getElementById('room-id-input').value = id;
+  updateUrlParam(id);
+}
+
+function updateUrlParam(roomId) {
+  const url = new URL(window.location.href);
+  if (roomId) { url.searchParams.set('room', roomId); }
+  else { url.searchParams.delete('room'); }
+  history.replaceState(null, '', url);
+}
+
+function copyLink() {
+  const roomId = document.getElementById('room-id-input').value.trim();
+  if (!roomId) { log('Enter a room ID first', 'err'); return; }
+  updateUrlParam(roomId);
+  navigator.clipboard.writeText(window.location.href).then(() => {
+    const btn = document.getElementById('copy-btn');
+    btn.textContent = 'Copied!';
+    setTimeout(() => { btn.textContent = 'Copy Link'; }, 1500);
+  });
+}
+
+// ── LiveKit status check ──────────────────────────────────────────────────────
+async function checkLiveKitStatus() {
+  try {
+    const resp = await fetch(`${API_BASE}/calls/livekit-status`);
+    const data = await resp.json();
+    if (!data.configured) {
+      document.getElementById('lk-warn').classList.remove('d-none');
+      log('LiveKit not configured — check .env', 'err');
+    } else if (!data.mint_ok) {
+      document.getElementById('lk-warn').classList.remove('d-none');
+      document.getElementById('lk-warn-msg').textContent =
+        ` Token minting failed: ${data.mint_error}`;
+      log('LiveKit token minting failed: ' + data.mint_error, 'err');
+    } else {
+      log(`LiveKit ready — ${data.livekit_url}`, 'ok');
+    }
+  } catch (e) {
+    log('Could not reach /api/v1/calls/livekit-status: ' + e.message, 'err');
+  }
+}
+
+// ── Video tile helpers ────────────────────────────────────────────────────────
+function _tileId(identity) { return 'tile-' + CSS.escape(identity); }
+
+function ensureTile(identity, displayName) {
+  const grid = document.getElementById('video-grid');
+  const id = _tileId(identity);
+  if (document.getElementById(id)) return;
+  const tile = document.createElement('div');
+  tile.className = 'video-tile';
+  tile.id = id;
+  tile.innerHTML = `
+    <div class="video-placeholder">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.58-7 8-7s8 3 8 7"/></svg>
+      <span style="font-size:12px;">${displayName || identity}</span>
+    </div>
+    <div class="video-label">${displayName || identity}</div>
+  `;
+  grid.appendChild(tile);
+  updateCount();
+}
+
+function removeTile(identity) {
+  const el = document.getElementById(_tileId(identity));
+  if (el) el.remove();
+  updateCount();
+}
+
+function attachVideoTrack(track, identity) {
+  const tile = document.getElementById(_tileId(identity));
+  if (!tile) return;
+  const existing = tile.querySelector('video');
+  if (existing) existing.remove();
+  const placeholder = tile.querySelector('.video-placeholder');
+  if (placeholder) placeholder.remove();
+  const videoEl = track.attach();
+  videoEl.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
+  tile.insertBefore(videoEl, tile.querySelector('.video-label'));
+}
+
+function detachVideoTrack(track, identity) {
+  track.detach();
+  const tile = document.getElementById(_tileId(identity));
+  if (!tile) return;
+  const videoEl = tile.querySelector('video');
+  if (videoEl) videoEl.remove();
+  // Restore placeholder
+  const ph = document.createElement('div');
+  ph.className = 'video-placeholder';
+  ph.innerHTML = `<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.58-7 8-7s8 3 8 7"/></svg>`;
+  tile.insertBefore(ph, tile.querySelector('.video-label'));
+}
+
+function updateCount() {
+  const n = document.getElementById('video-grid').children.length;
+  document.getElementById('participant-count').textContent =
+    n === 0 ? 'No participants yet.' : `${n} participant${n === 1 ? '' : 's'}`;
+}
+
+// ── Join / Leave ──────────────────────────────────────────────────────────────
+async function joinRoom() {
+  const token = sessionStorage.getItem('access_token');
+  if (!token) { log('Not logged in — please log in first', 'err'); return; }
+
+  const roomIdInput = document.getElementById('room-id-input').value.trim();
+
+  setStatus('Connecting…', 'connecting');
+  document.getElementById('join-btn').disabled = true;
+  log('Requesting token from server…', 'info');
+
+  try {
+    const resp = await fetch(`${API_BASE}/calls/dev/join`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + token,
+      },
+      body: JSON.stringify({ room_id: roomIdInput || undefined }),
+    });
+
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({ detail: resp.statusText }));
+      throw new Error(err.detail || resp.statusText);
+    }
+
+    const data = await resp.json();
+    log(`Got token — room=${data.room_id} identity=${data.identity}`, 'ok');
+    document.getElementById('room-id-input').value = data.room_id;
+    updateUrlParam(data.room_id);
+
+    await connectToRoom(data.livekit_url, data.access_token, data.identity, data.display_name);
+  } catch (e) {
+    log('Join failed: ' + e.message, 'err');
+    setStatus('Error: ' + e.message, 'error');
+    document.getElementById('join-btn').disabled = false;
+  }
+}
+
+async function connectToRoom(lkUrl, lkToken, identity, displayName) {
+  _room = new LivekitClient.Room({
+    adaptiveStream: true,
+    dynacast: true,
+  });
+
+  _room
+    .on(LivekitClient.RoomEvent.Connected, () => {
+      const n = _room.remoteParticipants.size;
+      setStatus(`Connected (${n + 1} participant${n + 1 === 1 ? '' : 's'})`, 'connected');
+      log('Connected to room', 'ok');
+      document.getElementById('join-btn').classList.add('d-none');
+      document.getElementById('leave-btn').classList.remove('d-none');
+    })
+    .on(LivekitClient.RoomEvent.Disconnected, () => {
+      setStatus('Not connected', 'idle');
+      log('Disconnected', 'info');
+      document.getElementById('join-btn').classList.remove('d-none');
+      document.getElementById('join-btn').disabled = false;
+      document.getElementById('leave-btn').classList.add('d-none');
+      document.getElementById('video-grid').innerHTML = '';
+      updateCount();
+      _room = null;
+    })
+    .on(LivekitClient.RoomEvent.ParticipantConnected, (participant) => {
+      log(`Participant joined: ${participant.identity}`, 'ok');
+      ensureTile(participant.identity, participant.name);
+      refreshCount();
+    })
+    .on(LivekitClient.RoomEvent.ParticipantDisconnected, (participant) => {
+      log(`Participant left: ${participant.identity}`, 'info');
+      removeTile(participant.identity);
+      refreshCount();
+    })
+    .on(LivekitClient.RoomEvent.TrackSubscribed, (track, pub, participant) => {
+      if (track.kind === LivekitClient.Track.Kind.Video) {
+        log(`Video track from ${participant.identity}`, 'ok');
+        ensureTile(participant.identity, participant.name);
+        attachVideoTrack(track, participant.identity);
+      }
+    })
+    .on(LivekitClient.RoomEvent.TrackUnsubscribed, (track, pub, participant) => {
+      if (track.kind === LivekitClient.Track.Kind.Video) {
+        detachVideoTrack(track, participant.identity);
+      }
+    })
+    .on(LivekitClient.RoomEvent.LocalTrackPublished, (pub) => {
+      if (pub.track && pub.track.kind === LivekitClient.Track.Kind.Video) {
+        attachVideoTrack(pub.track, identity);
+      }
+    });
+
+  await _room.connect(lkUrl, lkToken);
+
+  // Add local tile
+  ensureTile(identity, displayName + ' (you)');
+
+  // Publish camera + mic
+  try {
+    await _room.localParticipant.enableCameraAndMicrophone();
+    log('Camera & microphone enabled', 'ok');
+  } catch (e) {
+    log('Could not access camera/mic: ' + e.message, 'err');
+  }
+
+  // Show existing remote participants
+  _room.remoteParticipants.forEach((p) => {
+    ensureTile(p.identity, p.name);
+    p.trackPublications.forEach((pub) => {
+      if (pub.isSubscribed && pub.track && pub.track.kind === LivekitClient.Track.Kind.Video) {
+        attachVideoTrack(pub.track, p.identity);
+      }
+    });
+  });
+
+  refreshCount();
+}
+
+function refreshCount() {
+  if (!_room) return;
+  const n = _room.remoteParticipants.size + 1;
+  setStatus(`Connected (${n} participant${n === 1 ? '' : 's'})`, 'connected');
+}
+
+async function leaveRoom() {
+  if (_room) {
+    await _room.disconnect();
+  }
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+(function init() {
+  // Pre-fill room ID from URL ?room= param
+  const params = new URLSearchParams(window.location.search);
+  const roomParam = params.get('room');
+  if (roomParam) {
+    document.getElementById('room-id-input').value = roomParam;
+    log(`Room pre-filled from URL: ${roomParam}`, 'info');
+  }
+
+  checkLiveKitStatus();
+})();
+</script>
+</body>
+</html>
