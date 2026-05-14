@@ -55,3 +55,6 @@ RECORDING_CLIP_SECONDS = float(os.getenv("RECORDING_CLIP_SECONDS", "30"))
 RECORDING_CLIP_FPS     = float(os.getenv("RECORDING_CLIP_FPS", "10"))
 RECORDING_CLIP_WIDTH   = int(os.getenv("RECORDING_CLIP_WIDTH", "640"))
 RECORDING_CLIP_HEIGHT  = int(os.getenv("RECORDING_CLIP_HEIGHT", "480"))
+
+# Analysis queue — max pending clips before new submissions are rejected
+ANALYSIS_QUEUE_MAX_SIZE = int(os.getenv("ANALYSIS_QUEUE_MAX_SIZE", "64"))
