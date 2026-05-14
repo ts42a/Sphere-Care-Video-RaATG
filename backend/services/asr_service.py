@@ -23,6 +23,11 @@ from typing import Optional
 logger = logging.getLogger(__name__)
 
 WHISPER_MODEL_SIZE = os.getenv("WHISPER_MODEL_SIZE", "base")
+# Ensure ffmpeg is in PATH
+_FFMPEG_PATH = r'C:\Users\25371\AppData\Local\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-8.1.1-full_build\bin'
+if _FFMPEG_PATH not in os.environ.get('PATH', ''):
+    os.environ['PATH'] = _FFMPEG_PATH + os.pathsep + os.environ.get('PATH', '')
+
 
 _model = None
 _model_lock = asyncio.Lock()
