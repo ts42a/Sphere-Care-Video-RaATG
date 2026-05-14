@@ -274,7 +274,14 @@ function renderMsgs(msgs, hl) {
       var parts = content.slice(7).split(' | ');
       bubbleHtml = makeFileBubble(parts[0] || 'file', parts[1] || '');
     } else {
-      var txt = esc(content);
+      // Call record message — render like WhatsApp
+    if (m.message_type === 'call_record') {
+      html += '<div class="msg-row" style="justify-content:center;margin:8px 0;">' +
+        '<div style="background:#f1f5f9;border-radius:12px;padding:6px 16px;font-size:12px;color:#64748b;display:flex;align-items:center;gap:6px;">' +
+        esc(content) + '</div></div>';
+      return;
+    }
+    var txt = esc(content);
       if (hl) txt = txt.replace(new RegExp(esc(hl).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), function (s) { return '<mark style="background:#fef08a;border-radius:3px;">' + s + '</mark>'; });
       bubbleHtml = replyHtml + (isSelf ? '<div class="bubble self">' + txt + (isEdited ? '<span class="edited-tag"> (edited)</span>' : '') + '</div>'
         : '<div class="bubble other">' + txt + (isEdited ? '<span class="edited-tag"> (edited)</span>' : '') + '</div>');
@@ -1856,7 +1863,14 @@ async function _lkConnect(lkUrl, token, type) {
         if (msg.call_id === _outgoingCallId) { _outgoingCallId = null; _dismissCallingOverlay(); showToast('Call declined'); }
         else { showToast('Call declined'); _endActiveCall(); }
       }
-      if (msg.type === 'call.ended') { showToast('Call ended'); _endActiveCall(); }
+      if (msg.type === 'call.ended') { 
+  showToast('Call ended'); 
+  _endActiveCall(); 
+  if (currentId) { 
+    delete localMsgs[currentId]; 
+    loadMsgs(currentId); 
+  } 
+}
       if (msg.type === 'call.accepted') {
         // Caller side: callee accepted — start media
         if (msg.call_id === _outgoingCallId) {
