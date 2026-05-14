@@ -954,6 +954,57 @@ async def end_call(
     if call.state in TERMINAL_CALL_STATES:
         await livekit_asr_manager.stop_call(call.id)
 
+    # ── Post call record message to conversation (like WhatsApp) ──
+    if call.state == "ended" and call.started_at and call.ended_at:
+        duration_seconds = int((call.ended_at - call.started_at).total_seconds())
+        mins, secs = divmod(duration_seconds, 60)
+        duration_str = f"{mins}:{secs:02d}" if mins else f"0:{secs:02d}"
+        try:
+            # Find or create conversation between the two participants
+            raw_caller = call.created_by_user_id
+            raw_callee = call.callee_user_id
+            caller_id = raw_caller - ADMIN_ID_OFFSET if raw_caller and raw_caller >= ADMIN_ID_OFFSET else raw_caller
+            callee_id = raw_callee - ADMIN_ID_OFFSET if raw_callee and raw_callee >= ADMIN_ID_OFFSET else raw_callee
+            admin_id = call.org_id
+
+            from sqlalchemy import func
+            conv = (
+                db.query(models.Conversation)
+                .join(models.ConversationParticipant, models.ConversationParticipant.conversation_id == models.Conversation.id)
+                .filter(
+                    models.ConversationParticipant.user_id == caller_id,
+                )
+                .filter(
+                    models.Conversation.id.in_(
+                        db.query(models.ConversationParticipant.conversation_id)
+                        .filter(models.ConversationParticipant.user_id == callee_id)
+                    )
+                )
+                .outerjoin(models.Message, models.Message.conversation_id == models.Conversation.id)
+                .group_by(models.Conversation.id)
+                .order_by(func.count(models.Message.id).desc())
+                .first()
+            )
+
+            if conv:
+                call_msg = models.Message(
+                    admin_id=conv.admin_id,
+                    conversation_id=conv.id,
+                    sender_user_id=caller_id,
+                    sender_participant_type="user",
+                    sender_name="System",
+                    sender_role="system",
+                    content=f"{'📹' if call.kind == 'video' else '📞'} {'Video' if call.kind == 'video' else 'Audio'} call ended • {duration_str}",
+                    message_type="call_record",
+                    is_self=False,
+                )
+                db.add(call_msg)
+                conv.last_message = call_msg.content
+                conv.last_message_at = call.ended_at
+                db.commit()
+        except Exception as e:
+            pass  # Don't fail the call end if message posting fails
+
     return _fmt_call(call)
 
 
