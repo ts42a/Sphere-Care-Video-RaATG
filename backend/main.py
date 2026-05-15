@@ -7,7 +7,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from backend.api.routers import api_router
-from backend.api.routers.call import router as calls_router, expire_timed_out_calls
+from backend.api.routers.call import expire_timed_out_calls
 from backend.api.routers.ws import router as ws_router  # ── NEW ──
 from backend.db.base import Base
 from backend.db.session import engine
@@ -121,6 +121,7 @@ if FRONTEND_DIR.exists():
 UPLOADS_DIR = BASE_DIR / "uploads"
 UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
 (UPLOADS_DIR / "videos").mkdir(parents=True, exist_ok=True)
+(UPLOADS_DIR / "audio").mkdir(parents=True, exist_ok=True)
 (UPLOADS_DIR / "images").mkdir(parents=True, exist_ok=True)
 (UPLOADS_DIR / "documents").mkdir(parents=True, exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=UPLOADS_DIR), name="uploads")
@@ -142,5 +143,4 @@ def health():
     return {"status": "ok"}
 
 app.include_router(api_router, prefix="/api/v1")
-app.include_router(calls_router, prefix="/api/v1")
 app.include_router(ws_router)
