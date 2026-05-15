@@ -121,6 +121,23 @@ const HOURS = [7,8,9,10,11,12,13,14,15,16,17,18,19,20];
 const DOWS  = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
 const HOUR_H = 52;
 
+const WEEK_COLORS = [
+  { bg:'#dbeafe', text:'#1d4ed8', border:'#93c5fd' },
+  { bg:'#d1fae5', text:'#065f46', border:'#6ee7b7' },
+  { bg:'#fce7f3', text:'#be185d', border:'#f9a8d4' },
+  { bg:'#fef3c7', text:'#92400e', border:'#fcd34d' },
+  { bg:'#ede9fe', text:'#5b21b6', border:'#c4b5fd' },
+  { bg:'#ffedd5', text:'#c2410c', border:'#fdba74' },
+  { bg:'#cffafe', text:'#155e75', border:'#67e8f9' },
+  { bg:'#ecfdf5', text:'#14532d', border:'#86efac' },
+];
+
+function residentColorIndex(name) {
+  let h = 0;
+  for (let i = 0; i < (name || '').length; i++) h = (h * 31 + name.charCodeAt(i)) & 0xFFFF;
+  return h % WEEK_COLORS.length;
+}
+
 function timeToMinutes(t) {
   const [hm, ampm] = t.split(' ');
   let [h, m] = hm.split(':').map(Number);
@@ -170,12 +187,16 @@ function renderWeek() {
       col.appendChild(line);
     });
     bookings.filter(b => b.date === ds).forEach(b => {
-      const mins  = timeToMinutes(b.time);
-      const ev = document.createElement('div');
-      ev.className = `cal-week-event ${b.status}`;
-      ev.style.top    = `${(mins / 60) * HOUR_H}px`;
+      const mins = timeToMinutes(b.time);
+      const ev   = document.createElement('div');
+      ev.className = 'cal-week-event';
+      ev.style.top    = `${((mins / 60) - HOURS[0]) * HOUR_H}px`;
       ev.style.height = `${HOUR_H - 4}px`;
-      ev.innerHTML = `<div>${b.time}</div><div style="opacity:.8">${b.doctor.replace('Dr. ','')}</div>`;
+      const c = WEEK_COLORS[residentColorIndex(b.resident)];
+      ev.style.background  = c.bg;
+      ev.style.color       = c.text;
+      ev.style.borderLeft  = `3px solid ${c.border}`;
+      ev.innerHTML = `<div class="wk-ev-time">${b.time}</div><div class="wk-ev-name">${b.resident}</div>`;
       ev.onclick = () => openModal(b);
       col.appendChild(ev);
     });
