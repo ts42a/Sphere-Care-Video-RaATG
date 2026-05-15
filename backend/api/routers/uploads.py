@@ -15,13 +15,14 @@ router = APIRouter(tags=["Upload"])
 UPLOAD_ROOTS = {
     "image":    "uploads/images",
     "video":    "uploads/videos",
+    "audio":    "uploads/audio",
     "document": "uploads/documents",
 }
 for path in UPLOAD_ROOTS.values():
     os.makedirs(path, exist_ok=True)
 
 #limits
-MAX_FILE_MB    = 100
+MAX_FILE_MB    = 500
 MAX_FILE_BYTES = MAX_FILE_MB * 1024 * 1024
 
 #allowed MIME types → category
@@ -40,6 +41,19 @@ MIME_CATEGORY = {
     "video/webm":      "video",
     "video/mpeg":      "video",
     "video/ogg":       "video",
+    "video/x-matroska": "video",
+    "video/3gpp":      "video",
+    # audio
+    "audio/mpeg":      "audio",
+    "audio/mp4":       "audio",
+    "audio/ogg":       "audio",
+    "audio/wav":       "audio",
+    "audio/webm":      "audio",
+    "audio/aac":       "audio",
+    "audio/flac":      "audio",
+    "audio/x-m4a":     "audio",
+    "audio/x-wav":     "audio",
+    "audio/vnd.wav":   "audio",
     # documents
     "application/pdf":  "document",
     "application/msword": "document",
@@ -93,12 +107,14 @@ async def _save_file(file: UploadFile) -> dict:
     with open(save_path, "wb") as f:
         f.write(data)
 
+    # Build URL from the actual folder path (avoids image→images, audio→audios mismatches)
+    url_subpath = UPLOAD_ROOTS[category]  # e.g. "uploads/audio"
     return {
-        "url":           f"/uploads/{category}s/{unique}",
+        "url":           f"/{url_subpath}/{unique}",
         "filename":      original,
         "size":          len(data),
         "size_readable": _fmt_size(len(data)),
-        "type":          category,        # "image" | "video" | "document"
+        "type":          category,        # "image" | "video" | "audio" | "document"
         "content_type":  content_type,
     }
 
