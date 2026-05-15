@@ -58,24 +58,27 @@ function senderClr(n) { if (!SENDER_CLR[n]) SENDER_CLR[n] = SC_CLR[sci++ % SC_CL
 function catLabel(c) { return { team: 'Team Chat', resident: 'Resident Care', alerts: 'System Alerts' }[c] || 'Chat'; }
 
 async function loadConvs() {
-  try {
-    var r = await fetch(API_BASE + '/messages/conversations', { headers: authH() });
-    if (!r.ok) throw new Error();
-    var d = await r.json();
-    if (d.length) {
+  var hasAuth = !!sessionStorage.getItem('access_token');
+  if (hasAuth) {
+    try {
+      var r = await fetch(API_BASE + '/messages/conversations', { headers: authH() });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      var d = await r.json();
       allConvs = d.map(function (c) {
         return { id: c.id, name: c.name, category: c.category, last_message: c.last_message || '', last_message_at: c.last_message_at || '', unread_count: c.unread_count || 0, sub: catLabel(c.category), color: convClr(c.id, c.category), online: false };
       });
       demo = false;
-    } else throw new Error();
-  } catch (e) {
+    } catch (e) {
+      allConvs = [];
+      demo = false;
+    }
+  } else {
+    // No token — show demo UI for unauthenticated preview only
     allConvs = DEMO_CONVS.map(function (c) { return Object.assign({}, c); });
     demo = true;
   }
 
   // Auto-sync: create conversations for residents that don't have one yet
-  // Run always — even if no conversations exist yet (demo=true means no convs, not no auth)
-  var hasAuth = !!sessionStorage.getItem('access_token');
   if (hasAuth) {
     try {
       var rr = await fetch(API_BASE + '/residents/', { headers: authH() });
@@ -182,13 +185,16 @@ async function openConv(elOrId) {
 
 async function loadMsgs(id) {
   if (localMsgs[id]) { renderMsgs(localMsgs[id]); return; }
-  try {
-    var r = await fetch(API_BASE + '/messages/conversations/' + id + '/messages', { headers: authH() });
-    if (!r.ok) throw new Error();
-    localMsgs[id] = await r.json();
-  } catch (e) {
-    // Use demo messages if available, otherwise empty array (new conversation)
+  if (demo) {
     localMsgs[id] = (DEMO_MSGS[id] || []).map(function (m) { return Object.assign({}, m); });
+  } else {
+    try {
+      var r = await fetch(API_BASE + '/messages/conversations/' + id + '/messages', { headers: authH() });
+      if (!r.ok) throw new Error();
+      localMsgs[id] = await r.json();
+    } catch (e) {
+      localMsgs[id] = [];
+    }
   }
   renderMsgs(localMsgs[id]);
 }
@@ -1837,7 +1843,7 @@ async function _lkConnect(lkUrl, token, type) {
       var msg; try { msg = JSON.parse(e.data); } catch (err) { return; }
       if (msg.type === 'new_message') {
         var m = msg.message, convId = msg.conversation_id;
-        if (m.sender_name === ME.name) return;
+        if (m.is_self === true || m.is_self === 'true') return; // backend sets is_self per-recipient
         if (!localMsgs[convId]) localMsgs[convId] = [];
         localMsgs[convId].push(m);
         var conv = allConvs.find(function (c) { return c.id === convId; });
