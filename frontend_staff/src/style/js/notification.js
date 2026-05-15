@@ -15,6 +15,17 @@ let allNotifs = [];
 let activeTab = 'all';
 let searchQ   = '';
 
+// ── Local read-state persistence (flags & bookings have no backend read API) ──
+const _SC_READ_KEY = 'sc_notif_read_v1';
+function _getReadIds() {
+  try { return new Set(JSON.parse(localStorage.getItem(_SC_READ_KEY) || '[]')); } catch { return new Set(); }
+}
+function _markReadLocal(id) {
+  const s = _getReadIds(); s.add(String(id));
+  try { localStorage.setItem(_SC_READ_KEY, JSON.stringify([...s])); } catch {}
+}
+function _isReadLocal(id) { return _getReadIds().has(String(id)); }
+
 function updateClock() {
   document.getElementById('topbar-date').textContent = now.toLocaleDateString('en-AU', { month:'short', day:'numeric', year:'numeric' });
   document.getElementById('topbar-time').textContent = new Date().toLocaleTimeString('en-AU', { hour:'numeric', minute:'2-digit', hour12:true }).toUpperCase();
@@ -67,12 +78,12 @@ async function loadData() {
       notifs.forEach(n => {
         const cat = n.category || 'alert';
         let iconType = 'ai';
-        if (cat === 'message')     iconType = 'message';
-        else if (cat === 'call')   iconType = 'call';
+        if (cat === 'message')          iconType = 'message';
+        else if (cat === 'call')        iconType = 'call';
         else if (cat === 'appointment') iconType = 'appt';
 
-        allNotifs.push({
-          id:       n.id,
+        const entry = {
+          id:       'notif_' + n.id,
           title:    n.title,
           desc:     n.body || '',
           time:     timeAgoFromISO(n.created_at),
@@ -83,15 +94,36 @@ async function loadData() {
           status:   'active',
           unread:   !n.is_read,
           _notifId: n.id,
-        });
+        };
+        // If this notification is linked to a specific flag, treat it as a flag entry
+        if (n.related_entity_type === 'flag' && n.related_entity_id) {
+          entry._flagId = n.related_entity_id;
+          entry.iconType = 'ai';
+          entry.type = 'ai';
+        }
+        allNotifs.push(entry);
       });
     }
 
-    // ── This week's bookings ──
+    // ── Today's + future bookings ──
     if (bookingsRes.ok) {
       const bookings = await bookingsRes.json();
-      const weekBookings = bookings.filter(b => weekDates.includes(b.appointment_date));
-      weekBookings.forEach(b => {
+      const todayDateStr = fmtDate(now);
+      const readIds = _getReadIds();
+      const upcomingBookings = bookings.filter(b => {
+        if (!b.appointment_date) return false;
+        if (readIds.has(String(b.id))) return false; // already marked read
+        if (b.appointment_date < todayDateStr) return false; // past date
+        if (b.appointment_date === todayDateStr) {
+          // today — only show if the appointment time hasn't passed yet
+          try {
+            const dt = new Date(`${b.appointment_date} ${b.start_time}`);
+            return isNaN(dt.getTime()) ? true : dt > now;
+          } catch { return true; }
+        }
+        return true; // future date
+      });
+      upcomingBookings.forEach(b => {
         if (allNotifs.find(x => x._bookingId === b.id)) return;
         const resName = b.resident ? b.resident.full_name : `Resident #${b.resident_id}`;
         let title = '', desc = '', iconType = 'appt';
@@ -104,7 +136,7 @@ async function loadData() {
           desc  = `${b.doctor_name} · ${b.appointment_date} at ${b.start_time}`;
         }
         allNotifs.push({
-          id: b.id, title, desc,
+          id: 'booking_' + b.id, title, desc,
           time: timeAgo(b.appointment_date, b.start_time),
           rawTime: b.start_time, date: b.appointment_date,
           iconType, type: 'appt', status: b.status,
@@ -118,7 +150,8 @@ async function loadData() {
     if (flagsRes.ok) {
       const flags = await flagsRes.json();
       const DONE = new Set(['resolved', 'false_alarm']);
-      flags.filter(f => !DONE.has(f.status)).forEach(f => {
+      const readIds2 = _getReadIds();
+      flags.filter(f => !DONE.has(f.status) && !readIds2.has('flag_' + f.id)).forEach(f => {
         var fid = 'flag_' + f.id;
         if (allNotifs.find(x => x.id === fid)) return;
         var rawT = '';
@@ -265,13 +298,16 @@ async function markRead(id) {
   n.unread = false;
   renderNotifs();
 
-  // Only PATCH backend if this is a real Notification row (has _notifId)
-  const backendId = n._notifId ?? (n._bookingId ? null : n.id);
-  if (backendId) {
+  // Persist read state locally for flags and bookings (no backend read API for these)
+  if (n._flagId)    _markReadLocal('flag_' + n._flagId);
+  if (n._bookingId) _markReadLocal(String(n._bookingId));
+
+  // PATCH backend for real Notification rows
+  if (n._notifId) {
     try {
       const token = sessionStorage.getItem('access_token') || '';
       const headers = { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
-      await fetch(`${API_BASE}/notifications/${backendId}/read`, { method: 'PATCH', headers });
+      await fetch(`${API_BASE}/notifications/${n._notifId}/read`, { method: 'PATCH', headers });
     } catch (_) {}
   }
 
@@ -283,10 +319,10 @@ function viewBooking(id) {
   const n = allNotifs.find(x => String(x.id) === String(id));
   if (!n) return;
 
-  // Flag entries → navigate to flags page instead of showing a modal
+  // Flag entries → navigate to flags page and auto-open the specific flag
   if (n._flagId) {
     markRead(id);
-    window.location.href = '/pages/flags.html';
+    window.location.href = '/pages/flags.html?flagId=' + n._flagId;
     return;
   }
 
@@ -296,6 +332,7 @@ function viewBooking(id) {
   let content = '';
 
   if (n.type === 'appt' && n.booking) {
+    // ── Full booking detail (from bookings API) ───────────────────
     const b = n.booking;
     const resName = b.resident?.full_name || `Resident #${b.resident_id}`;
     const statusColor = b.status === 'completed' ? '#15803d' : b.status === 'cancelled' ? '#b91c1c' : '#1d4ed8';
@@ -320,7 +357,23 @@ function viewBooking(id) {
         </button>
       </div>`;
 
+  } else if (n.type === 'appt') {
+    // ── Appointment notification without full booking object ──────
+    content = `
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <div style="padding:16px;background:#eff6ff;border-radius:12px;border-left:4px solid #3b82f6;">
+          <div style="font-size:13px;color:#1d4ed8;font-weight:700;margin-bottom:6px;">📅 Appointment</div>
+          <div style="font-size:13.5px;color:#1e293b;line-height:1.7;">${_esc(n.desc)}</div>
+        </div>
+        <div style="font-size:12px;color:#94a3b8;">🕐 ${_esc(n.time)}</div>
+        <button onclick="window.location.href='/pages/booking.html'"
+          style="width:100%;padding:10px;border-radius:10px;border:none;background:#0f172a;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">
+          Open in Bookings →
+        </button>
+      </div>`;
+
   } else if (n.type === 'message') {
+    // ── Message notification ──────────────────────────────────────
     content = `
       <div style="display:flex;flex-direction:column;gap:12px;">
         <div style="padding:16px;background:#f0f9ff;border-radius:12px;border-left:4px solid #3b82f6;">
@@ -328,13 +381,14 @@ function viewBooking(id) {
           <div style="font-size:13.5px;color:#1e293b;line-height:1.7;">${_esc(n.desc)}</div>
         </div>
         <div style="font-size:12px;color:#94a3b8;">🕐 ${_esc(n.time)}</div>
-        <button onclick="window.location.href='/pages/messages.html'"
+        <button onclick="window.location.href='/pages/message.html'"
           style="width:100%;padding:10px;border-radius:10px;border:none;background:#0f172a;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">
           Open in Messages →
         </button>
       </div>`;
 
   } else if (n.type === 'call') {
+    // ── Call notification ─────────────────────────────────────────
     content = `
       <div style="display:flex;flex-direction:column;gap:12px;">
         <div style="padding:16px;background:#fef2f2;border-radius:12px;border-left:4px solid #ef4444;">
@@ -342,10 +396,14 @@ function viewBooking(id) {
           <div style="font-size:13.5px;color:#1e293b;line-height:1.7;">${_esc(n.desc)}</div>
         </div>
         <div style="font-size:12px;color:#94a3b8;">🕐 ${_esc(n.time)}</div>
+        <button onclick="window.location.href='/pages/staff.html'"
+          style="width:100%;padding:10px;border-radius:10px;border:none;background:#0f172a;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">
+          Open Staff Page →
+        </button>
       </div>`;
 
   } else {
-    // AI alert / generic
+    // ── AI alert / generic ────────────────────────────────────────
     content = `
       <div style="display:flex;flex-direction:column;gap:12px;">
         <div style="padding:16px;background:#fffbeb;border-radius:12px;border-left:4px solid #f59e0b;">
@@ -353,6 +411,10 @@ function viewBooking(id) {
           <div style="font-size:13.5px;color:#1e293b;line-height:1.7;">${_esc(n.desc)}</div>
         </div>
         <div style="font-size:12px;color:#94a3b8;">🕐 ${_esc(n.time)}</div>
+        <button onclick="window.location.href='/pages/flags.html'"
+          style="width:100%;padding:10px;border-radius:10px;border:none;background:#0f172a;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">
+          Open Flags →
+        </button>
       </div>`;
   }
 
@@ -438,21 +500,26 @@ document.addEventListener('DOMContentLoaded', loadData);
       // ── booking_created ───────────────────────────────────────
       if (msg.type === 'booking_created') {
         var b = msg.booking;
-        if (!weekDates.includes(b.appointment_date)) return;
+        var todayStr = fmtDate(new Date());
+        if (b.appointment_date < todayStr) return; // past date — skip
+        if (b.appointment_date === todayStr) {
+          try { var dt2 = new Date(b.appointment_date + ' ' + b.start_time); if (!isNaN(dt2.getTime()) && dt2 <= new Date()) return; } catch (_) {}
+        }
+        if (_getReadIds().has(String(b.id))) return; // already read
         var resName = b.resident ? b.resident.full_name : ('Resident #' + b.resident_id);
-        var newN = { id:b.id, title:b.booking_type+' – '+resName, desc:b.doctor_name+' · '+b.appointment_date+' at '+b.start_time, time:timeAgo(b.appointment_date,b.start_time), rawTime:b.start_time, date:b.appointment_date, iconType:'appt', type:'appt', status:b.status, unread:true, booking:b };
-        if (!allNotifs.find(x => x.id === newN.id)) { allNotifs.unshift(newN); renderNotifs(); }
+        var newN = { id:'booking_'+b.id, _bookingId:b.id, title:b.booking_type+' – '+resName, desc:b.doctor_name+' · '+b.appointment_date+' at '+b.start_time, time:timeAgo(b.appointment_date,b.start_time), rawTime:b.start_time, date:b.appointment_date, iconType:'appt', type:'appt', status:b.status, unread:true, booking:b };
+        if (!allNotifs.find(x => x._bookingId === b.id)) { allNotifs.unshift(newN); renderNotifs(); }
       }
 
       // ── booking_updated ───────────────────────────────────────
       if (msg.type === 'booking_updated') {
-        var u = msg.booking, n = allNotifs.find(x => x.id === u.id);
+        var u = msg.booking, n = allNotifs.find(x => x._bookingId === u.id);
         if (n) { n.status=u.status; n.unread=(u.status!=='completed'); renderNotifs(); }
       }
 
       // ── booking_deleted ───────────────────────────────────────
       if (msg.type === 'booking_deleted') {
-        allNotifs = allNotifs.filter(x => x.id !== msg.booking_id);
+        allNotifs = allNotifs.filter(x => x._bookingId !== msg.booking_id);
         renderNotifs();
       }
 
