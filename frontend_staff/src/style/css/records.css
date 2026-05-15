@@ -205,3 +205,6 @@ html,body{height:100%;font-family:'Manrope',sans-serif;background:var(--bg);colo
 .ftextarea:focus{border-color:var(--teal);}
 .merr{display:none;color:#ef4444;font-size:12.5px;padding:10px 12px;background:#fef2f2;border-radius:8px;margin-top:4px;}
 .frow2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+/* Upload drop zone */
+#up-dropzone:hover{border-color:#38bdf8;background:#f0f9ff;}
+#up-dropzone.dz-over{border-color:#0ea5e9;background:#e0f2fe;border-style:solid;}
