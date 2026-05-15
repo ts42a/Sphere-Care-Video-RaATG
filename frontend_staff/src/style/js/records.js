@@ -716,11 +716,22 @@ async function deleteRecord(id) {
 }
 
 // ─── Upload ──────────────────────────────────────
+function _parseDurationToSeconds(raw) {
+  if (!raw) return null;
+  const str = raw.trim();
+  // "M:SS" or "MM:SS" format
+  const colonMatch = str.match(/^(\d+):(\d{1,2})$/);
+  if (colonMatch) return parseInt(colonMatch[1], 10) * 60 + parseInt(colonMatch[2], 10);
+  // plain number (already seconds)
+  const num = parseInt(str, 10);
+  return isNaN(num) ? null : num;
+}
+
 async function submitUpload() {
   const resident  = document.getElementById("up-resident")?.value.trim();
   const category  = document.getElementById("up-category")?.value.trim();
   const type      = document.getElementById("up-type")?.value;
-  const duration  = document.getElementById("up-duration")?.value.trim();
+  const durationRaw = document.getElementById("up-duration")?.value.trim();
   const date      = document.getElementById("up-date")?.value;
   const time      = document.getElementById("up-time")?.value;
   const notes     = document.getElementById("up-notes")?.value.trim();
@@ -760,10 +771,11 @@ async function submitUpload() {
     // Step 2: create the record metadata
     if (submitBtn) submitBtn.textContent = "Saving…";
     const recorded_at = date ? (time ? `${date}T${time}` : date) : null;
+    const durationSec = _parseDurationToSeconds(durationRaw);
     const recRes = await fetch(`${API_BASE}/records/`, {
       method: "POST",
       headers: authHeaders(),
-      body: JSON.stringify({ resident_name: resident, category, record_type: type, file_url: fileUrl, duration, recorded_at, notes }),
+      body: JSON.stringify({ resident_name: resident, category, record_type: type, file_url: fileUrl, duration: durationSec, recorded_at, notes }),
     });
     if (!recRes.ok) throw new Error((await recRes.text().catch(() => "")) || `HTTP ${recRes.status}`);
 
