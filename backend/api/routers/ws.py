@@ -185,6 +185,7 @@ async def websocket_endpoint(
 ):
     payload = decode_access_token(token)
     if not payload:
+        await websocket.accept()
         await websocket.close(code=4001)
         return
 

@@ -1,7 +1,7 @@
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from backend.api.deps import get_db, get_current_auth_context
 from backend import models, schemas
@@ -9,14 +9,24 @@ from backend import models, schemas
 router = APIRouter(tags=["Notifications"])
 
 
-def _fmt(n: models.Notification) -> schemas.NotificationResponse:
+def _is_read(n: models.Notification, user_id: Optional[int]) -> bool:
+    """Check read status from NotificationRecipient if user_id given, else False."""
+    if user_id is None:
+        return False
+    for r in (n.recipients or []):
+        if r.user_id == user_id:
+            return bool(r.is_read)
+    return False
+
+
+def _fmt(n: models.Notification, is_read: bool = False) -> schemas.NotificationResponse:
     return schemas.NotificationResponse(
         id=n.id,
         category=n.category,
         title=n.title,
         body=n.body,
         is_priority=n.is_priority,
-        is_read=bool(getattr(n, 'is_read', False)),
+        is_read=is_read,
         related_entity_type=n.related_entity_type,
         related_entity_id=n.related_entity_id,
         created_at=n.created_at,
@@ -38,6 +48,7 @@ def get_notifications(
 
     q = (
         db.query(models.Notification)
+        .options(joinedload(models.Notification.recipients))
         .filter(models.Notification.admin_id == admin_id)
         .order_by(models.Notification.created_at.desc())
     )
@@ -45,17 +56,25 @@ def get_notifications(
     if category:
         q = q.filter(models.Notification.category == category)
 
-    if unread_only:
-        q = q.filter(models.Notification.is_read == False)  # noqa: E712
-
     role = auth.get("role")
-    if role == "client" and user_id:
+    uid = int(user_id) if user_id else None
+
+    if role == "client" and uid:
         q = (
             q.join(models.NotificationRecipient)
-            .filter(models.NotificationRecipient.user_id == int(user_id))
+            .filter(models.NotificationRecipient.user_id == uid)
         )
+        if unread_only:
+            q = q.filter(models.NotificationRecipient.is_read == False)  # noqa: E712
+    else:
+        # For admin/staff: filter by recipient unread if unread_only
+        if unread_only:
+            q = q.join(models.NotificationRecipient).filter(
+                models.NotificationRecipient.is_read == False  # noqa: E712
+            )
 
-    return [_fmt(n) for n in q.limit(limit).all()]
+    notifications = q.limit(limit).all()
+    return [_fmt(n, is_read=_is_read(n, uid)) for n in notifications]
 
 
 @router.get("/priority", response_model=list[schemas.NotificationResponse])
@@ -65,20 +84,23 @@ def get_priority_alerts(
     db: Session = Depends(get_db),
 ):
     admin_id = auth.get("admin_id")
+    user_id  = auth.get("user_id")
     if not admin_id:
         raise HTTPException(status_code=403, detail="Missing admin scope")
 
     rows = (
         db.query(models.Notification)
+        .options(joinedload(models.Notification.recipients))
         .filter(
             models.Notification.admin_id == admin_id,
-            models.Notification.is_priority == True,
+            models.Notification.is_priority == True,  # noqa: E712
         )
         .order_by(models.Notification.created_at.desc())
         .limit(limit)
         .all()
     )
-    return [_fmt(n, is_read=_is_read_for_user(n, None)) for n in rows]
+    uid = int(user_id) if user_id else None
+    return [_fmt(n, is_read=_is_read(n, uid)) for n in rows]
 
 
 @router.post("/", response_model=schemas.NotificationResponse, status_code=status.HTTP_201_CREATED)
@@ -108,6 +130,7 @@ def mark_notification_read(
     db: Session = Depends(get_db),
 ):
     admin_id = auth.get("admin_id")
+    user_id  = auth.get("user_id")
     if not admin_id:
         raise HTTPException(status_code=403, detail="Missing admin scope")
 
@@ -118,7 +141,23 @@ def mark_notification_read(
     if not n:
         raise HTTPException(status_code=404, detail="Notification not found.")
 
-    n.is_read = True
+    # Mark the recipient row as read
+    uid = int(user_id) if user_id else None
+    if uid:
+        recipient = db.query(models.NotificationRecipient).filter(
+            models.NotificationRecipient.notification_id == notification_id,
+            models.NotificationRecipient.user_id == uid,
+        ).first()
+        if recipient:
+            from datetime import datetime, timezone
+            recipient.is_read = True
+            recipient.read_at = datetime.now(timezone.utc)
+    else:
+        # Admin: mark all recipients as read
+        db.query(models.NotificationRecipient).filter(
+            models.NotificationRecipient.notification_id == notification_id,
+        ).update({"is_read": True}, synchronize_session=False)
+
     db.commit()
 
 
@@ -129,16 +168,28 @@ def mark_all_notifications_read(
     db: Session = Depends(get_db),
 ):
     admin_id = auth.get("admin_id")
+    user_id  = auth.get("user_id")
     if not admin_id:
         raise HTTPException(status_code=403, detail="Missing admin scope")
 
-    q = db.query(models.Notification).filter(
+    # Get all notification ids for this admin
+    nq = db.query(models.Notification.id).filter(
         models.Notification.admin_id == admin_id,
-        models.Notification.is_read == False,  # noqa: E712
     )
     if category:
-        q = q.filter(models.Notification.category == category)
-    q.update({"is_read": True}, synchronize_session=False)
+        nq = nq.filter(models.Notification.category == category)
+    notification_ids = [row[0] for row in nq.all()]
+
+    if notification_ids:
+        rq = db.query(models.NotificationRecipient).filter(
+            models.NotificationRecipient.notification_id.in_(notification_ids),
+            models.NotificationRecipient.is_read == False,  # noqa: E712
+        )
+        uid = int(user_id) if user_id else None
+        if uid:
+            rq = rq.filter(models.NotificationRecipient.user_id == uid)
+        rq.update({"is_read": True}, synchronize_session=False)
+
     db.commit()
 
 
@@ -148,16 +199,25 @@ def get_unread_counts(
     db: Session = Depends(get_db),
 ):
     admin_id = auth.get("admin_id")
+    user_id  = auth.get("user_id")
     if not admin_id:
         raise HTTPException(status_code=403, detail="Missing admin scope")
 
-    base = db.query(models.Notification).filter(
-        models.Notification.admin_id == admin_id,
-        models.Notification.is_read == False,  # noqa: E712
-    )
+    uid = int(user_id) if user_id else None
 
     def _count(cat):
-        return base.filter(models.Notification.category == cat).count()
+        q = (
+            db.query(models.NotificationRecipient)
+            .join(models.Notification)
+            .filter(
+                models.Notification.admin_id == admin_id,
+                models.Notification.category == cat,
+                models.NotificationRecipient.is_read == False,  # noqa: E712
+            )
+        )
+        if uid:
+            q = q.filter(models.NotificationRecipient.user_id == uid)
+        return q.count()
 
     alerts       = _count("alert")
     messages     = _count("message")

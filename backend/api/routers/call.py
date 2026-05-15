@@ -3,10 +3,13 @@
 LiveKit token minting is stubbed — fill in when LIVEKIT_* env vars are set.
 """
 import json
+import logging
 import uuid
 from datetime import datetime, timezone, timedelta
 from zoneinfo import ZoneInfo
 from typing import Optional
+
+logger = logging.getLogger(__name__)
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel
@@ -167,7 +170,7 @@ def _add_event(db: Session, call_id: int, event_type: str, actor_id: Optional[in
     ))
 
 async def _ws_broadcast_call_event(call: models.Call, event_type: str, extra: dict = None):
-    """Notify both caller and callee via WS using the same actor key rules as messages."""
+    """Notify both caller and callee via WS."""
     payload = {
         "type": event_type,
         "call_id": call.id,
@@ -184,25 +187,13 @@ async def _ws_broadcast_call_event(call: models.Call, event_type: str, extra: di
         actor_key = _actor_key_from_call_storage_id(stored_uid)
         await ws_manager.broadcast_actor(actor_key, payload)
 
-        # Compatibility fallback for older rows or older clients that may have
-        # connected under the wrong key during development.
-        actor_type, real_id = _from_call_storage_id(stored_uid)
-        await ws_manager.broadcast_actor(f"user:{real_id}", payload)
-        await ws_manager.broadcast_actor(f"admin:{real_id}", payload)
-
 
 async def _ws_send_to_call_participant(stored_user_id: int | None, payload: dict, role_hint: Optional[str] = None):
     if not stored_user_id:
         return
 
     actor_key = _actor_key_from_call_storage_id(stored_user_id, role_hint)
-    print("DEBUG ws actor_key", actor_key)
     await ws_manager.broadcast_actor(actor_key, payload)
-
-    # Compatibility fallback for old dev tokens / old rows.
-    _, real_id = _from_call_storage_id(stored_user_id, role_hint)
-    await ws_manager.broadcast_actor(f"user:{real_id}", payload)
-    await ws_manager.broadcast_actor(f"admin:{real_id}", payload)
 
 
 # ── Schemas ───────────────────────────────────────────────────────────────────
@@ -431,6 +422,26 @@ async def start_call(
     if caller_id == callee_id:
         raise HTTPException(status_code=400, detail="Cannot call yourself.")
 
+    now = _now()
+
+    # Auto-expire any stale ringing calls before the busy check so old test
+    # sessions don't permanently block the caller.
+    stale_ringing = db.query(models.Call).filter(
+        or_(
+            models.Call.created_by_user_id == caller_id,
+            models.Call.callee_user_id == caller_id,
+        ),
+        models.Call.state == "ringing",
+        models.Call.invite_expires_at < now,
+    ).all()
+    for sc in stale_ringing:
+        sc.state = "timeout"
+        sc.ended_at = now
+        sc.end_reason = "timeout"
+        _add_event(db, sc.id, "timeout")
+    if stale_ringing:
+        db.flush()
+
     caller_busy = db.query(models.Call).filter(
         or_(
             models.Call.created_by_user_id == caller_id,
@@ -447,6 +458,20 @@ async def start_call(
     ).first()
     if active:
         raise HTTPException(status_code=409, detail="Callee is busy.")
+
+    # Auto-expire stale ringing invites to the callee before checking.
+    stale_callee = db.query(models.Call).filter(
+        models.Call.callee_user_id == callee_id,
+        models.Call.state == "ringing",
+        models.Call.invite_expires_at < now,
+    ).all()
+    for sc in stale_callee:
+        sc.state = "timeout"
+        sc.ended_at = now
+        sc.end_reason = "timeout"
+        _add_event(db, sc.id, "timeout")
+    if stale_callee:
+        db.flush()
 
     ringing = db.query(models.Call).filter(
         models.Call.callee_user_id == callee_id,

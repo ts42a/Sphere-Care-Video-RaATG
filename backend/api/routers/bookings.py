@@ -26,7 +26,26 @@ async def create_booking(
     if not resident:
         raise HTTPException(status_code=404, detail="Resident not found")
 
-    new_booking = models.Booking(**booking.model_dump())
+    # ── Conflict detection ──
+    # If the same doctor already has a booking on the same date/time,
+    # force the new booking to "requested" so the doctor must confirm.
+    conflict = (
+        db.query(models.Booking)
+        .filter(
+            models.Booking.doctor_name == booking.doctor_name,
+            models.Booking.appointment_date == booking.appointment_date,
+            models.Booking.start_time == booking.start_time,
+            models.Booking.status.notin_(["cancelled", "completed"]),
+            models.Booking.is_deleted == False,
+        )
+        .first()
+    )
+
+    booking_data = booking.model_dump()
+    if conflict:
+        booking_data["status"] = "requested"
+
+    new_booking = models.Booking(**booking_data)
     db.add(new_booking)
     db.commit()
     db.refresh(new_booking)

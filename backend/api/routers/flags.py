@@ -36,6 +36,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from backend.api.deps import get_db
 from backend import models, schemas
+from backend.ws.ws_manager import ws_manager
 
 router = APIRouter(tags=["Flags & Reviews"])
 
@@ -255,7 +256,7 @@ def get_flag(flag_id: int, db: Session = Depends(get_db)):
 # ── Create flag ───────────────────────────────────────────────────────────────
 
 @router.post("/", response_model=schemas.FlagResponse, status_code=status.HTTP_201_CREATED)
-def create_flag(flag_in: schemas.FlagCreate, db: Session = Depends(get_db)):
+async def create_flag(flag_in: schemas.FlagCreate, db: Session = Depends(get_db)):
     flagged_at = _parse_flagged_at(flag_in.flagged_at)
     flag = models.Flag(
         resident_name=flag_in.resident_name,
@@ -276,7 +277,21 @@ def create_flag(flag_in: schemas.FlagCreate, db: Session = Depends(get_db)):
         db.add(flag)
         db.commit()
         db.refresh(flag)
-        return _fmt_flag(_get_flag_or_404(db, flag.id))
+        result = _fmt_flag(_get_flag_or_404(db, flag.id))
+        admin_id = int(flag.admin_id or 1)
+        await ws_manager.broadcast(admin_id, {
+            "type": "flag_created",
+            "flag_id": flag.id,
+            "flag": {
+                "id": flag.id,
+                "event_type": flag.event_type,
+                "description": flag.description,
+                "severity": flag.severity,
+                "resident_name": flag.resident_name,
+                "status": flag.status,
+            },
+        })
+        return result
     except SQLAlchemyError:
         db.rollback()
         raise HTTPException(status_code=500, detail="Failed to create flag.")
@@ -324,7 +339,7 @@ def delete_flag(flag_id: int, db: Session = Depends(get_db)):
 # ══════════════════════════════════════════════════════════════════════════════
 
 @router.post("/{flag_id}/review", response_model=schemas.FlagReviewResponse, status_code=status.HTTP_201_CREATED)
-def submit_review(
+async def submit_review(
     flag_id: int,
     body: schemas.FlagReviewCreate,
     db: Session = Depends(get_db),
@@ -404,6 +419,14 @@ def submit_review(
     try:
         db.commit()
         db.refresh(review)
+        admin_id = int(flag.admin_id or 1)
+        is_terminal = body.review_action in ("resolve", "false_alarm")
+        await ws_manager.broadcast(admin_id, {
+            "type": "flag_resolved" if is_terminal else "flag_updated",
+            "flag_id": flag_id,
+            "new_status": new_status,
+            "review_action": body.review_action,
+        })
         return _fmt_review(review)
     except SQLAlchemyError:
         db.rollback()
