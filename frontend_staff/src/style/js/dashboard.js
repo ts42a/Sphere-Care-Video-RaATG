@@ -192,12 +192,6 @@
           b.status !== 'completed';
       });
 
-      var upcomingBookings = bookings.filter(function(b) {
-        return b.date > todayStr &&
-          b.status !== 'cancelled' &&
-          b.status !== 'completed';
-      });
-
       var titleEl = document.getElementById('dash-tasks-title');
       var subEl   = document.getElementById('dash-tasks-sub');
       var listEl  = document.getElementById('dash-tasks-list');
@@ -229,10 +223,8 @@
         listEl.innerHTML =
           '<div style="text-align:center;padding:24px 0;color:var(--text3);font-size:13px;">No bookings today.</div>';
       } else {
-        listEl.innerHTML = todayBookings.map(renderBookingItem).join('');
+        listEl.innerHTML = renderBookingsTable(todayBookings, false);
       }
-
-      renderUpcomingBookingsBox(upcomingBookings);
 
     } catch(e) {
       var listEl = document.getElementById('dash-tasks-list');
@@ -247,82 +239,79 @@
   }
 
 
-  function renderBookingItem(b) {
-    var statusCls =
-      b.status === 'confirmed' ? 'done' :
-      b.status === 'cancelled' ? 'urgent' :
-      b.status === 'requested' ? 'urgent' :
-      'default';
-
-    var timeLabel = b.time || '—';
-
-    if (b.endTime) {
-      timeLabel += ' - ' + b.endTime;
+  function renderBookingsTable(bookings, showDate) {
+    if (!bookings.length) {
+      return '<div style="text-align:center;padding:24px 0;color:var(--text3);font-size:13px;">No bookings.</div>';
     }
 
-    return '<div class="task-item">'
-      + '<div class="task-time">' + esc(timeLabel) + '</div>'
-      + '<div class="task-bar ' + statusCls + '"></div>'
-      + '<div class="task-info">'
-      + '<div class="task-title">'
-      + esc(b.type || 'Booking') + ' — '
-      + esc(b.doctor || 'Doctor') + ' with '
-      + esc(b.resident || 'Resident')
-      + '</div>'
-      + '<div class="task-status ' + statusCls + '">'
-      + 'Date: ' + esc(b.date || '—')
-      + ' · Status: ' + esc((b.status || 'requested').toUpperCase())
-      + '</div>'
-      + '</div>'
-      + '</div>';
-  }
+    var doctorMap = {};   // doctor name -> specialty
+    var colSet    = {};   // col key -> display label
+    var lookup    = {};   // "doctor\0colKey" -> booking
 
+    bookings.forEach(function(b) {
+      var doc    = b.doctor || 'Unknown';
+      var time   = b.time   || '—';
+      var colKey = showDate ? (b.date + ' ' + time) : time;
+      var colLbl = showDate ? (b.date + '\n' + time) : time;
 
-  function renderUpcomingBookingsBox(upcomingBookings) {
-    var todayList = document.getElementById('dash-tasks-list');
-    if (!todayList) return;
+      if (!doctorMap.hasOwnProperty(doc)) doctorMap[doc] = b.specialty || '';
+      colSet[colKey] = colLbl;
 
-    var box = document.getElementById('dash-upcoming-bookings-box');
+      var k = doc + '\x00' + colKey;
+      if (!lookup[k]) lookup[k] = b;
+    });
 
-    if (!box) {
-      box = document.createElement('div');
-      box.id = 'dash-upcoming-bookings-box';
-      box.style.marginTop = '18px';
-      box.style.borderTop = '1px solid var(--border, #e5e7eb)';
-      box.style.paddingTop = '16px';
+    var doctors = Object.keys(doctorMap).sort();
+    var cols    = Object.keys(colSet).sort();
 
-      box.innerHTML =
-        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">'
-        + '<div>'
-        + '<div style="font-size:15px;font-weight:800;color:var(--text);">Upcoming Bookings</div>'
-        + '<div id="dash-upcoming-bookings-sub" style="font-size:12px;color:var(--text3);margin-top:2px;"></div>'
-        + '</div>'
-        + '</div>'
-        + '<div id="dash-upcoming-bookings-list"></div>';
+    var html = '<div class="bk-table-wrap"><table class="bk-sched-table">'
+      + '<thead><tr><th class="bk-th-doc">Doctor</th>';
 
-      todayList.parentNode.appendChild(box);
-    }
+    cols.forEach(function(c) {
+      var parts = colSet[c].split('\n');
+      html += '<th class="bk-th-time">';
+      if (parts.length > 1) {
+        html += '<span class="bk-th-date">' + esc(parts[0]) + '</span>'
+             +  '<span class="bk-th-t">'    + esc(parts[1]) + '</span>';
+      } else {
+        html += esc(parts[0]);
+      }
+      html += '</th>';
+    });
 
-    var sub = document.getElementById('dash-upcoming-bookings-sub');
-    var list = document.getElementById('dash-upcoming-bookings-list');
+    html += '</tr></thead><tbody>';
 
-    var upcoming = upcomingBookings.slice(0, 5);
+    doctors.forEach(function(doc) {
+      html += '<tr>'
+        + '<td class="bk-td-doc">'
+        + '<div class="bk-doc-name">' + esc(doc) + '</div>';
+      if (doctorMap[doc]) {
+        html += '<div class="bk-doc-spec">' + esc(doctorMap[doc]) + '</div>';
+      }
+      html += '</td>';
 
-    if (sub) {
-      sub.textContent = upcomingBookings.length
-        ? upcomingBookings.length + ' upcoming booking(s).'
-        : 'No upcoming bookings.';
-    }
+      cols.forEach(function(c) {
+        var b = lookup[doc + '\x00' + c];
+        if (b) {
+          var st  = b.status || 'requested';
+          var cls = st === 'confirmed' ? 'done'
+                  : st === 'cancelled' ? 'urgent'
+                  : 'pending';
+          html += '<td class="bk-td-cell">'
+            + '<div class="bk-appt ' + cls + '">'
+            + '<div class="bk-appt-resident">' + esc(b.resident || '—') + '</div>'
+            + '<div class="bk-appt-type">'     + esc(b.type     || '')  + '</div>'
+            + '</div></td>';
+        } else {
+          html += '<td class="bk-td-empty"></td>';
+        }
+      });
 
-    if (!list) return;
+      html += '</tr>';
+    });
 
-    if (!upcoming.length) {
-      list.innerHTML =
-        '<div style="text-align:center;padding:18px 0;color:var(--text3);font-size:13px;">No upcoming bookings.</div>';
-      return;
-    }
-
-    list.innerHTML = upcoming.map(renderBookingItem).join('');
+    html += '</tbody></table></div>';
+    return html;
   }
 
 
