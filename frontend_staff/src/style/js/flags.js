@@ -100,8 +100,11 @@ function renderTable(flags) {
           srcBadge +
         '</div>' +
       '</td>' +
-      '<td style="padding:10px 12px;">' +
+      '<td style="padding:10px 12px;white-space:nowrap;">' +
         '<button class="view-btn" onclick="openFlag(' + f.id + ')">👁 View</button>' +
+        (f.status !== 'resolved' && f.status !== 'false_alarm'
+          ? ' <button class="view-btn" style="border-color:#16a34a;color:#16a34a;" onclick="quickResolve(' + f.id + ')">✔ Resolve</button>'
+          : '') +
       '</td>' +
     '</tr>';
   }).join('');
@@ -314,6 +317,42 @@ async function submitComment() {
       if (input) input.value = '';
     }
   } catch(e) { alert('Failed to post comment.'); }
+}
+
+// ══════════════════════════════════════════════════════════════════
+// QUICK RESOLVE (from table row button)
+// ══════════════════════════════════════════════════════════════════
+
+async function quickResolve(flagId) {
+  if (!confirm('Mark this flag as Resolved?')) return;
+  var user = {};
+  try { user = JSON.parse(sessionStorage.getItem('user') || '{}'); } catch(e) {}
+  var reviewerName = user.full_name || user.name || 'Staff';
+
+  try {
+    var r = await fetch(window._FLAGS_API + '/flags/' + flagId + '/review', {
+      method: 'POST', headers: authH(),
+      body: JSON.stringify({
+        review_action:    'resolve',
+        reviewer_name:    reviewerName,
+        reviewer_role:    user.role || null,
+        reviewer_user_id: user.id || user.user_id || null,
+        notes:            null,
+      })
+    });
+    if (r.ok) {
+      showToast('✅ Flag marked as Resolved');
+      var flag = _allFlags.find(function(f){ return f.id === flagId; });
+      if (flag) flag.status = 'resolved';
+      renderTable(_allFlags);
+      loadStats();
+    } else {
+      var err = await r.json().catch(function(){ return {}; });
+      showToast(err.detail || 'Failed to resolve flag', true);
+    }
+  } catch(e) {
+    showToast('Network error', true);
+  }
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -687,7 +726,12 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
   loadStats();
-  loadFlags();
+  loadFlags().then(function() {
+    // Auto-open a specific flag if navigated from notifications page
+    var params = new URLSearchParams(window.location.search);
+    var targetId = parseInt(params.get('flagId') || '0', 10);
+    if (targetId) openFlag(targetId);
+  });
 
   // ── Auto-refresh flags + stats ────────────────────────────────
   // Every 60 seconds: refresh stats counts (new flags come in frequently)
