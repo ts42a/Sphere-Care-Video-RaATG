@@ -54,14 +54,112 @@ function debounceSearch() {
   searchTimeout = setTimeout(() => loadRecords(), 300);
 }
 
+let _pendingUploadFile = null;
+
 function openUploadModal() {
+  _pendingUploadFile = null;
   const m = document.getElementById("modal-upload");
-  if (m) m.style.display = "flex";
+  if (!m) return;
+  // Reset all fields
+  ["up-resident","up-category","up-duration","up-notes"].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = "";
+  });
+  const upType = document.getElementById("up-type"); if (upType) upType.value = "";
+  const upDate = document.getElementById("up-date"); if (upDate) upDate.value = "";
+  const upTime = document.getElementById("up-time"); if (upTime) upTime.value = "";
+  const upErr  = document.getElementById("up-err");  if (upErr)  { upErr.textContent = ""; upErr.style.display = "none"; }
+  const fi = document.getElementById("up-file-input"); if (fi) fi.value = "";
+  _resetUploadDropzone();
+  m.classList.add("open");
 }
 
 function closeModal(id) {
   const m = document.getElementById(id);
-  if (m) m.style.display = "none";
+  if (m) m.classList.remove("open");
+}
+
+function _resetUploadDropzone() {
+  const dz    = document.getElementById("up-dropzone");
+  const label = document.getElementById("up-dz-label");
+  const prev  = document.getElementById("up-preview");
+  const pv    = document.getElementById("up-preview-video");
+  const pa    = document.getElementById("up-preview-audio");
+  if (label) label.innerHTML = `Click to select or drag &amp; drop<br><span style="font-size:11.5px;color:#94a3b8;">MP4, MOV, WebM, MKV · MP3, WAV, AAC, M4A, OGG · up to 500 MB</span>`;
+  if (pv) { pv.src = ""; pv.style.display = "none"; }
+  if (pa) { pa.src = ""; pa.style.display = "none"; }
+  if (prev) prev.style.display = "none";
+}
+
+function _onUploadFileDrop(e) {
+  const file = e.dataTransfer?.files?.[0];
+  if (file) _onUploadFileSelected(file);
+}
+
+function _onUploadFileSelected(file) {
+  if (!file) return;
+  _pendingUploadFile = file;
+
+  // Auto-set type
+  const typeEl = document.getElementById("up-type");
+  if (typeEl) {
+    if (file.type.startsWith("video/")) typeEl.value = "video";
+    else if (file.type.startsWith("audio/")) typeEl.value = "audio";
+  }
+
+  // Update dropzone label
+  const label = document.getElementById("up-dz-label");
+  if (label) {
+    const sizeMB = (file.size / 1048576).toFixed(1);
+    label.innerHTML = `<strong style="color:#0f172a;">${escapeHtml(file.name)}</strong><br><span style="font-size:11.5px;color:#64748b;">${sizeMB} MB · click to change</span>`;
+  }
+
+  // Show media preview and auto-read duration
+  const prev  = document.getElementById("up-preview");
+  const pv    = document.getElementById("up-preview-video");
+  const pa    = document.getElementById("up-preview-audio");
+  const durEl = document.getElementById("up-duration");
+  const objUrl = URL.createObjectURL(file);
+
+  if (file.type.startsWith("video/")) {
+    if (pv) { pv.src = objUrl; pv.style.display = "block"; }
+    if (pa) { pa.src = ""; pa.style.display = "none"; }
+    if (prev) prev.style.display = "block";
+    if (pv && durEl) {
+      pv.onloadedmetadata = () => {
+        if (!isNaN(pv.duration)) {
+          const s = Math.round(pv.duration);
+          const m = Math.floor(s / 60), sec = s % 60;
+          durEl.value = `${m}:${String(sec).padStart(2, "0")}`;
+        }
+      };
+    }
+  } else if (file.type.startsWith("audio/")) {
+    if (pa) { pa.src = objUrl; pa.style.display = "block"; }
+    if (pv) { pv.src = ""; pv.style.display = "none"; }
+    if (prev) prev.style.display = "block";
+    if (pa && durEl) {
+      pa.onloadedmetadata = () => {
+        if (!isNaN(pa.duration)) {
+          const s = Math.round(pa.duration);
+          const m = Math.floor(s / 60), sec = s % 60;
+          durEl.value = `${m}:${String(sec).padStart(2, "0")}`;
+        }
+      };
+    }
+  }
+
+  // Auto-set date/time from file last modified
+  if (file.lastModified) {
+    const dt = new Date(file.lastModified);
+    const dateEl = document.getElementById("up-date");
+    const timeEl = document.getElementById("up-time");
+    if (dateEl && !dateEl.value) {
+      dateEl.value = dt.toISOString().slice(0, 10);
+    }
+    if (timeEl && !timeEl.value) {
+      timeEl.value = dt.toTimeString().slice(0, 5);
+    }
+  }
 }
 
 // ─── Clock ───────────────────────────────────────
@@ -365,8 +463,49 @@ async function viewRecord(id) {
     await openLocalVaultRecord(r, false);
     return;
   }
-  if (r.file_url && r.file_url !== "#") window.open(r.file_url, "_blank");
-  else alert("No file URL available for this record.");
+  if (!r.file_url || r.file_url === "#") {
+    alert("No file available for this record.");
+    return;
+  }
+  const rtype = r.record_type || "";
+  if (rtype === "video" || rtype === "audio") {
+    _showMediaPlayerModal(r);
+  } else {
+    window.open(r.file_url, "_blank");
+  }
+}
+
+function _showMediaPlayerModal(r) {
+  const existing = document.getElementById("_media_player_modal");
+  if (existing) existing.remove();
+
+  const isAudio = r.record_type === "audio";
+  const title   = escapeHtml(r.category || (isAudio ? "Audio" : "Video"));
+  const sub     = escapeHtml(r.resident_name || "");
+  const fileUrl = r.file_url.startsWith("http") || r.file_url.startsWith("/") ? r.file_url : "/" + r.file_url;
+
+  const mediaHtml = isAudio
+    ? `<audio src="${escapeHtml(fileUrl)}" controls autoplay style="width:100%;padding:10px 0;"></audio>`
+    : `<video src="${escapeHtml(fileUrl)}" controls autoplay playsinline style="width:100%;border-radius:10px;max-height:66vh;background:#000;"></video>`;
+
+  const modal = document.createElement("div");
+  modal.id = "_media_player_modal";
+  modal.style.cssText = "position:fixed;inset:0;z-index:999999;background:rgba(0,0,0,0.82);display:flex;align-items:center;justify-content:center;";
+  modal.innerHTML = `
+    <div style="background:#0b1220;border-radius:18px;padding:20px;max-width:860px;width:96%;position:relative;">
+      <div style="font-size:15px;font-weight:800;color:#fff;margin-bottom:14px;">
+        ${isAudio ? "🎵" : "▶"} ${title}
+        ${sub ? `<span style="font-size:11px;font-weight:500;color:#94a3b8;margin-left:8px;">${sub}</span>` : ""}
+      </div>
+      ${mediaHtml}
+      <div style="display:flex;justify-content:flex-end;margin-top:12px;">
+        <a href="${escapeHtml(fileUrl)}" download style="font-size:12px;color:#38bdf8;text-decoration:none;padding:6px 14px;border:1px solid #38bdf8;border-radius:8px;">⬇ Download</a>
+      </div>
+      <button id="_mp_close" style="position:absolute;top:16px;right:16px;background:#1e293b;border:none;color:#94a3b8;border-radius:50%;width:32px;height:32px;font-size:18px;cursor:pointer;line-height:1;">×</button>
+    </div>`;
+  document.body.appendChild(modal);
+  document.getElementById("_mp_close").addEventListener("click", () => modal.remove());
+  modal.addEventListener("click", e => { if (e.target === modal) modal.remove(); });
 }
 
 async function downloadRecord(id) {
@@ -581,7 +720,6 @@ async function submitUpload() {
   const resident  = document.getElementById("up-resident")?.value.trim();
   const category  = document.getElementById("up-category")?.value.trim();
   const type      = document.getElementById("up-type")?.value;
-  const url       = document.getElementById("up-url")?.value.trim();
   const duration  = document.getElementById("up-duration")?.value.trim();
   const date      = document.getElementById("up-date")?.value;
   const time      = document.getElementById("up-time")?.value;
@@ -589,27 +727,52 @@ async function submitUpload() {
   const errEl     = document.getElementById("up-err");
   const submitBtn = document.getElementById("up-submit");
 
-  if (errEl) errEl.textContent = "";
-  if (!resident || !category || !type || !url) {
-    if (errEl) errEl.textContent = "Resident, Category, Type, and File URL are required.";
-    return;
+  function _setErr(msg) {
+    if (!errEl) return;
+    errEl.textContent = msg;
+    errEl.style.display = msg ? "block" : "none";
   }
+  _setErr("");
 
-  const recorded_at = date ? (time ? `${date}T${time}` : date) : null;
+  if (!resident || !category || !type) { _setErr("Resident, Category, and Type are required."); return; }
+  if (!_pendingUploadFile) { _setErr("Please select a video or audio file to upload."); return; }
 
-  if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = "Saving…"; }
+  if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = "Uploading file…"; }
+
+  let fileUrl = "#";
   try {
-    const res = await fetch(`${API_BASE}/records/`, {
+    // Step 1: upload the actual file
+    const form = new FormData();
+    form.append("file", _pendingUploadFile);
+    const token = sessionStorage.getItem("access_token");
+    const uploadRes = await fetch(`${API_BASE}/uploads/file`, {
+      method: "POST",
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: form,
+    });
+    if (!uploadRes.ok) {
+      const detail = await uploadRes.json().catch(() => ({}));
+      throw new Error(detail.detail || `Upload failed (HTTP ${uploadRes.status})`);
+    }
+    const uploadData = await uploadRes.json();
+    fileUrl = uploadData.url;
+
+    // Step 2: create the record metadata
+    if (submitBtn) submitBtn.textContent = "Saving…";
+    const recorded_at = date ? (time ? `${date}T${time}` : date) : null;
+    const recRes = await fetch(`${API_BASE}/records/`, {
       method: "POST",
       headers: authHeaders(),
-      body: JSON.stringify({ resident_name: resident, category, record_type: type, file_url: url, duration, recorded_at, notes }),
+      body: JSON.stringify({ resident_name: resident, category, record_type: type, file_url: fileUrl, duration, recorded_at, notes }),
     });
-    if (!res.ok) throw new Error((await res.text().catch(() => "")) || `HTTP ${res.status}`);
+    if (!recRes.ok) throw new Error((await recRes.text().catch(() => "")) || `HTTP ${recRes.status}`);
+
+    _pendingUploadFile = null;
     closeModal("modal-upload");
     _showToast("✅ Record uploaded.");
     await loadRecords();
   } catch (err) {
-    if (errEl) errEl.textContent = `Failed: ${err.message}`;
+    _setErr(`Failed: ${err.message}`);
   } finally {
     if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = "Upload Record"; }
   }
