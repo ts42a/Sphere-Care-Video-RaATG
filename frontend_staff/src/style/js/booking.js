@@ -22,7 +22,9 @@ async function loadBookings() {
       resident: b.resident ? b.resident.full_name : `Resident #${b.resident_id}`,
       time:     b.start_time,
       type:     b.booking_type,
-      status:   b.status
+      status:   b.status,
+      notes:    b.notes || '',
+      location: b.location || '',
     }));
   } catch (e) {
     console.warn('Could not load bookings from API:', e);
@@ -241,7 +243,8 @@ function openModal(b) {
       <div style="background:#f8fafc;border-radius:10px;padding:12px;"><div style="font-size:10px;font-weight:700;color:#9aa0ac;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Time</div><div style="font-size:13px;font-weight:800;color:#1a2535;">${b.time}</div></div>
     </div>
     <div style="background:#f8fafc;border-radius:10px;padding:12px;margin-bottom:12px;"><div style="font-size:10px;font-weight:700;color:#9aa0ac;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Appointment Type</div><div style="font-size:13px;font-weight:700;color:#1a2535;">${b.type||'—'}</div></div>
-    <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:12px;"><div style="font-size:10px;font-weight:700;color:#b45309;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">📋 Clinical Notes</div><div style="font-size:12px;color:#6b7280;line-height:1.5;">No notes recorded for this appointment yet.</div></div>
+    ${b.location ? `<div style="background:#f8fafc;border-radius:10px;padding:12px;margin-bottom:12px;"><div style="font-size:10px;font-weight:700;color:#9aa0ac;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">📍 Location</div><div style="font-size:13px;font-weight:700;color:#1a2535;">${b.location}</div></div>` : ''}
+    <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:12px;"><div style="font-size:10px;font-weight:700;color:#b45309;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">📋 Clinical Notes</div><div style="font-size:12px;color:#6b7280;line-height:1.5;">${b.notes || 'No notes recorded for this appointment yet.'}</div></div>
   `;
   document.getElementById('modal-overlay').classList.add('open');
 }
@@ -267,6 +270,18 @@ document.addEventListener('DOMContentLoaded', () => {
   loadBookings();
 });
 
+// Sync updates from Doctor Summary tab (staff.js)
+window.addEventListener('spherecare:booking_updated', function(e) {
+  const { id, status, notes, location } = e.detail;
+  const idx = bookings.findIndex(b => b.id === id);
+  if (idx >= 0) {
+    if (status)   bookings[idx].status   = status;
+    if (notes   !== undefined) bookings[idx].notes    = notes;
+    if (location !== undefined) bookings[idx].location = location;
+    renderCalendar();
+  }
+});
+
 // ── WebSocket real-time layer ──────────────────────────────────────────────
 (function () {
   var proto = location.protocol === 'https:' ? 'wss' : 'ws';
@@ -280,7 +295,7 @@ document.addEventListener('DOMContentLoaded', () => {
       var msg; try { msg = JSON.parse(e.data); } catch (err) { return; }
       if (msg.type === 'booking_created') {
         var b = msg.booking;
-        var norm = { id:b.id, date:b.appointment_date, doctor:b.doctor_name, resident:b.resident?b.resident.full_name:('Resident #'+b.resident_id), time:b.start_time, type:b.booking_type, status:b.status };
+        var norm = { id:b.id, date:b.appointment_date, doctor:b.doctor_name, resident:b.resident?b.resident.full_name:('Resident #'+b.resident_id), time:b.start_time, type:b.booking_type, status:b.status, notes:b.notes||'', location:b.location||'' };
         if (!bookings.find(function(x){return x.id===norm.id;})) { bookings.push(norm); renderCalendar(); }
       }
       if (msg.type === 'booking_updated') {

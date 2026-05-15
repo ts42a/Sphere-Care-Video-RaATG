@@ -53,9 +53,10 @@ async function loadData() {
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
     // Load real notifications from backend (messages, calls, alerts, appointments)
-    const [notifsRes, bookingsRes] = await Promise.all([
+    const [notifsRes, bookingsRes, flagsRes] = await Promise.all([
       fetch(`${API_BASE}/notifications/?limit=100`, { headers }),
       fetch(`${API_BASE}/bookings/`, { headers }),
+      fetch(`${API_BASE}/flags/?limit=100`, { headers }),
     ]);
 
     allNotifs = [];
@@ -109,6 +110,34 @@ async function loadData() {
           iconType, type: 'appt', status: b.status,
           unread: b.status !== 'completed',
           booking: b, _bookingId: b.id,
+        });
+      });
+    }
+
+    // ── Unresolved AI flags ──
+    if (flagsRes.ok) {
+      const flags = await flagsRes.json();
+      const DONE = new Set(['resolved', 'false_alarm']);
+      flags.filter(f => !DONE.has(f.status)).forEach(f => {
+        var fid = 'flag_' + f.id;
+        if (allNotifs.find(x => x.id === fid)) return;
+        var rawT = '';
+        try { rawT = new Date(f.flagged_at).toISOString(); } catch (_) {}
+        allNotifs.push({
+          id: fid,
+          title: f.event_type || 'AI Flag',
+          desc: f.description || '',
+          time: f.flagged_at || '',
+          rawTime: rawT || f.flagged_at || '',
+          date: rawT ? rawT.slice(0, 10) : '',
+          iconType: 'ai',
+          type: 'ai',
+          status: 'active',
+          unread: true,
+          _flagId: f.id,
+          _flagSeverity: f.severity,
+          _flagStatus: f.status,
+          _flagResidentName: f.resident_name,
         });
       });
     }
@@ -209,8 +238,8 @@ function renderNotifs() {
         </div>
         <div class="notif-desc">${n.desc}</div>
         <div class="notif-actions">
-          <button class="btn-view" onclick="viewBooking(${n.id})">View Details</button>
-          <button class="btn-read" onclick="markRead(${n.id})">Mark as read</button>
+          <button class="btn-view" onclick="viewBooking('${n.id}')">View Details</button>
+          <button class="btn-read" onclick="markRead('${n.id}')">Mark as read</button>
         </div>
       </div>
     </div>`).join('');
@@ -253,6 +282,13 @@ async function markRead(id) {
 function viewBooking(id) {
   const n = allNotifs.find(x => String(x.id) === String(id));
   if (!n) return;
+
+  // Flag entries → navigate to flags page instead of showing a modal
+  if (n._flagId) {
+    markRead(id);
+    window.location.href = '/pages/flags.html';
+    return;
+  }
 
   const existing = document.getElementById('_notif_detail_modal');
   if (existing) existing.remove();
@@ -458,8 +494,39 @@ document.addEventListener('DOMContentLoaded', loadData);
         if (typeof BadgeManager !== 'undefined') BadgeManager.refresh();
       }
 
-      // ── flag events → refresh badge ───────────────────────────
-      if (msg.type === 'flag_created' || msg.type === 'flag_resolved') {
+      // ── flag_created → add to notification list ───────────────
+      if (msg.type === 'flag_created') {
+        var f = msg.flag || {};
+        var fid = 'flag_' + (msg.flag_id || f.id);
+        if (!allNotifs.find(x => x.id === fid)) {
+          allNotifs.unshift({
+            id: fid,
+            title: f.event_type || 'AI Flag',
+            desc: (f.description || '') + (f.resident_name ? ' — ' + f.resident_name : ''),
+            time: 'just now',
+            rawTime: new Date().toISOString(),
+            date: fmtDate(new Date()),
+            iconType: 'ai',
+            type: 'ai',
+            status: 'active',
+            unread: true,
+            _flagId: msg.flag_id || f.id,
+          });
+          renderNotifs();
+        }
+        if (typeof BadgeManager !== 'undefined') BadgeManager.refresh();
+      }
+
+      // ── flag_resolved → remove from notification list ─────────
+      if (msg.type === 'flag_resolved') {
+        var resolvedId = msg.flag_id;
+        allNotifs = allNotifs.filter(x => x._flagId !== resolvedId);
+        renderNotifs();
+        if (typeof BadgeManager !== 'undefined') BadgeManager.refresh();
+      }
+
+      // ── flag_updated (non-terminal review) → badge refresh ────
+      if (msg.type === 'flag_updated') {
         if (typeof BadgeManager !== 'undefined') BadgeManager.refresh();
       }
     };

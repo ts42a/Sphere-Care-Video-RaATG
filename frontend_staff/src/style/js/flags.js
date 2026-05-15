@@ -347,20 +347,18 @@ async function updateFlagStatus() {
 function openModal(id) {
   var el = document.getElementById(id);
   if (!el) return;
-  el.style.display = 'flex';
-  el.style.position = 'fixed';
-  el.style.inset = '0';
-  el.style.zIndex = '10001';
-  el.style.alignItems = 'center';
-  el.style.justifyContent = 'center';
-  el.style.background = 'rgba(15,23,42,0.55)';
-  el.style.backdropFilter = 'blur(4px)';
+  el.classList.add('open');   // triggers opacity:1 + pointer-events:all in flags.css
+  el.style.display = 'flex'; // handles modals that start with inline display:none
   document.body.style.overflow = 'hidden';
 }
 
 function closeModal(id) {
   var el = document.getElementById(id);
-  if (el) { el.style.display = 'none'; document.body.style.overflow = ''; }
+  if (el) {
+    el.classList.remove('open');
+    el.style.display = 'none';
+    document.body.style.overflow = '';
+  }
   if (id === 'modal-flag') _activeFlag = null;
 }
 
