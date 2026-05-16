@@ -14,29 +14,29 @@ import { pushNotificationService } from "./pushNotificationService";
 let realtimeInitialized = false;
 let cleanupHandlers: Array<() => void> = [];
 
+function normalizeRealtimePayload(eventType: string, payload: any) {
+  const innerPayload =
+    payload?.payload && typeof payload.payload === "object"
+      ? payload.payload
+      : payload;
+
+  return {
+    ...innerPayload,
+    type: innerPayload?.type || payload?.type || eventType,
+  };
+}
+
 function initializeRealtime() {
   if (realtimeInitialized) return;
 
   const forwardEvent = (eventType: string) => (payload: any) => {
-    console.log(`Realtime ${eventType} event received:`, payload);
+    const normalizedPayload = normalizeRealtimePayload(eventType, payload);
+    console.log(`Realtime ${eventType} event received:`, normalizedPayload);
 
-    applyRealtimeNotificationEvent(payload)
+    applyRealtimeNotificationEvent(normalizedPayload)
       .then((item) => {
         if (!item) return;
-
-        return pushNotificationService.showLocalNotification(
-          item.title,
-          item.message,
-          {
-            notificationId: item.id,
-            sourceId: item.sourceId,
-            sourceEvent: item.sourceEvent,
-            realtimeEventType: eventType,
-            relatedEntityType: item.relatedEntityType,
-            relatedEntityId: item.relatedEntityId,
-            type: item.type,
-          }
-        );
+        return pushNotificationService.showNotificationItem(item);
       })
       .catch((error) => {
         console.error(`Failed to apply ${eventType} notification event`, error);
@@ -48,6 +48,9 @@ function initializeRealtime() {
     wsClient.subscribe("booking_updated", forwardEvent("booking_updated")),
     wsClient.subscribe("booking_deleted", forwardEvent("booking_deleted")),
     wsClient.subscribe("ai_alert", forwardEvent("ai_alert")),
+    wsClient.subscribe("task.created", forwardEvent("task.created")),
+    wsClient.subscribe("task.updated", forwardEvent("task.updated")),
+    wsClient.subscribe("task.deleted", forwardEvent("task.deleted")),
   ];
 
   realtimeInitialized = true;

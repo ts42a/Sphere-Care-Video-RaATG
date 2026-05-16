@@ -1,9 +1,11 @@
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
   StyleSheet,
   Pressable,
   ScrollView,
+  Animated,
   type StyleProp,
   type ViewStyle,
 } from "react-native";
@@ -52,103 +54,213 @@ export default function TranscriptPanel({
   aslConfidence,
 }: TranscriptPanelProps) {
   const isAslMode = mode === "asl";
+  const scrollRef = useRef<ScrollView>(null);
+  const [isAtBottom, setIsAtBottom] = useState(true);
+  const jumpBtnOpacity = useRef(new Animated.Value(0)).current;
+  const prevItemCount = useRef(items.length);
+
+  // Auto-scroll when new items arrive, but only if already at bottom
+  useEffect(() => {
+    if (items.length === prevItemCount.current) return;
+    prevItemCount.current = items.length;
+    if (isAtBottom) {
+      setTimeout(() => {
+        scrollRef.current?.scrollToEnd({ animated: true });
+      }, 80);
+    }
+  }, [items.length, isAtBottom]);
+
+  // Animate jump button in/out
+  useEffect(() => {
+    Animated.timing(jumpBtnOpacity, {
+      toValue: isAtBottom ? 0 : 1,
+      duration: 180,
+      useNativeDriver: true,
+    }).start();
+  }, [isAtBottom, jumpBtnOpacity]);
+
+  const handleScroll = useCallback((e: any) => {
+    const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
+    const distFromBottom =
+      contentSize.height - layoutMeasurement.height - contentOffset.y;
+    setIsAtBottom(distFromBottom < 28);
+  }, []);
+
+  const scrollToBottom = useCallback(() => {
+    scrollRef.current?.scrollToEnd({ animated: true });
+    setIsAtBottom(true);
+  }, []);
 
   return (
     <View style={[styles.panel, containerStyle]}>
+      {/* Header */}
       <View style={styles.header}>
         <View style={styles.titleRow}>
-          <MaterialIcons name="smart-toy" size={20} color="#2E3340" />
+          <MaterialIcons
+            name={isAslMode ? "sign-language" : "smart-toy"}
+            size={16}
+            color={colors.primary}
+          />
           <Text style={styles.title}>{title}</Text>
+          {transcribing && <View style={styles.liveDot} />}
         </View>
-
-        <Pressable onPress={onToggleExpanded}>
+        <Pressable
+          onPress={onToggleExpanded}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
           <Feather
             name={expanded ? "chevron-down" : "chevron-up"}
             size={18}
-            color="#727B89"
+            color={colors.textMuted}
           />
         </Pressable>
       </View>
 
-      {showModeTabs ? (
+      {/* Mode tabs */}
+      {showModeTabs && (
         <View style={styles.modeTabs}>
           <Pressable
             style={[styles.modeTab, !isAslMode && styles.modeTabActive]}
             onPress={() => onModeChange?.("speech")}
           >
+            <Feather
+              name="mic"
+              size={11}
+              color={!isAslMode ? colors.surface : colors.textMuted}
+            />
             <Text
-              style={[
-                styles.modeTabText,
-                !isAslMode && styles.modeTabTextActive,
-              ]}
+              style={[styles.modeTabText, !isAslMode && styles.modeTabTextActive]}
             >
-              🎤 Speech
+              Speech
             </Text>
           </Pressable>
-
           <Pressable
             style={[styles.modeTab, isAslMode && styles.modeTabActive]}
             onPress={() => onModeChange?.("asl")}
           >
+            <MaterialIcons
+              name="sign-language"
+              size={11}
+              color={isAslMode ? colors.surface : colors.textMuted}
+            />
             <Text
-              style={[
-                styles.modeTabText,
-                isAslMode && styles.modeTabTextActive,
-              ]}
+              style={[styles.modeTabText, isAslMode && styles.modeTabTextActive]}
             >
-              👋 ASL
+              ASL
             </Text>
           </Pressable>
         </View>
-      ) : null}
+      )}
 
-      <ScrollView
-        style={styles.body}
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-      >
-        {!transcribing ? (
-          <Text style={styles.emptyText}>AI transcript is paused.</Text>
-        ) : items.length === 0 ? (
-          <Text style={styles.emptyText}>
-            {isAslMode ? "Waiting for ASL signs..." : "Listening for transcript..."}
-          </Text>
-        ) : (
-          items.map((item) => (
-            <View key={item.id} style={styles.bubble}>
-              <Text style={styles.speaker}>{item.speaker}</Text>
-              <Text style={styles.text}>{item.content}</Text>
+      {/* Scrollable transcript body */}
+      <View style={styles.bodyWrap}>
+        <ScrollView
+          ref={scrollRef}
+          style={styles.body}
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
+          onScroll={handleScroll}
+          scrollEventThrottle={60}
+        >
+          {!transcribing ? (
+            <View style={styles.emptyWrap}>
+              <MaterialIcons
+                name="pause-circle-outline"
+                size={18}
+                color={colors.textMuted}
+              />
+              <Text style={styles.emptyText}>Transcript paused</Text>
             </View>
-          ))
-        )}
-      </ScrollView>
+          ) : items.length === 0 ? (
+            <View style={styles.emptyWrap}>
+              <MaterialIcons
+                name={isAslMode ? "sign-language" : "graphic-eq"}
+                size={18}
+                color={colors.textMuted}
+              />
+              <Text style={styles.emptyText}>
+                {isAslMode ? "Waiting for ASL signs…" : "Listening…"}
+              </Text>
+            </View>
+          ) : (
+            items.map((item) => {
+              const isLocal = item.role === "patient";
+              return (
+                <View
+                  key={`${item.id}-${item.segmentId ?? ""}`}
+                  style={[styles.bubble, isLocal && styles.bubbleLocal]}
+                >
+                  <View style={styles.bubbleHeader}>
+                    <Text
+                      style={[styles.speaker, isLocal && styles.speakerLocal]}
+                    >
+                      {item.speaker}
+                    </Text>
+                    {item.source === "asl" && (
+                      <View style={styles.aslBadge}>
+                        <Text style={styles.aslBadgeText}>ASL</Text>
+                      </View>
+                    )}
+                    {item.isFinal === false && (
+                      <Text style={styles.interimDots}>…</Text>
+                    )}
+                  </View>
+                  <Text style={styles.bubbleText}>{item.content}</Text>
+                </View>
+              );
+            })
+          )}
+        </ScrollView>
 
-      {isAslMode ? (
+        {/* Jump to latest */}
+        <Animated.View
+          style={[styles.jumpBtn, { opacity: jumpBtnOpacity }]}
+          pointerEvents={isAtBottom ? "none" : "auto"}
+        >
+          <Pressable style={styles.jumpBtnInner} onPress={scrollToBottom}>
+            <Feather name="chevron-down" size={13} color={colors.surface} />
+            <Text style={styles.jumpBtnText}>Latest</Text>
+          </Pressable>
+        </Animated.View>
+      </View>
+
+      {/* ASL footer */}
+      {isAslMode && (
         <View style={styles.aslFooter}>
-          <View style={styles.aslDetailRow}>
-            <Text style={styles.aslLetter}>{aslLiveLetter || "—"}</Text>
-            <Text style={styles.aslConfidence}>
-              {typeof aslConfidence === "number"
-                ? `${Math.round(aslConfidence * 100)}%`
-                : ""}
-            </Text>
-          </View>
-
-          <View style={styles.aslControls}>
-            <Pressable style={styles.aslMiniButton} onPress={onToggleAslMode}>
-              <Text style={styles.aslMiniButtonText}>
-                {aslMode === "static" ? "Static A-Z" : "Motion Words"}
+          <View style={styles.aslLiveRow}>
+            <View style={styles.aslLetterBox}>
+              <Text style={styles.aslLetter}>{aslLiveLetter || "—"}</Text>
+            </View>
+            <View style={styles.aslMeta}>
+              <Text style={styles.aslMetaLabel}>Detected letter</Text>
+              <Text style={styles.aslConfidence}>
+                {typeof aslConfidence === "number"
+                  ? `${Math.round(aslConfidence * 100)}% confidence`
+                  : "No signal"}
+              </Text>
+            </View>
+            <View style={{ flex: 1 }} />
+            <Pressable style={styles.aslModeChip} onPress={onToggleAslMode}>
+              <Text style={styles.aslModeChipText}>
+                {aslMode === "static" ? "Static" : "Motion"}
               </Text>
             </Pressable>
-            <Pressable style={styles.aslMiniButton} onPress={onClearAsl}>
-              <Text style={styles.aslMiniButtonText}>Clear</Text>
+          </View>
+          <View style={styles.aslControls}>
+            <Pressable style={styles.aslChip} onPress={onSpaceAsl}>
+              <Text style={styles.aslChipText}>+ Space</Text>
             </Pressable>
-            <Pressable style={styles.aslMiniButton} onPress={onSpaceAsl}>
-              <Text style={styles.aslMiniButtonText}>Space</Text>
+            <Pressable
+              style={[styles.aslChip, styles.aslChipDanger]}
+              onPress={onClearAsl}
+            >
+              <Text style={[styles.aslChipText, styles.aslChipTextDanger]}>
+                Clear
+              </Text>
             </Pressable>
           </View>
         </View>
-      ) : null}
+      )}
     </View>
   );
 }
@@ -156,78 +268,245 @@ export default function TranscriptPanel({
 const styles = StyleSheet.create({
   panel: {
     backgroundColor: colors.surface,
-    borderRadius: 22,
-    padding: 14,
+    borderRadius: 20,
+    paddingTop: 12,
+    paddingHorizontal: 14,
+    paddingBottom: 10,
     borderWidth: 1,
     borderColor: colors.border,
     overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 3,
   },
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 10,
+    marginBottom: 8,
   },
   titleRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: 6,
   },
   title: {
-    fontSize: 15,
+    fontSize: 13,
     fontWeight: "700",
     color: colors.textSecondary,
+    letterSpacing: 0.1,
+  },
+  liveDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.success,
   },
   modeTabs: {
     flexDirection: "row",
-    alignSelf: "center",
     gap: 6,
-    marginBottom: 10,
+    marginBottom: 8,
   },
   modeTab: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
     borderRadius: 999,
-    paddingHorizontal: 14,
+    paddingHorizontal: 12,
     paddingVertical: 5,
-    backgroundColor: "rgba(255,255,255,0.14)",
+    backgroundColor: colors.backgroundAlt,
   },
   modeTabActive: {
-    backgroundColor: "rgba(56,189,248,0.92)",
+    backgroundColor: colors.primary,
   },
   modeTabText: {
     fontSize: 12,
-    fontWeight: "700",
-    color: colors.surface,
+    fontWeight: "600",
+    color: colors.textMuted,
   },
   modeTabTextActive: {
-    color: "#0F172A",
+    color: colors.surface,
+  },
+  bodyWrap: {
+    flex: 1,
+    position: "relative",
+    minHeight: 60,
   },
   body: {
     flex: 1,
   },
   content: {
-    paddingBottom: 6,
+    gap: 6,
+    paddingBottom: 8,
+  },
+  emptyWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingVertical: 6,
+  },
+  emptyText: {
+    ...typography.subText,
+    fontSize: 13,
+    color: colors.textMuted,
   },
   bubble: {
     backgroundColor: colors.backgroundAlt,
     borderRadius: 14,
     padding: 10,
-    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  bubbleLocal: {
+    backgroundColor: "#EEF2FF",
+    borderColor: "#D6DEFF",
+  },
+  bubbleHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginBottom: 3,
   },
   speaker: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "700",
-    color: "#4A5FC1",
-    marginBottom: 4,
+    color: colors.textMuted,
+    textTransform: "uppercase",
+    letterSpacing: 0.4,
   },
-  text: {
-    ...typography.body,
-    fontSize: 13,
-    color: colors.textSecondary,
-    lineHeight: 18,
+  speakerLocal: {
+    color: colors.primary,
   },
-  emptyText: {
-    ...typography.body,
+  aslBadge: {
+    backgroundColor: "#E0EAFF",
+    borderRadius: 4,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+  },
+  aslBadgeText: {
+    fontSize: 9,
+    fontWeight: "800",
+    color: colors.primary,
+    letterSpacing: 0.4,
+  },
+  interimDots: {
     fontSize: 13,
     color: colors.textMuted,
+    marginLeft: "auto" as any,
+  },
+  bubbleText: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    lineHeight: 19,
+  },
+  // Jump to latest button
+  jumpBtn: {
+    position: "absolute",
+    bottom: 12,
+    left: 0,
+    right: 0,
+    alignItems: "center",
+    zIndex: 10,
+  },
+  jumpBtnInner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: colors.primary,
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.18,
+    shadowRadius: 4,
+    elevation: 6,
+  },
+  jumpBtnText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: colors.surface,
+  },
+  // ASL footer
+  aslFooter: {
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    paddingTop: 10,
+    marginTop: 8,
+    gap: 8,
+  },
+  aslLiveRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  aslLetterBox: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    backgroundColor: "#EEF2FF",
+    borderWidth: 1,
+    borderColor: "#D6DEFF",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  aslLetter: {
+    fontSize: 20,
+    fontWeight: "800",
+    color: colors.primary,
+  },
+  aslMeta: {
+    gap: 1,
+  },
+  aslMetaLabel: {
+    fontSize: 10,
+    fontWeight: "600",
+    color: colors.textMuted,
+    textTransform: "uppercase",
+    letterSpacing: 0.4,
+  },
+  aslConfidence: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: colors.textSecondary,
+  },
+  aslModeChip: {
+    backgroundColor: "#EEF2FF",
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: "#D6DEFF",
+  },
+  aslModeChipText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: colors.primary,
+  },
+  aslControls: {
+    flexDirection: "row",
+    gap: 6,
+  },
+  aslChip: {
+    backgroundColor: colors.backgroundAlt,
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  aslChipDanger: {
+    borderColor: "#FCA5A5",
+    backgroundColor: "#FFF5F5",
+  },
+  aslChipText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: colors.textSecondary,
+  },
+  aslChipTextDanger: {
+    color: colors.danger,
   },
 });

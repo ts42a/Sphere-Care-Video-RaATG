@@ -98,21 +98,32 @@ async function ensurePermission() {
   );
 }
 
+function normalizeNotificationText(value: unknown, fallback: string) {
+  const text = typeof value === "string" ? value.trim() : "";
+  return text.length > 0 ? text : fallback;
+}
+
 async function showLocalNotification(
   title: string,
   body: string,
   data: PushData = {}
 ) {
+  const safeTitle = normalizeNotificationText(title, "SphereCare");
+  const safeBody = normalizeNotificationText(
+    body,
+    data.type === "task" ? "A new task has been assigned." : "You have a new update."
+  );
+
   try {
-    if (!shouldPushOnce(title, body, data)) return;
+    if (!shouldPushOnce(safeTitle, safeBody, data)) return;
 
     const allowed = await ensurePermission();
     if (!allowed) return;
 
     await Notifications.scheduleNotificationAsync({
       content: {
-        title,
-        body,
+        title: safeTitle,
+        body: safeBody,
         sound: "default",
         data,
       },
@@ -124,13 +135,35 @@ async function showLocalNotification(
 }
 
 async function showNotificationItem(item: any) {
-  await showLocalNotification(item.title, item.message, {
-    notificationId: item.id,
-    sourceId: item.sourceId,
-    sourceEvent: item.sourceEvent,
-    relatedEntityType: item.relatedEntityType,
-    relatedEntityId: item.relatedEntityId,
-    type: item.type,
+  const title =
+    typeof item?.title === "string" && item.title.trim().length > 0
+      ? item.title.trim()
+      : item?.type === "task"
+        ? "New task assigned"
+        : "SphereCare";
+
+  const bodySource =
+    item?.body ??
+    item?.message ??
+    item?.description ??
+    item?.content ??
+    item?.data?.message ??
+    item?.data?.body ??
+    item?.data?.title;
+
+  const body =
+    typeof bodySource === "string" && bodySource.trim().length > 0
+      ? bodySource.trim()
+      : item?.type === "task"
+        ? "A new task has been assigned."
+        : "You have a new notification.";
+
+  return showLocalNotification(title, body, {
+    type: item?.type,
+    notification_id: item?.id,
+    task_id: item?.data?.task_id ?? item?.task_id,
+    target: item?.data?.target ?? item?.target,
+    ...item?.data,
   });
 }
 

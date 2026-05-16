@@ -670,7 +670,7 @@ function _renderDoctorTable() {
   if (!tbody) return;
 
   if (!_doctorBookings.length) {
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#9aa0ac;padding:32px;">No appointments found.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#9aa0ac;padding:32px;">No appointments found.</td></tr>';
     if (countEl) countEl.textContent = '';
     return;
   }
@@ -734,6 +734,9 @@ function _renderDoctorTable() {
               <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
             </button>
           </div>
+        </td>
+        <td>
+          <button class="btn btn-outline" style="padding:7px 10px;font-size:12px;white-space:nowrap;" onclick="_openTaskCreateModal(${b.id})">Assign activity</button>
         </td>
       </tr>`;
   }).join('');
@@ -1139,6 +1142,7 @@ async function _declineIncomingCall() {
 // ── Entry point called from DOMContentLoaded in staff.js ──
 function _initDoctorTab() {
   _injectDoctorEditModal();
+  _injectTaskCreateModal();
   _loadDoctorBookings();
 }
 
@@ -1155,3 +1159,214 @@ function _initDoctorTab() {
   // Fallback: hide after 3s regardless
   setTimeout(window.hideSkeleton, 3000);
 })();
+// ══════════════════════════════════════════════════════════════════
+// ── DOCTOR ASSIGNED ACTIVITIES / CARE TASKS
+// Doctors can assign activities from Doctor Summary. The mobile client
+// reads these from GET /api/v1/tasks and receives task.created events.
+// ══════════════════════════════════════════════════════════════════
+let _taskCreateBookingId = null;
+
+function _todayIsoDate() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function _injectTaskCreateModal() {
+  if (document.getElementById('modal-task-create')) return;
+
+  const el = document.createElement('div');
+  el.id = 'modal-task-create';
+  el.className = 'overlay';
+  el.setAttribute('onclick', "if(event.target===this)_closeTaskCreateModal()");
+  el.innerHTML = `
+    <div class="sc-modal" style="max-width:560px;">
+      <div class="mhdr">
+        <h3>Assign Patient Activity</h3>
+        <button class="mclose" onclick="_closeTaskCreateModal()">✕</button>
+      </div>
+      <div class="mbody">
+        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:14px;margin-bottom:16px;">
+          <div style="font-size:10px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Patient</div>
+          <select class="fsel" id="task-resident-select"></select>
+          <div id="task-booking-context" style="font-size:12px;color:#64748b;margin-top:8px;"></div>
+        </div>
+
+        <div class="mbody-section">
+          <div style="display:grid;grid-template-columns:1fr 150px;gap:12px;margin-bottom:14px;">
+            <div>
+              <label class="flabel">Activity title</label>
+              <input class="finput" id="task-title" placeholder="e.g. Morning walk for 20 minutes" />
+            </div>
+            <div>
+              <label class="flabel">Type</label>
+              <select class="fsel" id="task-type">
+                <option value="activity">Activity</option>
+                <option value="exercise">Exercise</option>
+                <option value="medication">Medication</option>
+                <option value="meal">Meal</option>
+                <option value="wellness_check">Wellness check</option>
+                <option value="doctor_followup">Doctor follow up</option>
+                <option value="hydration">Hydration</option>
+              </select>
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr 150px;gap:12px;margin-bottom:14px;">
+            <div>
+              <label class="flabel">Due date</label>
+              <input class="finput" id="task-date" type="date" />
+            </div>
+            <div>
+              <label class="flabel">Due time</label>
+              <input class="finput" id="task-time" type="time" />
+            </div>
+            <div>
+              <label class="flabel">Priority</label>
+              <select class="fsel" id="task-priority">
+                <option value="low">Low</option>
+                <option value="medium" selected>Medium</option>
+                <option value="high">High</option>
+                <option value="urgent">Urgent</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label class="flabel">Instructions</label>
+            <textarea class="finput" id="task-description" rows="4" placeholder="Add simple instructions for the patient or resident…" style="resize:vertical;min-height:90px;"></textarea>
+          </div>
+        </div>
+
+        <div id="task-create-error" style="display:none;color:#ef4444;font-size:13px;margin-top:10px;padding:8px 12px;background:#fee2e2;border-radius:8px;"></div>
+      </div>
+      <div class="mfooter">
+        <button class="btn btn-outline" onclick="_closeTaskCreateModal()">Cancel</button>
+        <button class="btn btn-primary" id="task-create-save" onclick="_saveCareTask()">Assign Activity</button>
+      </div>
+    </div>`;
+  document.body.appendChild(el);
+}
+
+function _openTaskCreateModal(bookingId) {
+  _injectTaskCreateModal();
+  _taskCreateBookingId = bookingId || null;
+
+  const select = document.getElementById('task-resident-select');
+  const context = document.getElementById('task-booking-context');
+  const title = document.getElementById('task-title');
+  const type = document.getElementById('task-type');
+  const date = document.getElementById('task-date');
+  const time = document.getElementById('task-time');
+  const priority = document.getElementById('task-priority');
+  const desc = document.getElementById('task-description');
+  const err = document.getElementById('task-create-error');
+
+  const patients = [];
+  const seen = new Set();
+  (_doctorBookingsAll || []).forEach(b => {
+    if (!b.resident_id || seen.has(String(b.resident_id))) return;
+    seen.add(String(b.resident_id));
+    patients.push({ id: b.resident_id, name: b.resident || `Resident #${b.resident_id}` });
+  });
+
+  if (select) {
+    select.innerHTML = patients.length
+      ? patients.map(p => `<option value="${p.id}">${_esc(p.name)} · ID #${p.id}</option>`).join('')
+      : '<option value="">No patients found</option>';
+  }
+
+  const booking = bookingId ? _doctorBookingsAll.find(b => b.id === bookingId) : null;
+  if (booking && select) select.value = String(booking.resident_id);
+
+  if (context) {
+    context.textContent = booking
+      ? `Linked to ${booking.type || 'appointment'} on ${booking.date || ''} ${(booking.time || '').slice(0,5)}`
+      : 'Select a patient from your appointment list.';
+  }
+
+  if (title) title.value = booking ? _suggestTaskTitleFromBooking(booking) : '';
+  if (type) type.value = booking ? _suggestTaskTypeFromBooking(booking) : 'activity';
+  if (date) date.value = booking && booking.date ? booking.date : _todayIsoDate();
+  if (time) time.value = booking && booking.time ? String(booking.time).slice(0,5) : '';
+  if (priority) priority.value = 'medium';
+  if (desc) desc.value = booking && booking.notes ? `Doctor notes: ${booking.notes}` : '';
+  if (err) err.style.display = 'none';
+
+  document.getElementById('modal-task-create').classList.add('open');
+}
+
+function _suggestTaskTitleFromBooking(booking) {
+  const type = String(booking.type || '').toLowerCase();
+  if (type.includes('physio') || type.includes('rehab')) return 'Complete recommended mobility exercise';
+  if (type.includes('diet') || type.includes('nutrition')) return 'Follow recommended meal plan';
+  if (type.includes('medication')) return 'Follow medication instructions after consultation';
+  if (type.includes('check') || type.includes('review')) return 'Complete follow up wellness check';
+  return 'Complete doctor assigned activity';
+}
+
+function _suggestTaskTypeFromBooking(booking) {
+  const type = String(booking.type || '').toLowerCase();
+  if (type.includes('physio') || type.includes('rehab') || type.includes('exercise')) return 'exercise';
+  if (type.includes('diet') || type.includes('nutrition') || type.includes('meal')) return 'meal';
+  if (type.includes('medication')) return 'medication';
+  if (type.includes('follow') || type.includes('review') || type.includes('doctor')) return 'doctor_followup';
+  return 'activity';
+}
+
+function _closeTaskCreateModal() {
+  const m = document.getElementById('modal-task-create');
+  if (m) m.classList.remove('open');
+  _taskCreateBookingId = null;
+}
+
+async function _saveCareTask() {
+  const residentId = Number((document.getElementById('task-resident-select') || {}).value || 0);
+  const title = (document.getElementById('task-title') || {}).value || '';
+  const taskType = (document.getElementById('task-type') || {}).value || 'activity';
+  const dueDate = (document.getElementById('task-date') || {}).value || null;
+  const dueTime = (document.getElementById('task-time') || {}).value || null;
+  const priority = (document.getElementById('task-priority') || {}).value || 'medium';
+  const description = (document.getElementById('task-description') || {}).value || '';
+  const err = document.getElementById('task-create-error');
+  const save = document.getElementById('task-create-save');
+
+  if (err) err.style.display = 'none';
+
+  if (!residentId) {
+    if (err) { err.textContent = 'Please select a patient.'; err.style.display = 'block'; }
+    return;
+  }
+  if (!String(title).trim()) {
+    if (err) { err.textContent = 'Please enter an activity title.'; err.style.display = 'block'; }
+    return;
+  }
+
+  if (save) { save.disabled = true; save.textContent = 'Assigning…'; }
+
+  try {
+    const res = await fetch(`${API_BASE}/tasks/`, {
+      method: 'POST',
+      headers: staffAuthHeaders(),
+      body: JSON.stringify({
+        resident_id: residentId,
+        title: String(title).trim(),
+        description: String(description).trim() || null,
+        task_type: taskType,
+        priority,
+        due_date: dueDate || null,
+        due_time: dueTime || null,
+      }),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.detail || data.message || 'Could not assign activity');
+    }
+    _closeTaskCreateModal();
+    if (typeof _scShowToast === 'function') _scShowToast('Activity assigned to patient');
+    else alert('Activity assigned to patient');
+  } catch (e) {
+    if (err) { err.textContent = e.message || 'Could not assign activity'; err.style.display = 'block'; }
+  } finally {
+    if (save) { save.disabled = false; save.textContent = 'Assign Activity'; }
+  }
+}

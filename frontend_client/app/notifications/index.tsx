@@ -77,6 +77,11 @@ export default function NotificationScreen() {
         return;
       }
 
+      if (item.relatedEntityType === "task" || item.action?.actionType === "open_task") {
+        router.push("/task");
+        return;
+      }
+
       await loadNotifications(activeFilter);
     } catch (error) {
       console.error("Failed to open notification", error);

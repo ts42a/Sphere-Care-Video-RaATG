@@ -45,7 +45,18 @@ function getNextWeekdayDateKey() {
   return toDateKey(date);
 }
 
-function normalizeRealtimeSlot(item: any): TimeSlot {
+function makeFallbackSlotId(item: any, label: string, index: number) {
+  const rawStart = item?.start ?? item?.start_time ?? "";
+  const rawEnd = item?.end ?? item?.end_time ?? "";
+  const seed = `${rawStart}-${rawEnd}-${label}-${index}`
+    .replace(/\s+/g, "-")
+    .replace(/[^a-zA-Z0-9:_-]/g, "")
+    .toLowerCase();
+
+  return `slot-${seed || index}`;
+}
+
+function normalizeRealtimeSlot(item: any, index: number): TimeSlot {
   const start =
     typeof item?.start === "string"
       ? item.start
@@ -66,8 +77,16 @@ function normalizeRealtimeSlot(item: any): TimeSlot {
     item?.displayTime ??
     (start && end ? `${start} - ${end}` : "Unknown time");
 
+  const id =
+    item?.id ??
+    item?.timeSlotId ??
+    item?.time_slot_id ??
+    item?.slotId ??
+    item?.slot_id ??
+    makeFallbackSlotId(item, String(label), index);
+
   return {
-    id: String(item?.id ?? item?.timeSlotId ?? item?.slotId ?? label),
+    id: String(id),
     label: String(label),
     available: Boolean(item?.available ?? item?.isAvailable ?? true),
     start,
@@ -240,7 +259,7 @@ export default function ScheduleScreen() {
             }
 
             const nextTimeSlots = Array.isArray(payload?.timeSlots)
-              ? payload.timeSlots.map(normalizeRealtimeSlot)
+              ? payload.timeSlots.map((slot: any, index: number) => normalizeRealtimeSlot(slot, index))
               : prev.timeSlots;
 
             const nextAvailableDates = Array.isArray(payload?.availableDates)
@@ -479,12 +498,12 @@ export default function ScheduleScreen() {
                       </View>
 
                       <View style={styles.timeGrid}>
-                        {group.slots.map((slot) => {
+                        {group.slots.map((slot, slotIndex) => {
                           const active = selectedSlot?.id === slot.id;
 
                           return (
                             <Pressable
-                              key={slot.id}
+                              key={`${slot.id}-${slot.start ?? ""}-${slot.end ?? ""}-${slotIndex}`}
                               style={[
                                 styles.timeBtn,
                                 active && styles.timeBtnSelected,

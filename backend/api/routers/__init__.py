@@ -24,6 +24,7 @@ from . import admin_console
 from . import center_membership
 from . import asl
 from . import vault
+from . import care_tasks
 
 api_router = APIRouter()
 
@@ -51,3 +52,4 @@ api_router.include_router(admin_console.router, prefix="/admin", tags=["Admin Co
 api_router.include_router(center_membership.router)
 api_router.include_router(asl.router, prefix="/asl", tags=["ASL"])
 api_router.include_router(vault.router)
+api_router.include_router(care_tasks.router)

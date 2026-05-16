@@ -6,6 +6,7 @@ import type {
   AlertRealtimePayload,
   BackendNotification,
   BookingRealtimePayload,
+  TaskRealtimePayload,
   NotificationItem,
   NotificationType,
 } from "../types/notification";
@@ -17,6 +18,12 @@ type NotificationSubscriber = (
   items: NotificationItem[],
   unreadCount: number
 ) => void;
+
+type AnyRealtimePayload =
+  | BookingRealtimePayload
+  | AlertRealtimePayload
+  | TaskRealtimePayload
+  | any;
 
 const READ_IDS_KEY = "spherecare_notification_read_ids";
 
@@ -105,9 +112,18 @@ function toNotificationType(category?: string): NotificationType {
       return "reminder";
     case "message":
       return "message";
+    case "task":
+    case "care_task":
+      return "task";
     default:
       return "general";
   }
+}
+
+function cleanText(value: unknown, fallback = "") {
+  if (typeof value !== "string") return fallback;
+  const text = value.trim();
+  return text.length > 0 ? text : fallback;
 }
 
 function normalizeText(value?: string | null) {
@@ -151,11 +167,23 @@ function buildStableNotificationId(params: {
   const sourceId = params.sourceId ?? "";
 
   if (relatedEntityType === "booking" && relatedEntityId) {
-    return `booking-${relatedEntityId}-${sourceEvent || inferBookingEventFromTitle(params.title)}`;
+    return `booking-${relatedEntityId}-${
+      sourceEvent || inferBookingEventFromTitle(params.title)
+    }`;
   }
 
   if (params.type === "appointment" && relatedEntityId) {
-    return `booking-${relatedEntityId}-${sourceEvent || inferBookingEventFromTitle(params.title)}`;
+    return `booking-${relatedEntityId}-${
+      sourceEvent || inferBookingEventFromTitle(params.title)
+    }`;
+  }
+
+  if (relatedEntityType === "task" && relatedEntityId) {
+    return `task-${relatedEntityId}-${sourceEvent || "task"}`;
+  }
+
+  if (params.type === "task" && relatedEntityId) {
+    return `task-${relatedEntityId}-${sourceEvent || "task"}`;
   }
 
   if (sourceEvent && sourceId) {
@@ -172,12 +200,14 @@ function buildStableNotificationId(params: {
 function getDedupeKey(item: NotificationItem) {
   const relatedEntityType = item.relatedEntityType ?? "";
   const relatedEntityId = item.relatedEntityId ?? "";
-  const sourceEvent =
-    item.sourceEvent ||
-    inferBookingEventFromTitle(item.title);
+  const sourceEvent = item.sourceEvent || inferBookingEventFromTitle(item.title);
 
   if (relatedEntityType === "booking" && relatedEntityId) {
     return `booking:${relatedEntityId}:${sourceEvent}`;
+  }
+
+  if (relatedEntityType === "task" && relatedEntityId) {
+    return `task:${relatedEntityId}:${sourceEvent || "task"}`;
   }
 
   return [
@@ -257,10 +287,13 @@ function mapBackendNotification(notification: BackendNotification): Notification
     notification.related_entity_type === "conversation";
 
   const type = toNotificationType(notification.category);
+
   const sourceEvent =
     notification.related_entity_type === "booking"
       ? inferBookingEventFromTitle(notification.title)
-      : undefined;
+      : notification.related_entity_type === "task"
+        ? "task"
+        : undefined;
 
   const id = buildStableNotificationId({
     type,
@@ -274,19 +307,23 @@ function mapBackendNotification(notification: BackendNotification): Notification
   return withReadState({
     id,
     type,
-    title: notification.title,
-    message: notification.body,
+    title: cleanText(notification.title, "SphereCare"),
+    message: cleanText(notification.body, "You have a new update."),
     timeAgo: formatTimeAgo(notification.created_at),
     action: {
       label: isConversationNotification
         ? "Open"
-        : notification.category === "appointment"
+        : type === "appointment"
           ? "View details"
-          : "Open",
+          : type === "task"
+            ? "Open task"
+            : "Open",
       variant: notification.is_priority ? "red" : "blue",
       actionType: isConversationNotification
         ? "open_conversation"
-        : "view_details",
+        : type === "task"
+          ? "open_task"
+          : "view_details",
     },
     sourceId: notification.id,
     sourceEvent,
@@ -334,9 +371,7 @@ function buildBookingNotification(
     .join(" at ");
 
   const statusLabel =
-    payload.type === "booking_created"
-      ? "New booking"
-      : "Booking updated";
+    payload.type === "booking_created" ? "New booking" : "Booking updated";
 
   return withReadState({
     id: `booking-${booking.id}-${payload.type}`,
@@ -359,12 +394,131 @@ function buildBookingNotification(
   });
 }
 
+function getTaskFromPayload(payload: AnyRealtimePayload) {
+  return (
+    payload?.task ||
+    payload?.data?.task ||
+    payload?.payload?.task ||
+    payload?.payload?.data?.task ||
+    null
+  );
+}
+
+function getTaskIdFromPayload(payload: AnyRealtimePayload) {
+  return (
+    payload?.task_id ||
+    payload?.taskId ||
+    payload?.data?.task_id ||
+    payload?.data?.taskId ||
+    payload?.payload?.task_id ||
+    payload?.payload?.taskId ||
+    payload?.payload?.data?.task_id ||
+    payload?.payload?.data?.taskId ||
+    payload?.task?.id ||
+    payload?.data?.task?.id ||
+    payload?.payload?.task?.id ||
+    null
+  );
+}
+
+function buildTaskNotification(payload: TaskRealtimePayload | any): NotificationItem | null {
+  const eventType = payload?.type;
+
+  if (eventType === "task.deleted") {
+    const taskId = getTaskIdFromPayload(payload);
+    if (!taskId) return null;
+
+    return withReadState({
+      id: `task-${taskId}-task.deleted`,
+      type: "task",
+      title: "Task removed",
+      message: `Task #${taskId} was removed.`,
+      timeAgo: "Just now",
+      action: {
+        label: "Open task",
+        variant: "blue",
+        actionType: "open_task",
+      },
+      sourceId: Number(taskId),
+      sourceEvent: "task.deleted",
+      relatedEntityType: "task",
+      relatedEntityId: Number(taskId),
+      createdAt: new Date().toISOString(),
+    });
+  }
+
+  const task = getTaskFromPayload(payload);
+  if (!task) {
+    return withReadState({
+      id: `task-${Date.now()}-${eventType || "task.created"}`,
+      type: "task",
+      title: eventType === "task.updated" ? "Task updated" : "New task assigned",
+      message: "A new task has been assigned.",
+      timeAgo: "Just now",
+      action: {
+        label: "Open task",
+        variant: "blue",
+        actionType: "open_task",
+      },
+      sourceId: undefined,
+      sourceEvent: eventType || "task.created",
+      relatedEntityType: "task",
+      relatedEntityId: null,
+      createdAt: new Date().toISOString(),
+    });
+  }
+
+  const taskId = Number(task.id || getTaskIdFromPayload(payload) || Date.now());
+
+  const title =
+    eventType === "task.updated" ? "Task updated" : "New task assigned";
+
+  const taskTitle = cleanText(task.title || task.name, "Care activity");
+
+  const dueDate = cleanText(task.due_date || task.dueDate, "");
+  const dueTimeRaw = cleanText(task.due_time || task.dueTime || task.time, "");
+  const dueTime = dueTimeRaw ? dueTimeRaw.slice(0, 5) : "";
+
+  const when =
+    dueDate && dueTime
+      ? `${dueDate} at ${dueTime}`
+      : dueDate || dueTime || "";
+
+  const priority = cleanText(task.priority, "");
+  const priorityText = priority ? `${priority} priority` : "";
+
+  const message =
+    [taskTitle, when, priorityText].filter(Boolean).join(" · ") ||
+    "A new task has been assigned.";
+
+  return withReadState({
+    id: `task-${taskId}-${eventType || "task.created"}`,
+    type: "task",
+    title,
+    message,
+    timeAgo: "Just now",
+    action: {
+      label: "Open task",
+      variant: "blue",
+      actionType: "open_task",
+    },
+    sourceId: taskId,
+    sourceEvent: eventType || "task.created",
+    relatedEntityType: "task",
+    relatedEntityId: taskId,
+    createdAt: new Date().toISOString(),
+  });
+}
+
 function buildAlertNotification(payload: AlertRealtimePayload): NotificationItem {
   return withReadState({
     id: `alert-${payload.alert.id}`,
     type: "alert",
-    title: payload.alert.title || "AI Alert",
-    message: payload.alert.description || "A new alert needs attention.",
+    title: cleanText(payload.alert.title, "AI Alert"),
+    message: cleanText(
+      payload.alert.description,
+      "A new alert needs attention."
+    ),
     timeAgo: "Just now",
     action: {
       label: "View details",
@@ -472,27 +626,50 @@ export async function markAllNotificationsAsRead(): Promise<{ success: boolean }
   return { success: true };
 }
 
-export async function applyRealtimeNotificationEvent(
-  payload: BookingRealtimePayload | AlertRealtimePayload
-) {
-  await ensureInitialized();
+function unwrapRealtimePayload(payload: AnyRealtimePayload): AnyRealtimePayload {
+  if (!payload || typeof payload !== "object") return payload;
 
-  if (payload.type === "ai_alert") {
-    const item = buildAlertNotification(payload);
+  const innerPayload =
+    payload.payload && typeof payload.payload === "object"
+      ? payload.payload
+      : payload.data && typeof payload.data === "object" && payload.data.type
+        ? payload.data
+        : payload;
 
-    realtimeNotifications = sortNotifications([
-      item,
-      ...realtimeNotifications.filter(
-        (current) => getDedupeKey(current) !== getDedupeKey(item)
-      ),
-    ]);
+  return {
+    ...innerPayload,
+    type: innerPayload.type || payload.type,
+  };
+}
 
-    notifySubscribers();
-    return item;
-  }
+function isBookingRealtimePayload(
+  payload: AnyRealtimePayload
+): payload is BookingRealtimePayload {
+  return (
+    payload?.type === "booking_created" ||
+    payload?.type === "booking_updated" ||
+    payload?.type === "booking_deleted"
+  );
+}
 
-  const item = buildBookingNotification(payload);
-  if (!item) return;
+function isTaskRealtimePayload(
+  payload: AnyRealtimePayload
+): payload is TaskRealtimePayload {
+  return (
+    payload?.type === "task.created" ||
+    payload?.type === "task.updated" ||
+    payload?.type === "task.deleted"
+  );
+}
+
+function isAlertRealtimePayload(
+  payload: AnyRealtimePayload
+): payload is AlertRealtimePayload {
+  return payload?.type === "ai_alert";
+}
+
+function pushRealtimeNotification(item: NotificationItem | null) {
+  if (!item) return undefined;
 
   realtimeNotifications = sortNotifications([
     item,
@@ -503,4 +680,26 @@ export async function applyRealtimeNotificationEvent(
 
   notifySubscribers();
   return item;
+}
+
+export async function applyRealtimeNotificationEvent(
+  payload: BookingRealtimePayload | AlertRealtimePayload | TaskRealtimePayload | any
+) {
+  await ensureInitialized();
+
+  const normalizedPayload = unwrapRealtimePayload(payload);
+
+  if (isAlertRealtimePayload(normalizedPayload)) {
+    return pushRealtimeNotification(buildAlertNotification(normalizedPayload));
+  }
+
+  if (isBookingRealtimePayload(normalizedPayload)) {
+    return pushRealtimeNotification(buildBookingNotification(normalizedPayload));
+  }
+
+  if (isTaskRealtimePayload(normalizedPayload)) {
+    return pushRealtimeNotification(buildTaskNotification(normalizedPayload));
+  }
+
+  return undefined;
 }

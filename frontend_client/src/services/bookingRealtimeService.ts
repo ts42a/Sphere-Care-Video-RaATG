@@ -7,15 +7,34 @@ type WatchScheduleOptions = {
   onUpdate: (update: Pick<ScheduleResponse, "date" | "availableDates" | "timeSlots" | "version">) => void;
 };
 
-function normalizeRealtimeSlot(item: any): TimeSlot {
+function makeFallbackSlotId(item: any, label: string, index: number) {
+  const rawStart = item?.start ?? item?.start_time ?? "";
+  const rawEnd = item?.end ?? item?.end_time ?? "";
+  const seed = `${rawStart}-${rawEnd}-${label}-${index}`
+    .replace(/\s+/g, "-")
+    .replace(/[^a-zA-Z0-9:_-]/g, "")
+    .toLowerCase();
+
+  return `slot-${seed || index}`;
+}
+
+function normalizeRealtimeSlot(item: any, index: number): TimeSlot {
   const label =
     item?.label ??
     item?.time ??
     item?.displayTime ??
     (item?.start && item?.end ? `${item.start} - ${item.end}` : "Unknown time");
 
+  const id =
+    item?.id ??
+    item?.timeSlotId ??
+    item?.time_slot_id ??
+    item?.slotId ??
+    item?.slot_id ??
+    makeFallbackSlotId(item, String(label), index);
+
   return {
-    id: String(item?.id ?? item?.timeSlotId ?? item?.slotId ?? label),
+    id: String(id),
     label: String(label),
     available: Boolean(item?.available ?? item?.isAvailable ?? true),
   };
@@ -50,7 +69,7 @@ export async function watchBookingSchedule({
       : [];
 
     const timeSlots = Array.isArray(payload?.timeSlots)
-      ? payload.timeSlots.map(normalizeRealtimeSlot)
+      ? payload.timeSlots.map((slot: any, index: number) => normalizeRealtimeSlot(slot, index))
       : [];
 
     onUpdate({

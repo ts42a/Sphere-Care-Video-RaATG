@@ -54,7 +54,16 @@ function nextRtId() {
 }
 
 function toIso(unixSec?: number): string {
-  return new Date((unixSec ?? Date.now() / 1000) * 1000).toISOString();
+  const raw = Number(unixSec);
+  const seconds = Number.isFinite(raw) ? raw : Date.now() / 1000;
+  return new Date(seconds * 1000).toISOString();
+}
+
+function roleFromPayload(value: unknown): TranscriptItem["role"] {
+  const role = String(value ?? "").toLowerCase();
+  if (role === "client" || role === "patient" || role === "resident") return "patient";
+  if (role === "staff" || role === "admin" || role === "doctor" || role === "provider") return "doctor";
+  return "ai";
 }
 
 function normaliseLoadedItem(item: TranscriptItem): LiveTranscriptItem {
@@ -123,7 +132,7 @@ export function useAiTranscript(callId?: number, enabled = true) {
         segmentId: p.segment_id,
         source: "asr",
         speaker: p.speaker_name ?? p.speaker ?? "Unknown speaker",
-        role: p.participant_role === "client" ? "patient" : "doctor",
+        role: roleFromPayload(p.participant_role),
         content: p.text,
         created_at: toIso(p.ts),
         isFinal: p.is_final ?? true,

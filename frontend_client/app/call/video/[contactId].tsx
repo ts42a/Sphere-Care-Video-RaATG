@@ -24,6 +24,8 @@ import type {
 } from "../../../src/types/call";
 import CallHeader from "../../../src/components/call/CallHeader";
 import CallVideoStage from "../../../src/components/call/CallVideoStage";
+import CallSummaryModal from "../../../src/components/call/CallSummaryModal";
+import { callSummaryState } from "../../../src/services/callSummaryState";
 import { colors } from "../../../src/theme/colors";
 
 const LiveKitRoomComponent: any = (LiveKit as any).LiveKitRoom;
@@ -50,12 +52,13 @@ function buildRouteFallbackContact(
       id: contactId || String(active.remoteUserId ?? active.callId),
       userId: active.remoteUserId ?? active.doctor.userId,
       name: active.doctor.name || params.contactName || "Incoming call",
-      initials: active.doctor.initials || String(active.doctor.name || params.contactName || "IC")
-        .split(" ")
-        .map((part) => part[0])
-        .join("")
-        .slice(0, 2)
-        .toUpperCase(),
+      initials: active.doctor.initials ||
+        String(active.doctor.name || params.contactName || "IC")
+          .split(" ")
+          .map((part) => part[0])
+          .join("")
+          .slice(0, 2)
+          .toUpperCase(),
       role: active.doctor.role || params.contactRole || "Care team",
       specialty: active.doctor.role || params.contactRole || "Care team",
       lastSeen: "",
@@ -68,9 +71,7 @@ function buildRouteFallbackContact(
   const name = params.contactName || "Incoming call";
   const userId = Number(params.contactUserId || contactId);
 
-  if (!contactId && !Number.isFinite(userId)) {
-    return null;
-  }
+  if (!contactId && !Number.isFinite(userId)) return null;
 
   return {
     id: contactId || String(userId),
@@ -92,7 +93,7 @@ function buildRouteFallbackContact(
 }
 
 function formatStatus(session: CallSession) {
-  if (session.callState === "ringing") return "Ringing";
+  if (session.callState === "ringing") return "Ringing…";
   if (session.callState === "active") return "Connected";
   if (session.callState === "declined") return "Call declined";
   if (session.callState === "canceled") return "Call canceled";
@@ -123,6 +124,9 @@ export default function VideoCallScreen() {
   const [contactError, setContactError] = useState("");
   const [expanded, setExpanded] = useState(false);
   const [roomReady, setRoomReady] = useState(false);
+  const [showSummary, setShowSummary] = useState(false);
+  const [finalTranscriptItems, setFinalTranscriptItems] = useState<any[]>([]);
+  const [finalDuration, setFinalDuration] = useState("00:00");
 
   useEffect(() => {
     if (!contactId) return;
@@ -131,9 +135,7 @@ export default function VideoCallScreen() {
       try {
         setContactLoading(true);
         setContactError("");
-
         const data = await callService.getContactById(contactId);
-
         setContact(
           data ??
             buildRouteFallbackContact(contactId, routeCallId, {
@@ -158,13 +160,7 @@ export default function VideoCallScreen() {
     }
 
     loadContact();
-  }, [
-    contactId,
-    routeCallId,
-    params.contactName,
-    params.contactUserId,
-    params.contactRole,
-  ]);
+  }, [contactId, routeCallId, params.contactName, params.contactUserId, params.contactRole]);
 
   const {
     session,
@@ -186,7 +182,6 @@ export default function VideoCallScreen() {
     Promise.resolve(audioSession.startAudioSession?.()).catch((error) => {
       console.warn("Failed to start LiveKit audio session", error);
     });
-
     return () => {
       Promise.resolve(audioSession.stopAudioSession?.()).catch(() => undefined);
     };
@@ -200,25 +195,12 @@ export default function VideoCallScreen() {
     const remoteUserId = String(contact.userId ?? contact.id);
 
     callSignalingService
-      .joinCall({
-        callId,
-        mode: "video",
-        localUserId,
-        remoteUserId,
-      })
-      .then(() => {
-        console.log("[call] joined WS call room", { callId, mode: "video" });
-      })
-      .catch((err) => {
-        console.warn("[call] failed to join WS call room", err);
-      });
+      .joinCall({ callId, mode: "video", localUserId, remoteUserId })
+      .catch((err) => console.warn("[call] failed to join WS call room", err));
 
     return () => {
       callSignalingService
-        .leaveCall({
-          callId,
-          localUserId,
-        })
+        .leaveCall({ callId, localUserId })
         .catch(() => undefined);
     };
   }, [
@@ -233,7 +215,6 @@ export default function VideoCallScreen() {
   useEffect(() => {
     if (!session || !contact) return;
     if (session.mode !== "audio") return;
-
     router.replace({
       pathname: "/call/audio/[contactId]",
       params: { contactId: contact.id, callId: String(session.callId) },
@@ -248,34 +229,25 @@ export default function VideoCallScreen() {
         setRoomReady(true);
         return;
       }
-
       setRoomReady(false);
-
       try {
         await rtcEngine.leaveCall({ preserveIdleState: true });
       } catch {}
-
-      if (active) {
-        setRoomReady(true);
-      }
+      if (active) setRoomReady(true);
     }
 
     prepareRoom();
-
-    return () => {
-      active = false;
-    };
+    return () => { active = false; };
   }, [session?.callId, session?.mode, session?.callState]);
 
+  // When call ends by remote hang-up / timeout, show summary
   useEffect(() => {
-    if (!session || !session.ended) return;
-
-    const timer = setTimeout(() => {
-      router.replace("/call");
-    }, 900);
-
-    return () => clearTimeout(timer);
-  }, [session?.ended, session?.callState]);
+    if (!session?.ended) return;
+    setFinalTranscriptItems((prev) => prev.length > 0 ? prev : transcriptItems);
+    setFinalDuration((prev) => prev !== "00:00" ? prev : formattedDuration);
+    callSummaryState.setSummaryVisible(true);
+    setShowSummary(true);
+  }, [session?.ended]);
 
   const error = contactError || sessionError;
 
@@ -297,7 +269,7 @@ export default function VideoCallScreen() {
           style={styles.backToListBtn}
           onPress={() => router.replace("/call")}
         >
-          <Text style={styles.backToListText}>Back to call center</Text>
+          <Text style={styles.backToListText}>Back to call centre</Text>
         </Pressable>
       </SafeAreaView>
     );
@@ -305,19 +277,9 @@ export default function VideoCallScreen() {
 
   const joinPayload: CallJoinPayload | null = session.joinPayload ?? null;
   const callId = session.callId;
-  const roomId = joinPayload?.roomId;
-  const callState = session.callState ?? joinPayload?.state ?? undefined;
   const serverUrl = joinPayload?.livekitUrl ?? session.livekitUrl ?? undefined;
   const token = joinPayload?.accessToken ?? undefined;
-
-  console.log("VIDEO SESSION", {
-    callId,
-    roomId,
-    callState,
-    livekitUrl: serverUrl,
-    hasToken: !!token,
-    tokenPrefix: token?.slice?.(0, 24),
-  });
+  const callState = session.callState ?? joinPayload?.state ?? undefined;
 
   const canJoinLiveKit = Boolean(
     session.callState === "active" && roomReady && serverUrl && token
@@ -326,11 +288,12 @@ export default function VideoCallScreen() {
   const pendingSubtitle = !roomReady
     ? "Preparing video room"
     : !serverUrl || !token
-    ? "LiveKit credentials are missing"
+    ? "Credentials missing"
     : formatStatus(session);
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.root}>
+      <SafeAreaView style={styles.container}>
       <CallHeader
         time={formattedDuration}
         aiEnabled={transcribing}
@@ -349,15 +312,7 @@ export default function VideoCallScreen() {
             video
             options={{ adaptiveStream: { pixelDensity: "screen" } }}
             onError={(livekitError: any) => {
-              console.error("LIVEKIT ROOM ERROR", {
-                name: livekitError?.name,
-                message: livekitError?.message,
-                full: livekitError,
-                callId,
-                roomId,
-                livekitUrl: serverUrl,
-                tokenPrefix: token?.slice?.(0, 24),
-              });
+              console.error("LIVEKIT ROOM ERROR", livekitError);
             }}
           >
             <CallVideoStage
@@ -369,17 +324,22 @@ export default function VideoCallScreen() {
               expanded={expanded}
               setExpanded={setExpanded}
               onEnd={async () => {
+                setFinalTranscriptItems([...transcriptItems]);
+                setFinalDuration(formattedDuration);
                 await endCurrentCall();
-                router.replace("/call");
+                callSummaryState.setSummaryVisible(true);
+                setShowSummary(true);
               }}
             />
           </LiveKitRoomComponent>
         ) : (
+          // Pre-connection / ringing state
           <View style={styles.pendingStage}>
-            <View style={styles.pendingAvatar}>
+            <View style={[styles.pendingAvatar, { backgroundColor: contact.avatarColor }]}>
               <Text style={styles.pendingAvatarText}>{contact.initials}</Text>
             </View>
             <Text style={styles.pendingTitle}>{contact.name}</Text>
+            <Text style={styles.pendingRole}>{contact.role ?? contact.specialty}</Text>
             <Text style={styles.pendingSubtitle}>{pendingSubtitle}</Text>
 
             <View style={styles.pendingEndArea}>
@@ -390,18 +350,40 @@ export default function VideoCallScreen() {
                   router.replace("/call");
                 }}
               >
-                <Feather name="phone" size={28} color={colors.surface} />
+                <Feather name="phone-off" size={26} color={colors.surface} />
               </Pressable>
               <Text style={styles.pendingEndText}>End call</Text>
             </View>
           </View>
         )}
       </View>
-    </SafeAreaView>
+
+      </SafeAreaView>
+
+      {/* Summary modal — full screen overlay outside SafeAreaView */}
+      {showSummary && (
+        <CallSummaryModal
+          visible={showSummary}
+          onClose={() => {
+            callSummaryState.setSummaryVisible(false);
+            setShowSummary(false);
+            router.replace("/call");
+          }}
+          session={session}
+          contact={contact}
+          transcriptItems={finalTranscriptItems.length > 0 ? finalTranscriptItems : transcriptItems}
+          formattedDuration={finalDuration || formattedDuration}
+        />
+      )}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: "#07101F",
+  },
   container: {
     flex: 1,
     backgroundColor: "#07101F",
@@ -414,20 +396,24 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#07101F",
-    gap: 12,
-    position: "relative",
+    gap: 10,
   },
   pendingAvatar: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    backgroundColor: "#304E8F",
+    width: 100,
+    height: 100,
+    borderRadius: 50,
     alignItems: "center",
     justifyContent: "center",
+    marginBottom: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 8,
   },
   pendingAvatarText: {
     color: colors.surface,
-    fontSize: 30,
+    fontSize: 32,
     fontWeight: "800",
   },
   pendingTitle: {
@@ -435,32 +421,42 @@ const styles = StyleSheet.create({
     fontSize: 26,
     fontWeight: "800",
   },
+  pendingRole: {
+    color: "rgba(193,208,242,0.7)",
+    fontSize: 14,
+    fontWeight: "600",
+  },
   pendingSubtitle: {
-    color: "#C1D0F2",
-    fontSize: 16,
-    marginBottom: 28,
+    color: "rgba(193,208,242,0.55)",
+    fontSize: 15,
+    marginBottom: 24,
   },
   pendingEndArea: {
     position: "absolute",
     left: 0,
     right: 0,
-    bottom: 34,
+    bottom: 40,
     alignItems: "center",
-    justifyContent: "center",
     gap: 8,
   },
   pendingEndButton: {
     width: 76,
     height: 76,
     borderRadius: 38,
-    backgroundColor: "#E5484D",
+    backgroundColor: "#D9534F",
     alignItems: "center",
     justifyContent: "center",
+    shadowColor: "#D9534F",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 10,
+    elevation: 8,
   },
   pendingEndText: {
     color: colors.surface,
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "700",
+    opacity: 0.7,
   },
   loadingContainer: {
     flex: 1,
@@ -474,9 +470,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: "center",
     marginBottom: 20,
+    opacity: 0.8,
   },
   backToListBtn: {
-    backgroundColor: "#8294E8",
+    backgroundColor: colors.primary,
     borderRadius: 999,
     paddingHorizontal: 28,
     paddingVertical: 14,
