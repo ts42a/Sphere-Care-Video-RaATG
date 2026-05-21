@@ -19,6 +19,12 @@ import { profileService } from "../../src/services/profileService";
 import { notificationService } from "../../src/services/notificationService";
 import { taskService } from "../../src/services/taskService";
 import type { CareTask } from "../../src/types/task";
+import {
+  formatTaskCategory,
+  formatTaskTime,
+  shouldDimTask,
+  sortHomeTodayTasks,
+} from "../../src/utils/taskUtils";
 import { colors } from "../../src/theme/colors";
 import { spacing } from "../../src/theme/spacing";
 import { typography } from "@/src/theme/typography";
@@ -47,7 +53,7 @@ export default function HomeScreen() {
 
         try {
           const items = await taskService.getTodayTasks();
-          setTodayTasks(items.filter((task) => task.status !== "cancelled").slice(0, 3));
+          setTodayTasks(sortHomeTodayTasks(items));
         } catch (error) {
           setTodayTasks([]);
         }
@@ -64,31 +70,24 @@ export default function HomeScreen() {
     const unsubscribeTasks = taskService.subscribeRealtime(async () => {
       try {
         const items = await taskService.getTodayTasks();
-        setTodayTasks(items.filter((task) => task.status !== "cancelled").slice(0, 3));
+        setTodayTasks(sortHomeTodayTasks(items));
       } catch {}
     });
 
+    const timer = setInterval(() => {
+      setTodayTasks((current) => sortHomeTodayTasks(current));
+    }, 60000);
+
     return () => {
+      clearInterval(timer);
       unsubscribeNotifications();
       unsubscribeTasks();
     };
   }, []);
 
-  function formatTaskCategory(value: string) {
-    if (value === "medication") return "Medication";
-    if (["exercise", "mobility", "mobility_assist"].includes(value)) return "Exercise";
-    if (["meal", "meal_support", "hydration"].includes(value)) return "Meal";
-    if (value === "doctor_followup") return "Follow up";
-    return (value || "activity").replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
-  }
-
-  function formatTaskTime(value?: string | null) {
-    return value ? String(value).slice(0, 5) : "Any time";
-  }
-
-  function getTaskVisual(task: CareTask) {
-    if (task.status === "completed") {
-      return { type: "gray" as const, icon: <Feather name="check-circle" size={25} color="#64748B" /> };
+  function getTaskVisual(task: CareTask, dimmed = false) {
+    if (dimmed || task.status === "completed") {
+      return { type: "gray" as const, icon: <Feather name="check-circle" size={25} color="#94A3B8" /> };
     }
     if (task.priority === "urgent" || task.priority === "high") {
       return { type: "red" as const, icon: <Feather name="alert-circle" size={25} color="#F15F5F" /> };
@@ -218,7 +217,8 @@ export default function HomeScreen() {
           </View>
           <View style={styles.taskList}>
             {todayTasks.length > 0 ? todayTasks.map((task) => {
-              const visual = getTaskVisual(task);
+              const dimmed = shouldDimTask(task, "today");
+              const visual = getTaskVisual(task, dimmed);
               return (
                 <TaskCard
                   key={task.id}
@@ -230,12 +230,14 @@ export default function HomeScreen() {
                   icon={visual.icon}
                   status={task.status}
                   priority={task.priority}
-                  onComplete={async () => {
+                  dimmed={dimmed}
+                  showCompletionControl={true}
+                  onComplete={task.status === "pending" ? async () => {
                     try {
                       const updated = await taskService.markCompleted(task.id);
-                      setTodayTasks((current) => current.map((item) => item.id === updated.id ? updated : item));
+                      setTodayTasks((current) => sortHomeTodayTasks(current.map((item) => item.id === updated.id ? updated : item)));
                     } catch {}
-                  }}
+                  } : undefined}
                 />
               );
             }) : (
