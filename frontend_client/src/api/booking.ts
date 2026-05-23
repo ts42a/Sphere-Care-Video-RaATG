@@ -360,6 +360,57 @@ async function getMockSchedule(
   };
 }
 
+
+async function getMockMyBookings(): Promise<BookingConfirmation[]> {
+  await wait(200);
+
+  const today = new Date();
+  const tomorrow = new Date(today);
+  tomorrow.setDate(today.getDate() + 1);
+  const lastWeek = new Date(today);
+  lastWeek.setDate(today.getDate() - 7);
+
+  const fallbackUpcoming: BookingConfirmation = {
+    bookingId: "mock-upcoming-1",
+    status: "confirmed",
+    doctor: {
+      id: "doc-1",
+      name: "Dr. Jack Specs",
+      role: "General Practitioner",
+    },
+    appointmentType: {
+      id: "general-checkup",
+      title: "General Check Up",
+    },
+    date: toDateKey(tomorrow),
+    time: "10:30 AM - 11:00 AM",
+    room: "Room 203 - Main Care Unit",
+    createdAt: new Date().toISOString(),
+  };
+
+  const fallbackPast: BookingConfirmation = {
+    bookingId: "mock-past-1",
+    status: "completed",
+    doctor: {
+      id: "doc-2",
+      name: "Dr. Emily Ross",
+      role: "General Practitioner",
+    },
+    appointmentType: {
+      id: "follow-up",
+      title: "Follow Up",
+    },
+    date: toDateKey(lastWeek),
+    time: "2:00 PM - 2:30 PM",
+    room: "Room 105 - Main Care Unit",
+    createdAt: lastWeek.toISOString(),
+  };
+
+  return [latestBooking, fallbackUpcoming, fallbackPast].filter(
+    Boolean
+  ) as BookingConfirmation[];
+}
+
 export async function getAppointmentTypes(): Promise<AppointmentType[]> {
   if (USE_MOCK_API) {
     return getMockAppointmentTypes();
@@ -464,6 +515,19 @@ export async function createBooking(
   return booking;
 }
 
+
+export async function getMyBookings(): Promise<BookingConfirmation[]> {
+  if (USE_MOCK_API) {
+    return getMockMyBookings();
+  }
+
+  const response = await request<
+    BookingConfirmation[] | ApiListResponse<BookingConfirmation>
+  >("/client/bookings/my");
+
+  return unwrapList(response).map(normalizeBookingConfirmation);
+}
+
 export async function getBookingConfirmation(
   bookingId: string
 ): Promise<BookingConfirmation> {
@@ -477,11 +541,18 @@ export async function getBookingConfirmation(
 
   await wait(200);
 
-  if (!latestBooking || latestBooking.bookingId !== bookingId) {
+  if (latestBooking?.bookingId === bookingId) {
+    return latestBooking;
+  }
+
+  const bookings = await getMockMyBookings();
+  const booking = bookings.find((item) => item.bookingId === bookingId);
+
+  if (!booking) {
     throw new Error("Booking not found");
   }
 
-  return latestBooking;
+  return booking;
 }
 
 export async function cancelBooking(

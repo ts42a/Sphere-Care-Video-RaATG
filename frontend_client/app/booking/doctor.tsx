@@ -179,7 +179,7 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
   },
   topRow: {
-    marginBottom: 28,
+    marginBottom: 0,
   },
   rightWrap: {
     position: "absolute",

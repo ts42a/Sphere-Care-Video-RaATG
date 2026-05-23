@@ -3,6 +3,7 @@ import {
   createBooking,
   getAppointmentTypes,
   getBookingConfirmation,
+  getMyBookings,
   getDoctorsByType,
   getSchedule,
 } from "../api/booking";
@@ -14,6 +15,7 @@ export const bookingService = {
   getSchedule,
   createBooking,
   getBookingConfirmation,
+  getMyBookings,
   cancelBooking,
   watchSchedule: watchBookingSchedule,
 };

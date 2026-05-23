@@ -239,6 +239,33 @@ async def create_client_booking(
     return build_confirmation_response(new_booking)
 
 
+@router.get("/my", response_model=list[BookingConfirmationResponse])
+def list_my_client_bookings(
+    auth=Depends(get_current_auth_context),
+    db: Session = Depends(get_db),
+):
+    admin_id = auth.get("admin_id")
+    resident_id = auth.get("resident_id")
+    role = auth.get("role")
+
+    if role != "client":
+        raise HTTPException(status_code=403, detail="Client access only")
+
+    if not admin_id or not resident_id:
+        raise HTTPException(status_code=403, detail="Missing resident context")
+
+    bookings = db.query(models.Booking).filter(
+        models.Booking.admin_id == admin_id,
+        models.Booking.resident_id == resident_id,
+        models.Booking.is_deleted == False,
+    ).order_by(
+        models.Booking.appointment_date.desc(),
+        models.Booking.start_time.desc(),
+    ).all()
+
+    return [build_confirmation_response(booking) for booking in bookings]
+
+
 @router.get("/{booking_id}", response_model=BookingConfirmationResponse)
 def get_client_booking_confirmation(
     booking_id: int,
