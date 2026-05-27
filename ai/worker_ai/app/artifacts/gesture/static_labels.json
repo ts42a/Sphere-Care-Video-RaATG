@@ -1,0 +1,42 @@
+{
+  "schema_version": "gesture_labels_v2",
+  "labels_version": "labels_v1",
+  "task": "static",
+  "labels": [
+    "A",
+    "B",
+    "C",
+    "D",
+    "E",
+    "F",
+    "G",
+    "H",
+    "I",
+    "K",
+    "L",
+    "M",
+    "N",
+    "O",
+    "P",
+    "Q",
+    "R",
+    "S",
+    "T",
+    "U",
+    "V",
+    "W",
+    "X",
+    "Y",
+    "Z"
+  ],
+  "feature_dim": 63,
+  "input_vector_dim": 63,
+  "model_name": "rf",
+  "model_backend": "sklearn",
+  "created_at": "2026-05-26T13:40:05.580318+00:00",
+  "preprocessing": {
+    "wrist_centered": true,
+    "scale_normalized": true,
+    "flattened": false
+  }
+}

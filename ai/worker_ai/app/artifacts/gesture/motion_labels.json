@@ -1,0 +1,49 @@
+{
+  "schema_version": "gesture_labels_v2",
+  "labels_version": "labels_v1",
+  "task": "motion",
+  "labels": [
+    "BUSY",
+    "DEAF",
+    "DRINK",
+    "FINE",
+    "GOODBYE",
+    "GREAT",
+    "HAPPY",
+    "HELLO",
+    "HELP",
+    "HOWAREYOU",
+    "HUNGRY",
+    "I",
+    "NAME",
+    "NO",
+    "NOTHING",
+    "OK",
+    "PLEASE",
+    "SAD",
+    "SEEYOULATER",
+    "SORRY",
+    "THANKYOU",
+    "WATER",
+    "WHAT",
+    "YES",
+    "YOU",
+    "YOUR"
+  ],
+  "feature_dim": 147,
+  "input_vector_dim": 147,
+  "model_name": "gru_base",
+  "model_backend": "torch_gru",
+  "created_at": "2026-05-26T13:40:32.893565+00:00",
+  "preprocessing": {
+    "wrist_centered": true,
+    "scale_normalized": true,
+    "flattened": false
+  },
+  "seq_len": 10,
+  "input_representation": "sequence",
+  "sequence_input_shape": [
+    10,
+    147
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "created_at": "2026-05-26T13:40:34.943628+00:00",
+  "source_dir": "C:\\Users\\tonmo\\.cursor\\projects\\Sphere-Care-Video-RaATG\\ai\\training\\ai_transcript\\artifacts\\gesture",
+  "runtime_dir": "C:\\Users\\tonmo\\.cursor\\projects\\Sphere-Care-Video-RaATG\\ai\\worker_ai\\app\\artifacts\\gesture",
+  "quality_gate_checked": true,
+  "copied_count": 4,
+  "missing": [],
+  "copied": [
+    {
+      "file": "static_model.joblib",
+      "src": "C:\\Users\\tonmo\\.cursor\\projects\\Sphere-Care-Video-RaATG\\ai\\training\\ai_transcript\\artifacts\\gesture\\static_model.joblib",
+      "dst": "C:\\Users\\tonmo\\.cursor\\projects\\Sphere-Care-Video-RaATG\\ai\\worker_ai\\app\\artifacts\\gesture\\static_model.joblib",
+      "bytes": 16905498,
+      "sha1": "47e1e252148f40256e2081af9e1186918c5e163a"
+    },
+    {
+      "file": "static_labels.json",
+      "src": "C:\\Users\\tonmo\\.cursor\\projects\\Sphere-Care-Video-RaATG\\ai\\training\\ai_transcript\\artifacts\\gesture\\static_labels.json",
+      "dst": "C:\\Users\\tonmo\\.cursor\\projects\\Sphere-Care-Video-RaATG\\ai\\worker_ai\\app\\artifacts\\gesture\\static_labels.json",
+      "bytes": 638,
+      "sha1": "be1ade5197d936bb879b42549656394c23a9768b"
+    },
+    {
+      "file": "motion_model.pt",
+      "src": "C:\\Users\\tonmo\\.cursor\\projects\\Sphere-Care-Video-RaATG\\ai\\training\\ai_transcript\\artifacts\\gesture\\motion_model.pt",
+      "dst": "C:\\Users\\tonmo\\.cursor\\projects\\Sphere-Care-Video-RaATG\\ai\\worker_ai\\app\\artifacts\\gesture\\motion_model.pt",
+      "bytes": 839701,
+      "sha1": "7c1299b7a95a44e1461b643d7b96afb272b69bca"
+    },
+    {
+      "file": "motion_labels.json",
+      "src": "C:\\Users\\tonmo\\.cursor\\projects\\Sphere-Care-Video-RaATG\\ai\\training\\ai_transcript\\artifacts\\gesture\\motion_labels.json",
+      "dst": "C:\\Users\\tonmo\\.cursor\\projects\\Sphere-Care-Video-RaATG\\ai\\worker_ai\\app\\artifacts\\gesture\\motion_labels.json",
+      "bytes": 868,
+      "sha1": "00a7c515f88485ec681b3213dbbeda193de83694"
+    }
+  ]
+}
