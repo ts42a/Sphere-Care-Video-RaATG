@@ -45,7 +45,14 @@ type SubscribeHandlers = {
   onEnded?: () => void;
 };
 
-function sameCall(payload: any, callId: string) {
+function eventPayload(message: any) {
+  return message?.payload && typeof message.payload === "object"
+    ? message.payload
+    : message;
+}
+
+function sameCall(message: any, callId: string) {
+  const payload = eventPayload(message);
   return String(payload?.call_id ?? payload?.callId ?? "") === String(callId);
 }
 
@@ -103,19 +110,22 @@ export const callSignalingService = {
 
   subscribe(callId: string, handlers: SubscribeHandlers) {
     const cleanups = [
-      wsClient.subscribe("call_joined", (payload: any) => {
+      wsClient.subscribe("call_joined", (message: any) => {
+        const payload = eventPayload(message);
         if (!sameCall(payload, callId)) return;
         handlers.onJoined?.();
       }),
 
-      wsClient.subscribe("call_connection_state", (payload: any) => {
+      wsClient.subscribe("call_connection_state", (message: any) => {
+        const payload = eventPayload(message);
         if (!sameCall(payload, callId)) return;
         handlers.onConnectionState?.(
           normalizeConnectionState(payload?.state)
         );
       }),
 
-      wsClient.subscribe("call_remote_media_updated", (payload: any) => {
+      wsClient.subscribe("call_remote_media_updated", (message: any) => {
+        const payload = eventPayload(message);
         if (!sameCall(payload, callId)) return;
 
         handlers.onRemoteMediaUpdated?.({
@@ -124,18 +134,21 @@ export const callSignalingService = {
         });
       }),
 
-      wsClient.subscribe("call_transcript_updated", (payload: any) => {
+      wsClient.subscribe("call_transcript_updated", (message: any) => {
+        const payload = eventPayload(message);
         if (!sameCall(payload, callId)) return;
         if (!payload?.item) return;
         handlers.onTranscriptUpdated?.(payload.item);
       }),
 
-      wsClient.subscribe("call_transcribing_updated", (payload: any) => {
+      wsClient.subscribe("call_transcribing_updated", (message: any) => {
+        const payload = eventPayload(message);
         if (!sameCall(payload, callId)) return;
         handlers.onTranscribingUpdated?.(payload?.transcribing ?? true);
       }),
 
-      wsClient.subscribe("call_ended", (payload: any) => {
+      wsClient.subscribe("call_ended", (message: any) => {
+        const payload = eventPayload(message);
         if (!sameCall(payload, callId)) return;
         handlers.onEnded?.();
       }),

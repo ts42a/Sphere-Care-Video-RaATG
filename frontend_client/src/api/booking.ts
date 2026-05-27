@@ -102,17 +102,52 @@ function normalizeDoctor(item: any): Doctor {
   };
 }
 
-function normalizeTimeSlot(item: any): TimeSlot {
+function makeFallbackSlotId(item: any, label: string, index: number) {
+  const rawStart = item?.start ?? item?.start_time ?? "";
+  const rawEnd = item?.end ?? item?.end_time ?? "";
+  const seed = `${rawStart}-${rawEnd}-${label}-${index}`
+    .replace(/\s+/g, "-")
+    .replace(/[^a-zA-Z0-9:_-]/g, "")
+    .toLowerCase();
+
+  return `slot-${seed || index}`;
+}
+
+function normalizeTimeSlot(item: any, index: number): TimeSlot {
+  const start =
+    typeof item?.start === "string"
+      ? item.start
+      : typeof item?.start_time === "string"
+      ? item.start_time
+      : undefined;
+
+  const end =
+    typeof item?.end === "string"
+      ? item.end
+      : typeof item?.end_time === "string"
+      ? item.end_time
+      : undefined;
+
   const label =
     item?.label ??
     item?.time ??
     item?.displayTime ??
-    (item?.start && item?.end ? `${item.start} - ${item.end}` : "Unknown time");
+    (start && end ? `${start} - ${end}` : "Unknown time");
+
+  const id =
+    item?.id ??
+    item?.timeSlotId ??
+    item?.time_slot_id ??
+    item?.slotId ??
+    item?.slot_id ??
+    makeFallbackSlotId(item, String(label), index);
 
   return {
-    id: String(item?.id ?? item?.timeSlotId ?? item?.slotId ?? label),
+    id: String(id),
     label: String(label),
     available: Boolean(item?.available ?? item?.isAvailable ?? true),
+    start,
+    end,
   };
 }
 
@@ -141,10 +176,16 @@ function normalizeSchedule(item: any): ScheduleResponse {
       role: String(
         rawDoctor?.role ?? rawDoctor?.specialty ?? "General Practitioner"
       ),
+      availabilitySummary:
+        typeof rawDoctor?.availabilitySummary === "string"
+          ? rawDoctor.availabilitySummary
+          : typeof rawDoctor?.availability_summary === "string"
+          ? rawDoctor.availability_summary
+          : undefined,
     },
     date: String(item?.date ?? rawDates[0] ?? ""),
     availableDates: rawDates.map((date: unknown) => String(date)),
-    timeSlots: rawSlots.map(normalizeTimeSlot),
+    timeSlots: rawSlots.map((slot: any, index: number) => normalizeTimeSlot(slot, index)),
     version:
       typeof item?.version === "number"
         ? item.version
@@ -195,13 +236,35 @@ function normalizeBookingConfirmation(item: any): BookingConfirmation {
   };
 }
 
-function buildMockTimeSlots(): TimeSlot[] {
-  return [
-    { id: "slot-0900", label: "9:00 AM - 9:30 AM", available: true },
-    { id: "slot-0930", label: "9:30 AM - 10:00 AM", available: true },
-    { id: "slot-1030", label: "10:30 AM - 11:00 AM", available: true },
-    { id: "slot-1100", label: "11:00 AM - 11:30 AM", available: true },
-  ];
+function buildMockTimeSlots(doctorId?: string): TimeSlot[] {
+  const slotMap: Record<string, TimeSlot[]> = {
+    "doc-1": [
+      { id: "slot-0830", label: "8:30 AM - 9:00 AM", available: true, start: "08:30", end: "09:00" },
+      { id: "slot-0900", label: "9:00 AM - 9:30 AM", available: true, start: "09:00", end: "09:30" },
+      { id: "slot-0930", label: "9:30 AM - 10:00 AM", available: false, start: "09:30", end: "10:00" },
+      { id: "slot-1030", label: "10:30 AM - 11:00 AM", available: true, start: "10:30", end: "11:00" },
+      { id: "slot-1100", label: "11:00 AM - 11:30 AM", available: true, start: "11:00", end: "11:30" },
+      { id: "slot-1330", label: "1:30 PM - 2:00 PM", available: true, start: "13:30", end: "14:00" },
+      { id: "slot-1430", label: "2:30 PM - 3:00 PM", available: true, start: "14:30", end: "15:00" },
+      { id: "slot-1600", label: "4:00 PM - 4:30 PM", available: true, start: "16:00", end: "16:30" },
+    ],
+    "doc-2": [
+      { id: "slot-1000", label: "10:00 AM - 10:30 AM", available: true, start: "10:00", end: "10:30" },
+      { id: "slot-1030", label: "10:30 AM - 11:00 AM", available: true, start: "10:30", end: "11:00" },
+      { id: "slot-1100", label: "11:00 AM - 11:30 AM", available: true, start: "11:00", end: "11:30" },
+      { id: "slot-1300", label: "1:00 PM - 1:30 PM", available: true, start: "13:00", end: "13:30" },
+      { id: "slot-1530", label: "3:30 PM - 4:00 PM", available: true, start: "15:30", end: "16:00" },
+    ],
+    "doc-3": [
+      { id: "slot-0900", label: "9:00 AM - 9:30 AM", available: true, start: "09:00", end: "09:30" },
+      { id: "slot-1000", label: "10:00 AM - 10:30 AM", available: true, start: "10:00", end: "10:30" },
+      { id: "slot-1400", label: "2:00 PM - 2:30 PM", available: true, start: "14:00", end: "14:30" },
+      { id: "slot-1500", label: "3:00 PM - 3:30 PM", available: true, start: "15:00", end: "15:30" },
+      { id: "slot-1700", label: "5:00 PM - 5:30 PM", available: true, start: "17:00", end: "17:30" },
+    ],
+  };
+
+  return slotMap[doctorId ?? ""] ?? slotMap["doc-1"];
 }
 
 async function getMockAppointmentTypes(): Promise<AppointmentType[]> {
@@ -292,9 +355,60 @@ async function getMockSchedule(
     },
     date: resolvedDate,
     availableDates,
-    timeSlots: buildMockTimeSlots(),
+    timeSlots: buildMockTimeSlots(doctorId),
     version: 1,
   };
+}
+
+
+async function getMockMyBookings(): Promise<BookingConfirmation[]> {
+  await wait(200);
+
+  const today = new Date();
+  const tomorrow = new Date(today);
+  tomorrow.setDate(today.getDate() + 1);
+  const lastWeek = new Date(today);
+  lastWeek.setDate(today.getDate() - 7);
+
+  const fallbackUpcoming: BookingConfirmation = {
+    bookingId: "mock-upcoming-1",
+    status: "confirmed",
+    doctor: {
+      id: "doc-1",
+      name: "Dr. Jack Specs",
+      role: "General Practitioner",
+    },
+    appointmentType: {
+      id: "general-checkup",
+      title: "General Check Up",
+    },
+    date: toDateKey(tomorrow),
+    time: "10:30 AM - 11:00 AM",
+    room: "Room 203 - Main Care Unit",
+    createdAt: new Date().toISOString(),
+  };
+
+  const fallbackPast: BookingConfirmation = {
+    bookingId: "mock-past-1",
+    status: "completed",
+    doctor: {
+      id: "doc-2",
+      name: "Dr. Emily Ross",
+      role: "General Practitioner",
+    },
+    appointmentType: {
+      id: "follow-up",
+      title: "Follow Up",
+    },
+    date: toDateKey(lastWeek),
+    time: "2:00 PM - 2:30 PM",
+    room: "Room 105 - Main Care Unit",
+    createdAt: lastWeek.toISOString(),
+  };
+
+  return [latestBooking, fallbackUpcoming, fallbackPast].filter(
+    Boolean
+  ) as BookingConfirmation[];
 }
 
 export async function getAppointmentTypes(): Promise<AppointmentType[]> {
@@ -375,6 +489,7 @@ export async function createBooking(
   const schedule = await getMockSchedule(input.doctorId, input.date);
   const selectedSlot =
     schedule.timeSlots.find((slot) => slot.id === input.timeSlotId) ??
+    schedule.timeSlots.find((slot) => slot.available) ??
     schedule.timeSlots[0];
 
   const booking: BookingConfirmation = {
@@ -400,6 +515,19 @@ export async function createBooking(
   return booking;
 }
 
+
+export async function getMyBookings(): Promise<BookingConfirmation[]> {
+  if (USE_MOCK_API) {
+    return getMockMyBookings();
+  }
+
+  const response = await request<
+    BookingConfirmation[] | ApiListResponse<BookingConfirmation>
+  >("/client/bookings/my");
+
+  return unwrapList(response).map(normalizeBookingConfirmation);
+}
+
 export async function getBookingConfirmation(
   bookingId: string
 ): Promise<BookingConfirmation> {
@@ -413,11 +541,18 @@ export async function getBookingConfirmation(
 
   await wait(200);
 
-  if (!latestBooking || latestBooking.bookingId !== bookingId) {
+  if (latestBooking?.bookingId === bookingId) {
+    return latestBooking;
+  }
+
+  const bookings = await getMockMyBookings();
+  const booking = bookings.find((item) => item.bookingId === bookingId);
+
+  if (!booking) {
     throw new Error("Booking not found");
   }
 
-  return latestBooking;
+  return booking;
 }
 
 export async function cancelBooking(

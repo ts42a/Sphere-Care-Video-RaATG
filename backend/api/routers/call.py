@@ -3,10 +3,13 @@
 LiveKit token minting is stubbed — fill in when LIVEKIT_* env vars are set.
 """
 import json
+import logging
 import uuid
 from datetime import datetime, timezone, timedelta
 from zoneinfo import ZoneInfo
 from typing import Optional
+
+logger = logging.getLogger(__name__)
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel
@@ -17,6 +20,7 @@ from backend.api.deps import get_db
 from backend.api.routers.auth import _get_current_user
 from backend import models
 from backend.ws.ws_manager import ws_manager
+from backend.services.livekit_asr_service import livekit_asr_manager
 
 router = APIRouter(prefix="/calls", tags=["Calls"])
 
@@ -93,17 +97,17 @@ def _get_role(current_user) -> str:
         return "admin"
     return getattr(current_user, 'global_role', 'staff') or 'staff'
 
-TOKEN_TTL_MINUTES = 15
+from backend.core import config as _cfg
+
+TOKEN_TTL_MINUTES = _cfg.LIVEKIT_TOKEN_TTL_MINUTES
+
 
 def _mint_livekit_token(room_id: str, identity: str, display_name: str) -> tuple[Optional[str], Optional[datetime]]:
-    """
-    Mint a participant token when LIVEKIT_* env vars are configured.
-    Returns both the JWT and its expiry so the mobile app can rehydrate calls.
-    """
-    import os
-    lk_key = os.getenv("LIVEKIT_API_KEY")
-    lk_secret = os.getenv("LIVEKIT_API_SECRET")
+    """Mint a participant token server-side. Returns (jwt, expires_at) or (None, None) when LiveKit is not configured."""
+    lk_key = _cfg.LIVEKIT_API_KEY
+    lk_secret = _cfg.LIVEKIT_API_SECRET
     if not lk_key or not lk_secret:
+        logger.warning("[livekit] LIVEKIT_API_KEY or LIVEKIT_API_SECRET not set — token minting skipped")
         return None, None
     expires_at = _now() + timedelta(minutes=TOKEN_TTL_MINUTES)
     try:
@@ -118,12 +122,44 @@ def _mint_livekit_token(room_id: str, identity: str, display_name: str) -> tuple
             .to_jwt()
         )
         return token, expires_at
-    except Exception:
+    except Exception as exc:
+        logger.error("[livekit] token minting failed for identity=%s room=%s: %s", identity, room_id, exc)
         return None, None
 
+def _display_name_for_call_user(db: Session, storage_id: int, role_hint: Optional[str] = None) -> str:
+    actor_type, real_id = _from_call_storage_id(storage_id, role_hint)
+
+    if actor_type == "admin":
+        admin = db.query(models.Admin).filter(models.Admin.id == real_id).first()
+        if admin:
+            return admin.full_name or admin.email or f"Admin {real_id}"
+        return f"Admin {real_id}"
+
+    user = db.query(models.User).filter(models.User.id == real_id).first()
+    if user:
+        if getattr(user, "global_role", None) == "client":
+            resident = (
+                db.query(models.Resident)
+                .filter(models.Resident.client_user_id == real_id)
+                .first()
+            )
+            if resident:
+                return resident.full_name or user.full_name or user.email or f"Client {real_id}"
+
+        staff = (
+            db.query(models.Staff)
+            .filter(models.Staff.user_id == real_id)
+            .first()
+        )
+        if staff:
+            return staff.full_name or user.full_name or user.email or f"Staff {real_id}"
+
+        return user.full_name or user.email or f"User {real_id}"
+
+    return f"User {real_id}"
+
 def _livekit_url() -> Optional[str]:
-    import os
-    return os.getenv("LIVEKIT_URL")
+    return _cfg.LIVEKIT_URL or None
 
 def _add_event(db: Session, call_id: int, event_type: str, actor_id: Optional[int] = None, meta: dict = None):
     db.add(models.CallEvent(
@@ -134,7 +170,7 @@ def _add_event(db: Session, call_id: int, event_type: str, actor_id: Optional[in
     ))
 
 async def _ws_broadcast_call_event(call: models.Call, event_type: str, extra: dict = None):
-    """Notify both caller and callee via WS using the same actor key rules as messages."""
+    """Notify both caller and callee via WS."""
     payload = {
         "type": event_type,
         "call_id": call.id,
@@ -151,25 +187,13 @@ async def _ws_broadcast_call_event(call: models.Call, event_type: str, extra: di
         actor_key = _actor_key_from_call_storage_id(stored_uid)
         await ws_manager.broadcast_actor(actor_key, payload)
 
-        # Compatibility fallback for older rows or older clients that may have
-        # connected under the wrong key during development.
-        actor_type, real_id = _from_call_storage_id(stored_uid)
-        await ws_manager.broadcast_actor(f"user:{real_id}", payload)
-        await ws_manager.broadcast_actor(f"admin:{real_id}", payload)
-
 
 async def _ws_send_to_call_participant(stored_user_id: int | None, payload: dict, role_hint: Optional[str] = None):
     if not stored_user_id:
         return
 
     actor_key = _actor_key_from_call_storage_id(stored_user_id, role_hint)
-    print("DEBUG ws actor_key", actor_key)
     await ws_manager.broadcast_actor(actor_key, payload)
-
-    # Compatibility fallback for old dev tokens / old rows.
-    _, real_id = _from_call_storage_id(stored_user_id, role_hint)
-    await ws_manager.broadcast_actor(f"user:{real_id}", payload)
-    await ws_manager.broadcast_actor(f"admin:{real_id}", payload)
 
 
 # ── Schemas ───────────────────────────────────────────────────────────────────
@@ -319,6 +343,69 @@ def _history_item_for_call(db: Session, call: models.Call, viewer_id: int) -> Ca
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
 
+class DevJoinRequest(BaseModel):
+    room_id: Optional[str] = None
+    display_name: Optional[str] = None
+
+
+@router.post("/dev/join", tags=["Calls"])
+async def dev_join(
+    body: DevJoinRequest,
+    current_user=Depends(_get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Dev tool: mint a LiveKit token for an arbitrary room without a DB call record.
+    Use for two-tab join tests (Rollout Step 2)."""
+    user_id = _get_user_id(current_user)
+    role = _get_role(current_user)
+    room_id = (body.room_id or "").strip() or _gen_room_id()
+    display_name = (body.display_name or "").strip() or _display_name_for_call_user(db, user_id, role)
+    identity = f"dev_{user_id}_{uuid.uuid4().hex[:6]}"
+    token, expires_at = _mint_livekit_token(room_id, identity, display_name)
+    if not token:
+        raise HTTPException(
+            status_code=503,
+            detail="LiveKit is not configured — check LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET in .env",
+        )
+    return {
+        "room_id": room_id,
+        "livekit_url": _livekit_url(),
+        "access_token": token,
+        "identity": identity,
+        "display_name": display_name,
+        "expires_at": expires_at.isoformat(),
+    }
+
+
+@router.get("/livekit-status", tags=["Calls"])
+def livekit_status():
+    """Dev endpoint: verify LiveKit credentials are configured and token minting works."""
+    lk_url = _cfg.LIVEKIT_URL
+    lk_key = _cfg.LIVEKIT_API_KEY
+    lk_secret = _cfg.LIVEKIT_API_SECRET
+    configured = bool(lk_url and lk_key and lk_secret)
+
+    mint_ok = False
+    mint_error: Optional[str] = None
+    if configured:
+        try:
+            from livekit.api import AccessToken, VideoGrants
+            AccessToken(lk_key, lk_secret).with_identity("_health_check").with_grants(
+                VideoGrants(room_join=True, room="_health_check")
+            ).with_ttl(timedelta(minutes=1)).to_jwt()
+            mint_ok = True
+        except Exception as exc:
+            mint_error = str(exc)
+
+    return {
+        "configured": configured,
+        "livekit_url": lk_url or None,
+        "token_ttl_minutes": TOKEN_TTL_MINUTES,
+        "mint_ok": mint_ok,
+        "mint_error": mint_error,
+    }
+
+
 @router.post("", response_model=CallResponse)
 async def start_call(
     payload: StartCallRequest,
@@ -334,6 +421,26 @@ async def start_call(
 
     if caller_id == callee_id:
         raise HTTPException(status_code=400, detail="Cannot call yourself.")
+
+    now = _now()
+
+    # Auto-expire any stale ringing calls before the busy check so old test
+    # sessions don't permanently block the caller.
+    stale_ringing = db.query(models.Call).filter(
+        or_(
+            models.Call.created_by_user_id == caller_id,
+            models.Call.callee_user_id == caller_id,
+        ),
+        models.Call.state == "ringing",
+        models.Call.invite_expires_at < now,
+    ).all()
+    for sc in stale_ringing:
+        sc.state = "timeout"
+        sc.ended_at = now
+        sc.end_reason = "timeout"
+        _add_event(db, sc.id, "timeout")
+    if stale_ringing:
+        db.flush()
 
     caller_busy = db.query(models.Call).filter(
         or_(
@@ -352,6 +459,20 @@ async def start_call(
     if active:
         raise HTTPException(status_code=409, detail="Callee is busy.")
 
+    # Auto-expire stale ringing invites to the callee before checking.
+    stale_callee = db.query(models.Call).filter(
+        models.Call.callee_user_id == callee_id,
+        models.Call.state == "ringing",
+        models.Call.invite_expires_at < now,
+    ).all()
+    for sc in stale_callee:
+        sc.state = "timeout"
+        sc.ended_at = now
+        sc.end_reason = "timeout"
+        _add_event(db, sc.id, "timeout")
+    if stale_callee:
+        db.flush()
+
     ringing = db.query(models.Call).filter(
         models.Call.callee_user_id == callee_id,
         models.Call.state == "ringing",
@@ -363,10 +484,12 @@ async def start_call(
     expires_at = _now() + timedelta(seconds=INVITE_TTL_SECONDS)
 
     caller_identity = f"usr_{caller_id}"
+    caller_display_name = _display_name_for_call_user(db, caller_id, caller_role)
+
     caller_token, caller_token_expires_at = _mint_livekit_token(
         room_id,
         caller_identity,
-        str(caller_id),
+        caller_display_name,
     )
 
     print("DEBUG caller join payload", {
@@ -413,7 +536,7 @@ async def start_call(
     db.commit()
     db.refresh(call)
 
-    caller_name = getattr(current_user, "full_name", None) or getattr(current_user, "name", None) or getattr(current_user, "email", None) or str(caller_id)
+    caller_name = caller_display_name
     caller_actor_type, caller_public_id = _from_call_storage_id(caller_id, caller_role)
 
     invite_payload = {
@@ -626,6 +749,11 @@ async def accept_call(
         )
 
         print("DEBUG callee existing join", join.model_dump())
+        await livekit_asr_manager.start_call(
+            call_id=call.id,
+            room_id=call.room_id,
+            livekit_url=call.livekit_url,
+        )
         return _fmt_call(call, join)
 
     if call.state != "ringing":
@@ -638,10 +766,12 @@ async def accept_call(
         raise HTTPException(status_code=410, detail="Invite has expired.")
 
     callee_identity = f"usr_{callee_id}"
+    callee_display_name = _display_name_for_call_user(db, callee_id, callee_role)
+
     callee_token, callee_token_expires_at = _mint_livekit_token(
         call.room_id,
         callee_identity,
-        str(callee_id),
+        callee_display_name,
     )
 
     print("DEBUG callee join payload", {
@@ -674,6 +804,15 @@ async def accept_call(
         "started_at": call.started_at.isoformat() if call.started_at else None,
         "kind": call.kind,
     })
+
+    # Phase A transcript worker: backend joins the LiveKit room and performs ASR.
+    # If LiveKit env vars or the Python SDK are missing, this safely no-ops so the
+    # call flow itself still works.
+    await livekit_asr_manager.start_call(
+        call_id=call.id,
+        room_id=call.room_id,
+        livekit_url=call.livekit_url,
+    )
 
     join = JoinPayload(
         call_id=call.id,
@@ -836,6 +975,61 @@ async def end_call(
     db.refresh(call)
 
     await _ws_broadcast_call_event(call, ws_event, extra_payload)
+
+    if call.state in TERMINAL_CALL_STATES:
+        await livekit_asr_manager.stop_call(call.id)
+
+    # ── Post call record message to conversation (like WhatsApp) ──
+    if call.state == "ended" and call.started_at and call.ended_at:
+        duration_seconds = int((call.ended_at - call.started_at).total_seconds())
+        mins, secs = divmod(duration_seconds, 60)
+        duration_str = f"{mins}:{secs:02d}" if mins else f"0:{secs:02d}"
+        try:
+            # Find or create conversation between the two participants
+            raw_caller = call.created_by_user_id
+            raw_callee = call.callee_user_id
+            caller_id = raw_caller - ADMIN_ID_OFFSET if raw_caller and raw_caller >= ADMIN_ID_OFFSET else raw_caller
+            callee_id = raw_callee - ADMIN_ID_OFFSET if raw_callee and raw_callee >= ADMIN_ID_OFFSET else raw_callee
+            admin_id = call.org_id
+
+            from sqlalchemy import func
+            conv = (
+                db.query(models.Conversation)
+                .join(models.ConversationParticipant, models.ConversationParticipant.conversation_id == models.Conversation.id)
+                .filter(
+                    models.ConversationParticipant.user_id == caller_id,
+                )
+                .filter(
+                    models.Conversation.id.in_(
+                        db.query(models.ConversationParticipant.conversation_id)
+                        .filter(models.ConversationParticipant.user_id == callee_id)
+                    )
+                )
+                .outerjoin(models.Message, models.Message.conversation_id == models.Conversation.id)
+                .group_by(models.Conversation.id)
+                .order_by(func.count(models.Message.id).desc())
+                .first()
+            )
+
+            if conv:
+                call_msg = models.Message(
+                    admin_id=conv.admin_id,
+                    conversation_id=conv.id,
+                    sender_user_id=caller_id,
+                    sender_participant_type="user",
+                    sender_name="System",
+                    sender_role="system",
+                    content=f"{'📹' if call.kind == 'video' else '📞'} {'Video' if call.kind == 'video' else 'Audio'} call ended • {duration_str}",
+                    message_type="call_record",
+                    is_self=False,
+                )
+                db.add(call_msg)
+                conv.last_message = call_msg.content
+                conv.last_message_at = call.ended_at
+                db.commit()
+        except Exception as e:
+            pass  # Don't fail the call end if message posting fails
+
     return _fmt_call(call)
 
 

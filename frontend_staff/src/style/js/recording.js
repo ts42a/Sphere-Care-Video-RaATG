@@ -2258,6 +2258,123 @@ function _showPipelineComplete(camTitle, durationSec, transcript) {
   });
 }
 
+// UPLOAD VIDEO
+async function submitUploadVideoModal() {
+  const fileInput    = document.getElementById("upload-video-file");
+  const residentEl   = document.getElementById("upload-video-resident");
+  const titleEl      = document.getElementById("upload-video-title");
+  const notesEl      = document.getElementById("upload-video-notes");
+  const submitBtn    = document.getElementById("upload-video-submit");
+  const progressWrap = document.getElementById("upload-video-progress");
+  const progressBar  = document.getElementById("upload-video-bar");
+  const progressPct  = document.getElementById("upload-video-pct");
+
+  const file     = fileInput?.files?.[0];
+  const resident = residentEl?.value.trim() || "Unknown";
+  const title    = titleEl?.value.trim() || (file?.name ?? "Video Recording");
+
+  if (!file) {
+    setRcStatus("upload-video-status", "Please select a video file first.", "err");
+    return;
+  }
+
+  const token = sessionStorage.getItem("access_token");
+
+  submitBtn.disabled = true;
+  submitBtn.textContent = "Uploading…";
+  progressWrap.style.display = "block";
+  progressBar.style.width = "0%";
+  progressPct.textContent = "0%";
+  setRcStatus("upload-video-status", "", "");
+
+  // Step 1: upload file via XHR to track progress
+  let fileUrl;
+  try {
+    fileUrl = await new Promise((resolve, reject) => {
+      const form = new FormData();
+      form.append("file", file);
+
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", `${API_BASE}/uploads/file`);
+      if (token) xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+
+      xhr.upload.onprogress = (e) => {
+        if (!e.lengthComputable) return;
+        const pct = Math.round((e.loaded / e.total) * 80);
+        progressBar.style.width = pct + "%";
+        progressPct.textContent = pct + "%";
+      };
+
+      xhr.onload = () => {
+        if (xhr.status === 201 || xhr.status === 200) {
+          try {
+            resolve(JSON.parse(xhr.responseText).url);
+          } catch {
+            reject(new Error("Invalid server response"));
+          }
+        } else {
+          reject(new Error(`Upload failed (${xhr.status}): ${xhr.responseText}`));
+        }
+      };
+
+      xhr.onerror = () => reject(new Error("Network error — upload failed."));
+      xhr.send(form);
+    });
+  } catch (err) {
+    setRcStatus("upload-video-status", `File upload failed: ${err.message}`, "err");
+    submitBtn.disabled = false;
+    submitBtn.textContent = "Upload & Save";
+    return;
+  }
+
+  progressBar.style.width = "90%";
+  progressPct.textContent = "90%";
+
+  // Step 2: create record
+  try {
+    const res = await fetch(`${API_BASE}/records/`, {
+      method: "POST",
+      headers: authHeaders(),
+      body: JSON.stringify({
+        resident_name: resident,
+        category:      title,
+        record_type:   "video",
+        file_url:      fileUrl,
+        notes:         notesEl?.value.trim() || "",
+      }),
+    });
+
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(text || `HTTP ${res.status}`);
+    }
+  } catch (err) {
+    setRcStatus("upload-video-status", `Failed to save record: ${err.message}`, "err");
+    submitBtn.disabled = false;
+    submitBtn.textContent = "Upload & Save";
+    return;
+  }
+
+  progressBar.style.width = "100%";
+  progressPct.textContent = "100%";
+  setRcStatus("upload-video-status", "Upload successful!", "ok");
+  _showToast("✅ Video uploaded and saved to Playback library");
+
+  await loadPlayback();
+
+  setTimeout(() => {
+    closeRcModal("upload-video-modal");
+    if (fileInput)  fileInput.value       = "";
+    if (residentEl) residentEl.value      = "";
+    if (titleEl)    titleEl.value         = "";
+    if (notesEl)    notesEl.value         = "";
+    progressWrap.style.display = "none";
+    submitBtn.disabled    = false;
+    submitBtn.textContent = "Upload & Save";
+    setRcStatus("upload-video-status", "", "");
+  }, 800);
+}
+
 // INIT
 async function initRecordingConsole() {
   updateStatsFromFrontend();

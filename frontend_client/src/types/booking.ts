@@ -19,6 +19,8 @@ export type TimeSlot = {
   id: string;
   label: string;
   available: boolean;
+  start?: string;
+  end?: string;
 };
 
 export type ScheduleResponse = {
@@ -26,6 +28,7 @@ export type ScheduleResponse = {
     id: string;
     name: string;
     role: string;
+    availabilitySummary?: string;
   };
   date: string;
   availableDates: string[];

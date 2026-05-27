@@ -58,24 +58,27 @@ function senderClr(n) { if (!SENDER_CLR[n]) SENDER_CLR[n] = SC_CLR[sci++ % SC_CL
 function catLabel(c) { return { team: 'Team Chat', resident: 'Resident Care', alerts: 'System Alerts' }[c] || 'Chat'; }
 
 async function loadConvs() {
-  try {
-    var r = await fetch(API_BASE + '/messages/conversations', { headers: authH() });
-    if (!r.ok) throw new Error();
-    var d = await r.json();
-    if (d.length) {
+  var hasAuth = !!sessionStorage.getItem('access_token');
+  if (hasAuth) {
+    try {
+      var r = await fetch(API_BASE + '/messages/conversations', { headers: authH() });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      var d = await r.json();
       allConvs = d.map(function (c) {
         return { id: c.id, name: c.name, category: c.category, last_message: c.last_message || '', last_message_at: c.last_message_at || '', unread_count: c.unread_count || 0, sub: catLabel(c.category), color: convClr(c.id, c.category), online: false };
       });
       demo = false;
-    } else throw new Error();
-  } catch (e) {
+    } catch (e) {
+      allConvs = [];
+      demo = false;
+    }
+  } else {
+    // No token — show demo UI for unauthenticated preview only
     allConvs = DEMO_CONVS.map(function (c) { return Object.assign({}, c); });
     demo = true;
   }
 
   // Auto-sync: create conversations for residents that don't have one yet
-  // Run always — even if no conversations exist yet (demo=true means no convs, not no auth)
-  var hasAuth = !!sessionStorage.getItem('access_token');
   if (hasAuth) {
     try {
       var rr = await fetch(API_BASE + '/residents/', { headers: authH() });
@@ -182,13 +185,16 @@ async function openConv(elOrId) {
 
 async function loadMsgs(id) {
   if (localMsgs[id]) { renderMsgs(localMsgs[id]); return; }
-  try {
-    var r = await fetch(API_BASE + '/messages/conversations/' + id + '/messages', { headers: authH() });
-    if (!r.ok) throw new Error();
-    localMsgs[id] = await r.json();
-  } catch (e) {
-    // Use demo messages if available, otherwise empty array (new conversation)
+  if (demo) {
     localMsgs[id] = (DEMO_MSGS[id] || []).map(function (m) { return Object.assign({}, m); });
+  } else {
+    try {
+      var r = await fetch(API_BASE + '/messages/conversations/' + id + '/messages', { headers: authH() });
+      if (!r.ok) throw new Error();
+      localMsgs[id] = await r.json();
+    } catch (e) {
+      localMsgs[id] = [];
+    }
   }
   renderMsgs(localMsgs[id]);
 }
@@ -274,7 +280,14 @@ function renderMsgs(msgs, hl) {
       var parts = content.slice(7).split(' | ');
       bubbleHtml = makeFileBubble(parts[0] || 'file', parts[1] || '');
     } else {
-      var txt = esc(content);
+      // Call record message — render like WhatsApp
+    if (m.message_type === 'call_record') {
+      html += '<div class="msg-row" style="justify-content:center;margin:8px 0;">' +
+        '<div style="background:#f1f5f9;border-radius:12px;padding:6px 16px;font-size:12px;color:#64748b;display:flex;align-items:center;gap:6px;">' +
+        esc(content) + '</div></div>';
+      return;
+    }
+    var txt = esc(content);
       if (hl) txt = txt.replace(new RegExp(esc(hl).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), function (s) { return '<mark style="background:#fef08a;border-radius:3px;">' + s + '</mark>'; });
       bubbleHtml = replyHtml + (isSelf ? '<div class="bubble self">' + txt + (isEdited ? '<span class="edited-tag"> (edited)</span>' : '') + '</div>'
         : '<div class="bubble other">' + txt + (isEdited ? '<span class="edited-tag"> (edited)</span>' : '') + '</div>');
@@ -1830,7 +1843,7 @@ async function _lkConnect(lkUrl, token, type) {
       var msg; try { msg = JSON.parse(e.data); } catch (err) { return; }
       if (msg.type === 'new_message') {
         var m = msg.message, convId = msg.conversation_id;
-        if (m.sender_name === ME.name) return;
+        if (m.is_self === true || m.is_self === 'true') return; // backend sets is_self per-recipient
         if (!localMsgs[convId]) localMsgs[convId] = [];
         localMsgs[convId].push(m);
         var conv = allConvs.find(function (c) { return c.id === convId; });
@@ -1856,7 +1869,14 @@ async function _lkConnect(lkUrl, token, type) {
         if (msg.call_id === _outgoingCallId) { _outgoingCallId = null; _dismissCallingOverlay(); showToast('Call declined'); }
         else { showToast('Call declined'); _endActiveCall(); }
       }
-      if (msg.type === 'call.ended') { showToast('Call ended'); _endActiveCall(); }
+      if (msg.type === 'call.ended') { 
+  showToast('Call ended'); 
+  _endActiveCall(); 
+  if (currentId) { 
+    delete localMsgs[currentId]; 
+    loadMsgs(currentId); 
+  } 
+}
       if (msg.type === 'call.accepted') {
         // Caller side: callee accepted — start media
         if (msg.call_id === _outgoingCallId) {

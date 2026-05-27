@@ -22,7 +22,9 @@ async function loadBookings() {
       resident: b.resident ? b.resident.full_name : `Resident #${b.resident_id}`,
       time:     b.start_time,
       type:     b.booking_type,
-      status:   b.status
+      status:   b.status,
+      notes:    b.notes || '',
+      location: b.location || '',
     }));
   } catch (e) {
     console.warn('Could not load bookings from API:', e);
@@ -115,9 +117,26 @@ function renderMonth() {
   }
 }
 
-const HOURS = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23];
+const HOURS = [7,8,9,10,11,12,13,14,15,16,17,18,19,20];
 const DOWS  = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
 const HOUR_H = 52;
+
+const WEEK_COLORS = [
+  { bg:'#dbeafe', text:'#1d4ed8', border:'#93c5fd' },
+  { bg:'#d1fae5', text:'#065f46', border:'#6ee7b7' },
+  { bg:'#fce7f3', text:'#be185d', border:'#f9a8d4' },
+  { bg:'#fef3c7', text:'#92400e', border:'#fcd34d' },
+  { bg:'#ede9fe', text:'#5b21b6', border:'#c4b5fd' },
+  { bg:'#ffedd5', text:'#c2410c', border:'#fdba74' },
+  { bg:'#cffafe', text:'#155e75', border:'#67e8f9' },
+  { bg:'#ecfdf5', text:'#14532d', border:'#86efac' },
+];
+
+function residentColorIndex(name) {
+  let h = 0;
+  for (let i = 0; i < (name || '').length; i++) h = (h * 31 + name.charCodeAt(i)) & 0xFFFF;
+  return h % WEEK_COLORS.length;
+}
 
 function timeToMinutes(t) {
   const [hm, ampm] = t.split(' ');
@@ -168,12 +187,16 @@ function renderWeek() {
       col.appendChild(line);
     });
     bookings.filter(b => b.date === ds).forEach(b => {
-      const mins  = timeToMinutes(b.time);
-      const ev = document.createElement('div');
-      ev.className = `cal-week-event ${b.status}`;
-      ev.style.top    = `${(mins / 60) * HOUR_H}px`;
+      const mins = timeToMinutes(b.time);
+      const ev   = document.createElement('div');
+      ev.className = 'cal-week-event';
+      ev.style.top    = `${((mins / 60) - HOURS[0]) * HOUR_H}px`;
       ev.style.height = `${HOUR_H - 4}px`;
-      ev.innerHTML = `<div>${b.time}</div><div style="opacity:.8">${b.doctor.replace('Dr. ','')}</div>`;
+      const c = WEEK_COLORS[residentColorIndex(b.resident)];
+      ev.style.background  = c.bg;
+      ev.style.color       = c.text;
+      ev.style.borderLeft  = `3px solid ${c.border}`;
+      ev.innerHTML = `<div class="wk-ev-time">${b.time}</div><div class="wk-ev-name">${b.resident}</div>`;
       ev.onclick = () => openModal(b);
       col.appendChild(ev);
     });
@@ -241,7 +264,8 @@ function openModal(b) {
       <div style="background:#f8fafc;border-radius:10px;padding:12px;"><div style="font-size:10px;font-weight:700;color:#9aa0ac;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Time</div><div style="font-size:13px;font-weight:800;color:#1a2535;">${b.time}</div></div>
     </div>
     <div style="background:#f8fafc;border-radius:10px;padding:12px;margin-bottom:12px;"><div style="font-size:10px;font-weight:700;color:#9aa0ac;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Appointment Type</div><div style="font-size:13px;font-weight:700;color:#1a2535;">${b.type||'—'}</div></div>
-    <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:12px;"><div style="font-size:10px;font-weight:700;color:#b45309;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">📋 Clinical Notes</div><div style="font-size:12px;color:#6b7280;line-height:1.5;">No notes recorded for this appointment yet.</div></div>
+    ${b.location ? `<div style="background:#f8fafc;border-radius:10px;padding:12px;margin-bottom:12px;"><div style="font-size:10px;font-weight:700;color:#9aa0ac;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">📍 Location</div><div style="font-size:13px;font-weight:700;color:#1a2535;">${b.location}</div></div>` : ''}
+    <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:12px;"><div style="font-size:10px;font-weight:700;color:#b45309;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">📋 Clinical Notes</div><div style="font-size:12px;color:#6b7280;line-height:1.5;">${b.notes || 'No notes recorded for this appointment yet.'}</div></div>
   `;
   document.getElementById('modal-overlay').classList.add('open');
 }
@@ -267,6 +291,18 @@ document.addEventListener('DOMContentLoaded', () => {
   loadBookings();
 });
 
+// Sync updates from Doctor Summary tab (staff.js)
+window.addEventListener('spherecare:booking_updated', function(e) {
+  const { id, status, notes, location } = e.detail;
+  const idx = bookings.findIndex(b => b.id === id);
+  if (idx >= 0) {
+    if (status)   bookings[idx].status   = status;
+    if (notes   !== undefined) bookings[idx].notes    = notes;
+    if (location !== undefined) bookings[idx].location = location;
+    renderCalendar();
+  }
+});
+
 // ── WebSocket real-time layer ──────────────────────────────────────────────
 (function () {
   var proto = location.protocol === 'https:' ? 'wss' : 'ws';
@@ -280,7 +316,7 @@ document.addEventListener('DOMContentLoaded', () => {
       var msg; try { msg = JSON.parse(e.data); } catch (err) { return; }
       if (msg.type === 'booking_created') {
         var b = msg.booking;
-        var norm = { id:b.id, date:b.appointment_date, doctor:b.doctor_name, resident:b.resident?b.resident.full_name:('Resident #'+b.resident_id), time:b.start_time, type:b.booking_type, status:b.status };
+        var norm = { id:b.id, date:b.appointment_date, doctor:b.doctor_name, resident:b.resident?b.resident.full_name:('Resident #'+b.resident_id), time:b.start_time, type:b.booking_type, status:b.status, notes:b.notes||'', location:b.location||'' };
         if (!bookings.find(function(x){return x.id===norm.id;})) { bookings.push(norm); renderCalendar(); }
       }
       if (msg.type === 'booking_updated') {

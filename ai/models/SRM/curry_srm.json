@@ -1,0 +1,1922 @@
+[
+  {
+    "category": "Staff-Resident",
+    "conversation_id": "NSR_01",
+    "variation": 1,
+    "noise_type": "keyboard_typo",
+    "input": "hello i am here to help yuo open teh blinds teh sunlight is gentle toady would yuo like to sit near teh window i can bring yuor cardigan your tea will arrive after the room check please tell me if you need anything i will adjust the cushion",
+    "output": "Hello. I am here to help you open the blinds. The sunlight is gentle today. Would you like to sit near the window? I can bring your cardigan. Your tea will arrive after the room check. Please tell me if you need anything. I will adjust the cushion."
+  },
+  {
+    "category": "Staff-Resident",
+    "conversation_id": "NSR_01",
+    "variation": 2,
+    "noise_type": "filler_hesitation",
+    "input": "hello i am here to help you open the uh blinds the sunlight is gentle today um would you like to sit near the window i um can uh bring your cardigan your tea will arrive after the room check please tell me if you need anything i will adjust the cushion",
+    "output": "Hello. I am here to help you open the blinds. The sunlight is gentle today. Would you like to sit near the window? I can bring your cardigan. Your tea will arrive after the room check. Please tell me if you need anything. I will adjust the cushion."
+  },
+  {
+    "category": "Staff-Resident",
+    "conversation_id": "NSR_01",
+    "variation": 3,
+    "noise_type": "asr_confusion",
+    "input": "hello i am hear too help you open the blinds the sunlight is gentle today would you like too sit near the window i can bring your cardigan your tee will arrive after the room check please tell me if you need anything i will adjust the cushion",
+    "output": "Hello. I am here to help you open the blinds. The sunlight is gentle today. Would you like to sit near the window? I can bring your cardigan. Your tea will arrive after the room check. Please tell me if you need anything. I will adjust the cushion."
+  },
+  {
+    "category": "Staff-Resident",
+    "conversation_id": "NSR_01",
+    "variation": 4,
+    "noise_type": "casing_spacing_noise",
+    "input": "HELLO  i am here to help you Open the BLINDS the sunlight  is gentle Today would you like TO sit near The window  i can bring your CARDIGAN Your tea will arrive after the  room Check PLEASE tell me if you need Anything i will  ADJUST the cushion",
+    "output": "Hello. I am here to help you open the blinds. The sunlight is gentle today. Would you like to sit near the window? I can bring your cardigan. Your tea will arrive after the room check. Please tell me if you need anything. I will adjust the cushion."
+  },
+  {
+    "category": "Staff-Resident",
+    "conversation_id": "NSR_02",
+    "variation": 1,
+    "noise_type": "keyboard_typo",
+    "input": "hello i am here to help yuo change yuor bedsheet i will move slowly so yuo feel safe would yuo like to keep yuor arm on teh pillow i can blanket will stay nearby yuor help you sit up after i finish please tell me if you need anything i will empty the bin before i leave",
+    "output": "Hello. I am here to help you change your bedsheet. I will move slowly so you feel safe. Would you like to keep your arm on the pillow? I can blanket will stay nearby. Your help you sit up after I finish. Please tell me if you need anything. I will empty the bin before I leave."
+  },
+  {
+    "category": "Staff-Resident",
+    "conversation_id": "NSR_02",
+    "variation": 2,
+    "noise_type": "filler_hesitation",
+    "input": "hello i am here to help you change your bedsheet i will move slowly like so you um feel safe would you like to keep your arm on the pillow i can blanket will stay like nearby your help you sit up after i finish please tell me if you need anything i will empty like the bin before i leave",
+    "output": "Hello. I am here to help you change your bedsheet. I will move slowly so you feel safe. Would you like to keep your arm on the pillow? I can blanket will stay nearby. Your help you sit up after I finish. Please tell me if you need anything. I will empty the bin before I leave."
+  },
+  {
+    "category": "Staff-Resident",
+    "conversation_id": "NSR_02",
+    "variation": 3,
+    "noise_type": "asr_confusion",
+    "input": "hello i am hear too help you change your bedsheet i will move slowly so you feel safe would you like too keep your arm on the pillow i can blanket will stay nearby your help you sit up after i finish please tell me if you need anything i will empty the bin before i leave",
+    "output": "Hello. I am here to help you change your bedsheet. I will move slowly so you feel safe. Would you like to keep your arm on the pillow? I can blanket will stay nearby. Your help you sit up after I finish. Please tell me if you need anything. I will empty the bin before I leave."
+  },
+  {
+    "category": "Staff-Resident",
+    "conversation_id": "NSR_02",
+    "variation": 4,
+    "noise_type": "casing_spacing_noise",
+    "input": "HELLO  i am here to help you Change your BEDSHEET i will  move slowly So you feel safe WOULD you like To keep  your arm on the PILLOW I can blanket will stay nearby  your Help YOU sit up after i finish Please tell me  IF you need anything I will empty the bin BEFORE i  Leave",
+    "output": "Hello. I am here to help you change your bedsheet. I will move slowly so you feel safe. Would you like to keep your arm on the pillow? I can blanket will stay nearby. Your help you sit up after I finish. Please tell me if you need anything. I will empty the bin before I leave."
+  },
+  {
+    "category": "Staff-Resident",
+    "conversation_id": "NSR_03",
+    "variation": 1,
+    "noise_type": "keyboard_typo",
+    "input": "hello i am here to help yuo put away yuor laundry blue jumper is in teh wardrobe would yuo like to socks are in teh top drawer i can tell me if anything is missing yuor label teh new clothing later please tell me if you need anything i will keep the scarf on the chair",
+    "output": "Hello. I am here to help you put away your laundry. blue jumper is in the wardrobe. Would you like to socks are in the top drawer? I can tell me if anything is missing. Your label the new clothing later. Please tell me if you need anything. I will keep the scarf on the chair."
+  },
+  {
+    "category": "Staff-Resident",
+    "conversation_id": "NSR_03",
+    "variation": 2,
+    "noise_type": "filler_hesitation",
+    "input": "hello i am here to help you put away your laundry blue jumper is in the wardrobe would you like to socks are in the uh top drawer i can tell like me if um anything is missing your label like the new clothing later please tell me if you need anything i will keep the scarf on the chair",
+    "output": "Hello. I am here to help you put away your laundry. blue jumper is in the wardrobe. Would you like to socks are in the top drawer? I can tell me if anything is missing. Your label the new clothing later. Please tell me if you need anything. I will keep the scarf on the chair."
+  },
+  {
+    "category": "Staff-Resident",
+    "conversation_id": "NSR_03",
+    "variation": 3,
+    "noise_type": "asr_confusion",
+    "input": "hello i am hear too help you put away your laundry blew jumper is in the wardrobe would you like too socks are in the top drawer i can tell me if anything is missing your label the knew clothing later please tell me if you need anything i will keep the scarf on the share",
+    "output": "Hello. I am here to help you put away your laundry. blue jumper is in the wardrobe. Would you like to socks are in the top drawer? I can tell me if anything is missing. Your label the new clothing later. Please tell me if you need anything. I will keep the scarf on the chair."
+  },
+  {
+    "category": "Staff-Resident",
+    "conversation_id": "NSR_03",
+    "variation": 4,
+    "noise_type": "casing_spacing_noise",
+    "input": "HELLO  i am here to help you Put away YOUR laundry blue  jumper is In the wardrobe would YOU like to Socks are  in the top drawer I Can tell me if anything is  missing Your LABEL the new clothing later please Tell me if  YOU need anything i Will keep the scarf on THE chair",
+    "output": "Hello. I am here to help you put away your laundry. blue jumper is in the wardrobe. Would you like to socks are in the top drawer? I can tell me if anything is missing. Your label the new clothing later. Please tell me if you need anything. I will keep the scarf on the chair."
+  },
+  {
+    "category": "Staff-Resident",
+    "conversation_id": "NSR_04",
+    "variation": 1,
+    "noise_type": "keyboard_typo",
+    "input": "hello i am here to help yuo visit teh garden area weather is calm and not too windy would yuo like to bring yuor hat and waetr bottle i can return inside whenever yuo want yuor stay beside you outside please tell me if you need anything i will tell me if you feel tired",
+    "output": "Hello. I am here to help you visit the garden area. weather is calm and not too windy. Would you like to bring your hat and water bottle? I can return inside whenever you want. Your stay beside you outside. Please tell me if you need anything. I will tell me if you feel tired."
+  },
+  {
+    "category": "Staff-Resident",
+    "conversation_id": "NSR_04",
+    "variation": 2,
+    "noise_type": "filler_hesitation",
+    "input": "hello i erm am here to help you visit the garden area weather is calm and like not too windy would you like to bring your hat and water bottle i can return inside whenever you want your stay beside you outside please tell me if you like need anything i will like tell me if you feel tired",
+    "output": "Hello. I am here to help you visit the garden area. weather is calm and not too windy. Would you like to bring your hat and water bottle? I can return inside whenever you want. Your stay beside you outside. Please tell me if you need anything. I will tell me if you feel tired."
+  },
+  {
+    "category": "Staff-Resident",
+    "conversation_id": "NSR_04",
+    "variation": 3,
+    "noise_type": "asr_confusion",
+    "input": "hello i am hear too help you visit the garden area weather is calm and not too windy would you like too bring your hat and water bottle i can return inside whenever you want your stay beside you outside please tell me if you need anything i will tell me if you feel tired",
+    "output": "Hello. I am here to help you visit the garden area. weather is calm and not too windy. Would you like to bring your hat and water bottle? I can return inside whenever you want. Your stay beside you outside. Please tell me if you need anything. I will tell me if you feel tired."
+  },
+  {
+    "category": "Staff-Resident",
+    "conversation_id": "NSR_04",
+    "variation": 4,
+    "noise_type": "casing_spacing_noise",
+    "input": "HELLO  i am here to help you Visit the GARDEN area weather  is calm And not too windy WOULD you like To bring  your hat and water BOTTLE I can return inside whenever you  want Your STAY beside you outside please tell Me if you  NEED anything i will Tell me if you feel TIRED",
+    "output": "Hello. I am here to help you visit the garden area. weather is calm and not too windy. Would you like to bring your hat and water bottle? I can return inside whenever you want. Your stay beside you outside. Please tell me if you need anything. I will tell me if you feel tired."
+  },
+  {
+    "category": "Staff-Resident",
+    "conversation_id": "NSR_05",
+    "variation": 1,
+    "noise_type": "keyboard_typo",
+    "input": "hello i am here to help yuo check yuor hearing aid battery was changed this mroning would yuo like to speak slowly and face yuo i can adjust teh sound if needed yuor spare batteries are in the drawer please tell me if you need anything i will note this in your care record",
+    "output": "Hello. I am here to help you check your hearing aid. battery was changed this morning. Would you like to speak slowly and face you? I can adjust the sound if needed. Your spare batteries are in the drawer. Please tell me if you need anything. I will note this in your care record."
+  },
+  {
+    "category": "Staff-Resident",
+    "conversation_id": "NSR_05",
+    "variation": 2,
+    "noise_type": "filler_hesitation",
+    "input": "hello i am here to help you check um your hearing aid battery was changed this morning would um you like to speak slowly and face you i can adjust the sound if needed your spare batteries are in the drawer please tell me if like you need anything i like will note this in your care record",
+    "output": "Hello. I am here to help you check your hearing aid. battery was changed this morning. Would you like to speak slowly and face you? I can adjust the sound if needed. Your spare batteries are in the drawer. Please tell me if you need anything. I will note this in your care record."
+  },
+  {
+    "category": "Staff-Resident",
+    "conversation_id": "NSR_05",
+    "variation": 3,
+    "noise_type": "asr_confusion",
+    "input": "hello i am hear too help you check your hearing aid battery was changed this mourning would you like too speak slowly and face you i can adjust the sound if needed your spare batteries are in the drawer please tell me if you need anything i will note this in your care record",
+    "output": "Hello. I am here to help you check your hearing aid. battery was changed this morning. Would you like to speak slowly and face you? I can adjust the sound if needed. Your spare batteries are in the drawer. Please tell me if you need anything. I will note this in your care record."
+  },
+  {
+    "category": "Staff-Resident",
+    "conversation_id": "NSR_05",
+    "variation": 4,
+    "noise_type": "casing_spacing_noise",
+    "input": "HELLO  i am here to help you Check your HEARING aid battery  was changed This morning would you LIKE to speak Slowly and  face you i can ADJUST The sound if needed your spare  batteries Are IN the drawer please tell me If you need  ANYTHING i will note This in your care record",
+    "output": "Hello. I am here to help you check your hearing aid. battery was changed this morning. Would you like to speak slowly and face you? I can adjust the sound if needed. Your spare batteries are in the drawer. Please tell me if you need anything. I will note this in your care record."
+  },
+  {
+    "category": "Staff-Resident",
+    "conversation_id": "NSR_06",
+    "variation": 1,
+    "noise_type": "keyboard_typo",
+    "input": "hello i am here to help yuo place yuor favourite blanket it has been washed toady would yuo like to put it over yuor legs i can keep teh room light soft yuor close the door halfway please tell me if you need anything i will check again before handover",
+    "output": "Hello. I am here to help you place your favourite blanket. it has been washed today. Would you like to put it over your legs? I can keep the room light soft. Your close the door halfway. Please tell me if you need anything. I will check again before handover."
+  },
+  {
+    "category": "Staff-Resident",
+    "conversation_id": "NSR_06",
+    "variation": 2,
+    "noise_type": "filler_hesitation",
+    "input": "hello i am here uh to help you um place your favourite blanket it has been washed today would you like to put it like over your legs i can keep the room light soft your close the door halfway please tell me if you need uh anything i will check again before handover",
+    "output": "Hello. I am here to help you place your favourite blanket. it has been washed today. Would you like to put it over your legs? I can keep the room light soft. Your close the door halfway. Please tell me if you need anything. I will check again before handover."
+  },
+  {
+    "category": "Staff-Resident",
+    "conversation_id": "NSR_06",
+    "variation": 3,
+    "noise_type": "asr_confusion",
+    "input": "hello i am hear too help you place your favourite blanket it has been washed today would you like too put it over your legs i can keep the room light soft your close the door halfway please tell me if you need anything i will check again before handover",
+    "output": "Hello. I am here to help you place your favourite blanket. it has been washed today. Would you like to put it over your legs? I can keep the room light soft. Your close the door halfway. Please tell me if you need anything. I will check again before handover."
+  },
+  {
+    "category": "Staff-Resident",
+    "conversation_id": "NSR_06",
+    "variation": 4,
+    "noise_type": "casing_spacing_noise",
+    "input": "HELLO  i am here to help you Place your FAVOURITE blanket it  has been Washed today would you LIKE to put It over  your legs i can KEEP The room light soft your close  the Door HALFWAY please tell me if you Need anything i  WILL check again before Handover",
+    "output": "Hello. I am here to help you place your favourite blanket. it has been washed today. Would you like to put it over your legs? I can keep the room light soft. Your close the door halfway. Please tell me if you need anything. I will check again before handover."
+  },
+  {
+    "category": "Staff-Resident",
+    "conversation_id": "NSR_07",
+    "variation": 1,
+    "noise_type": "keyboard_typo",
+    "input": "hello i am here to help yuo prepare for teh hairdresser they will arrive after mroning tea would yuo like to choose a clean shirt first i can appointment should be short yuor take yuo back to yuor room please tell me if you need anything i will remind them to be gentle",
+    "output": "Hello. I am here to help you prepare for the hairdresser. they will arrive after morning tea. Would you like to choose a clean shirt first? I can appointment should be short. Your take you back to your room. Please tell me if you need anything. I will remind them to be gentle."
+  },
+  {
+    "category": "Staff-Resident",
+    "conversation_id": "NSR_07",
+    "variation": 2,
+    "noise_type": "filler_hesitation",
+    "input": "hello i am here to help you prepare for the um hairdresser they will arrive after morning tea would you like to choose a clean shirt first i can appointment should be short your take you back to your um room like please tell me if you need anything i will remind them to be uh gentle",
+    "output": "Hello. I am here to help you prepare for the hairdresser. they will arrive after morning tea. Would you like to choose a clean shirt first? I can appointment should be short. Your take you back to your room. Please tell me if you need anything. I will remind them to be gentle."
+  },
+  {
+    "category": "Staff-Resident",
+    "conversation_id": "NSR_07",
+    "variation": 3,
+    "noise_type": "asr_confusion",
+    "input": "hello i am hear too help you prepare four the hairdresser they will arrive after mourning tee would you like too choose a clean shirt first i can appointment should be short your take you back to your room please tell me if you need anything i will remind them to be gentle",
+    "output": "Hello. I am here to help you prepare for the hairdresser. they will arrive after morning tea. Would you like to choose a clean shirt first? I can appointment should be short. Your take you back to your room. Please tell me if you need anything. I will remind them to be gentle."
+  },
+  {
+    "category": "Staff-Resident",
+    "conversation_id": "NSR_07",
+    "variation": 4,
+    "noise_type": "casing_spacing_noise",
+    "input": "HELLO  i am here to help you Prepare for THE hairdresser they  will arrive After morning tea would YOU like to Choose a  clean shirt first i CAN Appointment should be short your take  you Back TO your room please tell me If you need  ANYTHING i will remind Them to be gentle",
+    "output": "Hello. I am here to help you prepare for the hairdresser. they will arrive after morning tea. Would you like to choose a clean shirt first? I can appointment should be short. Your take you back to your room. Please tell me if you need anything. I will remind them to be gentle."
+  },
+  {
+    "category": "Staff-Resident",
+    "conversation_id": "NSR_08",
+    "variation": 1,
+    "noise_type": "keyboard_typo",
+    "input": "hello i am here to help yuo bring teh newspaper front page has local news would yuo like to read teh headlines aloud i can galsses are on teh bedside table yuor open the window slightly please tell me if you need anything i will return with your breakfast tray",
+    "output": "Hello. I am here to help you bring the newspaper. front page has local news. Would you like to read the headlines aloud? I can glasses are on the bedside table. Your open the window slightly. Please tell me if you need anything. I will return with your breakfast tray."
+  },
+  {
+    "category": "Staff-Resident",
+    "conversation_id": "NSR_08",
+    "variation": 2,
+    "noise_type": "filler_hesitation",
+    "input": "hello i am here to help you bring the newspaper like front page has local news would you like to read the headlines aloud i can glasses are on the bedside erm table your open the window slightly please tell erm me if you need anything i will return with like your breakfast tray",
+    "output": "Hello. I am here to help you bring the newspaper. front page has local news. Would you like to read the headlines aloud? I can glasses are on the bedside table. Your open the window slightly. Please tell me if you need anything. I will return with your breakfast tray."
+  },
+  {
+    "category": "Staff-Resident",
+    "conversation_id": "NSR_08",
+    "variation": 3,
+    "noise_type": "asr_confusion",
+    "input": "hello i am hear too help you bring the newspaper front page has local news would you like too read the headlines aloud i can glasses are on the bedside table your open the window slightly please tell me if you need anything i will return with your breakfast tray",
+    "output": "Hello. I am here to help you bring the newspaper. front page has local news. Would you like to read the headlines aloud? I can glasses are on the bedside table. Your open the window slightly. Please tell me if you need anything. I will return with your breakfast tray."
+  },
+  {
+    "category": "Staff-Resident",
+    "conversation_id": "NSR_08",
+    "variation": 4,
+    "noise_type": "casing_spacing_noise",
+    "input": "HELLO  i am here to help you Bring the NEWSPAPER front page  has local News would you like TO read the Headlines aloud  i can glasses are ON The bedside table your open the  window Slightly PLEASE tell me if you need Anything i will  RETURN with your breakfast Tray",
+    "output": "Hello. I am here to help you bring the newspaper. front page has local news. Would you like to read the headlines aloud? I can glasses are on the bedside table. Your open the window slightly. Please tell me if you need anything. I will return with your breakfast tray."
+  },
+  {
+    "category": "Staff-Resident",
+    "conversation_id": "NSR_09",
+    "variation": 1,
+    "noise_type": "keyboard_typo",
+    "input": "hello i am here to help yuo tie yuor wlaking shoes sit while i help with teh laces would yuo like to check teh floor is clear i can move teh footstool away your take your time before standing please tell me if you need anything i will walk only to the lounge",
+    "output": "Hello. I am here to help you tie your walking shoes. sit while I help with the laces. Would you like to check the floor is clear? I can move the footstool away. Your take your time before standing. Please tell me if you need anything. I will walk only to the lounge."
+  },
+  {
+    "category": "Staff-Resident",
+    "conversation_id": "NSR_09",
+    "variation": 2,
+    "noise_type": "filler_hesitation",
+    "input": "hello i am here to help you tie your um walking shoes erm sit while i help with the laces would you like to check the floor is clear i can move the footstool away your take your time before standing erm please tell me if you need anything i will walk like only to the lounge",
+    "output": "Hello. I am here to help you tie your walking shoes. sit while I help with the laces. Would you like to check the floor is clear? I can move the footstool away. Your take your time before standing. Please tell me if you need anything. I will walk only to the lounge."
+  },
+  {
+    "category": "Staff-Resident",
+    "conversation_id": "NSR_09",
+    "variation": 3,
+    "noise_type": "asr_confusion",
+    "input": "hello i am hear too help you tie your walking shoes sit while i help with the laces would you like too check the floor is clear i can move the footstool away your take your time before standing please tell me if you need anything i will walk only too the lounge",
+    "output": "Hello. I am here to help you tie your walking shoes. sit while I help with the laces. Would you like to check the floor is clear? I can move the footstool away. Your take your time before standing. Please tell me if you need anything. I will walk only to the lounge."
+  },
+  {
+    "category": "Staff-Resident",
+    "conversation_id": "NSR_09",
+    "variation": 4,
+    "noise_type": "casing_spacing_noise",
+    "input": "HELLO  i am here to help you Tie your WALKING shoes sit  while i Help with the laces WOULD you like To check  the floor is clear I Can move the footstool away your  take Your TIME before standing please tell me If you need  ANYTHING i will walk Only to the lounge",
+    "output": "Hello. I am here to help you tie your walking shoes. sit while I help with the laces. Would you like to check the floor is clear? I can move the footstool away. Your take your time before standing. Please tell me if you need anything. I will walk only to the lounge."
+  },
+  {
+    "category": "Staff-Resident",
+    "conversation_id": "NSR_10",
+    "variation": 1,
+    "noise_type": "keyboard_typo",
+    "input": "hello i am here to help yuo join teh art activty they are painting flower cards would yuo like to take yuor wheelchair to teh activty room i can you do not need to finish your it is fine just to watch please tell me if you need anything i will bring you back when ready",
+    "output": "Hello. I am here to help you join the art activity. they are painting flower cards. Would you like to take your wheelchair to the activity room? I can you do not need to finish. Your it is fine just to watch. Please tell me if you need anything. I will bring you back when ready."
+  },
+  {
+    "category": "Staff-Resident",
+    "conversation_id": "NSR_10",
+    "variation": 2,
+    "noise_type": "filler_hesitation",
+    "input": "hello i am here to help you join the art activity they are uh painting flower cards would you like to erm take your wheelchair to the activity room i can you do not need erm to finish your it is fine just um to watch please tell me if you need anything i will bring you back when ready",
+    "output": "Hello. I am here to help you join the art activity. they are painting flower cards. Would you like to take your wheelchair to the activity room? I can you do not need to finish. Your it is fine just to watch. Please tell me if you need anything. I will bring you back when ready."
+  },
+  {
+    "category": "Staff-Resident",
+    "conversation_id": "NSR_10",
+    "variation": 3,
+    "noise_type": "asr_confusion",
+    "input": "hello i am hear too help you join the art activity they are painting flower cards would you like too take your wheelchair too the activity room i can you do not need too finish your it is fine just too watch please tell me if you need anything i will bring you back when ready",
+    "output": "Hello. I am here to help you join the art activity. they are painting flower cards. Would you like to take your wheelchair to the activity room? I can you do not need to finish. Your it is fine just to watch. Please tell me if you need anything. I will bring you back when ready."
+  },
+  {
+    "category": "Staff-Resident",
+    "conversation_id": "NSR_10",
+    "variation": 4,
+    "noise_type": "casing_spacing_noise",
+    "input": "HELLO  i am here to help you Join the ART activity they  are painting Flower cards would you LIKE to take Your wheelchair  to the activity room I Can you do not need to  finish Your IT is fine just to watch Please tell me  IF you need anything I will bring you back WHEN ready",
+    "output": "Hello. I am here to help you join the art activity. they are painting flower cards. Would you like to take your wheelchair to the activity room? I can you do not need to finish. Your it is fine just to watch. Please tell me if you need anything. I will bring you back when ready."
+  },
+  {
+    "category": "Staff-Resident",
+    "conversation_id": "NSR_11",
+    "variation": 1,
+    "noise_type": "keyboard_typo",
+    "input": "hello i am here to help yuo refill yuor waetr jug it is almost empty would yuo like to choose cold or room temprature waetr i can bring a cup with a straw yuor drink slowly please tell me if you need anything i will update the fluid chart",
+    "output": "Hello. I am here to help you refill your water jug. it is almost empty. Would you like to choose cold or room temperature water? I can bring a cup with a straw. Your drink slowly. Please tell me if you need anything. I will update the fluid chart."
+  },
+  {
+    "category": "Staff-Resident",
+    "conversation_id": "NSR_11",
+    "variation": 2,
+    "noise_type": "filler_hesitation",
+    "input": "hello i am here to help you refill your water jug it is almost empty erm would you like to choose cold or room temperature water i can bring a cup with a straw uh your drink um slowly please tell me if you need anything i will erm update the fluid chart",
+    "output": "Hello. I am here to help you refill your water jug. it is almost empty. Would you like to choose cold or room temperature water? I can bring a cup with a straw. Your drink slowly. Please tell me if you need anything. I will update the fluid chart."
+  },
+  {
+    "category": "Staff-Resident",
+    "conversation_id": "NSR_11",
+    "variation": 3,
+    "noise_type": "asr_confusion",
+    "input": "hello i am hear too help you refill your water jug it is almost empty would you like too choose cold or room temperature water i can bring a cup with a straw your drink slowly please tell me if you need anything i will update the fluid chart",
+    "output": "Hello. I am here to help you refill your water jug. it is almost empty. Would you like to choose cold or room temperature water? I can bring a cup with a straw. Your drink slowly. Please tell me if you need anything. I will update the fluid chart."
+  },
+  {
+    "category": "Staff-Resident",
+    "conversation_id": "NSR_11",
+    "variation": 4,
+    "noise_type": "casing_spacing_noise",
+    "input": "HELLO  i am here to help you Refill your WATER jug it  is almost Empty would you like TO choose cold Or room  temperature water i can BRING A cup with a straw your  drink Slowly PLEASE tell me if you need Anything i will  UPDATE the fluid chart",
+    "output": "Hello. I am here to help you refill your water jug. it is almost empty. Would you like to choose cold or room temperature water? I can bring a cup with a straw. Your drink slowly. Please tell me if you need anything. I will update the fluid chart."
+  },
+  {
+    "category": "Staff-Resident",
+    "conversation_id": "NSR_12",
+    "variation": 1,
+    "noise_type": "keyboard_typo",
+    "input": "hello i am here to help yuo show yuo a photo yuor son sent a picture of teh dog would yuo like to hold teh tablet closer i can dog looks bigger than last month yuor write the call time on your calendar please tell me if you need anything i will help you call on saturday",
+    "output": "Hello. I am here to help you show you a photo. your son sent a picture of the dog. Would you like to hold the tablet closer? I can dog looks bigger than last month. Your write the call time on your calendar. Please tell me if you need anything. I will help you call on Saturday."
+  },
+  {
+    "category": "Staff-Resident",
+    "conversation_id": "NSR_12",
+    "variation": 2,
+    "noise_type": "filler_hesitation",
+    "input": "hello i am like here to help you show you a photo your son sent a erm picture of the like dog would you like erm to hold the tablet closer i can dog looks bigger than last month your write the call time on your calendar please tell me if you need anything i will help you call on saturday",
+    "output": "Hello. I am here to help you show you a photo. your son sent a picture of the dog. Would you like to hold the tablet closer? I can dog looks bigger than last month. Your write the call time on your calendar. Please tell me if you need anything. I will help you call on Saturday."
+  },
+  {
+    "category": "Staff-Resident",
+    "conversation_id": "NSR_12",
+    "variation": 3,
+    "noise_type": "asr_confusion",
+    "input": "hello i am hear too help you show you a photo your sun sent a picture of the dog would you like too hold the tablet closer i can dog looks bigger than last month your write the coal time on your calendar please tell me if you need anything i will help you coal on saturday",
+    "output": "Hello. I am here to help you show you a photo. your son sent a picture of the dog. Would you like to hold the tablet closer? I can dog looks bigger than last month. Your write the call time on your calendar. Please tell me if you need anything. I will help you call on Saturday."
+  },
+  {
+    "category": "Staff-Resident",
+    "conversation_id": "NSR_12",
+    "variation": 4,
+    "noise_type": "casing_spacing_noise",
+    "input": "HELLO  i am here to help you Show you A photo your  son sent A picture of the DOG would you Like to  hold the tablet closer I Can dog looks bigger than last  month Your WRITE the call time on your Calendar please tell  ME if you need Anything i will help you CALL on  Saturday",
+    "output": "Hello. I am here to help you show you a photo. your son sent a picture of the dog. Would you like to hold the tablet closer? I can dog looks bigger than last month. Your write the call time on your calendar. Please tell me if you need anything. I will help you call on Saturday."
+  },
+  {
+    "category": "Staff-Resident",
+    "conversation_id": "NSR_13",
+    "variation": 1,
+    "noise_type": "keyboard_typo",
+    "input": "hello i am here to help yuo check yuor slippers they seem too loose would yuo like to find another pair from teh cupboard i can do not stand until we check them yuor wlaking frame is beside teh bed please tell me if you need anything i will ask family to bring a better pair",
+    "output": "Hello. I am here to help you check your slippers. they seem too loose. Would you like to find another pair from the cupboard? I can do not stand until we check them. Your walking frame is beside the bed. Please tell me if you need anything. I will ask family to bring a better pair."
+  },
+  {
+    "category": "Staff-Resident",
+    "conversation_id": "NSR_13",
+    "variation": 2,
+    "noise_type": "filler_hesitation",
+    "input": "hello i am here to help you check your slippers they seem like too loose would you like to find another pair from the cupboard i can do um not stand until we check them your walking frame is beside the bed please tell me if you need uh anything i will ask family to bring a um better pair",
+    "output": "Hello. I am here to help you check your slippers. they seem too loose. Would you like to find another pair from the cupboard? I can do not stand until we check them. Your walking frame is beside the bed. Please tell me if you need anything. I will ask family to bring a better pair."
+  },
+  {
+    "category": "Staff-Resident",
+    "conversation_id": "NSR_13",
+    "variation": 3,
+    "noise_type": "asr_confusion",
+    "input": "hello i am hear too help you check your slippers they seem too loose would you like too find another pair from the cupboard i can do not stand until we check them your walking frame is beside the bed please tell me if you need anything i will ask family too bring a better pair",
+    "output": "Hello. I am here to help you check your slippers. they seem too loose. Would you like to find another pair from the cupboard? I can do not stand until we check them. Your walking frame is beside the bed. Please tell me if you need anything. I will ask family to bring a better pair."
+  },
+  {
+    "category": "Staff-Resident",
+    "conversation_id": "NSR_13",
+    "variation": 4,
+    "noise_type": "casing_spacing_noise",
+    "input": "HELLO  i am here to help you Check your SLIPPERS they seem  too loose Would you like to FIND another pair From the  cupboard i can do NOT Stand until we check them your  walking Frame IS beside the bed please tell Me if you  NEED anything i will Ask family to bring a BETTER pair",
+    "output": "Hello. I am here to help you check your slippers. they seem too loose. Would you like to find another pair from the cupboard? I can do not stand until we check them. Your walking frame is beside the bed. Please tell me if you need anything. I will ask family to bring a better pair."
+  },
+  {
+    "category": "Staff-Resident",
+    "conversation_id": "NSR_14",
+    "variation": 1,
+    "noise_type": "keyboard_typo",
+    "input": "hello i am here to help yuo prepare yuor bedside table place tissues on teh left side would yuo like to keep teh waetr cup within reach i can call bell is beside yuor hand your book is under the lamp please tell me if you need anything i will lower the bed slightly",
+    "output": "Hello. I am here to help you prepare your bedside table. place tissues on the left side. Would you like to keep the water cup within reach? I can call bell is beside your hand. Your book is under the lamp. Please tell me if you need anything. I will lower the bed slightly."
+  },
+  {
+    "category": "Staff-Resident",
+    "conversation_id": "NSR_14",
+    "variation": 2,
+    "noise_type": "filler_hesitation",
+    "input": "hello i am here to help you prepare your bedside table um place tissues um on the left side would you like like to keep the water cup within reach i can call bell is beside your hand your book is under the lamp please tell me if you need anything i will erm lower the bed slightly",
+    "output": "Hello. I am here to help you prepare your bedside table. place tissues on the left side. Would you like to keep the water cup within reach? I can call bell is beside your hand. Your book is under the lamp. Please tell me if you need anything. I will lower the bed slightly."
+  },
+  {
+    "category": "Staff-Resident",
+    "conversation_id": "NSR_14",
+    "variation": 3,
+    "noise_type": "asr_confusion",
+    "input": "hello i am hear too help you prepare your bedside table place tissues on the left side would you like too keep the water cup within reach i can coal bell is beside your hand your book is under the lamp please tell me if you need anything i will lower the bed slightly",
+    "output": "Hello. I am here to help you prepare your bedside table. place tissues on the left side. Would you like to keep the water cup within reach? I can call bell is beside your hand. Your book is under the lamp. Please tell me if you need anything. I will lower the bed slightly."
+  },
+  {
+    "category": "Staff-Resident",
+    "conversation_id": "NSR_14",
+    "variation": 4,
+    "noise_type": "casing_spacing_noise",
+    "input": "HELLO  i am here to help you Prepare your BEDSIDE table place  tissues on The left side would YOU like to Keep the  water cup within reach I Can call bell is beside your  hand Your BOOK is under the lamp please Tell me if  YOU need anything i Will lower the bed slightly",
+    "output": "Hello. I am here to help you prepare your bedside table. place tissues on the left side. Would you like to keep the water cup within reach? I can call bell is beside your hand. Your book is under the lamp. Please tell me if you need anything. I will lower the bed slightly."
+  },
+  {
+    "category": "Staff-Resident",
+    "conversation_id": "NSR_15",
+    "variation": 1,
+    "noise_type": "keyboard_typo",
+    "input": "hello i am here to help yuo attend teh chapel service it begins at eleven would yuo like to help yuo wear yuor brown jacket i can service lasts thirty minutes yuor yuo can leave early please tell me if you need anything i will wait near the back of the room",
+    "output": "Hello. I am here to help you attend the chapel service. it begins at eleven. Would you like to help you wear your brown jacket? I can service lasts thirty minutes. Your you can leave early. Please tell me if you need anything. I will wait near the back of the room."
+  },
+  {
+    "category": "Staff-Resident",
+    "conversation_id": "NSR_15",
+    "variation": 2,
+    "noise_type": "filler_hesitation",
+    "input": "hello i am here to help you attend the chapel service uh it begins at eleven like would you like to help you wear your brown jacket i can service like lasts thirty minutes your you can leave early please like tell me if you need anything i will wait near the back of the room",
+    "output": "Hello. I am here to help you attend the chapel service. it begins at eleven. Would you like to help you wear your brown jacket? I can service lasts thirty minutes. Your you can leave early. Please tell me if you need anything. I will wait near the back of the room."
+  },
+  {
+    "category": "Staff-Resident",
+    "conversation_id": "NSR_15",
+    "variation": 3,
+    "noise_type": "asr_confusion",
+    "input": "hello i am hear too help you attend the chapel service it begins at eleven would you like too help you wear your brown jacket i can service lasts thirty minutes your you can leave early please tell me if you need anything i will wait near the back of the room",
+    "output": "Hello. I am here to help you attend the chapel service. it begins at eleven. Would you like to help you wear your brown jacket? I can service lasts thirty minutes. Your you can leave early. Please tell me if you need anything. I will wait near the back of the room."
+  },
+  {
+    "category": "Staff-Resident",
+    "conversation_id": "NSR_15",
+    "variation": 4,
+    "noise_type": "casing_spacing_noise",
+    "input": "HELLO  i am here to help you Attend the CHAPEL service it  begins at Eleven would you like TO help you Wear your  brown jacket i can SERVICE Lasts thirty minutes your you can  leave Early PLEASE tell me if you need Anything i will  WAIT near the back Of the room",
+    "output": "Hello. I am here to help you attend the chapel service. it begins at eleven. Would you like to help you wear your brown jacket? I can service lasts thirty minutes. Your you can leave early. Please tell me if you need anything. I will wait near the back of the room."
+  },
+  {
+    "category": "Staff-Resident",
+    "conversation_id": "NSR_16",
+    "variation": 1,
+    "noise_type": "keyboard_typo",
+    "input": "hello i am here to help yuo check yuor calendar podiatry visit is after lunch would yuo like to remind yuo before it starts i can keep yuor slippers on until then yuor podiatrist will check yuor feet please tell me if you need anything i will stay nearby for support",
+    "output": "Hello. I am here to help you check your calendar. podiatry visit is after lunch. Would you like to remind you before it starts? I can keep your slippers on until then. Your podiatrist will check your feet. Please tell me if you need anything. I will stay nearby for support."
+  },
+  {
+    "category": "Staff-Resident",
+    "conversation_id": "NSR_16",
+    "variation": 2,
+    "noise_type": "filler_hesitation",
+    "input": "hello i am here to erm help um you check your calendar podiatry visit is after lunch would you like to remind you before it starts i can keep um your slippers on until then your podiatrist will check your feet um please tell me if you need anything i will stay nearby for support",
+    "output": "Hello. I am here to help you check your calendar. podiatry visit is after lunch. Would you like to remind you before it starts? I can keep your slippers on until then. Your podiatrist will check your feet. Please tell me if you need anything. I will stay nearby for support."
+  },
+  {
+    "category": "Staff-Resident",
+    "conversation_id": "NSR_16",
+    "variation": 3,
+    "noise_type": "asr_confusion",
+    "input": "hello i am hear too help you check your calendar podiatry visit is after lunch would you like too remind you before it starts i can keep your slippers on until then your podiatrist will check your feet please tell me if you need anything i will stay nearby four support",
+    "output": "Hello. I am here to help you check your calendar. podiatry visit is after lunch. Would you like to remind you before it starts? I can keep your slippers on until then. Your podiatrist will check your feet. Please tell me if you need anything. I will stay nearby for support."
+  },
+  {
+    "category": "Staff-Resident",
+    "conversation_id": "NSR_16",
+    "variation": 4,
+    "noise_type": "casing_spacing_noise",
+    "input": "HELLO  i am here to help you Check your CALENDAR podiatry visit  is after Lunch would you like TO remind you Before it  starts i can keep YOUR Slippers on until then your podiatrist  will Check YOUR feet please tell me if You need anything  I will stay nearby For support",
+    "output": "Hello. I am here to help you check your calendar. podiatry visit is after lunch. Would you like to remind you before it starts? I can keep your slippers on until then. Your podiatrist will check your feet. Please tell me if you need anything. I will stay nearby for support."
+  },
+  {
+    "category": "Staff-Resident",
+    "conversation_id": "NSR_17",
+    "variation": 1,
+    "noise_type": "keyboard_typo",
+    "input": "hello i am here to help yuo waetr yuor room plants small plant near teh window looks healthy would yuo like to bring a cloth to wipe teh pot i can yuor family said you enjoy gardening your place it back safely please tell me if you need anything i will keep the table dry",
+    "output": "Hello. I am here to help you water your room plants. small plant near the window looks healthy. Would you like to bring a cloth to wipe the pot? I can your family said you enjoy gardening. Your place it back safely. Please tell me if you need anything. I will keep the table dry."
+  },
+  {
+    "category": "Staff-Resident",
+    "conversation_id": "NSR_17",
+    "variation": 2,
+    "noise_type": "filler_hesitation",
+    "input": "hello i am here to help you erm water your room plants small plant near the window looks healthy would you like to bring a cloth to wipe the pot i can your family said uh you enjoy gardening your place it back safely please like tell me if you need anything uh i will keep the table dry",
+    "output": "Hello. I am here to help you water your room plants. small plant near the window looks healthy. Would you like to bring a cloth to wipe the pot? I can your family said you enjoy gardening. Your place it back safely. Please tell me if you need anything. I will keep the table dry."
+  },
+  {
+    "category": "Staff-Resident",
+    "conversation_id": "NSR_17",
+    "variation": 3,
+    "noise_type": "asr_confusion",
+    "input": "hello i am hear too help you water your room plants small plant near the window looks healthy would you like too bring a cloth too wipe the pot i can your family said you enjoy gardening your place it back safely please tell me if you need anything i will keep the table dry",
+    "output": "Hello. I am here to help you water your room plants. small plant near the window looks healthy. Would you like to bring a cloth to wipe the pot? I can your family said you enjoy gardening. Your place it back safely. Please tell me if you need anything. I will keep the table dry."
+  },
+  {
+    "category": "Staff-Resident",
+    "conversation_id": "NSR_17",
+    "variation": 4,
+    "noise_type": "casing_spacing_noise",
+    "input": "HELLO  i am here to help you Water your ROOM plants small  plant near The window looks healthy WOULD you like To bring  a cloth to wipe THE Pot i can your family said  you Enjoy GARDENING your place it back safely Please tell me  IF you need anything I will keep the table DRY",
+    "output": "Hello. I am here to help you water your room plants. small plant near the window looks healthy. Would you like to bring a cloth to wipe the pot? I can your family said you enjoy gardening. Your place it back safely. Please tell me if you need anything. I will keep the table dry."
+  },
+  {
+    "category": "Staff-Resident",
+    "conversation_id": "NSR_18",
+    "variation": 1,
+    "noise_type": "keyboard_typo",
+    "input": "hello i am here to help yuo choose afternoon clothes green shirt is clean and comfortbale would yuo like to weather may become cooler i can bring a light cardigan yuor tell me which one yuo prefer plese tell me if yuo need anything i will give you time to decide",
+    "output": "Hello. I am here to help you choose afternoon clothes. green shirt is clean and comfortable. Would you like to weather may become cooler? I can bring a light cardigan. Your tell me which one you prefer. Please tell me if you need anything. I will give you time to decide."
+  },
+  {
+    "category": "Staff-Resident",
+    "conversation_id": "NSR_18",
+    "variation": 2,
+    "noise_type": "filler_hesitation",
+    "input": "hello i uh am here to erm help you choose afternoon clothes green shirt is like clean and comfortable would you like to weather may become cooler i can bring a light cardigan your tell me which one you prefer please tell um me if you need anything i will give you time to decide",
+    "output": "Hello. I am here to help you choose afternoon clothes. green shirt is clean and comfortable. Would you like to weather may become cooler? I can bring a light cardigan. Your tell me which one you prefer. Please tell me if you need anything. I will give you time to decide."
+  },
+  {
+    "category": "Staff-Resident",
+    "conversation_id": "NSR_18",
+    "variation": 3,
+    "noise_type": "asr_confusion",
+    "input": "hello i am hear too help you choose afternoon clothes green shirt is clean and comfortable would you like too weather may become cooler i can bring a light cardigan your tell me which one you prefer please tell me if you need anything i will give you time too decide",
+    "output": "Hello. I am here to help you choose afternoon clothes. green shirt is clean and comfortable. Would you like to weather may become cooler? I can bring a light cardigan. Your tell me which one you prefer. Please tell me if you need anything. I will give you time to decide."
+  },
+  {
+    "category": "Staff-Resident",
+    "conversation_id": "NSR_18",
+    "variation": 4,
+    "noise_type": "casing_spacing_noise",
+    "input": "HELLO  i am here to help you Choose afternoon CLOTHES green shirt  is clean And comfortable would you LIKE to weather May become  cooler i can bring A Light cardigan your tell me which  one You PREFER please tell me if you Need anything i  WILL give you time To decide",
+    "output": "Hello. I am here to help you choose afternoon clothes. green shirt is clean and comfortable. Would you like to weather may become cooler? I can bring a light cardigan. Your tell me which one you prefer. Please tell me if you need anything. I will give you time to decide."
+  },
+  {
+    "category": "Staff-Resident",
+    "conversation_id": "NSR_19",
+    "variation": 1,
+    "noise_type": "keyboard_typo",
+    "input": "hello i am here to help yuo find teh television remote it was under teh blanket would yuo like to place it on teh side table i can turn on teh news if yuo like your increase the volume slightly please tell me if you need anything i will check the batteries later",
+    "output": "Hello. I am here to help you find the television remote. it was under the blanket. Would you like to place it on the side table? I can turn on the news if you like. Your increase the volume slightly. Please tell me if you need anything. I will check the batteries later."
+  },
+  {
+    "category": "Staff-Resident",
+    "conversation_id": "NSR_19",
+    "variation": 2,
+    "noise_type": "filler_hesitation",
+    "input": "hello i am here to help you find the television remote it was under the blanket would you like to erm place um it on like the side table i can turn on the news if you like your increase the volume slightly please tell me if you need anything i uh will check the batteries later",
+    "output": "Hello. I am here to help you find the television remote. it was under the blanket. Would you like to place it on the side table? I can turn on the news if you like. Your increase the volume slightly. Please tell me if you need anything. I will check the batteries later."
+  },
+  {
+    "category": "Staff-Resident",
+    "conversation_id": "NSR_19",
+    "variation": 3,
+    "noise_type": "asr_confusion",
+    "input": "hello i am hear too help you find the television remote it was under the blanket would you like too place it on the side table i can turn on the news if you like your increase the volume slightly please tell me if you need anything i will check the batteries later",
+    "output": "Hello. I am here to help you find the television remote. it was under the blanket. Would you like to place it on the side table? I can turn on the news if you like. Your increase the volume slightly. Please tell me if you need anything. I will check the batteries later."
+  },
+  {
+    "category": "Staff-Resident",
+    "conversation_id": "NSR_19",
+    "variation": 4,
+    "noise_type": "casing_spacing_noise",
+    "input": "HELLO  i am here to help you Find the TELEVISION remote it  was under The blanket would you LIKE to place It on  the side table i CAN Turn on the news if you  like Your INCREASE the volume slightly please tell Me if you  NEED anything i will Check the batteries later",
+    "output": "Hello. I am here to help you find the television remote. it was under the blanket. Would you like to place it on the side table? I can turn on the news if you like. Your increase the volume slightly. Please tell me if you need anything. I will check the batteries later."
+  },
+  {
+    "category": "Staff-Resident",
+    "conversation_id": "NSR_20",
+    "variation": 1,
+    "noise_type": "keyboard_typo",
+    "input": "hello i am here to help yuo check yuor snack tray yuo ate half of teh sandwich would yuo like to keep teh rest for later i can cover it safely yuor drink is still on the tray please tell me if you need anything i will report your intake after this",
+    "output": "Hello. I am here to help you check your snack tray. you ate half of the sandwich. Would you like to keep the rest for later? I can cover it safely. Your drink is still on the tray. Please tell me if you need anything. I will report your intake after this."
+  },
+  {
+    "category": "Staff-Resident",
+    "conversation_id": "NSR_20",
+    "variation": 2,
+    "noise_type": "filler_hesitation",
+    "input": "hello i am uh here uh to help you check your snack tray you ate half of the sandwich would you like to keep the rest for later i can cover it safely your drink is still on the tray please tell erm me if you need anything i will report your like intake after this",
+    "output": "Hello. I am here to help you check your snack tray. you ate half of the sandwich. Would you like to keep the rest for later? I can cover it safely. Your drink is still on the tray. Please tell me if you need anything. I will report your intake after this."
+  },
+  {
+    "category": "Staff-Resident",
+    "conversation_id": "NSR_20",
+    "variation": 3,
+    "noise_type": "asr_confusion",
+    "input": "hello i am hear too help you check your snack tray you eight half of the sandwich would you like too keep the rest four later i can cover it safely your drink is still on the tray please tell me if you need anything i will report your intake after this",
+    "output": "Hello. I am here to help you check your snack tray. you ate half of the sandwich. Would you like to keep the rest for later? I can cover it safely. Your drink is still on the tray. Please tell me if you need anything. I will report your intake after this."
+  },
+  {
+    "category": "Staff-Resident",
+    "conversation_id": "NSR_20",
+    "variation": 4,
+    "noise_type": "casing_spacing_noise",
+    "input": "HELLO  i am here to help you Check your SNACK tray you  ate half Of the sandwich would YOU like to Keep the  rest for later i CAN Cover it safely your drink is  still On THE tray please tell me if You need anything  I will report your Intake after this",
+    "output": "Hello. I am here to help you check your snack tray. you ate half of the sandwich. Would you like to keep the rest for later? I can cover it safely. Your drink is still on the tray. Please tell me if you need anything. I will report your intake after this."
+  },
+  {
+    "category": "Staff-Doctor",
+    "conversation_id": "NSD_01",
+    "variation": 1,
+    "noise_type": "keyboard_typo",
+    "input": "docter i am reporting change in sleep pattern teh residnet was awake for most of teh night teh residnet walked in teh corridor twice the resident denied pain when asked the temperature and pulse were normal should we review his night routine please advise the next step i will document your instruction",
+    "output": "Doctor, I am reporting change in sleep pattern. The resident was awake for most of the night. The resident walked in the corridor twice. The resident denied pain when asked. The temperature and pulse were normal. Should we review his night routine? Please advise the next step. I will document your instruction."
+  },
+  {
+    "category": "Staff-Doctor",
+    "conversation_id": "NSD_01",
+    "variation": 2,
+    "noise_type": "filler_hesitation",
+    "input": "doctor i am reporting change in uh sleep pattern like the resident was awake for like most of the night the resident walked in the corridor twice the resident denied pain when uh asked the temperature and pulse were normal should we review his night routine please advise the next step i will document your instruction",
+    "output": "Doctor, I am reporting change in sleep pattern. The resident was awake for most of the night. The resident walked in the corridor twice. The resident denied pain when asked. The temperature and pulse were normal. Should we review his night routine? Please advise the next step. I will document your instruction."
+  },
+  {
+    "category": "Staff-Doctor",
+    "conversation_id": "NSD_01",
+    "variation": 3,
+    "noise_type": "asr_confusion",
+    "input": "doctor i am reporting change in sleep pattern the resident was awake four most of the night the resident walked in the corridor twice the resident denied pain when asked the temperature and pulse were normal should we review his night routine please advise the next step i will document your instruction",
+    "output": "Doctor, I am reporting change in sleep pattern. The resident was awake for most of the night. The resident walked in the corridor twice. The resident denied pain when asked. The temperature and pulse were normal. Should we review his night routine? Please advise the next step. I will document your instruction."
+  },
+  {
+    "category": "Staff-Doctor",
+    "conversation_id": "NSD_01",
+    "variation": 4,
+    "noise_type": "casing_spacing_noise",
+    "input": "DOCTOR  i am reporting change in sleep Pattern the RESIDENT was awake  for most Of the night the RESIDENT walked in The corridor  twice the resident denied PAIN When asked the temperature and pulse  were Normal SHOULD we review his night routine Please advise the  NEXT step i will Document your instruction",
+    "output": "Doctor, I am reporting change in sleep pattern. The resident was awake for most of the night. The resident walked in the corridor twice. The resident denied pain when asked. The temperature and pulse were normal. Should we review his night routine? Please advise the next step. I will document your instruction."
+  },
+  {
+    "category": "Staff-Doctor",
+    "conversation_id": "NSD_02",
+    "variation": 1,
+    "noise_type": "keyboard_typo",
+    "input": "docter i am reporting new bruising on her upper arm teh residnet was cannot remember bumping it teh residnet area is not bleeding teh residnet tender when touched the movement is still normal should we monitor the bruise size please advise the next step i will document your instruction",
+    "output": "Doctor, I am reporting new bruising on her upper arm. The resident was cannot remember bumping it. The resident area is not bleeding. The resident tender when touched. The movement is still normal. Should we monitor the bruise size? Please advise the next step. I will document your instruction."
+  },
+  {
+    "category": "Staff-Doctor",
+    "conversation_id": "NSD_02",
+    "variation": 2,
+    "noise_type": "filler_hesitation",
+    "input": "doctor i am reporting new bruising on like her uh upper arm the resident was cannot remember bumping it the resident area is not bleeding the resident like tender when touched the movement is still normal should we monitor the bruise um size please advise the next step i will document your instruction",
+    "output": "Doctor, I am reporting new bruising on her upper arm. The resident was cannot remember bumping it. The resident area is not bleeding. The resident tender when touched. The movement is still normal. Should we monitor the bruise size? Please advise the next step. I will document your instruction."
+  },
+  {
+    "category": "Staff-Doctor",
+    "conversation_id": "NSD_02",
+    "variation": 3,
+    "noise_type": "asr_confusion",
+    "input": "doctor i am reporting knew bruising on her upper arm the resident was cannot remember bumping it the resident area is not bleeding the resident tender when touched the movement is still normal should we monitor the bruise size please advise the next step i will document your instruction",
+    "output": "Doctor, I am reporting new bruising on her upper arm. The resident was cannot remember bumping it. The resident area is not bleeding. The resident tender when touched. The movement is still normal. Should we monitor the bruise size? Please advise the next step. I will document your instruction."
+  },
+  {
+    "category": "Staff-Doctor",
+    "conversation_id": "NSD_02",
+    "variation": 4,
+    "noise_type": "casing_spacing_noise",
+    "input": "DOCTOR  i am reporting new bruising on Her upper ARM the resident  was cannot Remember bumping it the RESIDENT area is Not bleeding  the resident tender when TOUCHED The movement is still normal should  we Monitor THE bruise size please advise the Next step i  WILL document your instruction",
+    "output": "Doctor, I am reporting new bruising on her upper arm. The resident was cannot remember bumping it. The resident area is not bleeding. The resident tender when touched. The movement is still normal. Should we monitor the bruise size? Please advise the next step. I will document your instruction."
+  },
+  {
+    "category": "Staff-Doctor",
+    "conversation_id": "NSD_03",
+    "variation": 1,
+    "noise_type": "keyboard_typo",
+    "input": "docter i am reporting reduced fluid intake teh residnet was drank very little since breakfast teh residnet mouth looks dry teh residnet urine output is lower than usual the offered water and juice should we encourage oral fluids more frequently please advise the next step i will document your instruction",
+    "output": "Doctor, I am reporting reduced fluid intake. The resident was drank very little since breakfast. The resident mouth looks dry. The resident urine output is lower than usual. The offered water and juice. Should we encourage oral fluids more frequently? Please advise the next step. I will document your instruction."
+  },
+  {
+    "category": "Staff-Doctor",
+    "conversation_id": "NSD_03",
+    "variation": 2,
+    "noise_type": "filler_hesitation",
+    "input": "doctor i am reporting reduced fluid intake the resident was drank very little since breakfast the resident mouth looks dry the resident urine output is lower erm than usual the offered water like and juice should we encourage oral uh fluids more frequently please advise the next step i um will document your instruction",
+    "output": "Doctor, I am reporting reduced fluid intake. The resident was drank very little since breakfast. The resident mouth looks dry. The resident urine output is lower than usual. The offered water and juice. Should we encourage oral fluids more frequently? Please advise the next step. I will document your instruction."
+  },
+  {
+    "category": "Staff-Doctor",
+    "conversation_id": "NSD_03",
+    "variation": 3,
+    "noise_type": "asr_confusion",
+    "input": "doctor i am reporting reduced fluid intake the resident was drank very little since breakfast the resident mouth looks dry the resident urine output is lower than usual the offered water and juice should we encourage oral fluids more frequently please advise the next step i will document your instruction",
+    "output": "Doctor, I am reporting reduced fluid intake. The resident was drank very little since breakfast. The resident mouth looks dry. The resident urine output is lower than usual. The offered water and juice. Should we encourage oral fluids more frequently? Please advise the next step. I will document your instruction."
+  },
+  {
+    "category": "Staff-Doctor",
+    "conversation_id": "NSD_03",
+    "variation": 4,
+    "noise_type": "casing_spacing_noise",
+    "input": "DOCTOR  i am reporting reduced fluid intake The resident WAS drank very  little since Breakfast the resident mouth LOOKS dry the Resident urine  output is lower than USUAL The offered water and juice should  we Encourage ORAL fluids more frequently please advise The next step  I will document your Instruction",
+    "output": "Doctor, I am reporting reduced fluid intake. The resident was drank very little since breakfast. The resident mouth looks dry. The resident urine output is lower than usual. The offered water and juice. Should we encourage oral fluids more frequently? Please advise the next step. I will document your instruction."
+  },
+  {
+    "category": "Staff-Doctor",
+    "conversation_id": "NSD_04",
+    "variation": 1,
+    "noise_type": "keyboard_typo",
+    "input": "docter i am reporting itching on his back teh residnet was mild red rash near teh shoulder blade teh residnet no new soap used toady the resident temperature is normal the prevented scratching should we review the rash please advise the next step i will document your instruction",
+    "output": "Doctor, I am reporting itching on his back. The resident was mild red rash near the shoulder blade. The resident no new soap used today. The resident temperature is normal. The prevented scratching. Should we review the rash? Please advise the next step. I will document your instruction."
+  },
+  {
+    "category": "Staff-Doctor",
+    "conversation_id": "NSD_04",
+    "variation": 2,
+    "noise_type": "filler_hesitation",
+    "input": "doctor i am reporting um itching on his back uh the resident was mild red um rash near the shoulder blade the resident no new soap used today the resident temperature is um normal the prevented scratching should we review the rash please advise the next step i will document your instruction",
+    "output": "Doctor, I am reporting itching on his back. The resident was mild red rash near the shoulder blade. The resident no new soap used today. The resident temperature is normal. The prevented scratching. Should we review the rash? Please advise the next step. I will document your instruction."
+  },
+  {
+    "category": "Staff-Doctor",
+    "conversation_id": "NSD_04",
+    "variation": 3,
+    "noise_type": "asr_confusion",
+    "input": "doctor i am reporting itching on his back the resident was mild red rash near the shoulder blade the resident no knew soap used today the resident temperature is normal the prevented scratching should we review the rash please advise the next step i will document your instruction",
+    "output": "Doctor, I am reporting itching on his back. The resident was mild red rash near the shoulder blade. The resident no new soap used today. The resident temperature is normal. The prevented scratching. Should we review the rash? Please advise the next step. I will document your instruction."
+  },
+  {
+    "category": "Staff-Doctor",
+    "conversation_id": "NSD_04",
+    "variation": 4,
+    "noise_type": "casing_spacing_noise",
+    "input": "DOCTOR  i am reporting itching on his Back the RESIDENT was mild  red rash Near the shoulder blade THE resident no New soap  used today the resident TEMPERATURE Is normal the prevented scratching should  we Review THE rash please advise the next Step i will  DOCUMENT your instruction",
+    "output": "Doctor, I am reporting itching on his back. The resident was mild red rash near the shoulder blade. The resident no new soap used today. The resident temperature is normal. The prevented scratching. Should we review the rash? Please advise the next step. I will document your instruction."
+  },
+  {
+    "category": "Staff-Doctor",
+    "conversation_id": "NSD_05",
+    "variation": 1,
+    "noise_type": "keyboard_typo",
+    "input": "docter i am reporting shortness of breath after wlaking teh residnet was oxygen level returned to normal after rest teh residnet denied chest pain teh resident breathing settled after five minutes the kept her seated and calm should we reduce walking distance today please advise the next step i will document your instruction",
+    "output": "Doctor, I am reporting shortness of breath after walking. The resident was oxygen level returned to normal after rest. The resident denied chest pain. The resident breathing settled after five minutes. The kept her seated and calm. Should we reduce walking distance today? Please advise the next step. I will document your instruction."
+  },
+  {
+    "category": "Staff-Doctor",
+    "conversation_id": "NSD_05",
+    "variation": 2,
+    "noise_type": "filler_hesitation",
+    "input": "doctor i am reporting shortness of breath after walking the resident was oxygen level returned to normal after rest the resident denied chest pain um the resident breathing settled uh after five minutes the kept her uh seated and calm should we reduce walking distance erm today please advise the next step i will document your instruction",
+    "output": "Doctor, I am reporting shortness of breath after walking. The resident was oxygen level returned to normal after rest. The resident denied chest pain. The resident breathing settled after five minutes. The kept her seated and calm. Should we reduce walking distance today? Please advise the next step. I will document your instruction."
+  },
+  {
+    "category": "Staff-Doctor",
+    "conversation_id": "NSD_05",
+    "variation": 3,
+    "noise_type": "asr_confusion",
+    "input": "doctor i am reporting shortness of breath after walking the resident was oxygen level returned too normal after rest the resident denied chest pain the resident breathing settled after five minutes the kept her seated and calm should we reduce walking distance today please advise the next step i will document your instruction",
+    "output": "Doctor, I am reporting shortness of breath after walking. The resident was oxygen level returned to normal after rest. The resident denied chest pain. The resident breathing settled after five minutes. The kept her seated and calm. Should we reduce walking distance today? Please advise the next step. I will document your instruction."
+  },
+  {
+    "category": "Staff-Doctor",
+    "conversation_id": "NSD_05",
+    "variation": 4,
+    "noise_type": "casing_spacing_noise",
+    "input": "DOCTOR  i am reporting shortness of breath After walking THE resident was  oxygen level Returned to normal after REST the resident Denied chest  pain the resident breathing SETTLED After five minutes the kept her  seated And CALM should we reduce walking distance Today please advise  THE next step i Will document your instruction",
+    "output": "Doctor, I am reporting shortness of breath after walking. The resident was oxygen level returned to normal after rest. The resident denied chest pain. The resident breathing settled after five minutes. The kept her seated and calm. Should we reduce walking distance today? Please advise the next step. I will document your instruction."
+  },
+  {
+    "category": "Staff-Doctor",
+    "conversation_id": "NSD_06",
+    "variation": 1,
+    "noise_type": "keyboard_typo",
+    "input": "docter i am reporting missed wound review teh residnet was dresing is dry and intact teh residnet mild discomfort only teh resident no visible leakage the nurse can assist later should we reschedule the review for tomorrow please advise the next step i will document your instruction",
+    "output": "Doctor, I am reporting missed wound review. The resident was dressing is dry and intact. The resident mild discomfort only. The resident no visible leakage. The nurse can assist later. Should we reschedule the review for tomorrow? Please advise the next step. I will document your instruction."
+  },
+  {
+    "category": "Staff-Doctor",
+    "conversation_id": "NSD_06",
+    "variation": 2,
+    "noise_type": "filler_hesitation",
+    "input": "doctor i am reporting missed wound review the resident was dressing is dry and intact the resident mild discomfort only the resident no visible leakage uh the nurse can assist later should we reschedule the um review for tomorrow please advise the next step erm i will document your instruction",
+    "output": "Doctor, I am reporting missed wound review. The resident was dressing is dry and intact. The resident mild discomfort only. The resident no visible leakage. The nurse can assist later. Should we reschedule the review for tomorrow? Please advise the next step. I will document your instruction."
+  },
+  {
+    "category": "Staff-Doctor",
+    "conversation_id": "NSD_06",
+    "variation": 3,
+    "noise_type": "asr_confusion",
+    "input": "doctor i am reporting missed wound review the resident was dressing is dry and intact the resident mild discomfort only the resident no visible leakage the nurse can assist later should we reschedule the review four tomorrow please advise the next step i will document your instruction",
+    "output": "Doctor, I am reporting missed wound review. The resident was dressing is dry and intact. The resident mild discomfort only. The resident no visible leakage. The nurse can assist later. Should we reschedule the review for tomorrow? Please advise the next step. I will document your instruction."
+  },
+  {
+    "category": "Staff-Doctor",
+    "conversation_id": "NSD_06",
+    "variation": 4,
+    "noise_type": "casing_spacing_noise",
+    "input": "DOCTOR  i am reporting missed wound review The resident WAS dressing is  dry and Intact the resident mild DISCOMFORT only the Resident no  visible leakage the nurse CAN Assist later should we reschedule the  review For TOMORROW please advise the next step I will document  YOUR instruction",
+    "output": "Doctor, I am reporting missed wound review. The resident was dressing is dry and intact. The resident mild discomfort only. The resident no visible leakage. The nurse can assist later. Should we reschedule the review for tomorrow? Please advise the next step. I will document your instruction."
+  },
+  {
+    "category": "Staff-Doctor",
+    "conversation_id": "NSD_07",
+    "variation": 1,
+    "noise_type": "keyboard_typo",
+    "input": "docter i am reporting scratching his scalp frequently teh residnet was small flakes are visible teh residnet area feels dry teh residnet no open wounds the changed his pillowcase should we recommend a medicated shampoo please advise the next step i will document your instruction",
+    "output": "Doctor, I am reporting scratching his scalp frequently. The resident was small flakes are visible. The resident area feels dry. The resident no open wounds. The changed his pillowcase. Should we recommend a medicated shampoo? Please advise the next step. I will document your instruction."
+  },
+  {
+    "category": "Staff-Doctor",
+    "conversation_id": "NSD_07",
+    "variation": 2,
+    "noise_type": "filler_hesitation",
+    "input": "doctor i am reporting scratching his erm scalp frequently the resident was small flakes are visible the resident area feels like dry the resident no open wounds the changed his pillowcase should we recommend a medicated shampoo please advise the next step uh i will document your instruction",
+    "output": "Doctor, I am reporting scratching his scalp frequently. The resident was small flakes are visible. The resident area feels dry. The resident no open wounds. The changed his pillowcase. Should we recommend a medicated shampoo? Please advise the next step. I will document your instruction."
+  },
+  {
+    "category": "Staff-Doctor",
+    "conversation_id": "NSD_07",
+    "variation": 3,
+    "noise_type": "asr_confusion",
+    "input": "doctor i am reporting scratching his scalp frequently the resident was small flakes are visible the resident area feels dry the resident no open wounds the changed his pillowcase should we recommend a medicated shampoo please advise the next step i will document your instruction",
+    "output": "Doctor, I am reporting scratching his scalp frequently. The resident was small flakes are visible. The resident area feels dry. The resident no open wounds. The changed his pillowcase. Should we recommend a medicated shampoo? Please advise the next step. I will document your instruction."
+  },
+  {
+    "category": "Staff-Doctor",
+    "conversation_id": "NSD_07",
+    "variation": 4,
+    "noise_type": "casing_spacing_noise",
+    "input": "DOCTOR  i am reporting scratching his scalp Frequently the RESIDENT was small  flakes are Visible the resident area FEELS dry the Resident no  open wounds the changed HIS Pillowcase should we recommend a medicated  shampoo Please ADVISE the next step i will Document your instruction",
+    "output": "Doctor, I am reporting scratching his scalp frequently. The resident was small flakes are visible. The resident area feels dry. The resident no open wounds. The changed his pillowcase. Should we recommend a medicated shampoo? Please advise the next step. I will document your instruction."
+  },
+  {
+    "category": "Staff-Doctor",
+    "conversation_id": "NSD_08",
+    "variation": 1,
+    "noise_type": "keyboard_typo",
+    "input": "docter i am reporting dizziness after standing teh residnet was sat him down immediately teh residnet dizziness improved after resting teh residnet blood pressure checked twice the he has eaten breakfast should we observe him closely today please advise the next step i will document your instruction",
+    "output": "Doctor, I am reporting dizziness after standing. The resident was sat him down immediately. The resident dizziness improved after resting. The resident blood pressure checked twice. The he has eaten breakfast. Should we observe him closely today? Please advise the next step. I will document your instruction."
+  },
+  {
+    "category": "Staff-Doctor",
+    "conversation_id": "NSD_08",
+    "variation": 2,
+    "noise_type": "filler_hesitation",
+    "input": "doctor i am reporting dizziness after like standing the resident was sat him down immediately the resident dizziness improved after erm resting the resident blood pressure checked twice the he has eaten breakfast should we observe him closely today please advise the next erm step i will document your instruction",
+    "output": "Doctor, I am reporting dizziness after standing. The resident was sat him down immediately. The resident dizziness improved after resting. The resident blood pressure checked twice. The he has eaten breakfast. Should we observe him closely today? Please advise the next step. I will document your instruction."
+  },
+  {
+    "category": "Staff-Doctor",
+    "conversation_id": "NSD_08",
+    "variation": 3,
+    "noise_type": "asr_confusion",
+    "input": "doctor i am reporting dizziness after standing the resident was sat him down immediately the resident dizziness improved after resting the resident blood pressure checked twice the he has eaten breakfast should we observe him closely today please advise the next step i will document your instruction",
+    "output": "Doctor, I am reporting dizziness after standing. The resident was sat him down immediately. The resident dizziness improved after resting. The resident blood pressure checked twice. The he has eaten breakfast. Should we observe him closely today? Please advise the next step. I will document your instruction."
+  },
+  {
+    "category": "Staff-Doctor",
+    "conversation_id": "NSD_08",
+    "variation": 4,
+    "noise_type": "casing_spacing_noise",
+    "input": "DOCTOR  i am reporting dizziness after standing The resident WAS sat him  down immediately The resident dizziness improved AFTER resting the Resident blood  pressure checked twice the HE Has eaten breakfast should we observe  him Closely TODAY please advise the next step I will document  YOUR instruction",
+    "output": "Doctor, I am reporting dizziness after standing. The resident was sat him down immediately. The resident dizziness improved after resting. The resident blood pressure checked twice. The he has eaten breakfast. Should we observe him closely today? Please advise the next step. I will document your instruction."
+  },
+  {
+    "category": "Staff-Doctor",
+    "conversation_id": "NSD_09",
+    "variation": 1,
+    "noise_type": "keyboard_typo",
+    "input": "docter i am reporting watery eyes this mroning teh residnet was eyes feel irritated teh residnet no thick discharge teh resident vision has not changed the cleaned around the eyes gently should we consider eye drops please advise the next step i will document your instruction",
+    "output": "Doctor, I am reporting watery eyes this morning. The resident was eyes feel irritated. The resident no thick discharge. The resident vision has not changed. The cleaned around the eyes gently. Should we consider eye drops? Please advise the next step. I will document your instruction."
+  },
+  {
+    "category": "Staff-Doctor",
+    "conversation_id": "NSD_09",
+    "variation": 2,
+    "noise_type": "filler_hesitation",
+    "input": "doctor i am reporting watery eyes this morning the resident was eyes feel irritated the resident no thick discharge the erm resident vision has not changed the cleaned around the eyes gently should we consider erm eye drops please advise the next step um i will document your instruction",
+    "output": "Doctor, I am reporting watery eyes this morning. The resident was eyes feel irritated. The resident no thick discharge. The resident vision has not changed. The cleaned around the eyes gently. Should we consider eye drops? Please advise the next step. I will document your instruction."
+  },
+  {
+    "category": "Staff-Doctor",
+    "conversation_id": "NSD_09",
+    "variation": 3,
+    "noise_type": "asr_confusion",
+    "input": "doctor i am reporting watery eyes this mourning the resident was eyes feel irritated the resident no thick discharge the resident vision has not changed the cleaned around the eyes gently should we consider I drops please advise the next step i will document your instruction",
+    "output": "Doctor, I am reporting watery eyes this morning. The resident was eyes feel irritated. The resident no thick discharge. The resident vision has not changed. The cleaned around the eyes gently. Should we consider eye drops? Please advise the next step. I will document your instruction."
+  },
+  {
+    "category": "Staff-Doctor",
+    "conversation_id": "NSD_09",
+    "variation": 4,
+    "noise_type": "casing_spacing_noise",
+    "input": "DOCTOR  i am reporting watery eyes this Morning the RESIDENT was eyes  feel irritated The resident no thick DISCHARGE the resident Vision has  not changed the cleaned AROUND The eyes gently should we consider  eye Drops PLEASE advise the next step i Will document your  INSTRUCTION",
+    "output": "Doctor, I am reporting watery eyes this morning. The resident was eyes feel irritated. The resident no thick discharge. The resident vision has not changed. The cleaned around the eyes gently. Should we consider eye drops? Please advise the next step. I will document your instruction."
+  },
+  {
+    "category": "Staff-Doctor",
+    "conversation_id": "NSD_10",
+    "variation": 1,
+    "noise_type": "keyboard_typo",
+    "input": "docter i am reporting slightly improved appetite teh residnet was finished most of his soup teh residnet still refused solid meat teh residnet weight will be checked tomorrow the mood seems brighter should we continue nutrition approach please advise the next step i will document your instruction",
+    "output": "Doctor, I am reporting slightly improved appetite. The resident was finished most of his soup. The resident still refused solid meat. The resident weight will be checked tomorrow. The mood seems brighter. Should we continue nutrition approach? Please advise the next step. I will document your instruction."
+  },
+  {
+    "category": "Staff-Doctor",
+    "conversation_id": "NSD_10",
+    "variation": 2,
+    "noise_type": "filler_hesitation",
+    "input": "doctor i am reporting slightly improved appetite the resident was finished most of like his soup the resident still refused solid meat the resident weight erm will be checked tomorrow the mood seems brighter uh should we continue nutrition approach please advise the next step i will document your instruction",
+    "output": "Doctor, I am reporting slightly improved appetite. The resident was finished most of his soup. The resident still refused solid meat. The resident weight will be checked tomorrow. The mood seems brighter. Should we continue nutrition approach? Please advise the next step. I will document your instruction."
+  },
+  {
+    "category": "Staff-Doctor",
+    "conversation_id": "NSD_10",
+    "variation": 3,
+    "noise_type": "asr_confusion",
+    "input": "doctor i am reporting slightly improved appetite the resident was finished most of his soup the resident still refused solid meat the resident weight will be checked tomorrow the mood seems brighter should we continue nutrition approach please advise the next step i will document your instruction",
+    "output": "Doctor, I am reporting slightly improved appetite. The resident was finished most of his soup. The resident still refused solid meat. The resident weight will be checked tomorrow. The mood seems brighter. Should we continue nutrition approach? Please advise the next step. I will document your instruction."
+  },
+  {
+    "category": "Staff-Doctor",
+    "conversation_id": "NSD_10",
+    "variation": 4,
+    "noise_type": "casing_spacing_noise",
+    "input": "DOCTOR  i am reporting slightly improved appetite The resident WAS finished most  of his Soup the resident still REFUSED solid meat The resident  weight will be checked TOMORROW The mood seems brighter should we  continue Nutrition APPROACH please advise the next step I will document  YOUR instruction",
+    "output": "Doctor, I am reporting slightly improved appetite. The resident was finished most of his soup. The resident still refused solid meat. The resident weight will be checked tomorrow. The mood seems brighter. Should we continue nutrition approach? Please advise the next step. I will document your instruction."
+  },
+  {
+    "category": "Staff-Doctor",
+    "conversation_id": "NSD_11",
+    "variation": 1,
+    "noise_type": "keyboard_typo",
+    "input": "docter i am reporting medication timing issue teh residnet was residnet was asleep at dose time teh residnet dose was held temporarily teh resident woke up thirty minutes later the alert and cooperative now should we give the dose late or skip it please advise the next step i will document your instruction",
+    "output": "Doctor, I am reporting medication timing issue. The resident was resident was asleep at dose time. The resident dose was held temporarily. The resident woke up thirty minutes later. The alert and cooperative now. Should we give the dose late or skip it? Please advise the next step. I will document your instruction."
+  },
+  {
+    "category": "Staff-Doctor",
+    "conversation_id": "NSD_11",
+    "variation": 2,
+    "noise_type": "filler_hesitation",
+    "input": "doctor i am reporting medication timing issue the resident was resident was asleep at dose time the resident dose erm was held temporarily the resident woke erm up like thirty minutes later the alert and cooperative now should we give the dose late uh or skip it please advise the next step i will document your instruction",
+    "output": "Doctor, I am reporting medication timing issue. The resident was resident was asleep at dose time. The resident dose was held temporarily. The resident woke up thirty minutes later. The alert and cooperative now. Should we give the dose late or skip it? Please advise the next step. I will document your instruction."
+  },
+  {
+    "category": "Staff-Doctor",
+    "conversation_id": "NSD_11",
+    "variation": 3,
+    "noise_type": "asr_confusion",
+    "input": "doctor i am reporting medication timing issue the resident was resident was asleep at dose time the resident dose was held temporarily the resident woke up thirty minutes later the alert and cooperative now should we give the dose late or skip it please advise the next step i will document your instruction",
+    "output": "Doctor, I am reporting medication timing issue. The resident was resident was asleep at dose time. The resident dose was held temporarily. The resident woke up thirty minutes later. The alert and cooperative now. Should we give the dose late or skip it? Please advise the next step. I will document your instruction."
+  },
+  {
+    "category": "Staff-Doctor",
+    "conversation_id": "NSD_11",
+    "variation": 4,
+    "noise_type": "casing_spacing_noise",
+    "input": "DOCTOR  i am reporting medication timing issue The resident WAS resident was  asleep at Dose time the resident DOSE was held Temporarily the  resident woke up thirty MINUTES Later the alert and cooperative now  should We GIVE the dose late or skip It please advise  THE next step i Will document your instruction",
+    "output": "Doctor, I am reporting medication timing issue. The resident was resident was asleep at dose time. The resident dose was held temporarily. The resident woke up thirty minutes later. The alert and cooperative now. Should we give the dose late or skip it? Please advise the next step. I will document your instruction."
+  },
+  {
+    "category": "Staff-Doctor",
+    "conversation_id": "NSD_12",
+    "variation": 1,
+    "noise_type": "keyboard_typo",
+    "input": "docter i am reporting mild swelling in both feet teh residnet was more visible in teh evening teh residnet shoes feel tight teh resident no calf pain the breathing is comfortable should we need further checks today please advise the next step i will document your instruction",
+    "output": "Doctor, I am reporting mild swelling in both feet. The resident was more visible in the evening. The resident shoes feel tight. The resident no calf pain. The breathing is comfortable. Should we need further checks today? Please advise the next step. I will document your instruction."
+  },
+  {
+    "category": "Staff-Doctor",
+    "conversation_id": "NSD_12",
+    "variation": 2,
+    "noise_type": "filler_hesitation",
+    "input": "doctor i am reporting mild swelling in both feet the resident was more visible in the evening the resident shoes feel tight the resident no calf pain the breathing is comfortable should um we erm need uh further checks today please advise the next step i will document your instruction",
+    "output": "Doctor, I am reporting mild swelling in both feet. The resident was more visible in the evening. The resident shoes feel tight. The resident no calf pain. The breathing is comfortable. Should we need further checks today? Please advise the next step. I will document your instruction."
+  },
+  {
+    "category": "Staff-Doctor",
+    "conversation_id": "NSD_12",
+    "variation": 3,
+    "noise_type": "asr_confusion",
+    "input": "doctor i am reporting mild swelling in both feet the resident was more visible in the evening the resident shoes feel tight the resident no calf pain the breathing is comfortable should we need further checks today please advise the next step i will document your instruction",
+    "output": "Doctor, I am reporting mild swelling in both feet. The resident was more visible in the evening. The resident shoes feel tight. The resident no calf pain. The breathing is comfortable. Should we need further checks today? Please advise the next step. I will document your instruction."
+  },
+  {
+    "category": "Staff-Doctor",
+    "conversation_id": "NSD_12",
+    "variation": 4,
+    "noise_type": "casing_spacing_noise",
+    "input": "DOCTOR  i am reporting mild swelling in Both feet THE resident was  more visible In the evening the RESIDENT shoes feel Tight the  resident no calf pain THE Breathing is comfortable should we need  further Checks TODAY please advise the next step I will document  YOUR instruction",
+    "output": "Doctor, I am reporting mild swelling in both feet. The resident was more visible in the evening. The resident shoes feel tight. The resident no calf pain. The breathing is comfortable. Should we need further checks today? Please advise the next step. I will document your instruction."
+  },
+  {
+    "category": "Staff-Doctor",
+    "conversation_id": "NSD_13",
+    "variation": 1,
+    "noise_type": "keyboard_typo",
+    "input": "docter i am reporting headache after lunch teh residnet was rated it four out of ten teh residnet not nauseous teh residnet speech is clear the resting in a quiet room should we give prescribed pain relief please advise the next step i will document your instruction",
+    "output": "Doctor, I am reporting headache after lunch. The resident was rated it four out of ten. The resident not nauseous. The resident speech is clear. The resting in a quiet room. Should we give prescribed pain relief? Please advise the next step. I will document your instruction."
+  },
+  {
+    "category": "Staff-Doctor",
+    "conversation_id": "NSD_13",
+    "variation": 2,
+    "noise_type": "filler_hesitation",
+    "input": "doctor i am reporting headache like after lunch the resident was rated it four out of ten the resident um not nauseous the resident speech is clear the resting in a quiet room should erm we give prescribed pain relief please advise the next step i will document your instruction",
+    "output": "Doctor, I am reporting headache after lunch. The resident was rated it four out of ten. The resident not nauseous. The resident speech is clear. The resting in a quiet room. Should we give prescribed pain relief? Please advise the next step. I will document your instruction."
+  },
+  {
+    "category": "Staff-Doctor",
+    "conversation_id": "NSD_13",
+    "variation": 3,
+    "noise_type": "asr_confusion",
+    "input": "doctor i am reporting headache after lunch the resident was rated it four out of ten the resident not nauseous the resident speech is clear the resting in a quite room should we give prescribed pain relief please advise the next step i will document your instruction",
+    "output": "Doctor, I am reporting headache after lunch. The resident was rated it four out of ten. The resident not nauseous. The resident speech is clear. The resting in a quiet room. Should we give prescribed pain relief? Please advise the next step. I will document your instruction."
+  },
+  {
+    "category": "Staff-Doctor",
+    "conversation_id": "NSD_13",
+    "variation": 4,
+    "noise_type": "casing_spacing_noise",
+    "input": "DOCTOR  i am reporting headache after lunch The resident WAS rated it  four out Of ten the resident NOT nauseous the Resident speech  is clear the resting IN A quiet room should we give  prescribed Pain RELIEF please advise the next step I will document  YOUR instruction",
+    "output": "Doctor, I am reporting headache after lunch. The resident was rated it four out of ten. The resident not nauseous. The resident speech is clear. The resting in a quiet room. Should we give prescribed pain relief? Please advise the next step. I will document your instruction."
+  },
+  {
+    "category": "Staff-Doctor",
+    "conversation_id": "NSD_14",
+    "variation": 1,
+    "noise_type": "keyboard_typo",
+    "input": "docter i am reporting small skin tear teh residnet was right forearm was affected teh residnet brushed against table edge teh residnet bleeding stopped quickly the cleaned and covered the area should we change the dressing daily please advise the next step i will document your instruction",
+    "output": "Doctor, I am reporting small skin tear. The resident was right forearm was affected. The resident brushed against table edge. The resident bleeding stopped quickly. The cleaned and covered the area. Should we change the dressing daily? Please advise the next step. I will document your instruction."
+  },
+  {
+    "category": "Staff-Doctor",
+    "conversation_id": "NSD_14",
+    "variation": 2,
+    "noise_type": "filler_hesitation",
+    "input": "doctor i am reporting small skin tear the resident was right forearm was affected the resident brushed against erm table erm edge the resident bleeding stopped quickly the cleaned and covered the area should we like change the dressing daily please advise the next step i will document your instruction",
+    "output": "Doctor, I am reporting small skin tear. The resident was right forearm was affected. The resident brushed against table edge. The resident bleeding stopped quickly. The cleaned and covered the area. Should we change the dressing daily? Please advise the next step. I will document your instruction."
+  },
+  {
+    "category": "Staff-Doctor",
+    "conversation_id": "NSD_14",
+    "variation": 3,
+    "noise_type": "asr_confusion",
+    "input": "doctor i am reporting small skin tear the resident was write forearm was affected the resident brushed against table edge the resident bleeding stopped quickly the cleaned and covered the area should we change the dressing daily please advise the next step i will document your instruction",
+    "output": "Doctor, I am reporting small skin tear. The resident was right forearm was affected. The resident brushed against table edge. The resident bleeding stopped quickly. The cleaned and covered the area. Should we change the dressing daily? Please advise the next step. I will document your instruction."
+  },
+  {
+    "category": "Staff-Doctor",
+    "conversation_id": "NSD_14",
+    "variation": 4,
+    "noise_type": "casing_spacing_noise",
+    "input": "DOCTOR  i am reporting small skin tear The resident WAS right forearm  was affected The resident brushed against TABLE edge the Resident bleeding  stopped quickly the cleaned AND Covered the area should we change  the Dressing DAILY please advise the next step I will document  YOUR instruction",
+    "output": "Doctor, I am reporting small skin tear. The resident was right forearm was affected. The resident brushed against table edge. The resident bleeding stopped quickly. The cleaned and covered the area. Should we change the dressing daily? Please advise the next step. I will document your instruction."
+  },
+  {
+    "category": "Staff-Doctor",
+    "conversation_id": "NSD_15",
+    "variation": 1,
+    "noise_type": "keyboard_typo",
+    "input": "docter i am reporting anxiety before showering teh residnet was refused teh shower twice this week teh residnet bathroom feels cold teh resident offered warm towel and privacy the accepted a sponge wash should we adjust the care plan please advise the next step i will document your instruction",
+    "output": "Doctor, I am reporting anxiety before showering. The resident was refused the shower twice this week. The resident bathroom feels cold. The resident offered warm towel and privacy. The accepted a sponge wash. Should we adjust the care plan? Please advise the next step. I will document your instruction."
+  },
+  {
+    "category": "Staff-Doctor",
+    "conversation_id": "NSD_15",
+    "variation": 2,
+    "noise_type": "filler_hesitation",
+    "input": "doctor i am reporting anxiety before showering the resident was refused the shower twice this week like the resident bathroom feels cold the resident offered uh warm towel and privacy the accepted a sponge wash uh should we adjust the care plan please advise the next step i will document your uh instruction",
+    "output": "Doctor, I am reporting anxiety before showering. The resident was refused the shower twice this week. The resident bathroom feels cold. The resident offered warm towel and privacy. The accepted a sponge wash. Should we adjust the care plan? Please advise the next step. I will document your instruction."
+  },
+  {
+    "category": "Staff-Doctor",
+    "conversation_id": "NSD_15",
+    "variation": 3,
+    "noise_type": "asr_confusion",
+    "input": "doctor i am reporting anxiety before showering the resident was refused the shower twice this weak the resident bathroom feels cold the resident offered warm towel and privacy the accepted a sponge wash should we adjust the care plan please advise the next step i will document your instruction",
+    "output": "Doctor, I am reporting anxiety before showering. The resident was refused the shower twice this week. The resident bathroom feels cold. The resident offered warm towel and privacy. The accepted a sponge wash. Should we adjust the care plan? Please advise the next step. I will document your instruction."
+  },
+  {
+    "category": "Staff-Doctor",
+    "conversation_id": "NSD_15",
+    "variation": 4,
+    "noise_type": "casing_spacing_noise",
+    "input": "DOCTOR  i am reporting anxiety before showering The resident WAS refused the  shower twice This week the resident BATHROOM feels cold The resident  offered warm towel and PRIVACY The accepted a sponge wash should  we Adjust THE care plan please advise the Next step i  WILL document your instruction",
+    "output": "Doctor, I am reporting anxiety before showering. The resident was refused the shower twice this week. The resident bathroom feels cold. The resident offered warm towel and privacy. The accepted a sponge wash. Should we adjust the care plan? Please advise the next step. I will document your instruction."
+  },
+  {
+    "category": "Staff-Doctor",
+    "conversation_id": "NSD_16",
+    "variation": 1,
+    "noise_type": "keyboard_typo",
+    "input": "docter i am reporting loose stools toady teh residnet was toilet three times since mroning teh residnet no fever the resident drinking small amounts of water the appetite is reduced should we send a stool sample if it continues please advise the next step i will document your instruction",
+    "output": "Doctor, I am reporting loose stools today. The resident was toilet three times since morning. The resident no fever. The resident drinking small amounts of water. The appetite is reduced. Should we send a stool sample if it continues? Please advise the next step. I will document your instruction."
+  },
+  {
+    "category": "Staff-Doctor",
+    "conversation_id": "NSD_16",
+    "variation": 2,
+    "noise_type": "filler_hesitation",
+    "input": "doctor i am reporting loose stools today like the um resident was toilet three times since morning the resident no fever the resident drinking small amounts uh of water the appetite is reduced should we like send a stool sample if it continues please advise the next step i will document your instruction",
+    "output": "Doctor, I am reporting loose stools today. The resident was toilet three times since morning. The resident no fever. The resident drinking small amounts of water. The appetite is reduced. Should we send a stool sample if it continues? Please advise the next step. I will document your instruction."
+  },
+  {
+    "category": "Staff-Doctor",
+    "conversation_id": "NSD_16",
+    "variation": 3,
+    "noise_type": "asr_confusion",
+    "input": "doctor i am reporting loose stools today the resident was toilet three times since mourning the resident no fever the resident drinking small amounts of water the appetite is reduced should we send a stool sample if it continues please advise the next step i will document your instruction",
+    "output": "Doctor, I am reporting loose stools today. The resident was toilet three times since morning. The resident no fever. The resident drinking small amounts of water. The appetite is reduced. Should we send a stool sample if it continues? Please advise the next step. I will document your instruction."
+  },
+  {
+    "category": "Staff-Doctor",
+    "conversation_id": "NSD_16",
+    "variation": 4,
+    "noise_type": "casing_spacing_noise",
+    "input": "DOCTOR  i am reporting loose stools today The resident WAS toilet three  times since Morning the resident no FEVER the resident Drinking small  amounts of water the APPETITE Is reduced should we send a  stool Sample IF it continues please advise the Next step i  WILL document your instruction",
+    "output": "Doctor, I am reporting loose stools today. The resident was toilet three times since morning. The resident no fever. The resident drinking small amounts of water. The appetite is reduced. Should we send a stool sample if it continues? Please advise the next step. I will document your instruction."
+  },
+  {
+    "category": "Staff-Doctor",
+    "conversation_id": "NSD_17",
+    "variation": 1,
+    "noise_type": "keyboard_typo",
+    "input": "docter i am reporting high blood sugar reading teh residnet was higher than usual before dinner teh residnet ate a sweet snack earlier teh residnet feels well with no symptoms the repeat reading stayed high should we follow correction plan please advise the next step i will document your instruction",
+    "output": "Doctor, I am reporting high blood sugar reading. The resident was higher than usual before dinner. The resident ate a sweet snack earlier. The resident feels well with no symptoms. The repeat reading stayed high. Should we follow correction plan? Please advise the next step. I will document your instruction."
+  },
+  {
+    "category": "Staff-Doctor",
+    "conversation_id": "NSD_17",
+    "variation": 2,
+    "noise_type": "filler_hesitation",
+    "input": "doctor i uh am erm reporting high blood sugar reading the um resident was higher than usual before dinner the resident ate a sweet snack earlier the resident feels well with no symptoms the repeat reading stayed high should we follow correction plan um please advise the next step i will document your instruction",
+    "output": "Doctor, I am reporting high blood sugar reading. The resident was higher than usual before dinner. The resident ate a sweet snack earlier. The resident feels well with no symptoms. The repeat reading stayed high. Should we follow correction plan? Please advise the next step. I will document your instruction."
+  },
+  {
+    "category": "Staff-Doctor",
+    "conversation_id": "NSD_17",
+    "variation": 3,
+    "noise_type": "asr_confusion",
+    "input": "doctor i am reporting high blood sugar reading the resident was higher than usual before dinner the resident eight a sweet snack earlier the resident feels well with no symptoms the repeat reading stayed high should we follow correction plan please advise the next step i will document your instruction",
+    "output": "Doctor, I am reporting high blood sugar reading. The resident was higher than usual before dinner. The resident ate a sweet snack earlier. The resident feels well with no symptoms. The repeat reading stayed high. Should we follow correction plan? Please advise the next step. I will document your instruction."
+  },
+  {
+    "category": "Staff-Doctor",
+    "conversation_id": "NSD_17",
+    "variation": 4,
+    "noise_type": "casing_spacing_noise",
+    "input": "DOCTOR  i am reporting high blood sugar Reading the RESIDENT was higher  than usual Before dinner the resident ATE a sweet Snack earlier  the resident feels well WITH No symptoms the repeat reading stayed  high Should WE follow correction plan please advise The next step  I will document your Instruction",
+    "output": "Doctor, I am reporting high blood sugar reading. The resident was higher than usual before dinner. The resident ate a sweet snack earlier. The resident feels well with no symptoms. The repeat reading stayed high. Should we follow correction plan? Please advise the next step. I will document your instruction."
+  },
+  {
+    "category": "Staff-Doctor",
+    "conversation_id": "NSD_18",
+    "variation": 1,
+    "noise_type": "keyboard_typo",
+    "input": "docter i am reporting sore gums teh residnet was difficulty chewing harder food teh residnet dentures look slightly loose teh residnet no visible bleeding the soft food helped at lunch should we arrange a dental review please advise the next step i will document your instruction",
+    "output": "Doctor, I am reporting sore gums. The resident was difficulty chewing harder food. The resident dentures look slightly loose. The resident no visible bleeding. The soft food helped at lunch. Should we arrange a dental review? Please advise the next step. I will document your instruction."
+  },
+  {
+    "category": "Staff-Doctor",
+    "conversation_id": "NSD_18",
+    "variation": 2,
+    "noise_type": "filler_hesitation",
+    "input": "doctor i am reporting sore gums the resident was difficulty chewing harder food the resident dentures look slightly loose um the resident no visible bleeding the soft food helped at lunch uh should we arrange a dental review please advise the next step i will erm document your instruction",
+    "output": "Doctor, I am reporting sore gums. The resident was difficulty chewing harder food. The resident dentures look slightly loose. The resident no visible bleeding. The soft food helped at lunch. Should we arrange a dental review? Please advise the next step. I will document your instruction."
+  },
+  {
+    "category": "Staff-Doctor",
+    "conversation_id": "NSD_18",
+    "variation": 3,
+    "noise_type": "asr_confusion",
+    "input": "doctor i am reporting sore gums the resident was difficulty chewing harder food the resident dentures look slightly loose the resident no visible bleeding the soft food helped at lunch should we arrange a dental review please advise the next step i will document your instruction",
+    "output": "Doctor, I am reporting sore gums. The resident was difficulty chewing harder food. The resident dentures look slightly loose. The resident no visible bleeding. The soft food helped at lunch. Should we arrange a dental review? Please advise the next step. I will document your instruction."
+  },
+  {
+    "category": "Staff-Doctor",
+    "conversation_id": "NSD_18",
+    "variation": 4,
+    "noise_type": "casing_spacing_noise",
+    "input": "DOCTOR  i am reporting sore gums the Resident was DIFFICULTY chewing harder  food the Resident dentures look slightly LOOSE the resident No visible  bleeding the soft food HELPED At lunch should we arrange a  dental Review PLEASE advise the next step i Will document your  INSTRUCTION",
+    "output": "Doctor, I am reporting sore gums. The resident was difficulty chewing harder food. The resident dentures look slightly loose. The resident no visible bleeding. The soft food helped at lunch. Should we arrange a dental review? Please advise the next step. I will document your instruction."
+  },
+  {
+    "category": "Staff-Doctor",
+    "conversation_id": "NSD_19",
+    "variation": 1,
+    "noise_type": "keyboard_typo",
+    "input": "docter i am reporting brief nosebleed teh residnet was stopped after gentle pressuer teh residnet remained calm and alert teh resident blood pressure was checked the no second episode should we continue observation only please advise the next step i will document your instruction",
+    "output": "Doctor, I am reporting brief nosebleed. The resident was stopped after gentle pressure. The resident remained calm and alert. The resident blood pressure was checked. The no second episode. Should we continue observation only? Please advise the next step. I will document your instruction."
+  },
+  {
+    "category": "Staff-Doctor",
+    "conversation_id": "NSD_19",
+    "variation": 2,
+    "noise_type": "filler_hesitation",
+    "input": "doctor i am reporting brief um nosebleed the resident was stopped after gentle pressure the resident remained calm and alert the resident um blood pressure was checked the no second episode should we continue observation only please advise the next step i will document uh your instruction",
+    "output": "Doctor, I am reporting brief nosebleed. The resident was stopped after gentle pressure. The resident remained calm and alert. The resident blood pressure was checked. The no second episode. Should we continue observation only? Please advise the next step. I will document your instruction."
+  },
+  {
+    "category": "Staff-Doctor",
+    "conversation_id": "NSD_19",
+    "variation": 3,
+    "noise_type": "asr_confusion",
+    "input": "doctor i am reporting brief nosebleed the resident was stopped after gentle pressure the resident remained calm and alert the resident blood pressure was checked the no second episode should we continue observation only please advise the next step i will document your instruction",
+    "output": "Doctor, I am reporting brief nosebleed. The resident was stopped after gentle pressure. The resident remained calm and alert. The resident blood pressure was checked. The no second episode. Should we continue observation only? Please advise the next step. I will document your instruction."
+  },
+  {
+    "category": "Staff-Doctor",
+    "conversation_id": "NSD_19",
+    "variation": 4,
+    "noise_type": "casing_spacing_noise",
+    "input": "DOCTOR  i am reporting brief nosebleed the Resident was STOPPED after gentle  pressure the Resident remained calm and ALERT the resident Blood pressure  was checked the no SECOND Episode should we continue observation only  please Advise THE next step i will document Your instruction",
+    "output": "Doctor, I am reporting brief nosebleed. The resident was stopped after gentle pressure. The resident remained calm and alert. The resident blood pressure was checked. The no second episode. Should we continue observation only? Please advise the next step. I will document your instruction."
+  },
+  {
+    "category": "Staff-Doctor",
+    "conversation_id": "NSD_20",
+    "variation": 1,
+    "noise_type": "keyboard_typo",
+    "input": "docter i am reporting increased sadness teh residnet was cried during mroning conversation teh residnet said she misses home teh resident denied pain the agreed to speak with coordinator should we arrange mental health follow up please advise the next step i will document your instruction",
+    "output": "Doctor, I am reporting increased sadness. The resident was cried during morning conversation. The resident said she misses home. The resident denied pain. The agreed to speak with coordinator. Should we arrange mental health follow up? Please advise the next step. I will document your instruction."
+  },
+  {
+    "category": "Staff-Doctor",
+    "conversation_id": "NSD_20",
+    "variation": 2,
+    "noise_type": "filler_hesitation",
+    "input": "doctor i am reporting increased uh sadness the resident was cried during morning conversation the resident said she misses home the resident denied pain the um agreed to speak with coordinator should we arrange mental health follow up please advise the next step i erm will document your instruction",
+    "output": "Doctor, I am reporting increased sadness. The resident was cried during morning conversation. The resident said she misses home. The resident denied pain. The agreed to speak with coordinator. Should we arrange mental health follow up? Please advise the next step. I will document your instruction."
+  },
+  {
+    "category": "Staff-Doctor",
+    "conversation_id": "NSD_20",
+    "variation": 3,
+    "noise_type": "asr_confusion",
+    "input": "doctor i am reporting increased sadness the resident was cried during mourning conversation the resident said she misses home the resident denied pain the agreed too speak with coordinator should we arrange mental health follow up please advise the next step i will document your instruction",
+    "output": "Doctor, I am reporting increased sadness. The resident was cried during morning conversation. The resident said she misses home. The resident denied pain. The agreed to speak with coordinator. Should we arrange mental health follow up? Please advise the next step. I will document your instruction."
+  },
+  {
+    "category": "Staff-Doctor",
+    "conversation_id": "NSD_20",
+    "variation": 4,
+    "noise_type": "casing_spacing_noise",
+    "input": "DOCTOR  i am reporting increased sadness the Resident was CRIED during morning  conversation the Resident said she misses HOME the resident Denied pain  the agreed to speak WITH Coordinator should we arrange mental health  follow Up PLEASE advise the next step i Will document your  INSTRUCTION",
+    "output": "Doctor, I am reporting increased sadness. The resident was cried during morning conversation. The resident said she misses home. The resident denied pain. The agreed to speak with coordinator. Should we arrange mental health follow up? Please advise the next step. I will document your instruction."
+  },
+  {
+    "category": "Staff-Family",
+    "conversation_id": "NSF_01",
+    "variation": 1,
+    "noise_type": "keyboard_typo",
+    "input": "hello i am claling about yuor uncle they spent teh mroning in teh lounge they listened to music they talked with another residnet they ate a small lunch we will join another activty tomorrow please contact us if you need more information",
+    "output": "Hello, I am calling about your uncle. They spent the morning in the lounge. They listened to music. They talked with another resident. They ate a small lunch. We will join another activity tomorrow. Please contact us if you need more information."
+  },
+  {
+    "category": "Staff-Family",
+    "conversation_id": "NSF_01",
+    "variation": 2,
+    "noise_type": "filler_hesitation",
+    "input": "hello i am calling about your uncle they spent the morning in the lounge they erm listened to music they um talked with another resident um they ate a small lunch we will join another activity tomorrow please contact us if you need more information",
+    "output": "Hello, I am calling about your uncle. They spent the morning in the lounge. They listened to music. They talked with another resident. They ate a small lunch. We will join another activity tomorrow. Please contact us if you need more information."
+  },
+  {
+    "category": "Staff-Family",
+    "conversation_id": "NSF_01",
+    "variation": 3,
+    "noise_type": "asr_confusion",
+    "input": "hello i am calling about your uncle they spent the mourning in the lounge they listened too music they talked with another resident they eight a small lunch we will join another activity tomorrow please contact us if you need more information",
+    "output": "Hello, I am calling about your uncle. They spent the morning in the lounge. They listened to music. They talked with another resident. They ate a small lunch. We will join another activity tomorrow. Please contact us if you need more information."
+  },
+  {
+    "category": "Staff-Family",
+    "conversation_id": "NSF_01",
+    "variation": 4,
+    "noise_type": "casing_spacing_noise",
+    "input": "HELLO  i am calling about your uncle They spent THE morning in  the lounge They listened to music THEY talked with Another resident  they ate a small LUNCH We will join another activity tomorrow  please Contact US if you need more information",
+    "output": "Hello, I am calling about your uncle. They spent the morning in the lounge. They listened to music. They talked with another resident. They ate a small lunch. We will join another activity tomorrow. Please contact us if you need more information."
+  },
+  {
+    "category": "Staff-Family",
+    "conversation_id": "NSF_02",
+    "variation": 1,
+    "noise_type": "keyboard_typo",
+    "input": "hello i am claling about yuor aunt they received teh parcel toady they opened teh card first they cardigan fits her well they asked us to thank yuo we will call after dinner plese contact us if you need more information",
+    "output": "Hello, I am calling about your aunt. They received the parcel today. They opened the card first. They cardigan fits her well. They asked us to thank you. We will call after dinner. Please contact us if you need more information."
+  },
+  {
+    "category": "Staff-Family",
+    "conversation_id": "NSF_02",
+    "variation": 2,
+    "noise_type": "filler_hesitation",
+    "input": "hello i am calling about your aunt they received the parcel today they opened the card first they cardigan fits her well they uh asked us to thank you uh we will call after dinner please contact us if you need more erm information",
+    "output": "Hello, I am calling about your aunt. They received the parcel today. They opened the card first. They cardigan fits her well. They asked us to thank you. We will call after dinner. Please contact us if you need more information."
+  },
+  {
+    "category": "Staff-Family",
+    "conversation_id": "NSF_02",
+    "variation": 3,
+    "noise_type": "asr_confusion",
+    "input": "hello i am calling about your aunt they received the parcel today they opened the guard first they cardigan fits her well they asked us too thank you we will coal after dinner please contact us if you need more information",
+    "output": "Hello, I am calling about your aunt. They received the parcel today. They opened the card first. They cardigan fits her well. They asked us to thank you. We will call after dinner. Please contact us if you need more information."
+  },
+  {
+    "category": "Staff-Family",
+    "conversation_id": "NSF_02",
+    "variation": 4,
+    "noise_type": "casing_spacing_noise",
+    "input": "HELLO  i am calling about your aunt They received THE parcel today  they opened The card first they CARDIGAN fits her Well they  asked us to thank YOU We will call after dinner please  contact Us IF you need more information",
+    "output": "Hello, I am calling about your aunt. They received the parcel today. They opened the card first. They cardigan fits her well. They asked us to thank you. We will call after dinner. Please contact us if you need more information."
+  },
+  {
+    "category": "Staff-Family",
+    "conversation_id": "NSF_03",
+    "variation": 1,
+    "noise_type": "keyboard_typo",
+    "input": "hello i am claling about yuor mother they had a quiet day toady they rested after breakfast they watched television in teh afternoon they said she was tired but comfortbale we will encourage fluids plese contact us if yuo need more information",
+    "output": "Hello, I am calling about your mother. They had a quiet day today. They rested after breakfast. They watched television in the afternoon. They said she was tired but comfortable. We will encourage fluids. Please contact us if you need more information."
+  },
+  {
+    "category": "Staff-Family",
+    "conversation_id": "NSF_03",
+    "variation": 2,
+    "noise_type": "filler_hesitation",
+    "input": "hello i am calling about your mother they had a um quiet day today they rested after breakfast they watched television in the afternoon they said um she was tired uh but comfortable we will encourage fluids please contact us if you need more information",
+    "output": "Hello, I am calling about your mother. They had a quiet day today. They rested after breakfast. They watched television in the afternoon. They said she was tired but comfortable. We will encourage fluids. Please contact us if you need more information."
+  },
+  {
+    "category": "Staff-Family",
+    "conversation_id": "NSF_03",
+    "variation": 3,
+    "noise_type": "asr_confusion",
+    "input": "hello i am calling about your mother they had a quite day today they rested after breakfast they watched television in the afternoon they said she was tired but comfortable we will encourage fluids please contact us if you need more information",
+    "output": "Hello, I am calling about your mother. They had a quiet day today. They rested after breakfast. They watched television in the afternoon. They said she was tired but comfortable. We will encourage fluids. Please contact us if you need more information."
+  },
+  {
+    "category": "Staff-Family",
+    "conversation_id": "NSF_03",
+    "variation": 4,
+    "noise_type": "casing_spacing_noise",
+    "input": "HELLO  i am calling about your mother They had A quiet day  today they Rested after breakfast they WATCHED television in The afternoon  they said she was TIRED But comfortable we will encourage fluids  please Contact US if you need more information",
+    "output": "Hello, I am calling about your mother. They had a quiet day today. They rested after breakfast. They watched television in the afternoon. They said she was tired but comfortable. We will encourage fluids. Please contact us if you need more information."
+  },
+  {
+    "category": "Staff-Family",
+    "conversation_id": "NSF_04",
+    "variation": 1,
+    "noise_type": "keyboard_typo",
+    "input": "hello i am claling about yuor father they joined chiar exercise this mroning they completed most movements they felt proud afterward they drank waetr during teh session we will support mobility gently plese contact us if you need more information",
+    "output": "Hello, I am calling about your father. They joined chair exercise this morning. They completed most movements. They felt proud afterward. They drank water during the session. We will support mobility gently. Please contact us if you need more information."
+  },
+  {
+    "category": "Staff-Family",
+    "conversation_id": "NSF_04",
+    "variation": 2,
+    "noise_type": "filler_hesitation",
+    "input": "hello i am calling about your erm father they joined chair exercise this uh morning they completed most movements they felt um proud afterward they drank water during the session we will support mobility gently please contact us if you need more information",
+    "output": "Hello, I am calling about your father. They joined chair exercise this morning. They completed most movements. They felt proud afterward. They drank water during the session. We will support mobility gently. Please contact us if you need more information."
+  },
+  {
+    "category": "Staff-Family",
+    "conversation_id": "NSF_04",
+    "variation": 3,
+    "noise_type": "asr_confusion",
+    "input": "hello i am calling about your father they joined share exercise this mourning they completed most movements they felt proud afterward they drank water during the session we will support mobility gently please contact us if you need more information",
+    "output": "Hello, I am calling about your father. They joined chair exercise this morning. They completed most movements. They felt proud afterward. They drank water during the session. We will support mobility gently. Please contact us if you need more information."
+  },
+  {
+    "category": "Staff-Family",
+    "conversation_id": "NSF_04",
+    "variation": 4,
+    "noise_type": "casing_spacing_noise",
+    "input": "HELLO  i am calling about your father They joined CHAIR exercise this  morning they Completed most movements they FELT proud afterward They drank  water during the session WE Will support mobility gently please contact  us If YOU need more information",
+    "output": "Hello, I am calling about your father. They joined chair exercise this morning. They completed most movements. They felt proud afterward. They drank water during the session. We will support mobility gently. Please contact us if you need more information."
+  },
+  {
+    "category": "Staff-Family",
+    "conversation_id": "NSF_05",
+    "variation": 1,
+    "noise_type": "keyboard_typo",
+    "input": "hello i am claling about yuor grandmother they asked about famliy lunch next week they calendar has teh date they seemed happy afterward they showed another residnet yuor photo we will remind her closer to teh day please contact us if you need more information",
+    "output": "Hello, I am calling about your grandmother. They asked about family lunch next week. They calendar has the date. They seemed happy afterward. They showed another resident your photo. We will remind her closer to the day. Please contact us if you need more information."
+  },
+  {
+    "category": "Staff-Family",
+    "conversation_id": "NSF_05",
+    "variation": 2,
+    "noise_type": "filler_hesitation",
+    "input": "hello i am calling uh about your grandmother they asked about family lunch erm next week they calendar has the date they seemed happy afterward they showed another resident your photo we will remind her closer to the erm day please contact us if you need more information",
+    "output": "Hello, I am calling about your grandmother. They asked about family lunch next week. They calendar has the date. They seemed happy afterward. They showed another resident your photo. We will remind her closer to the day. Please contact us if you need more information."
+  },
+  {
+    "category": "Staff-Family",
+    "conversation_id": "NSF_05",
+    "variation": 3,
+    "noise_type": "asr_confusion",
+    "input": "hello i am calling about your grandmother they asked about family lunch next weak they calendar has the date they seemed happy afterward they showed another resident your photo we will remind her closer too the day please contact us if you need more information",
+    "output": "Hello, I am calling about your grandmother. They asked about family lunch next week. They calendar has the date. They seemed happy afterward. They showed another resident your photo. We will remind her closer to the day. Please contact us if you need more information."
+  },
+  {
+    "category": "Staff-Family",
+    "conversation_id": "NSF_05",
+    "variation": 4,
+    "noise_type": "casing_spacing_noise",
+    "input": "HELLO  i am calling about your grandmother They asked ABOUT family lunch  next week They calendar has the DATE they seemed Happy afterward  they showed another resident YOUR Photo we will remind her closer  to The DAY please contact us if you Need more information",
+    "output": "Hello, I am calling about your grandmother. They asked about family lunch next week. They calendar has the date. They seemed happy afterward. They showed another resident your photo. We will remind her closer to the day. Please contact us if you need more information."
+  },
+  {
+    "category": "Staff-Family",
+    "conversation_id": "NSF_06",
+    "variation": 1,
+    "noise_type": "keyboard_typo",
+    "input": "hello i am claling about yuor brother they had his haircut toady they sat calmly during teh appointment they said it felt lighter they changed into a clean shirt we will joined afternoon tea plese contact us if yuo need more informtaion",
+    "output": "Hello, I am calling about your brother. They had his haircut today. They sat calmly during the appointment. They said it felt lighter. They changed into a clean shirt. We will joined afternoon tea. Please contact us if you need more information."
+  },
+  {
+    "category": "Staff-Family",
+    "conversation_id": "NSF_06",
+    "variation": 2,
+    "noise_type": "filler_hesitation",
+    "input": "hello i am calling about your brother they had his haircut today they sat calmly during um the appointment they said it felt lighter they changed into a clean shirt we will um joined afternoon uh tea please contact us if you need more information",
+    "output": "Hello, I am calling about your brother. They had his haircut today. They sat calmly during the appointment. They said it felt lighter. They changed into a clean shirt. We will joined afternoon tea. Please contact us if you need more information."
+  },
+  {
+    "category": "Staff-Family",
+    "conversation_id": "NSF_06",
+    "variation": 3,
+    "noise_type": "asr_confusion",
+    "input": "hello i am calling about your brother they had his haircut today they sat calmly during the appointment they said it felt lighter they changed into a clean shirt we will joined afternoon tee please contact us if you need more information",
+    "output": "Hello, I am calling about your brother. They had his haircut today. They sat calmly during the appointment. They said it felt lighter. They changed into a clean shirt. We will joined afternoon tea. Please contact us if you need more information."
+  },
+  {
+    "category": "Staff-Family",
+    "conversation_id": "NSF_06",
+    "variation": 4,
+    "noise_type": "casing_spacing_noise",
+    "input": "HELLO  i am calling about your brother They had HIS haircut today  they sat Calmly during the appointment THEY said it Felt lighter  they changed into a CLEAN Shirt we will joined afternoon tea  please Contact US if you need more information",
+    "output": "Hello, I am calling about your brother. They had his haircut today. They sat calmly during the appointment. They said it felt lighter. They changed into a clean shirt. We will joined afternoon tea. Please contact us if you need more information."
+  },
+  {
+    "category": "Staff-Family",
+    "conversation_id": "NSF_07",
+    "variation": 1,
+    "noise_type": "keyboard_typo",
+    "input": "hello i am claling about yuor wife they misplaced her galsses earlier they we found them in teh activty room they no damage to teh galsses they placed them in the usual case we will resting before dinner please contact us if you need more information",
+    "output": "Hello, I am calling about your wife. They misplaced her glasses earlier. They we found them in the activity room. They no damage to the glasses. They placed them in the usual case. We will resting before dinner. Please contact us if you need more information."
+  },
+  {
+    "category": "Staff-Family",
+    "conversation_id": "NSF_07",
+    "variation": 2,
+    "noise_type": "filler_hesitation",
+    "input": "hello i am calling about your wife they misplaced uh her glasses earlier they we found like them in the activity room they uh no damage to the glasses they placed them in the usual case we will resting before dinner please contact us if you need more information",
+    "output": "Hello, I am calling about your wife. They misplaced her glasses earlier. They we found them in the activity room. They no damage to the glasses. They placed them in the usual case. We will resting before dinner. Please contact us if you need more information."
+  },
+  {
+    "category": "Staff-Family",
+    "conversation_id": "NSF_07",
+    "variation": 3,
+    "noise_type": "asr_confusion",
+    "input": "hello i am calling about your wife they misplaced her glasses earlier they we found them in the activity room they no damage too the glasses they placed them in the usual case we will resting before dinner please contact us if you need more information",
+    "output": "Hello, I am calling about your wife. They misplaced her glasses earlier. They we found them in the activity room. They no damage to the glasses. They placed them in the usual case. We will resting before dinner. Please contact us if you need more information."
+  },
+  {
+    "category": "Staff-Family",
+    "conversation_id": "NSF_07",
+    "variation": 4,
+    "noise_type": "casing_spacing_noise",
+    "input": "HELLO  i am calling about your wife They misplaced HER glasses earlier  they we Found them in the ACTIVITY room they No damage  to the glasses they PLACED Them in the usual case we  will Resting BEFORE dinner please contact us if You need more  INFORMATION",
+    "output": "Hello, I am calling about your wife. They misplaced her glasses earlier. They we found them in the activity room. They no damage to the glasses. They placed them in the usual case. We will resting before dinner. Please contact us if you need more information."
+  },
+  {
+    "category": "Staff-Family",
+    "conversation_id": "NSF_08",
+    "variation": 1,
+    "noise_type": "keyboard_typo",
+    "input": "hello i am claling about yuor father they met teh volunteer reader toady they read a short story together they listened carefully they asked questions we will activty suited him well plese contact us if yuo need more information",
+    "output": "Hello, I am calling about your father. They met the volunteer reader today. They read a short story together. They listened carefully. They asked questions. We will activity suited him well. Please contact us if you need more information."
+  },
+  {
+    "category": "Staff-Family",
+    "conversation_id": "NSF_08",
+    "variation": 2,
+    "noise_type": "filler_hesitation",
+    "input": "hello i am calling about your father they met um the volunteer like reader today they read a short story together they listened carefully they asked questions we will activity suited erm him well please contact us if you need more information",
+    "output": "Hello, I am calling about your father. They met the volunteer reader today. They read a short story together. They listened carefully. They asked questions. We will activity suited him well. Please contact us if you need more information."
+  },
+  {
+    "category": "Staff-Family",
+    "conversation_id": "NSF_08",
+    "variation": 3,
+    "noise_type": "asr_confusion",
+    "input": "hello i am calling about your father they met the volunteer reader today they read a short story together they listened carefully they asked questions we will activity suited him well please contact us if you need more information",
+    "output": "Hello, I am calling about your father. They met the volunteer reader today. They read a short story together. They listened carefully. They asked questions. We will activity suited him well. Please contact us if you need more information."
+  },
+  {
+    "category": "Staff-Family",
+    "conversation_id": "NSF_08",
+    "variation": 4,
+    "noise_type": "casing_spacing_noise",
+    "input": "HELLO  i am calling about your father They met THE volunteer reader  today they Read a short story TOGETHER they listened Carefully they  asked questions we will ACTIVITY Suited him well please contact us  if You NEED more information",
+    "output": "Hello, I am calling about your father. They met the volunteer reader today. They read a short story together. They listened carefully. They asked questions. We will activity suited him well. Please contact us if you need more information."
+  },
+  {
+    "category": "Staff-Family",
+    "conversation_id": "NSF_09",
+    "variation": 1,
+    "noise_type": "keyboard_typo",
+    "input": "hello i am claling about yuor mother they stayed in her room this afternoon they wanted a quiet rest they we checked several times they meal tray was brought to teh room we will encourage her tommorow plese contact us if yuo need more informtaion",
+    "output": "Hello, I am calling about your mother. They stayed in her room this afternoon. They wanted a quiet rest. They we checked several times. They meal tray was brought to the room. We will encourage her tomorrow. Please contact us if you need more information."
+  },
+  {
+    "category": "Staff-Family",
+    "conversation_id": "NSF_09",
+    "variation": 2,
+    "noise_type": "filler_hesitation",
+    "input": "hello i am calling about your mother they stayed in her room this afternoon they wanted a quiet rest they we checked several times they meal tray erm was like brought to the room we will encourage her tomorrow please erm contact us if you need more information",
+    "output": "Hello, I am calling about your mother. They stayed in her room this afternoon. They wanted a quiet rest. They we checked several times. They meal tray was brought to the room. We will encourage her tomorrow. Please contact us if you need more information."
+  },
+  {
+    "category": "Staff-Family",
+    "conversation_id": "NSF_09",
+    "variation": 3,
+    "noise_type": "asr_confusion",
+    "input": "hello i am calling about your mother they stayed in her room this afternoon they wanted a quite rest they we checked several times they meal tray was brought too the room we will encourage her tomorrow please contact us if you need more information",
+    "output": "Hello, I am calling about your mother. They stayed in her room this afternoon. They wanted a quiet rest. They we checked several times. They meal tray was brought to the room. We will encourage her tomorrow. Please contact us if you need more information."
+  },
+  {
+    "category": "Staff-Family",
+    "conversation_id": "NSF_09",
+    "variation": 4,
+    "noise_type": "casing_spacing_noise",
+    "input": "HELLO  i am calling about your mother They stayed IN her room  this afternoon They wanted a quiet REST they we Checked several  times they meal tray WAS Brought to the room we will  encourage Her TOMORROW please contact us if you Need more information",
+    "output": "Hello, I am calling about your mother. They stayed in her room this afternoon. They wanted a quiet rest. They we checked several times. They meal tray was brought to the room. We will encourage her tomorrow. Please contact us if you need more information."
+  },
+  {
+    "category": "Staff-Family",
+    "conversation_id": "NSF_10",
+    "variation": 1,
+    "noise_type": "keyboard_typo",
+    "input": "hello i am claling about yuor grandfather they enjoyed teh garden view they went outside for fifteen minutes they wore his hat and jacket they watched birds near teh fence we will returned before he was tired plese contact us if yuo need more informtaion",
+    "output": "Hello, I am calling about your grandfather. They enjoyed the garden view. They went outside for fifteen minutes. They wore his hat and jacket. They watched birds near the fence. We will returned before he was tired. Please contact us if you need more information."
+  },
+  {
+    "category": "Staff-Family",
+    "conversation_id": "NSF_10",
+    "variation": 2,
+    "noise_type": "filler_hesitation",
+    "input": "hello i am calling about your grandfather they enjoyed the garden view erm they went outside for fifteen minutes they wore like his hat and jacket they watched birds near the fence we will returned before uh he was tired please contact us if you need more information",
+    "output": "Hello, I am calling about your grandfather. They enjoyed the garden view. They went outside for fifteen minutes. They wore his hat and jacket. They watched birds near the fence. We will returned before he was tired. Please contact us if you need more information."
+  },
+  {
+    "category": "Staff-Family",
+    "conversation_id": "NSF_10",
+    "variation": 3,
+    "noise_type": "asr_confusion",
+    "input": "hello i am calling about your grandfather they enjoyed the garden view they went outside four fifteen minutes they wore his hat and jacket they watched birds near the fence we will returned before he was tired please contact us if you need more information",
+    "output": "Hello, I am calling about your grandfather. They enjoyed the garden view. They went outside for fifteen minutes. They wore his hat and jacket. They watched birds near the fence. We will returned before he was tired. Please contact us if you need more information."
+  },
+  {
+    "category": "Staff-Family",
+    "conversation_id": "NSF_10",
+    "variation": 4,
+    "noise_type": "casing_spacing_noise",
+    "input": "HELLO  i am calling about your grandfather They enjoyed THE garden view  they went Outside for fifteen minutes THEY wore his Hat and  jacket they watched birds NEAR The fence we will returned before  he Was TIRED please contact us if you Need more information",
+    "output": "Hello, I am calling about your grandfather. They enjoyed the garden view. They went outside for fifteen minutes. They wore his hat and jacket. They watched birds near the fence. We will returned before he was tired. Please contact us if you need more information."
+  },
+  {
+    "category": "Staff-Family",
+    "conversation_id": "NSF_11",
+    "variation": 1,
+    "noise_type": "keyboard_typo",
+    "input": "hello i am claling about yuor aunt they asked for help writing a birthday card they chose a simple message they signed her name clearly they card is ready to post we will pleased with teh result plese contact us if yuo need more informtaion",
+    "output": "Hello, I am calling about your aunt. They asked for help writing a birthday card. They chose a simple message. They signed her name clearly. They card is ready to post. We will pleased with the result. Please contact us if you need more information."
+  },
+  {
+    "category": "Staff-Family",
+    "conversation_id": "NSF_11",
+    "variation": 2,
+    "noise_type": "filler_hesitation",
+    "input": "hello i am calling about your aunt they asked for help writing a birthday card they chose a erm simple message they signed her name clearly they card is ready to post we uh will pleased with the result please contact us if like you need more information",
+    "output": "Hello, I am calling about your aunt. They asked for help writing a birthday card. They chose a simple message. They signed her name clearly. They card is ready to post. We will pleased with the result. Please contact us if you need more information."
+  },
+  {
+    "category": "Staff-Family",
+    "conversation_id": "NSF_11",
+    "variation": 3,
+    "noise_type": "asr_confusion",
+    "input": "hello i am calling about your aunt they asked four help writing a birthday guard they chose a simple message they signed her name clearly they guard is ready too post we will pleased with the result please contact us if you need more information",
+    "output": "Hello, I am calling about your aunt. They asked for help writing a birthday card. They chose a simple message. They signed her name clearly. They card is ready to post. We will pleased with the result. Please contact us if you need more information."
+  },
+  {
+    "category": "Staff-Family",
+    "conversation_id": "NSF_11",
+    "variation": 4,
+    "noise_type": "casing_spacing_noise",
+    "input": "HELLO  i am calling about your aunt They asked FOR help writing  a birthday Card they chose a SIMPLE message they Signed her  name clearly they card IS Ready to post we will pleased  with The RESULT please contact us if you Need more information",
+    "output": "Hello, I am calling about your aunt. They asked for help writing a birthday card. They chose a simple message. They signed her name clearly. They card is ready to post. We will pleased with the result. Please contact us if you need more information."
+  },
+  {
+    "category": "Staff-Family",
+    "conversation_id": "NSF_12",
+    "variation": 1,
+    "noise_type": "keyboard_typo",
+    "input": "hello i am claling about yuor mother they participated in bingo toady they laughed with teh group they stayed for teh whole session they had afternoon tea with two residents we will invite her again next week plese contact us if yuo need more information",
+    "output": "Hello, I am calling about your mother. They participated in bingo today. They laughed with the group. They stayed for the whole session. They had afternoon tea with two residents. We will invite her again next week. Please contact us if you need more information."
+  },
+  {
+    "category": "Staff-Family",
+    "conversation_id": "NSF_12",
+    "variation": 2,
+    "noise_type": "filler_hesitation",
+    "input": "hello i am calling about your mother they participated like in bingo today they laughed with the group they stayed for the whole session they had afternoon tea with two residents we will um invite her again next week please contact us if you erm need more information",
+    "output": "Hello, I am calling about your mother. They participated in bingo today. They laughed with the group. They stayed for the whole session. They had afternoon tea with two residents. We will invite her again next week. Please contact us if you need more information."
+  },
+  {
+    "category": "Staff-Family",
+    "conversation_id": "NSF_12",
+    "variation": 3,
+    "noise_type": "asr_confusion",
+    "input": "hello i am calling about your mother they participated in bingo today they laughed with the group they stayed four the hole session they had afternoon tee with two residents we will invite her again next weak please contact us if you need more information",
+    "output": "Hello, I am calling about your mother. They participated in bingo today. They laughed with the group. They stayed for the whole session. They had afternoon tea with two residents. We will invite her again next week. Please contact us if you need more information."
+  },
+  {
+    "category": "Staff-Family",
+    "conversation_id": "NSF_12",
+    "variation": 4,
+    "noise_type": "casing_spacing_noise",
+    "input": "HELLO  i am calling about your mother They participated IN bingo today  they laughed With the group they STAYED for the Whole session  they had afternoon tea WITH Two residents we will invite her  again Next WEEK please contact us if you Need more information",
+    "output": "Hello, I am calling about your mother. They participated in bingo today. They laughed with the group. They stayed for the whole session. They had afternoon tea with two residents. We will invite her again next week. Please contact us if you need more information."
+  },
+  {
+    "category": "Staff-Family",
+    "conversation_id": "NSF_13",
+    "variation": 1,
+    "noise_type": "keyboard_typo",
+    "input": "hello i am claling about yuor father they has yuor visit time on his calendar they asked about famliy photos they looks forward to seeing yuo they we can remind him again we will tell us if teh time changes plese contact us if you need more information",
+    "output": "Hello, I am calling about your father. They has your visit time on his calendar. They asked about family photos. They looks forward to seeing you. They we can remind him again. We will tell us if the time changes. Please contact us if you need more information."
+  },
+  {
+    "category": "Staff-Family",
+    "conversation_id": "NSF_13",
+    "variation": 2,
+    "noise_type": "filler_hesitation",
+    "input": "hello i am erm calling about your father they has your visit time on his calendar they asked about family photos they looks forward to erm seeing you like they we can remind him again we um will tell us if the time changes please contact us if you need more information",
+    "output": "Hello, I am calling about your father. They has your visit time on his calendar. They asked about family photos. They looks forward to seeing you. They we can remind him again. We will tell us if the time changes. Please contact us if you need more information."
+  },
+  {
+    "category": "Staff-Family",
+    "conversation_id": "NSF_13",
+    "variation": 3,
+    "noise_type": "asr_confusion",
+    "input": "hello i am calling about your father they has your visit time on his calendar they asked about family photos they looks forward too seeing you they we can remind him again we will tell us if the time changes please contact us if you need more information",
+    "output": "Hello, I am calling about your father. They has your visit time on his calendar. They asked about family photos. They looks forward to seeing you. They we can remind him again. We will tell us if the time changes. Please contact us if you need more information."
+  },
+  {
+    "category": "Staff-Family",
+    "conversation_id": "NSF_13",
+    "variation": 4,
+    "noise_type": "casing_spacing_noise",
+    "input": "HELLO  i am calling about your father They has YOUR visit time  on his Calendar they asked about FAMILY photos they Looks forward  to seeing you they WE Can remind him again we will  tell Us IF the time changes please contact Us if you  NEED more information",
+    "output": "Hello, I am calling about your father. They has your visit time on his calendar. They asked about family photos. They looks forward to seeing you. They we can remind him again. We will tell us if the time changes. Please contact us if you need more information."
+  },
+  {
+    "category": "Staff-Family",
+    "conversation_id": "NSF_14",
+    "variation": 1,
+    "noise_type": "keyboard_typo",
+    "input": "hello i am claling about yuor grandmother they ate better at dinner they finished mashed potato and fish they drank a full cup of tea they said teh meal tasted nice we will keep monitring meals plese contact us if yuo need more informtaion",
+    "output": "Hello, I am calling about your grandmother. They ate better at dinner. They finished mashed potato and fish. They drank a full cup of tea. They said the meal tasted nice. We will keep monitoring meals. Please contact us if you need more information."
+  },
+  {
+    "category": "Staff-Family",
+    "conversation_id": "NSF_14",
+    "variation": 2,
+    "noise_type": "filler_hesitation",
+    "input": "hello um i am calling about your grandmother they ate better uh at dinner they finished mashed potato and fish they drank a full cup of tea they said the meal tasted nice we will keep monitoring meals please contact us if like you need more information",
+    "output": "Hello, I am calling about your grandmother. They ate better at dinner. They finished mashed potato and fish. They drank a full cup of tea. They said the meal tasted nice. We will keep monitoring meals. Please contact us if you need more information."
+  },
+  {
+    "category": "Staff-Family",
+    "conversation_id": "NSF_14",
+    "variation": 3,
+    "noise_type": "asr_confusion",
+    "input": "hello i am calling about your grandmother they eight better at dinner they finished mashed potato and fish they drank a full cup of tee they said the meal tasted nice we will keep monitoring meals please contact us if you need more information",
+    "output": "Hello, I am calling about your grandmother. They ate better at dinner. They finished mashed potato and fish. They drank a full cup of tea. They said the meal tasted nice. We will keep monitoring meals. Please contact us if you need more information."
+  },
+  {
+    "category": "Staff-Family",
+    "conversation_id": "NSF_14",
+    "variation": 4,
+    "noise_type": "casing_spacing_noise",
+    "input": "HELLO  i am calling about your grandmother They ate BETTER at dinner  they finished Mashed potato and fish THEY drank a Full cup  of tea they said THE Meal tasted nice we will keep  monitoring Meals PLEASE contact us if you need More information",
+    "output": "Hello, I am calling about your grandmother. They ate better at dinner. They finished mashed potato and fish. They drank a full cup of tea. They said the meal tasted nice. We will keep monitoring meals. Please contact us if you need more information."
+  },
+  {
+    "category": "Staff-Family",
+    "conversation_id": "NSF_15",
+    "variation": 1,
+    "noise_type": "keyboard_typo",
+    "input": "hello i am claling about yuor husband they had a calm afternoon they listened to old songs they tapped along with teh music they smiled at a familiar song we will include more music activities plese contact us if yuo need more informtaion",
+    "output": "Hello, I am calling about your husband. They had a calm afternoon. They listened to old songs. They tapped along with the music. They smiled at a familiar song. We will include more music activities. Please contact us if you need more information."
+  },
+  {
+    "category": "Staff-Family",
+    "conversation_id": "NSF_15",
+    "variation": 2,
+    "noise_type": "filler_hesitation",
+    "input": "hello i am calling about your husband they had um a calm afternoon they listened to old songs they tapped along with the music they smiled at a familiar erm song we will include more music activities please contact us um if you need more information",
+    "output": "Hello, I am calling about your husband. They had a calm afternoon. They listened to old songs. They tapped along with the music. They smiled at a familiar song. We will include more music activities. Please contact us if you need more information."
+  },
+  {
+    "category": "Staff-Family",
+    "conversation_id": "NSF_15",
+    "variation": 3,
+    "noise_type": "asr_confusion",
+    "input": "hello i am calling about your husband they had a calm afternoon they listened too old songs they tapped along with the music they smiled at a familiar song we will include more music activities please contact us if you need more information",
+    "output": "Hello, I am calling about your husband. They had a calm afternoon. They listened to old songs. They tapped along with the music. They smiled at a familiar song. We will include more music activities. Please contact us if you need more information."
+  },
+  {
+    "category": "Staff-Family",
+    "conversation_id": "NSF_15",
+    "variation": 4,
+    "noise_type": "casing_spacing_noise",
+    "input": "HELLO  i am calling about your husband They had A calm afternoon  they listened To old songs they TAPPED along with The music  they smiled at a FAMILIAR Song we will include more music  activities Please CONTACT us if you need more Information",
+    "output": "Hello, I am calling about your husband. They had a calm afternoon. They listened to old songs. They tapped along with the music. They smiled at a familiar song. We will include more music activities. Please contact us if you need more information."
+  },
+  {
+    "category": "Staff-Family",
+    "conversation_id": "NSF_16",
+    "variation": 1,
+    "noise_type": "keyboard_typo",
+    "input": "hello i am claling about yuor sister they asked whether yuo received her message they said she feels comfortbale toady they asked about teh weather at home they can call yuo later we will help her use the phone please contact us if you need more information",
+    "output": "Hello, I am calling about your sister. They asked whether you received her message. They said she feels comfortable today. They asked about the weather at home. They can call you later. We will help her use the phone. Please contact us if you need more information."
+  },
+  {
+    "category": "Staff-Family",
+    "conversation_id": "NSF_16",
+    "variation": 2,
+    "noise_type": "filler_hesitation",
+    "input": "hello i am calling about your sister they asked whether you received her message they said she feels comfortable today they asked about the weather at home they can call you later we will help her use the phone erm please contact us erm if you need more um information",
+    "output": "Hello, I am calling about your sister. They asked whether you received her message. They said she feels comfortable today. They asked about the weather at home. They can call you later. We will help her use the phone. Please contact us if you need more information."
+  },
+  {
+    "category": "Staff-Family",
+    "conversation_id": "NSF_16",
+    "variation": 3,
+    "noise_type": "asr_confusion",
+    "input": "hello i am calling about your sister they asked whether you received her message they said she feels comfortable today they asked about the weather at home they can coal you later we will help her use the phone please contact us if you need more information",
+    "output": "Hello, I am calling about your sister. They asked whether you received her message. They said she feels comfortable today. They asked about the weather at home. They can call you later. We will help her use the phone. Please contact us if you need more information."
+  },
+  {
+    "category": "Staff-Family",
+    "conversation_id": "NSF_16",
+    "variation": 4,
+    "noise_type": "casing_spacing_noise",
+    "input": "HELLO  i am calling about your sister They asked WHETHER you received  her message They said she feels COMFORTABLE today they Asked about  the weather at home THEY Can call you later we will  help Her USE the phone please contact us If you need  MORE information",
+    "output": "Hello, I am calling about your sister. They asked whether you received her message. They said she feels comfortable today. They asked about the weather at home. They can call you later. We will help her use the phone. Please contact us if you need more information."
+  },
+  {
+    "category": "Staff-Family",
+    "conversation_id": "NSF_17",
+    "variation": 1,
+    "noise_type": "keyboard_typo",
+    "input": "hello i am claling about yuor father they returned from his clinic visit they trip went smoothly they was tired afterward they paperwork was added to his recrod we will continue normal care tonight plese contact us if yuo need more informtaion",
+    "output": "Hello, I am calling about your father. They returned from his clinic visit. They trip went smoothly. They was tired afterward. They paperwork was added to his record. We will continue normal care tonight. Please contact us if you need more information."
+  },
+  {
+    "category": "Staff-Family",
+    "conversation_id": "NSF_17",
+    "variation": 2,
+    "noise_type": "filler_hesitation",
+    "input": "hello i am calling about your father uh they returned from his clinic visit they trip went smoothly they was tired afterward uh they paperwork was added to his record we will continue like normal care tonight please contact us if you need more information",
+    "output": "Hello, I am calling about your father. They returned from his clinic visit. They trip went smoothly. They was tired afterward. They paperwork was added to his record. We will continue normal care tonight. Please contact us if you need more information."
+  },
+  {
+    "category": "Staff-Family",
+    "conversation_id": "NSF_17",
+    "variation": 3,
+    "noise_type": "asr_confusion",
+    "input": "hello i am calling about your father they returned from his clinic visit they trip went smoothly they was tired afterward they paperwork was added too his record we will continue normal care tonight please contact us if you need more information",
+    "output": "Hello, I am calling about your father. They returned from his clinic visit. They trip went smoothly. They was tired afterward. They paperwork was added to his record. We will continue normal care tonight. Please contact us if you need more information."
+  },
+  {
+    "category": "Staff-Family",
+    "conversation_id": "NSF_17",
+    "variation": 4,
+    "noise_type": "casing_spacing_noise",
+    "input": "HELLO  i am calling about your father They returned FROM his clinic  visit they Trip went smoothly they WAS tired afterward They paperwork  was added to his RECORD We will continue normal care tonight  please Contact US if you need more information",
+    "output": "Hello, I am calling about your father. They returned from his clinic visit. They trip went smoothly. They was tired afterward. They paperwork was added to his record. We will continue normal care tonight. Please contact us if you need more information."
+  },
+  {
+    "category": "Staff-Family",
+    "conversation_id": "NSF_18",
+    "variation": 1,
+    "noise_type": "keyboard_typo",
+    "input": "hello i am claling about yuor mother they folded towels with staff toady they said it reminded her of home they seemed focused and calm they rested in teh lounge afterward we will offer similar activities again plese contact us if yuo need more informtaion",
+    "output": "Hello, I am calling about your mother. They folded towels with staff today. They said it reminded her of home. They seemed focused and calm. They rested in the lounge afterward. We will offer similar activities again. Please contact us if you need more information."
+  },
+  {
+    "category": "Staff-Family",
+    "conversation_id": "NSF_18",
+    "variation": 2,
+    "noise_type": "filler_hesitation",
+    "input": "hello i am calling about your mother they folded towels with staff today they said it reminded her of home they seemed focused erm and like calm they rested in the lounge afterward we will offer similar activities again erm please contact us if you need more information",
+    "output": "Hello, I am calling about your mother. They folded towels with staff today. They said it reminded her of home. They seemed focused and calm. They rested in the lounge afterward. We will offer similar activities again. Please contact us if you need more information."
+  },
+  {
+    "category": "Staff-Family",
+    "conversation_id": "NSF_18",
+    "variation": 3,
+    "noise_type": "asr_confusion",
+    "input": "hello i am calling about your mother they folded towels with staff today they said it reminded her of home they seemed focused and calm they rested in the lounge afterward we will offer similar activities again please contact us if you need more information",
+    "output": "Hello, I am calling about your mother. They folded towels with staff today. They said it reminded her of home. They seemed focused and calm. They rested in the lounge afterward. We will offer similar activities again. Please contact us if you need more information."
+  },
+  {
+    "category": "Staff-Family",
+    "conversation_id": "NSF_18",
+    "variation": 4,
+    "noise_type": "casing_spacing_noise",
+    "input": "HELLO  i am calling about your mother They folded TOWELS with staff  today they Said it reminded her OF home they Seemed focused  and calm they rested IN The lounge afterward we will offer  similar Activities AGAIN please contact us if you Need more information",
+    "output": "Hello, I am calling about your mother. They folded towels with staff today. They said it reminded her of home. They seemed focused and calm. They rested in the lounge afterward. We will offer similar activities again. Please contact us if you need more information."
+  },
+  {
+    "category": "Staff-Family",
+    "conversation_id": "NSF_19",
+    "variation": 1,
+    "noise_type": "keyboard_typo",
+    "input": "hello i am claling about yuor grandfather they room was reorganised for safety they small table moved away from path they call bell remains beside teh bed they photos are still on teh shelf we will room is easier to move around in plese contact us if yuo need more informtaion",
+    "output": "Hello, I am calling about your grandfather. They room was reorganised for safety. They small table moved away from path. They call bell remains beside the bed. They photos are still on the shelf. We will room is easier to move around in. Please contact us if you need more information."
+  },
+  {
+    "category": "Staff-Family",
+    "conversation_id": "NSF_19",
+    "variation": 2,
+    "noise_type": "filler_hesitation",
+    "input": "hello i am uh calling about your grandfather they room was reorganised for safety they small table moved away from path they call bell remains beside the bed they photos are still on the shelf we will room is easier to move erm around in um please contact us if you um need more information",
+    "output": "Hello, I am calling about your grandfather. They room was reorganised for safety. They small table moved away from path. They call bell remains beside the bed. They photos are still on the shelf. We will room is easier to move around in. Please contact us if you need more information."
+  },
+  {
+    "category": "Staff-Family",
+    "conversation_id": "NSF_19",
+    "variation": 3,
+    "noise_type": "asr_confusion",
+    "input": "hello i am calling about your grandfather they room was reorganised four safety they small table moved away from path they coal bell remains beside the bed they photos are still on the shelf we will room is easier too move around in please contact us if you need more information",
+    "output": "Hello, I am calling about your grandfather. They room was reorganised for safety. They small table moved away from path. They call bell remains beside the bed. They photos are still on the shelf. We will room is easier to move around in. Please contact us if you need more information."
+  },
+  {
+    "category": "Staff-Family",
+    "conversation_id": "NSF_19",
+    "variation": 4,
+    "noise_type": "casing_spacing_noise",
+    "input": "HELLO  i am calling about your grandfather They room WAS reorganised for  safety they Small table moved away FROM path they Call bell  remains beside the bed THEY Photos are still on the shelf  we Will ROOM is easier to move around In please contact  US if you need More information",
+    "output": "Hello, I am calling about your grandfather. They room was reorganised for safety. They small table moved away from path. They call bell remains beside the bed. They photos are still on the shelf. We will room is easier to move around in. Please contact us if you need more information."
+  },
+  {
+    "category": "Staff-Family",
+    "conversation_id": "NSF_20",
+    "variation": 1,
+    "noise_type": "keyboard_typo",
+    "input": "hello i am claling about yuor aunt they had a video call with her friend they tablet was set up by staff they spoke for about ten minutes they looked happy after teh call we will arrange another call next week plese contact us if yuo need more informtaion",
+    "output": "Hello, I am calling about your aunt. They had a video call with her friend. They tablet was set up by staff. They spoke for about ten minutes. They looked happy after the call. We will arrange another call next week. Please contact us if you need more information."
+  },
+  {
+    "category": "Staff-Family",
+    "conversation_id": "NSF_20",
+    "variation": 2,
+    "noise_type": "filler_hesitation",
+    "input": "hello i am calling about your aunt they had a video call with her friend erm they tablet was set up by staff they spoke like for about ten minutes they looked happy uh after the erm call we will arrange another call next week please contact us if you need more information",
+    "output": "Hello, I am calling about your aunt. They had a video call with her friend. They tablet was set up by staff. They spoke for about ten minutes. They looked happy after the call. We will arrange another call next week. Please contact us if you need more information."
+  },
+  {
+    "category": "Staff-Family",
+    "conversation_id": "NSF_20",
+    "variation": 3,
+    "noise_type": "asr_confusion",
+    "input": "hello i am calling about your aunt they had a video coal with her friend they tablet was set up buy staff they spoke four about ten minutes they looked happy after the coal we will arrange another coal next weak please contact us if you need more information",
+    "output": "Hello, I am calling about your aunt. They had a video call with her friend. They tablet was set up by staff. They spoke for about ten minutes. They looked happy after the call. We will arrange another call next week. Please contact us if you need more information."
+  },
+  {
+    "category": "Staff-Family",
+    "conversation_id": "NSF_20",
+    "variation": 4,
+    "noise_type": "casing_spacing_noise",
+    "input": "HELLO  i am calling about your aunt They had A video call  with her Friend they tablet was SET up by Staff they  spoke for about ten MINUTES They looked happy after the call  we Will ARRANGE another call next week please Contact us if  YOU need more information",
+    "output": "Hello, I am calling about your aunt. They had a video call with her friend. They tablet was set up by staff. They spoke for about ten minutes. They looked happy after the call. We will arrange another call next week. Please contact us if you need more information."
+  }
+]

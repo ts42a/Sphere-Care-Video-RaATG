@@ -65,3 +65,20 @@ export type AlertRealtimePayload = {
     alert_type?: string;
   };
 };
+
+export type TaskRealtimePayload = {
+  type: "task.created" | "task.updated" | "task.deleted";
+  task?: {
+    id: number;
+    title?: string;
+    description?: string | null;
+    task_type?: string;
+    due_date?: string | null;
+    due_time?: string | null;
+    status?: string;
+    priority?: string;
+    resident_name?: string | null;
+  };
+  task_id?: number;
+  resident_id?: number;
+};

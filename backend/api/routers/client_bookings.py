@@ -62,19 +62,21 @@ def build_schedule_payload(db: Session, admin_id: int, doctor_id: str, date: str
     }
 
     time_slots = []
-    for slot in get_slot_templates():
+    for slot in get_slot_templates(doctor_id):
         time_slots.append(
             TimeSlotResponse(
                 id=slot["id"],
                 label=slot["label"],
                 available=slot["start"] not in occupied_start_times,
+                start=slot["start"],
+                end=slot["end"],
             )
         )
 
     return {
         "doctor": build_doctor_response(doctor),
         "date": date,
-        "available_dates": get_available_dates(),
+        "available_dates": get_available_dates(doctor_id),
         "time_slots": time_slots,
         "version": int(datetime.utcnow().timestamp()),
     }
@@ -181,7 +183,7 @@ async def create_client_booking(
     if booking.appointment_type_id not in doctor["appointment_type_ids"]:
         raise HTTPException(status_code=400, detail="Doctor does not support this appointment type")
 
-    slot = get_slot_template_by_id(booking.time_slot_id)
+    slot = get_slot_template_by_id(booking.time_slot_id, booking.doctor_id)
     if not slot:
         raise HTTPException(status_code=404, detail="Time slot not found")
 
@@ -227,7 +229,7 @@ async def create_client_booking(
         schedule_payload=schedule_payload,
     )
 
-    await notification_service.notify_booking_created(new_booking, int(admin_id), db=db, client_user_id=int(user_id) if user_id else None)
+    await notification_service.notify_booking_created(new_booking, int(admin_id), db=db)
     await notification_service.notify_client_booking_updated(
         admin_id=int(admin_id),
         booking_id=new_booking.id,
@@ -235,6 +237,33 @@ async def create_client_booking(
     )
 
     return build_confirmation_response(new_booking)
+
+
+@router.get("/my", response_model=list[BookingConfirmationResponse])
+def list_my_client_bookings(
+    auth=Depends(get_current_auth_context),
+    db: Session = Depends(get_db),
+):
+    admin_id = auth.get("admin_id")
+    resident_id = auth.get("resident_id")
+    role = auth.get("role")
+
+    if role != "client":
+        raise HTTPException(status_code=403, detail="Client access only")
+
+    if not admin_id or not resident_id:
+        raise HTTPException(status_code=403, detail="Missing resident context")
+
+    bookings = db.query(models.Booking).filter(
+        models.Booking.admin_id == admin_id,
+        models.Booking.resident_id == resident_id,
+        models.Booking.is_deleted == False,
+    ).order_by(
+        models.Booking.appointment_date.desc(),
+        models.Booking.start_time.desc(),
+    ).all()
+
+    return [build_confirmation_response(booking) for booking in bookings]
 
 
 @router.get("/{booking_id}", response_model=BookingConfirmationResponse)

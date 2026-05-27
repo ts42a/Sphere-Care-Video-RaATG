@@ -22,15 +22,37 @@ export async function getUserProfile(): Promise<UserProfile> {
     // No dedicated profile endpoint — use /auth/me and map to UserProfile shape
     try {
       const token = await getAccessToken();
-      const me = await request<{ id: number; full_name: string; email: string; role: string; phone?: string | null }>("/auth/me", { token: token || undefined });
+      const me = await request<{
+        id: number;
+        full_name: string;
+        email: string;
+        role?: string;
+        global_role?: string;
+        phone?: string | null;
+        date_of_birth?: string | null;
+        gender?: string | null;
+      }>("/auth/me", {
+        token: token || undefined,
+      });
+
       const [firstName, ...rest] = (me.full_name || "User").split(" ");
       const lastName = rest.join(" ");
+
       return {
         ...inMemoryProfile,
         id: String(me.id),
         fullName: me.full_name || "User",
-        personal: { ...inMemoryProfile.personal, firstName, lastName },
-        contact: { email: me.email || "", phone: me.phone || "" },
+        personal: {
+          ...inMemoryProfile.personal,
+          firstName,
+          lastName,
+          dateOfBirth: me.date_of_birth || "",
+          gender: me.gender || "",
+        },
+        contact: {
+          email: me.email || "",
+          phone: me.phone || "",
+        },
       };
     } catch {
       return inMemoryProfile;

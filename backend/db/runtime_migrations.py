@@ -152,6 +152,38 @@ def run_runtime_migrations(engine: Engine) -> None:
         WHERE processed = FALSE AND failed = FALSE
     """)
 
+
+    # ── care_tasks table for doctor-assigned client activities ─────────────
+    statements.append("""
+        CREATE TABLE IF NOT EXISTS care_tasks (
+            id BIGSERIAL PRIMARY KEY,
+            admin_id BIGINT NOT NULL,
+            resident_id BIGINT NOT NULL REFERENCES residents(id) ON DELETE CASCADE,
+            assigned_staff_id BIGINT NULL REFERENCES staff(id) ON DELETE SET NULL,
+            title VARCHAR(255) NOT NULL,
+            description TEXT NULL,
+            task_type VARCHAR(100) NOT NULL DEFAULT 'activity',
+            priority VARCHAR(30) NOT NULL DEFAULT 'medium',
+            due_date DATE NULL,
+            due_time TIME NULL,
+            status VARCHAR(50) NOT NULL DEFAULT 'pending',
+            completed_at TIMESTAMPTZ NULL,
+            completed_by BIGINT NULL,
+            notes TEXT NULL,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+    """)
+    statements.append("""
+        CREATE INDEX IF NOT EXISTS idx_care_tasks_admin_id ON care_tasks(admin_id)
+    """)
+    statements.append("""
+        CREATE INDEX IF NOT EXISTS idx_care_tasks_resident_id ON care_tasks(resident_id)
+    """)
+    statements.append("""
+        CREATE INDEX IF NOT EXISTS idx_care_tasks_due_date ON care_tasks(due_date)
+    """)
+
     with engine.begin() as conn:
         for statement in statements:
             conn.execute(text(statement))

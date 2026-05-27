@@ -86,7 +86,15 @@
         }
       ],
       "@config-plugins/react-native-webrtc",
-      "expo-notifications"
+      "expo-notifications",
+      [
+        "react-native-vision-camera",
+        {
+          "cameraPermissionText": "Sphere Care uses your camera to detect ASL signs during video calls.",
+          "enableFrameProcessors": false,
+          "enableCodeScanner": false
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

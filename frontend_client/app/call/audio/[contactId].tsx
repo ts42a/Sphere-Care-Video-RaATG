@@ -11,76 +11,25 @@ import { router, useLocalSearchParams } from "expo-router";
 import { Feather, MaterialIcons, Ionicons } from "@expo/vector-icons";
 
 import { callService } from "../../../src/services/callService";
-import { activeCallService } from "../../../src/services/activeCallService";
 import { miniCallService } from "../../../src/services/miniCallService";
 import { useCallSession } from "../../../src/hooks/useCallSession";
 import { useAiTranscript } from "../../../src/hooks/useAiTranscript";
+import { useAslBroadcast } from "../../../src/hooks/useAslBroadcast";
 import { useRtcEngine } from "../../../src/hooks/useRtcEngine";
 import { rtcEngine } from "../../../src/services/rtc/rtcEngineInstance";
+import { callSignalingService } from "../../../src/services/call/callSignalingService";
 import type { CallContact } from "../../../src/types/call";
 import CallHeader from "../../../src/components/call/CallHeader";
 import TranscriptPanel from "../../../src/components/call/TranscriptPanel";
 import CallParticipantCard from "../../../src/components/call/CallParticipantCard";
+import CallSummaryModal from "../../../src/components/call/CallSummaryModal";
+import { callSummaryState } from "../../../src/services/callSummaryState";
 import CallControls, {
   type CallControlItem,
 } from "../../../src/components/call/CallControls";
 import { colors } from "../../../src/theme/colors";
 import { spacing } from "../../../src/theme/spacing";
 import { typography } from "../../../src/theme/typography";
-
-
-function buildRouteFallbackContact(
-  contactId: string | undefined,
-  callId: number,
-  params: { contactName?: string; contactUserId?: string; contactRole?: string }
-): CallContact | null {
-  const active = Number.isFinite(callId) ? activeCallService.getByCallId(callId) : null;
-
-  if (active?.doctor) {
-    return {
-      id: contactId || String(active.remoteUserId ?? active.callId),
-      userId: active.remoteUserId ?? active.doctor.userId,
-      name: active.doctor.name || params.contactName || "Incoming call",
-      initials: active.doctor.initials || String(active.doctor.name || params.contactName || "IC")
-        .split(" ")
-        .map((part) => part[0])
-        .join("")
-        .slice(0, 2)
-        .toUpperCase(),
-      role: active.doctor.role || params.contactRole || "Care team",
-      specialty: active.doctor.role || params.contactRole || "Care team",
-      lastSeen: "",
-      online: true,
-      avatarColor: "#4C6EF5",
-      conversationId: active.conversationId,
-    };
-  }
-
-  const name = params.contactName || "Incoming call";
-  const userId = Number(params.contactUserId || contactId);
-
-  if (!contactId && !Number.isFinite(userId)) {
-    return null;
-  }
-
-  return {
-    id: contactId || String(userId),
-    userId: Number.isFinite(userId) ? userId : undefined,
-    name,
-    initials: String(name)
-      .split(" ")
-      .map((part) => part[0])
-      .join("")
-      .slice(0, 2)
-      .toUpperCase(),
-    role: params.contactRole || "Care team",
-    specialty: params.contactRole || "Care team",
-    lastSeen: "",
-    online: true,
-    avatarColor: "#4C6EF5",
-    conversationId: undefined,
-  };
-}
 
 function getConnectionLabel(callState: string, rtcState: string) {
   if (callState === "ringing") return "Ringing";
@@ -106,15 +55,23 @@ function getConnectionLabel(callState: string, rtcState: string) {
 }
 
 export default function AudioCallScreen() {
-  const params = useLocalSearchParams<{ contactId: string; callId?: string; contactName?: string; contactUserId?: string; contactRole?: string }>();
-  const contactId = Array.isArray(params.contactId) ? params.contactId[0] : params.contactId;
-  const routeCallId = Number(Array.isArray(params.callId) ? params.callId[0] : params.callId);
+  const params = useLocalSearchParams<{ contactId: string; callId?: string }>();
+  const contactId = Array.isArray(params.contactId)
+    ? params.contactId[0]
+    : params.contactId;
+  const routeCallId = Number(
+    Array.isArray(params.callId) ? params.callId[0] : params.callId
+  );
+
   const [contact, setContact] = useState<CallContact | null>(null);
   const [contactLoading, setContactLoading] = useState(true);
   const [contactError, setContactError] = useState("");
   const [speakerOn, setSpeakerOn] = useState(true);
   const [expanded, setExpanded] = useState(false);
   const [switchingToVideo, setSwitchingToVideo] = useState(false);
+  const [showSummary, setShowSummary] = useState(false);
+  const [finalTranscriptItems, setFinalTranscriptItems] = useState<any[]>([]);
+  const [finalDuration, setFinalDuration] = useState("00:00");
 
   useEffect(() => {
     if (!contactId) return;
@@ -124,23 +81,18 @@ export default function AudioCallScreen() {
         setContactLoading(true);
         setContactError("");
         const data = await callService.getContactById(contactId);
-        setContact(
-          data ??
-            buildRouteFallbackContact(contactId, routeCallId, {
-              contactName: Array.isArray(params.contactName) ? params.contactName[0] : params.contactName,
-              contactUserId: Array.isArray(params.contactUserId) ? params.contactUserId[0] : params.contactUserId,
-              contactRole: Array.isArray(params.contactRole) ? params.contactRole[0] : params.contactRole,
-            })
-        );
+        setContact(data);
       } catch (err) {
-        setContactError(err instanceof Error ? err.message : "Unable to load contact");
+        setContactError(
+          err instanceof Error ? err.message : "Unable to load contact"
+        );
       } finally {
         setContactLoading(false);
       }
     }
 
     loadContact();
-  }, [contactId, routeCallId, params.contactName, params.contactUserId, params.contactRole]);
+  }, [contactId]);
 
   const {
     session,
@@ -152,12 +104,18 @@ export default function AudioCallScreen() {
     toggleMute,
     stopTranscribing,
     endCurrentCall,
-  } = useCallSession(contact, "audio", { callId: Number.isFinite(routeCallId) ? routeCallId : undefined });
+  } = useCallSession(contact, "audio", {
+    callId: Number.isFinite(routeCallId) ? routeCallId : undefined,
+  });
 
   const { items: transcriptItems } = useAiTranscript(
     session?.callId,
     Boolean(session?.transcribing)
   );
+
+  const { sendFrame: sendAslFrame } = useAslBroadcast(session?.callId, {
+    enabled: Boolean(session?.callState === "active" && transcribing),
+  });
 
   const rtcOptions =
     session && contact && session.callState === "active"
@@ -172,12 +130,35 @@ export default function AudioCallScreen() {
       : undefined;
 
   const rtc = useRtcEngine(rtcEngine, rtcOptions);
-
   const error = contactError || sessionError || rtc.error;
 
   useEffect(() => {
-    if (!session || !contact || session.mode !== "video" || switchingToVideo) return;
+    if (!session || !contact || session.callState !== "active") return;
 
+    const callId = String(session.callId);
+    const localUserId = String(session.patient.userId ?? session.patient.name);
+    const remoteUserId = String(contact.userId ?? contact.id);
+
+    callSignalingService
+      .joinCall({ callId, mode: "audio", localUserId, remoteUserId })
+      .catch((err) => console.warn("[call] failed to join WS call room", err));
+
+    return () => {
+      callSignalingService
+        .leaveCall({ callId, localUserId })
+        .catch(() => undefined);
+    };
+  }, [
+    session?.callId,
+    session?.callState,
+    session?.patient.userId,
+    session?.patient.name,
+    contact?.userId,
+    contact?.id,
+  ]);
+
+  useEffect(() => {
+    if (!session || !contact || session.mode !== "video" || switchingToVideo) return;
     setSwitchingToVideo(true);
     router.replace({
       pathname: "/call/video/[contactId]",
@@ -185,18 +166,21 @@ export default function AudioCallScreen() {
     });
   }, [session?.mode, contact?.id, session?.callId, switchingToVideo]);
 
+  // On call end: show summary, then navigate away when user closes it
   useEffect(() => {
-    if (!session || !session.ended) return;
+    if (!session?.ended) return;
+    setFinalTranscriptItems([...transcriptItems]);
+    setFinalDuration(formattedDuration);
+    callSummaryState.setSummaryVisible(true);
+    setShowSummary(true);
+  }, [session?.ended]);
 
-    const timer = setTimeout(() => {
-      rtc.leaveCall().catch(() => undefined);
-      router.replace("/call");
-    }, 900);
-
-    return () => clearTimeout(timer);
-  }, [session?.ended, session?.callState]);
   const connectionLabel = useMemo(
-    () => getConnectionLabel(session?.callState ?? "ringing", rtc.snapshot.connectionState),
+    () =>
+      getConnectionLabel(
+        session?.callState ?? "ringing",
+        rtc.snapshot.connectionState
+      ),
     [session?.callState, rtc.snapshot.connectionState]
   );
 
@@ -212,8 +196,11 @@ export default function AudioCallScreen() {
     return (
       <SafeAreaView style={styles.loadingContainer}>
         <Text style={styles.errorText}>{error || "Unable to start call."}</Text>
-        <Pressable style={styles.backToListBtn} onPress={() => router.replace("/call")}>
-          <Text style={styles.backToListText}>Back to call center</Text>
+        <Pressable
+          style={styles.backToListBtn}
+          onPress={() => router.replace("/call")}
+        >
+          <Text style={styles.backToListText}>Back to call centre</Text>
         </Pressable>
       </SafeAreaView>
     );
@@ -222,7 +209,7 @@ export default function AudioCallScreen() {
   const audioMainControls: CallControlItem[] = [
     {
       key: "mute",
-      label: "Mute",
+      label: muted ? "Unmute" : "Mute",
       active: muted,
       icon: (
         <Feather
@@ -238,7 +225,7 @@ export default function AudioCallScreen() {
     },
     {
       key: "speaker",
-      label: "Speaker",
+      label: speakerOn ? "Speaker" : "Earpiece",
       active: speakerOn,
       icon: (
         <Feather
@@ -269,7 +256,7 @@ export default function AudioCallScreen() {
     },
     {
       key: "ai",
-      label: transcribing ? "Stop AI" : "AI Off",
+      label: transcribing ? "AI On" : "AI Off",
       active: transcribing,
       icon: <MaterialIcons name="smart-toy" size={22} color={colors.icon} />,
       onPress: stopTranscribing,
@@ -287,11 +274,14 @@ export default function AudioCallScreen() {
       key: "end",
       label: "",
       danger: true,
-      icon: <Feather name="phone" size={26} color="#FFFFFF" />,
+      icon: <Feather name="phone-off" size={26} color="#FFFFFF" />,
       onPress: async () => {
+        setFinalTranscriptItems([...transcriptItems]);
+        setFinalDuration(formattedDuration);
         await endCurrentCall();
         await rtc.leaveCall();
-        router.replace("/call");
+        callSummaryState.setSummaryVisible(true);
+        setShowSummary(true);
       },
     },
     {
@@ -312,8 +302,13 @@ export default function AudioCallScreen() {
     },
   ];
 
+  const isTerminalCall = ["declined", "canceled", "timeout", "ended"].includes(
+    session.callState
+  );
+
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.root}>
+      <SafeAreaView style={styles.container}>
       <CallHeader
         time={formattedDuration}
         aiEnabled={transcribing}
@@ -332,6 +327,7 @@ export default function AudioCallScreen() {
       />
 
       <View style={styles.content}>
+        {/* Participant card */}
         <View style={styles.hero}>
           <CallParticipantCard
             initials={contact.initials}
@@ -343,10 +339,12 @@ export default function AudioCallScreen() {
           />
         </View>
 
+        {/* Main controls grid */}
         <View style={styles.mainControlsWrap}>
           <CallControls items={audioMainControls} layout="grid" />
         </View>
 
+        {/* Transcript panel — scrollable, with jump-to-latest */}
         <TranscriptPanel
           items={transcriptItems}
           transcribing={transcribing}
@@ -358,6 +356,7 @@ export default function AudioCallScreen() {
           ]}
         />
 
+        {/* Connection status */}
         <View style={styles.connectionWrap}>
           <MaterialIcons
             name={
@@ -365,34 +364,52 @@ export default function AudioCallScreen() {
                 ? "ring-volume"
                 : rtc.snapshot.connectionState === "connected"
                 ? "graphic-eq"
-                : rtc.snapshot.connectionState === "ended"
+                : isTerminalCall
                 ? "call-end"
                 : "wifi-tethering"
             }
-            size={22}
-            color={
-              ["declined", "canceled", "timeout", "ended"].includes(session.callState)
-                ? colors.danger
-                : colors.success
-            }
+            size={18}
+            color={isTerminalCall ? colors.danger : colors.success}
           />
           <Text
             style={[
               styles.connectionText,
-              ["declined", "canceled", "timeout", "ended"].includes(session.callState)
-                ? styles.connectionTextEnded
-                : null,
+              isTerminalCall && styles.connectionTextEnded,
             ]}
           >
             {connectionLabel}
           </Text>
         </View>
 
+        {/* Bottom action row (dialpad / end / chat) */}
         <View style={styles.bottomActions}>
           <CallControls items={audioBottomControls} layout="row" />
         </View>
       </View>
-    </SafeAreaView>
+
+      </SafeAreaView>
+
+      {/* Post-call AI summary modal — full screen overlay outside SafeAreaView */}
+      {showSummary && (
+        <CallSummaryModal
+          visible={showSummary}
+          onClose={() => {
+            callSummaryState.setSummaryVisible(false);
+            setShowSummary(false);
+            rtc.leaveCall().catch(() => undefined);
+            router.replace("/call");
+          }}
+          session={session}
+          contact={contact}
+          transcriptItems={
+            finalTranscriptItems.length > 0
+              ? finalTranscriptItems
+              : transcriptItems
+          }
+          formattedDuration={finalDuration || formattedDuration}
+        />
+      )}
+    </View>
   );
 }
 
@@ -420,6 +437,10 @@ const styles = StyleSheet.create({
     color: colors.surface,
     fontWeight: "700",
   },
+  root: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
   container: {
     flex: 1,
     backgroundColor: colors.background,
@@ -429,18 +450,18 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingBottom: 10,
-    position: "relative",
     paddingTop: 10,
+    position: "relative",
   },
   hero: {
     alignItems: "center",
     marginBottom: 12,
   },
   mainControlsWrap: {
-    marginBottom: 16,
+    marginBottom: 14,
   },
   transcriptPanel: {
-    height: 130,
+    height: 150,
     marginBottom: 10,
   },
   transcriptPanelExpanded: {
@@ -448,7 +469,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    height: "58%",
+    height: "60%",
     marginBottom: 0,
     zIndex: 20,
     elevation: 12,

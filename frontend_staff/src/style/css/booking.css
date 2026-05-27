@@ -242,15 +242,13 @@ body {
   .cal-week-col.today-col { background: #fafcff; }
   .cal-week-hour-line { position: absolute; left: 0; right: 0; height: 1px; background: #F8FAFC; }
   .cal-week-event {
-    position: absolute; left: 3px; right: 3px; border-radius: 5px;
-    padding: 3px 6px; font-size: 10px; font-weight: 700; overflow: hidden;
-    cursor: pointer; transition: opacity 0.12s; z-index: 1; line-height: 1.3;
+    position: absolute; left: 3px; right: 3px; border-radius: 7px;
+    padding: 5px 8px; overflow: hidden;
+    cursor: pointer; transition: opacity 0.12s, box-shadow 0.12s; z-index: 1;
   }
-  .cal-week-event:hover { opacity: 0.85; }
-  .cal-week-event.ongoing   { background: #fef3c7; color: #b45309; border-left: 3px solid #f59e0b; }
-  .cal-week-event.upcoming  { background: #dbeafe; color: #1d4ed8; border-left: 3px solid #4f8ef7; }
-  .cal-week-event.completed { background: #d1fae5; color: #14532D; border-left: 3px solid #38c9a0; }
-  .cal-week-event.requested { background: #fee2e2; color: #b91c1c; border-left: 3px solid #f87171; }
+  .cal-week-event:hover { opacity: 0.88; box-shadow: 0 3px 10px rgba(0,0,0,0.13); }
+  .wk-ev-time { font-size: 9.5px; font-weight: 800; line-height: 1.2; margin-bottom: 3px; opacity: 0.75; }
+  .wk-ev-name { font-size: 11.5px; font-weight: 700; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
   .cal-dow-row {
     display: grid;

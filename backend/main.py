@@ -1,12 +1,13 @@
+import time
 from pathlib import Path
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from backend.api.routers import api_router
-from backend.api.routers.call import router as calls_router, expire_timed_out_calls
+from backend.api.routers.call import expire_timed_out_calls
 from backend.api.routers.ws import router as ws_router  # ── NEW ──
 from backend.db.base import Base
 from backend.db.session import engine
@@ -14,14 +15,30 @@ from backend.db.runtime_migrations import run_runtime_migrations
 from backend import models  # noqa: F401
 
 
+import logging as _logging
+_startup_logger = _logging.getLogger("sphere_care.startup")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Create all tables from ORM metadata (no-op if they already exist)
     Base.metadata.create_all(bind=engine)
     run_runtime_migrations(engine)
+
+    # LiveKit startup check (Rollout Step 1)
+    from backend.core.config import LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET
+    if LIVEKIT_URL and LIVEKIT_API_KEY and LIVEKIT_API_SECRET:
+        _startup_logger.info("[livekit] configured — url=%s key=%s...", LIVEKIT_URL, LIVEKIT_API_KEY[:8])
+    else:
+        _startup_logger.warning("[livekit] NOT configured — LIVEKIT_URL / LIVEKIT_API_KEY / LIVEKIT_API_SECRET missing; calls will work without media")
+
     # Seed test data when DB is fresh (no-op if data already exists)
     from backend.db.seed import seed_database
     seed_database()
+
+    # Start the AI analysis queue worker (serializes GPU access across all cameras)
+    from backend.services.ai.analysis_queue import analysis_queue
+    analysis_queue.start()
 
     # Start message outbox processor (fan-out queue)
     import asyncio
@@ -44,6 +61,10 @@ async def lifespan(app: FastAPI):
     call_timeout_task = asyncio.create_task(_call_timeout_loop())
 
     yield
+
+    # Shutdown analysis queue worker
+    from backend.services.ai.analysis_queue import analysis_queue as _aq
+    _aq.stop()
 
     # Shutdown outbox processor
     outbox_task.cancel()
@@ -70,6 +91,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.middleware("http")
+async def add_response_time_header(request: Request, call_next):
+    start = time.perf_counter()
+    response = await call_next(request)
+    duration_ms = (time.perf_counter() - start) * 1000
+    response.headers["X-Response-Time-Ms"] = f"{duration_ms:.1f}"
+    return response
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 FRONTEND_DIR = BASE_DIR / "frontend_staff" / "src"
 PAGES_DIR = FRONTEND_DIR / "pages"
@@ -89,6 +118,14 @@ if FRONTEND_DIR.exists():
     app.mount("/assets", StaticFiles(directory=FRONTEND_DIR / "assets"), name="assets")
     app.mount("/public", StaticFiles(directory=FRONTEND_DIR), name="public")
 
+UPLOADS_DIR = BASE_DIR / "uploads"
+UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
+(UPLOADS_DIR / "videos").mkdir(parents=True, exist_ok=True)
+(UPLOADS_DIR / "audio").mkdir(parents=True, exist_ok=True)
+(UPLOADS_DIR / "images").mkdir(parents=True, exist_ok=True)
+(UPLOADS_DIR / "documents").mkdir(parents=True, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=UPLOADS_DIR), name="uploads")
+
 @app.get("/", include_in_schema=False)
 def serve_index():
     return FileResponse(FRONTEND_DIR / "index.html")
@@ -106,5 +143,4 @@ def health():
     return {"status": "ok"}
 
 app.include_router(api_router, prefix="/api/v1")
-app.include_router(calls_router, prefix="/api/v1")
 app.include_router(ws_router)

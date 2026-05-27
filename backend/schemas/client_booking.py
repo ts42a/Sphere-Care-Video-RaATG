@@ -24,6 +24,8 @@ class TimeSlotResponse(BaseModel):
     id: str
     label: str
     available: bool
+    start: Optional[str] = None
+    end: Optional[str] = None
 
 
 class ScheduleResponse(BaseModel):

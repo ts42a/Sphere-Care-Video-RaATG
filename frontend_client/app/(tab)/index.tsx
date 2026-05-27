@@ -17,6 +17,14 @@ import QuickActionCard from "../../src/components/QuickActionCard";
 import TaskCard from "../../src/components/TaskCard";
 import { profileService } from "../../src/services/profileService";
 import { notificationService } from "../../src/services/notificationService";
+import { taskService } from "../../src/services/taskService";
+import type { CareTask } from "../../src/types/task";
+import {
+  formatTaskCategory,
+  formatTaskTime,
+  shouldDimTask,
+  sortHomeTodayTasks,
+} from "../../src/utils/taskUtils";
 import { colors } from "../../src/theme/colors";
 import { spacing } from "../../src/theme/spacing";
 import { typography } from "@/src/theme/typography";
@@ -24,6 +32,7 @@ import { typography } from "@/src/theme/typography";
 export default function HomeScreen() {
   const [userName, setUserName] = useState("User");
   const [notificationCount, setNotificationCount] = useState(0);
+  const [todayTasks, setTodayTasks] = useState<CareTask[]>([]);
 
   useFocusEffect(
     useCallback(() => {
@@ -41,6 +50,13 @@ export default function HomeScreen() {
         } catch (error) {
           setNotificationCount(0);
         }
+
+        try {
+          const items = await taskService.getTodayTasks();
+          setTodayTasks(sortHomeTodayTasks(items));
+        } catch (error) {
+          setTodayTasks([]);
+        }
       }
 
       loadHomeData();
@@ -48,39 +64,45 @@ export default function HomeScreen() {
   );
 
   useEffect(() => {
-    const unsubscribe = notificationService.subscribe((_, unread) => {
+    const unsubscribeNotifications = notificationService.subscribe((_, unread) => {
       setNotificationCount(unread || 0);
     });
+    const unsubscribeTasks = taskService.subscribeRealtime(async () => {
+      try {
+        const items = await taskService.getTodayTasks();
+        setTodayTasks(sortHomeTodayTasks(items));
+      } catch {}
+    });
 
-    return unsubscribe;
+    const timer = setInterval(() => {
+      setTodayTasks((current) => sortHomeTodayTasks(current));
+    }, 60000);
+
+    return () => {
+      clearInterval(timer);
+      unsubscribeNotifications();
+      unsubscribeTasks();
+    };
   }, []);
 
-  const tasks = [
-    {
-      id: 1,
-      category: "Medication",
-      name: "Vitamin D 1000 IU after breakfast",
-      time: "8:00",
-      type: "green" as const,
-      icon: <Ionicons name="medical-outline" size={26} color="#27C27F" />,
-    },
-    {
-      id: 2,
-      category: "Exercise",
-      name: "Morning walk for 20 minutes",
-      time: "8:30",
-      type: "orange" as const,
-      icon: <Feather name="activity" size={24} color="#FF932D" />,
-    },
-    {
-      id: 3,
-      category: "Meal",
-      name: "Prepare low salt lunch",
-      time: "12:00",
-      type: "red" as const,
-      icon: <Ionicons name="restaurant-outline" size={26} color="#F15F5F" />,
-    },
-  ];
+  function getTaskVisual(task: CareTask, dimmed = false) {
+    if (dimmed || task.status === "completed") {
+      return { type: "gray" as const, icon: <Feather name="check-circle" size={25} color="#94A3B8" /> };
+    }
+    if (task.priority === "urgent" || task.priority === "high") {
+      return { type: "red" as const, icon: <Feather name="alert-circle" size={25} color="#F15F5F" /> };
+    }
+    if (task.taskType === "medication") {
+      return { type: "green" as const, icon: <Ionicons name="medical-outline" size={26} color="#27C27F" /> };
+    }
+    if (["exercise", "mobility", "mobility_assist"].includes(task.taskType)) {
+      return { type: "orange" as const, icon: <Feather name="activity" size={24} color="#FF932D" /> };
+    }
+    if (["meal", "meal_support", "hydration"].includes(task.taskType)) {
+      return { type: "red" as const, icon: <Ionicons name="restaurant-outline" size={26} color="#F15F5F" /> };
+    }
+    return { type: "blue" as const, icon: <Feather name="calendar" size={24} color="#4F7DF3" /> };
+  }
 
   return (
       <SafeAreaView style={styles.container}>
@@ -194,16 +216,36 @@ export default function HomeScreen() {
             </View>
           </View>
           <View style={styles.taskList}>
-            {tasks.map((task) => (
-              <TaskCard
-                key={task.id}
-                category={task.category}
-                name={task.name}
-                time={task.time}
-                type={task.type}
-                icon={task.icon}
-              />
-            ))}
+            {todayTasks.length > 0 ? todayTasks.map((task) => {
+              const dimmed = shouldDimTask(task, "today");
+              const visual = getTaskVisual(task, dimmed);
+              return (
+                <TaskCard
+                  key={task.id}
+                  category={formatTaskCategory(task.taskType)}
+                  name={task.title}
+                  description={task.description}
+                  time={formatTaskTime(task.dueTime)}
+                  type={visual.type}
+                  icon={visual.icon}
+                  status={task.status}
+                  priority={task.priority}
+                  dimmed={dimmed}
+                  showCompletionControl={true}
+                  onComplete={task.status === "pending" ? async () => {
+                    try {
+                      const updated = await taskService.markCompleted(task.id);
+                      setTodayTasks((current) => sortHomeTodayTasks(current.map((item) => item.id === updated.id ? updated : item)));
+                    } catch {}
+                  } : undefined}
+                />
+              );
+            }) : (
+              <View style={styles.emptyTaskCard}>
+                <Text style={styles.emptyTaskTitle}>No tasks for today</Text>
+                <Text style={styles.emptyTaskText}>Doctor assigned activities will appear here.</Text>
+              </View>
+            )}
           </View>
         </View>
       </ScrollView>
@@ -325,6 +367,24 @@ const styles = StyleSheet.create({
   taskList: {
     gap: spacing.lg,
     paddingBottom: spacing.xxl,
+  },
+  emptyTaskCard: {
+    backgroundColor: colors.surface,
+    borderRadius: 22,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  emptyTaskTitle: {
+    ...typography.cardTitle,
+    color: "#334155",
+    fontSize: 16,
+    marginBottom: 4,
+  },
+  emptyTaskText: {
+    ...typography.body,
+    color: "#64748B",
+    fontSize: 14,
   },
   aiCard: {
     backgroundColor: "#E9EEFB",
