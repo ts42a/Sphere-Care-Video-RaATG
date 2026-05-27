@@ -1,0 +1,4 @@
+# Extra packages for ai_transcript (motion GRU + training report PNGs).
+# Install project deps first from repo root: pip install -r requirements.txt
+torch>=2.0
+matplotlib>=3.8

@@ -41,3 +41,15 @@ python -m ai.llm.chat --interactive --system "You are concise."
 - If provider is disabled/off, command returns an error by design.
 - This module does not depend on backend workers or API routes.
 
+## ai_explainer integration
+
+`ai/training/ai_explainer` can optionally use this module to rewrite narration text.
+
+Enable it with:
+
+```bash
+python ai/training/ai_explainer/scripts/run_local_demo.py "path/to/video.mp4" --llm
+```
+
+If the LLM call fails, explainer falls back to deterministic narration.
+

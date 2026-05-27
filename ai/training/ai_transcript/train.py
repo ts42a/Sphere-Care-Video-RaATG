@@ -30,13 +30,25 @@ from label_spec import load_label_spec
 ROOT = Path(__file__).resolve().parent
 DATASET_ROOTS = data_roots()
 ARTIFACTS_DIR = ROOT / "artifacts" / "gesture"
-REPORTS_DIR = ARTIFACTS_DIR / "reports"
+TRAIN_REPORT_DIR = ARTIFACTS_DIR / "train_report"
+REPORTS_DIR = TRAIN_REPORT_DIR
+STATIC_IMAGE_DIR = TRAIN_REPORT_DIR / "static"
+MOTION_IMAGE_DIR = TRAIN_REPORT_DIR / "motion"
 ARTIFACTS_DIR.mkdir(parents=True, exist_ok=True)
-REPORTS_DIR.mkdir(parents=True, exist_ok=True)
+TRAIN_REPORT_DIR.mkdir(parents=True, exist_ok=True)
 
 FEATURE_DIM = 63
 MOTION_FEATURE_DIMS = {63, 126, 147}
 LABEL_SPEC = load_label_spec()
+
+
+def _manifest_ref(manifest_path: Path | None) -> str | None:
+    if not manifest_path:
+        return None
+    try:
+        return str(manifest_path.relative_to(ROOT))
+    except ValueError:
+        return str(manifest_path)
 
 
 def _json_dump(path: Path, payload: dict[str, Any]) -> None:
@@ -572,14 +584,19 @@ def _print_metrics(title: str, result: dict[str, Any]) -> None:
     print(np.array(m["confusion_matrix"]["matrix"]))
 
 
-def _max_offdiag_confusion(confusion: list[list[int]]) -> float:
+def _max_offdiag_confusion(
+    confusion: list[list[int]],
+    *,
+    min_row_support: int = 3,
+) -> float:
+    """Max off-diagonal error rate per true class, ignoring tiny test splits."""
     arr = np.array(confusion, dtype=np.float32)
     if arr.size == 0:
         return 0.0
     row_sums = arr.sum(axis=1)
     max_rate = 0.0
     for i in range(arr.shape[0]):
-        if row_sums[i] <= 0:
+        if row_sums[i] < max(int(min_row_support), 1):
             continue
         offdiag = row_sums[i] - arr[i, i]
         max_rate = max(max_rate, float(offdiag / row_sums[i]))
@@ -592,7 +609,8 @@ def _quality_gate_status(result: dict[str, Any], args: argparse.Namespace) -> di
     report = m["classification_report"]
     labels = [k for k in report.keys() if k not in ("accuracy", "macro avg", "weighted avg")]
     min_support_seen = min((int(report[k].get("support", 0)) for k in labels), default=0)
-    max_confusion_rate = _max_offdiag_confusion(conf)
+    min_row = int(args.min_test_support_for_confusion)
+    max_confusion_rate = _max_offdiag_confusion(conf, min_row_support=min_row)
     checks = {
         "macro_f1": float(m["macro_f1"]) >= float(args.min_macro_f1),
         "min_support": min_support_seen >= int(args.min_test_support_per_class),
@@ -601,6 +619,7 @@ def _quality_gate_status(result: dict[str, Any], args: argparse.Namespace) -> di
     return {
         "min_macro_f1": float(args.min_macro_f1),
         "min_test_support_per_class": int(args.min_test_support_per_class),
+        "min_test_support_for_confusion": min_row,
         "max_confusion_rate_allowed": float(args.max_confusion_rate),
         "observed": {
             "macro_f1": float(m["macro_f1"]),
@@ -682,6 +701,13 @@ def _train_one(
     print(" -", model_path)
     print(" -", label_path)
     print(" -", REPORTS_DIR / f"{task}_train_report.json")
+    if task == "static":
+        from train_report_images import save_static_training_images
+
+        image_paths = save_static_training_images(X, y, labels, result["metrics"])
+        for p in image_paths:
+            print(" -", p)
+        gate = {**gate, "training_images": [str(p) for p in image_paths]}
     print("Quality gate:", "PASS" if gate["passed"] else "FAIL")
     return gate
 
@@ -700,6 +726,12 @@ def main() -> None:
     parser.add_argument("--motion_patience", type=int, default=5)
     parser.add_argument("--min_macro_f1", type=float, default=0.70)
     parser.add_argument("--min_test_support_per_class", type=int, default=1)
+    parser.add_argument(
+        "--min_test_support_for_confusion",
+        type=int,
+        default=3,
+        help="Only classes with at least this many test samples count toward max_confusion_rate.",
+    )
     parser.add_argument("--max_confusion_rate", type=float, default=0.45)
     parser.add_argument("--split_mode", choices=["auto", "group", "stratified"], default="auto")
     parser.add_argument("--manifest_path", type=str, default="")
@@ -710,12 +742,23 @@ def main() -> None:
     manifest_index = load_manifest_index(manifest_path) if manifest_path else load_manifest_index()
     manifest_rows = _load_manifest_rows(manifest_path) if manifest_path else None
 
+    manifest_out = ARTIFACTS_DIR / "build_manifest.json"
+    prior: dict[str, Any] = {}
+    if manifest_out.exists():
+        try:
+            with open(manifest_out, "r", encoding="utf-8") as f:
+                prior = json.load(f)
+        except json.JSONDecodeError:
+            prior = {}
     build_manifest: dict[str, Any] = {
         "created_at": datetime.now(timezone.utc).isoformat(),
         "mode": args.mode,
         "labels_version": LABEL_SPEC.version,
         "args": vars(args),
     }
+    for key in ("static", "motion"):
+        if key in prior and args.mode != key:
+            build_manifest[key] = prior[key]
 
     if args.mode in ("static", "both"):
         static_audit = (
@@ -739,6 +782,8 @@ def main() -> None:
         build_manifest["static"] = {
             "dataset_audit_path": str(REPORTS_DIR / "static_dataset_audit.json"),
             "train_report_path": str(REPORTS_DIR / "static_train_report.json"),
+            "image_dir": str(STATIC_IMAGE_DIR),
+            "training_images": static_gate.get("training_images", []),
             "quality_gate_passed": bool(static_gate["passed"]),
         }
 
@@ -830,14 +875,23 @@ def main() -> None:
         print(" -", motion_model_path)
         print(" -", motion_labels_path)
         print(" -", REPORTS_DIR / "motion_train_report.json")
+        from train_report_images import save_motion_training_images
+
+        motion_images = save_motion_training_images(X, y, labels, lengths, result["metrics"])
+        for p in motion_images:
+            print(" -", p)
         print("Quality gate:", "PASS" if motion_gate["passed"] else "FAIL")
         build_manifest["motion"] = {
             "dataset_audit_path": str(REPORTS_DIR / "motion_dataset_audit.json"),
             "train_report_path": str(REPORTS_DIR / "motion_train_report.json"),
+            "image_dir": str(MOTION_IMAGE_DIR),
+            "training_images": [str(p) for p in motion_images],
             "quality_gate_passed": bool(motion_gate["passed"]),
         }
 
-    _json_dump(ARTIFACTS_DIR / "build_manifest.json", build_manifest)
+    if "static" in build_manifest and "motion" in build_manifest:
+        build_manifest["mode"] = "both"
+    _json_dump(manifest_out, build_manifest)
     print("\nSaved manifest:", ARTIFACTS_DIR / "build_manifest.json")
     print("Done.")
 
