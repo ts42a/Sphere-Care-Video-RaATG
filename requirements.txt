@@ -1,12 +1,12 @@
 fastapi
-uvicorn[standard]
+uvicorn
 sqlalchemy
 psycopg2-binary
 pydantic
 email-validator
 python-dotenv
 python-multipart
-bcrypt
+bcrypt<5
 passlib[bcrypt]
 python-jose[cryptography]
 httpx

@@ -70,7 +70,7 @@ class StaticTranslatorManager:
                 self._last_error = f"Script not found: {script}"
                 return {"started": False, "running": False, "reason": self._last_error}
 
-            cmd = [self._python_bin(), "-u", str(script), "--threshold", "0.55"]
+            cmd = [self._python_bin(), "-u", str(script), "--threshold", "0.51"]
             try:
                 self._proc = subprocess.Popen(
                     cmd,

@@ -46,7 +46,7 @@ sphere-care/
 │     ├─ seed_demo_data.sh
 │     └─ rotate_retention.sh    # retention policy enforcement
 │
-├─ backend_api/                 # FastAPI “source of truth”
+├─ backend/                     # FastAPI source of truth
 │  ├─ Dockerfile
 │  ├─ pyproject.toml
 │  ├─ alembic.ini

@@ -1,34 +1,29 @@
-# Sphere Care — Quick Start
+# Sphere Care Backend - Quick Start
 
 ## Requirements
 
-* Python 3.11+
-* PostgreSQL (database: `spherecare`, password: `123`)
+- Python 3.11+
+- PostgreSQL 17+
 
----
-
-## First Time Setup
+## Setup (from repository root)
 
 ```bash
-cd backend_api
-python -m venv venv
+python -m venv .venv
 ```
 
 ### Activate virtual environment
 
-**Windows:**
+**Windows**
 
 ```bash
-.\venv\Scripts\activate
+.venv\Scripts\activate
 ```
 
-**Mac / Linux:**
+**Mac / Linux**
 
 ```bash
-source venv/bin/activate
+source .venv/bin/activate
 ```
-
----
 
 ### Install dependencies
 
@@ -36,66 +31,24 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
----
+### Configure environment
 
-### Seed database
+Copy `backend/.env.example` to `backend/.env` and fill in real values for:
 
-```bash
-python seed.py
-```
+- `DATABASE_URL`
+- `SECRET_KEY`
+- OAuth credentials (if used)
+- SMTP credentials (if used)
+- LiveKit credentials (if used)
 
----
-
-## Start Server
-
-```bash
-cd backend_api
-```
-
-**Windows:**
+## Start API server
 
 ```bash
-.\venv\Scripts\activate
+python -m uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-**Mac / Linux:**
+## URLs
 
-```bash
-source venv/bin/activate
-```
-
-```bash
-python app.py
-```
-
----
-
-## Open in Browser
-
-http://localhost:8000
-
----
-
-## Login
-
-Register a new account or use seeded data.
-
-To make an admin:
-
-```sql
-UPDATE users SET role = 'admin' WHERE email = 'your@email.com';
-```
-
----
-
-## API Docs
-
-http://localhost:8000/docs
-
----
-
-## Notes
-
-* Always create a new `venv` on a new computer
-* Do not copy `venv` from another machine
-* Make sure PostgreSQL database `spherecare` exists
+- App entry: http://localhost:8000
+- API docs: http://localhost:8000/docs
+- Health check: http://localhost:8000/health

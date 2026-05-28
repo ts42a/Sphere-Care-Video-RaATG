@@ -987,6 +987,7 @@ async function _startAslCamera(deviceId) {
 async function openAslTranslation(mode) {
   var panel = document.getElementById('asl-translation-panel');
   _aslTranslator.mode = mode || _aslTranslator.mode || 'static';
+  if (panel) panel.style.display = 'flex';
   try {
     var endpoint = _aslTranslator.mode === 'motion' ? '/asl/motiontranslator/start' : '/asl/statictranslator/start';
     var r = await fetch(API_BASE + endpoint, { method: 'POST', headers: authH() });
@@ -1002,13 +1003,21 @@ async function openAslTranslation(mode) {
       else if (rawText) msg = _toReadableError(rawText);
       throw new Error(msg);
     }
-    if (panel) panel.style.display = 'none';
+    var camOk = await _startAslCamera(_aslTranslator.deviceId || '');
+    if (!camOk) {
+      var stopAfterFail = _aslTranslator.mode === 'motion' ? '/asl/motiontranslator/stop' : '/asl/statictranslator/stop';
+      fetch(API_BASE + stopAfterFail, { method: 'POST', headers: authH() }).catch(function(){});
+      throw new Error('Unable to access local camera. Please allow camera permission and close other apps using webcam.');
+    }
     _aslTranslator.running = true;
     _setAslLaunchButtonState(true);
+    _startAsllmPanelLoop();
     showToast((_aslTranslator.mode === 'motion' ? 'Motion' : 'Static') + ' translator started in Python process');
   } catch (e) {
+    _stopAslCameraStream();
     _aslTranslator.running = false;
     _setAslLaunchButtonState(false);
+    if (panel) panel.style.display = 'none';
     showToast('Unable to start ' + (_aslTranslator.mode === 'motion' ? 'motion' : 'static') + ' translator: ' + _toReadableError(e));
   }
 }
@@ -1017,6 +1026,7 @@ function closeAslTranslation() {
   var panel = document.getElementById('asl-translation-panel');
   if (panel) panel.style.display = 'none';
   _stopAsllmPanelLoop();
+  _stopAslCameraStream();
   _aslTranslator.running = false;
   _setAslLaunchButtonState(false);
   var stopEndpoint = _aslTranslator.mode === 'motion' ? '/asl/motiontranslator/stop' : '/asl/statictranslator/stop';

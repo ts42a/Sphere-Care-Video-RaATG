@@ -96,22 +96,6 @@
       <div class="asl-video-wrap">
         <video id="asl-translation-video" autoplay playsinline muted></video>
       </div>
-      <div class="asl-translation-box" onclick="event.stopPropagation()">
-        <div class="asl-box-top">
-          <div class="asl-box-title">ASL Translation</div>
-          <button class="asl-close-btn" onclick="closeAslTranslation()">Close</button>
-        </div>
-        <div class="asl-mode-row">
-          <button id="asl-mode-static-btn" class="asl-mode-btn active" onclick="setAslTranslationMode('static')">Static</button>
-        </div>
-        <div class="asl-camera-row">
-          <label class="asl-camera-label" for="asl-camera-select">Camera</label>
-          <select id="asl-camera-select" class="asl-camera-select" onchange="switchAslCamera(this.value)">
-            <option value="">Default camera</option>
-          </select>
-        </div>
-        <div class="asl-result-text" id="asl-result-text">Camera is live. Choose a translation mode.</div>
-      </div>
     </div>
   </div>
 </div>
