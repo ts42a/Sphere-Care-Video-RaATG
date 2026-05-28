@@ -80,3 +80,29 @@ class VaultAuditEventOut(BaseModel):
     actor_name: Optional[str]
     created_at: datetime
     details: Optional[dict] = None
+
+
+class VaultAiAccessPolicyUpdate(BaseModel):
+    enabled: bool
+    allowed_camera_ids: Optional[list[int]] = None
+    allowed_resident_ids: Optional[list[int]] = None
+    allow_summary_generation: bool = True
+
+
+class VaultAiAccessPolicyOut(BaseModel):
+    enabled: bool
+    allowed_camera_ids: list[int]
+    allowed_resident_ids: list[int]
+    allow_summary_generation: bool
+    has_secret: bool
+    updated_at: datetime
+    updated_by_admin_id: Optional[int] = None
+
+
+class VaultAiAccessSecretUpsert(BaseModel):
+    ai_passphrase: str = Field(min_length=8, max_length=2048)
+
+
+class VaultAiAccessSecretOut(BaseModel):
+    ok: bool
+    has_secret: bool

@@ -1,0 +1,150 @@
+{
+  "video": "C:/Users/tonmo/.cursor/projects/Sphere-Care-Video-RaATG/ai/training/SCVAM2.1/source.webm",
+  "stem": "source",
+  "sampling_mode": "time_based",
+  "reported_fps": 1000.0,
+  "src_fps": 30.0,
+  "src_frame_count": -9223372036854775808,
+  "target_fps": 2.0,
+  "effective_fps": 2.0,
+  "width": 640,
+  "height": 480,
+  "frame_count": 27,
+  "frames": [
+    {
+      "frame": "frame_000001.png",
+      "src_index": 0,
+      "ts_sec": 0.0
+    },
+    {
+      "frame": "frame_000002.png",
+      "src_index": 15,
+      "ts_sec": 0.519
+    },
+    {
+      "frame": "frame_000003.png",
+      "src_index": 30,
+      "ts_sec": 1.009
+    },
+    {
+      "frame": "frame_000004.png",
+      "src_index": 45,
+      "ts_sec": 1.518
+    },
+    {
+      "frame": "frame_000005.png",
+      "src_index": 59,
+      "ts_sec": 2.001
+    },
+    {
+      "frame": "frame_000006.png",
+      "src_index": 75,
+      "ts_sec": 2.532
+    },
+    {
+      "frame": "frame_000007.png",
+      "src_index": 90,
+      "ts_sec": 3.027
+    },
+    {
+      "frame": "frame_000008.png",
+      "src_index": 105,
+      "ts_sec": 3.546
+    },
+    {
+      "frame": "frame_000009.png",
+      "src_index": 119,
+      "ts_sec": 4.015
+    },
+    {
+      "frame": "frame_000010.png",
+      "src_index": 134,
+      "ts_sec": 4.506
+    },
+    {
+      "frame": "frame_000011.png",
+      "src_index": 149,
+      "ts_sec": 5.014
+    },
+    {
+      "frame": "frame_000012.png",
+      "src_index": 164,
+      "ts_sec": 5.515
+    },
+    {
+      "frame": "frame_000013.png",
+      "src_index": 179,
+      "ts_sec": 6.024
+    },
+    {
+      "frame": "frame_000014.png",
+      "src_index": 194,
+      "ts_sec": 6.524
+    },
+    {
+      "frame": "frame_000015.png",
+      "src_index": 209,
+      "ts_sec": 7.041
+    },
+    {
+      "frame": "frame_000016.png",
+      "src_index": 223,
+      "ts_sec": 7.509
+    },
+    {
+      "frame": "frame_000017.png",
+      "src_index": 238,
+      "ts_sec": 8.003
+    },
+    {
+      "frame": "frame_000018.png",
+      "src_index": 253,
+      "ts_sec": 8.522
+    },
+    {
+      "frame": "frame_000019.png",
+      "src_index": 268,
+      "ts_sec": 9.013
+    },
+    {
+      "frame": "frame_000020.png",
+      "src_index": 283,
+      "ts_sec": 9.521
+    },
+    {
+      "frame": "frame_000021.png",
+      "src_index": 298,
+      "ts_sec": 10.021
+    },
+    {
+      "frame": "frame_000022.png",
+      "src_index": 313,
+      "ts_sec": 10.537
+    },
+    {
+      "frame": "frame_000023.png",
+      "src_index": 327,
+      "ts_sec": 11.005
+    },
+    {
+      "frame": "frame_000024.png",
+      "src_index": 342,
+      "ts_sec": 11.501
+    },
+    {
+      "frame": "frame_000025.png",
+      "src_index": 357,
+      "ts_sec": 12.02
+    },
+    {
+      "frame": "frame_000026.png",
+      "src_index": 372,
+      "ts_sec": 12.51
+    },
+    {
+      "frame": "frame_000027.png",
+      "src_index": 387,
+      "ts_sec": 13.018
+    }
+  ]
+}

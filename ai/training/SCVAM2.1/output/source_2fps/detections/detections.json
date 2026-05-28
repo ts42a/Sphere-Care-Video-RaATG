@@ -1,0 +1,1165 @@
+{
+  "run_dir": "C:/Users/tonmo/.cursor/projects/Sphere-Care-Video-RaATG/ai/training/SCVAM2.1/output/source_2fps",
+  "frames_dir": "C:/Users/tonmo/.cursor/projects/Sphere-Care-Video-RaATG/ai/training/SCVAM2.1/output/source_2fps/frames",
+  "weights": "C:/Users/tonmo/.cursor/projects/Sphere-Care-Video-RaATG/ai/models/yolo/yolov8n.pt",
+  "conf": 0.2,
+  "classes": [
+    "person",
+    "knife",
+    "bottle",
+    "wine glass",
+    "cup",
+    "fork",
+    "spoon",
+    "bowl",
+    "scissors",
+    "chair",
+    "couch",
+    "bed",
+    "dining table",
+    "toilet",
+    "oven",
+    "microwave",
+    "toaster",
+    "sink",
+    "refrigerator",
+    "cell phone"
+  ],
+  "enhance": true,
+  "enhance_gamma": 0.6,
+  "frame_count": 27,
+  "total_detections": 80,
+  "frames": [
+    {
+      "frame": "frame_000001.png",
+      "src_index": 0,
+      "ts_sec": 0.0,
+      "count": 4,
+      "labels": [
+        "bed",
+        "couch",
+        "person"
+      ],
+      "detections": [
+        {
+          "label": "person",
+          "confidence": 0.7597,
+          "xyxy": [
+            62.2,
+            218.1,
+            300.2,
+            479.8
+          ]
+        },
+        {
+          "label": "person",
+          "confidence": 0.6927,
+          "xyxy": [
+            202.7,
+            212.8,
+            519.4,
+            479.5
+          ]
+        },
+        {
+          "label": "couch",
+          "confidence": 0.4745,
+          "xyxy": [
+            440.9,
+            310.5,
+            638.7,
+            478.9
+          ]
+        },
+        {
+          "label": "bed",
+          "confidence": 0.4096,
+          "xyxy": [
+            440.9,
+            309.9,
+            638.7,
+            479.6
+          ]
+        }
+      ]
+    },
+    {
+      "frame": "frame_000002.png",
+      "src_index": 15,
+      "ts_sec": 0.519,
+      "count": 3,
+      "labels": [
+        "couch",
+        "person"
+      ],
+      "detections": [
+        {
+          "label": "person",
+          "confidence": 0.8665,
+          "xyxy": [
+            194.4,
+            212.7,
+            524.1,
+            479.7
+          ]
+        },
+        {
+          "label": "couch",
+          "confidence": 0.6455,
+          "xyxy": [
+            439.0,
+            309.9,
+            638.3,
+            479.1
+          ]
+        },
+        {
+          "label": "person",
+          "confidence": 0.3882,
+          "xyxy": [
+            61.9,
+            217.8,
+            299.7,
+            478.7
+          ]
+        }
+      ]
+    },
+    {
+      "frame": "frame_000003.png",
+      "src_index": 30,
+      "ts_sec": 1.009,
+      "count": 3,
+      "labels": [
+        "couch",
+        "person"
+      ],
+      "detections": [
+        {
+          "label": "person",
+          "confidence": 0.7916,
+          "xyxy": [
+            173.4,
+            212.7,
+            533.8,
+            479.7
+          ]
+        },
+        {
+          "label": "couch",
+          "confidence": 0.7247,
+          "xyxy": [
+            441.2,
+            309.9,
+            636.0,
+            478.9
+          ]
+        },
+        {
+          "label": "person",
+          "confidence": 0.5788,
+          "xyxy": [
+            62.0,
+            218.1,
+            298.9,
+            479.7
+          ]
+        }
+      ]
+    },
+    {
+      "frame": "frame_000004.png",
+      "src_index": 45,
+      "ts_sec": 1.518,
+      "count": 3,
+      "labels": [
+        "couch",
+        "person"
+      ],
+      "detections": [
+        {
+          "label": "person",
+          "confidence": 0.7625,
+          "xyxy": [
+            177.6,
+            213.4,
+            517.8,
+            479.9
+          ]
+        },
+        {
+          "label": "couch",
+          "confidence": 0.6785,
+          "xyxy": [
+            437.9,
+            309.6,
+            637.9,
+            478.9
+          ]
+        },
+        {
+          "label": "person",
+          "confidence": 0.4286,
+          "xyxy": [
+            65.7,
+            218.1,
+            299.0,
+            479.5
+          ]
+        }
+      ]
+    },
+    {
+      "frame": "frame_000005.png",
+      "src_index": 59,
+      "ts_sec": 2.001,
+      "count": 3,
+      "labels": [
+        "couch",
+        "person"
+      ],
+      "detections": [
+        {
+          "label": "person",
+          "confidence": 0.8821,
+          "xyxy": [
+            175.1,
+            212.8,
+            521.6,
+            479.7
+          ]
+        },
+        {
+          "label": "couch",
+          "confidence": 0.7229,
+          "xyxy": [
+            436.9,
+            309.7,
+            637.4,
+            479.3
+          ]
+        },
+        {
+          "label": "person",
+          "confidence": 0.6447,
+          "xyxy": [
+            65.7,
+            218.3,
+            298.8,
+            479.6
+          ]
+        }
+      ]
+    },
+    {
+      "frame": "frame_000006.png",
+      "src_index": 75,
+      "ts_sec": 2.532,
+      "count": 4,
+      "labels": [
+        "chair",
+        "couch",
+        "person"
+      ],
+      "detections": [
+        {
+          "label": "person",
+          "confidence": 0.8154,
+          "xyxy": [
+            173.6,
+            214.7,
+            539.0,
+            479.8
+          ]
+        },
+        {
+          "label": "couch",
+          "confidence": 0.6367,
+          "xyxy": [
+            440.3,
+            310.1,
+            636.2,
+            478.5
+          ]
+        },
+        {
+          "label": "person",
+          "confidence": 0.5526,
+          "xyxy": [
+            63.3,
+            218.1,
+            299.6,
+            479.4
+          ]
+        },
+        {
+          "label": "chair",
+          "confidence": 0.2478,
+          "xyxy": [
+            474.1,
+            310.7,
+            557.9,
+            353.8
+          ]
+        }
+      ]
+    },
+    {
+      "frame": "frame_000007.png",
+      "src_index": 90,
+      "ts_sec": 3.027,
+      "count": 3,
+      "labels": [
+        "couch",
+        "person"
+      ],
+      "detections": [
+        {
+          "label": "person",
+          "confidence": 0.7809,
+          "xyxy": [
+            184.1,
+            214.6,
+            559.2,
+            479.7
+          ]
+        },
+        {
+          "label": "couch",
+          "confidence": 0.613,
+          "xyxy": [
+            442.2,
+            308.9,
+            638.0,
+            479.1
+          ]
+        },
+        {
+          "label": "person",
+          "confidence": 0.581,
+          "xyxy": [
+            63.8,
+            218.0,
+            301.2,
+            479.6
+          ]
+        }
+      ]
+    },
+    {
+      "frame": "frame_000008.png",
+      "src_index": 105,
+      "ts_sec": 3.546,
+      "count": 3,
+      "labels": [
+        "couch",
+        "person"
+      ],
+      "detections": [
+        {
+          "label": "person",
+          "confidence": 0.8223,
+          "xyxy": [
+            185.6,
+            214.0,
+            555.2,
+            479.7
+          ]
+        },
+        {
+          "label": "couch",
+          "confidence": 0.7342,
+          "xyxy": [
+            439.9,
+            309.9,
+            638.6,
+            479.1
+          ]
+        },
+        {
+          "label": "person",
+          "confidence": 0.5223,
+          "xyxy": [
+            64.2,
+            217.5,
+            300.3,
+            479.6
+          ]
+        }
+      ]
+    },
+    {
+      "frame": "frame_000009.png",
+      "src_index": 119,
+      "ts_sec": 4.015,
+      "count": 3,
+      "labels": [
+        "couch",
+        "person"
+      ],
+      "detections": [
+        {
+          "label": "person",
+          "confidence": 0.8519,
+          "xyxy": [
+            180.0,
+            214.0,
+            556.9,
+            479.8
+          ]
+        },
+        {
+          "label": "person",
+          "confidence": 0.7483,
+          "xyxy": [
+            63.6,
+            218.4,
+            299.6,
+            479.6
+          ]
+        },
+        {
+          "label": "couch",
+          "confidence": 0.5545,
+          "xyxy": [
+            441.7,
+            309.7,
+            637.6,
+            479.6
+          ]
+        }
+      ]
+    },
+    {
+      "frame": "frame_000010.png",
+      "src_index": 134,
+      "ts_sec": 4.506,
+      "count": 4,
+      "labels": [
+        "chair",
+        "couch",
+        "person"
+      ],
+      "detections": [
+        {
+          "label": "person",
+          "confidence": 0.7152,
+          "xyxy": [
+            11.2,
+            181.2,
+            603.1,
+            479.4
+          ]
+        },
+        {
+          "label": "couch",
+          "confidence": 0.6266,
+          "xyxy": [
+            439.4,
+            309.8,
+            638.1,
+            479.4
+          ]
+        },
+        {
+          "label": "person",
+          "confidence": 0.565,
+          "xyxy": [
+            145.8,
+            181.7,
+            557.4,
+            479.7
+          ]
+        },
+        {
+          "label": "chair",
+          "confidence": 0.22,
+          "xyxy": [
+            475.2,
+            310.9,
+            558.0,
+            353.5
+          ]
+        }
+      ]
+    },
+    {
+      "frame": "frame_000011.png",
+      "src_index": 149,
+      "ts_sec": 5.014,
+      "count": 2,
+      "labels": [
+        "couch",
+        "person"
+      ],
+      "detections": [
+        {
+          "label": "person",
+          "confidence": 0.7558,
+          "xyxy": [
+            31.1,
+            184.9,
+            584.0,
+            478.7
+          ]
+        },
+        {
+          "label": "couch",
+          "confidence": 0.5091,
+          "xyxy": [
+            440.3,
+            309.2,
+            639.1,
+            479.5
+          ]
+        }
+      ]
+    },
+    {
+      "frame": "frame_000012.png",
+      "src_index": 164,
+      "ts_sec": 5.515,
+      "count": 2,
+      "labels": [
+        "couch",
+        "person"
+      ],
+      "detections": [
+        {
+          "label": "person",
+          "confidence": 0.7262,
+          "xyxy": [
+            140.2,
+            215.6,
+            587.6,
+            479.7
+          ]
+        },
+        {
+          "label": "couch",
+          "confidence": 0.4899,
+          "xyxy": [
+            442.2,
+            307.9,
+            639.3,
+            479.8
+          ]
+        }
+      ]
+    },
+    {
+      "frame": "frame_000013.png",
+      "src_index": 179,
+      "ts_sec": 6.024,
+      "count": 2,
+      "labels": [
+        "couch",
+        "person"
+      ],
+      "detections": [
+        {
+          "label": "person",
+          "confidence": 0.7576,
+          "xyxy": [
+            158.1,
+            216.2,
+            553.2,
+            479.4
+          ]
+        },
+        {
+          "label": "couch",
+          "confidence": 0.5511,
+          "xyxy": [
+            443.0,
+            307.3,
+            639.4,
+            479.7
+          ]
+        }
+      ]
+    },
+    {
+      "frame": "frame_000014.png",
+      "src_index": 194,
+      "ts_sec": 6.524,
+      "count": 4,
+      "labels": [
+        "couch",
+        "person",
+        "toilet"
+      ],
+      "detections": [
+        {
+          "label": "person",
+          "confidence": 0.748,
+          "xyxy": [
+            181.7,
+            214.8,
+            559.0,
+            479.8
+          ]
+        },
+        {
+          "label": "couch",
+          "confidence": 0.6244,
+          "xyxy": [
+            439.9,
+            308.8,
+            638.8,
+            479.3
+          ]
+        },
+        {
+          "label": "person",
+          "confidence": 0.3635,
+          "xyxy": [
+            71.7,
+            188.9,
+            564.4,
+            479.8
+          ]
+        },
+        {
+          "label": "toilet",
+          "confidence": 0.2587,
+          "xyxy": [
+            0.1,
+            441.7,
+            72.4,
+            479.8
+          ]
+        }
+      ]
+    },
+    {
+      "frame": "frame_000015.png",
+      "src_index": 209,
+      "ts_sec": 7.041,
+      "count": 2,
+      "labels": [
+        "couch",
+        "person"
+      ],
+      "detections": [
+        {
+          "label": "person",
+          "confidence": 0.7867,
+          "xyxy": [
+            63.7,
+            193.4,
+            568.4,
+            479.8
+          ]
+        },
+        {
+          "label": "couch",
+          "confidence": 0.4829,
+          "xyxy": [
+            439.2,
+            309.4,
+            638.3,
+            479.4
+          ]
+        }
+      ]
+    },
+    {
+      "frame": "frame_000016.png",
+      "src_index": 223,
+      "ts_sec": 7.509,
+      "count": 3,
+      "labels": [
+        "couch",
+        "person"
+      ],
+      "detections": [
+        {
+          "label": "person",
+          "confidence": 0.7898,
+          "xyxy": [
+            168.5,
+            215.4,
+            550.5,
+            479.6
+          ]
+        },
+        {
+          "label": "person",
+          "confidence": 0.5335,
+          "xyxy": [
+            64.4,
+            217.6,
+            302.6,
+            479.5
+          ]
+        },
+        {
+          "label": "couch",
+          "confidence": 0.5066,
+          "xyxy": [
+            443.8,
+            306.7,
+            639.5,
+            479.7
+          ]
+        }
+      ]
+    },
+    {
+      "frame": "frame_000017.png",
+      "src_index": 238,
+      "ts_sec": 8.003,
+      "count": 3,
+      "labels": [
+        "couch",
+        "person"
+      ],
+      "detections": [
+        {
+          "label": "person",
+          "confidence": 0.7702,
+          "xyxy": [
+            178.7,
+            214.8,
+            550.3,
+            479.5
+          ]
+        },
+        {
+          "label": "couch",
+          "confidence": 0.509,
+          "xyxy": [
+            441.9,
+            305.8,
+            639.5,
+            479.6
+          ]
+        },
+        {
+          "label": "person",
+          "confidence": 0.2305,
+          "xyxy": [
+            63.9,
+            217.1,
+            300.8,
+            479.7
+          ]
+        }
+      ]
+    },
+    {
+      "frame": "frame_000018.png",
+      "src_index": 253,
+      "ts_sec": 8.522,
+      "count": 2,
+      "labels": [
+        "couch",
+        "person"
+      ],
+      "detections": [
+        {
+          "label": "couch",
+          "confidence": 0.6975,
+          "xyxy": [
+            439.7,
+            308.4,
+            639.2,
+            478.8
+          ]
+        },
+        {
+          "label": "person",
+          "confidence": 0.6316,
+          "xyxy": [
+            103.2,
+            214.6,
+            558.4,
+            479.8
+          ]
+        }
+      ]
+    },
+    {
+      "frame": "frame_000019.png",
+      "src_index": 268,
+      "ts_sec": 9.013,
+      "count": 2,
+      "labels": [
+        "couch",
+        "person"
+      ],
+      "detections": [
+        {
+          "label": "person",
+          "confidence": 0.8278,
+          "xyxy": [
+            32.0,
+            216.6,
+            597.5,
+            479.6
+          ]
+        },
+        {
+          "label": "couch",
+          "confidence": 0.4906,
+          "xyxy": [
+            440.0,
+            309.4,
+            638.4,
+            479.5
+          ]
+        }
+      ]
+    },
+    {
+      "frame": "frame_000020.png",
+      "src_index": 283,
+      "ts_sec": 9.521,
+      "count": 2,
+      "labels": [
+        "couch",
+        "person"
+      ],
+      "detections": [
+        {
+          "label": "person",
+          "confidence": 0.8148,
+          "xyxy": [
+            69.5,
+            216.2,
+            610.8,
+            479.6
+          ]
+        },
+        {
+          "label": "couch",
+          "confidence": 0.5281,
+          "xyxy": [
+            439.1,
+            309.0,
+            638.1,
+            479.5
+          ]
+        }
+      ]
+    },
+    {
+      "frame": "frame_000021.png",
+      "src_index": 298,
+      "ts_sec": 10.021,
+      "count": 2,
+      "labels": [
+        "couch",
+        "person"
+      ],
+      "detections": [
+        {
+          "label": "person",
+          "confidence": 0.7408,
+          "xyxy": [
+            55.1,
+            215.8,
+            559.4,
+            479.3
+          ]
+        },
+        {
+          "label": "couch",
+          "confidence": 0.4561,
+          "xyxy": [
+            443.4,
+            309.3,
+            639.0,
+            479.9
+          ]
+        }
+      ]
+    },
+    {
+      "frame": "frame_000022.png",
+      "src_index": 313,
+      "ts_sec": 10.537,
+      "count": 4,
+      "labels": [
+        "chair",
+        "couch",
+        "person"
+      ],
+      "detections": [
+        {
+          "label": "person",
+          "confidence": 0.6919,
+          "xyxy": [
+            170.0,
+            215.4,
+            547.1,
+            479.9
+          ]
+        },
+        {
+          "label": "couch",
+          "confidence": 0.5923,
+          "xyxy": [
+            439.9,
+            309.4,
+            637.9,
+            479.3
+          ]
+        },
+        {
+          "label": "person",
+          "confidence": 0.5709,
+          "xyxy": [
+            64.3,
+            218.4,
+            299.6,
+            479.8
+          ]
+        },
+        {
+          "label": "chair",
+          "confidence": 0.2424,
+          "xyxy": [
+            474.9,
+            310.7,
+            558.1,
+            354.1
+          ]
+        }
+      ]
+    },
+    {
+      "frame": "frame_000023.png",
+      "src_index": 327,
+      "ts_sec": 11.005,
+      "count": 3,
+      "labels": [
+        "couch",
+        "person"
+      ],
+      "detections": [
+        {
+          "label": "person",
+          "confidence": 0.8047,
+          "xyxy": [
+            175.2,
+            214.6,
+            551.4,
+            479.8
+          ]
+        },
+        {
+          "label": "couch",
+          "confidence": 0.6763,
+          "xyxy": [
+            438.9,
+            310.3,
+            637.6,
+            479.1
+          ]
+        },
+        {
+          "label": "person",
+          "confidence": 0.5512,
+          "xyxy": [
+            63.3,
+            218.9,
+            299.5,
+            479.5
+          ]
+        }
+      ]
+    },
+    {
+      "frame": "frame_000024.png",
+      "src_index": 342,
+      "ts_sec": 11.501,
+      "count": 3,
+      "labels": [
+        "couch",
+        "person"
+      ],
+      "detections": [
+        {
+          "label": "couch",
+          "confidence": 0.6818,
+          "xyxy": [
+            434.8,
+            310.2,
+            638.8,
+            479.7
+          ]
+        },
+        {
+          "label": "person",
+          "confidence": 0.681,
+          "xyxy": [
+            186.4,
+            216.2,
+            551.4,
+            479.8
+          ]
+        },
+        {
+          "label": "person",
+          "confidence": 0.6316,
+          "xyxy": [
+            60.6,
+            218.9,
+            298.8,
+            479.6
+          ]
+        }
+      ]
+    },
+    {
+      "frame": "frame_000025.png",
+      "src_index": 357,
+      "ts_sec": 12.02,
+      "count": 4,
+      "labels": [
+        "chair",
+        "couch",
+        "person"
+      ],
+      "detections": [
+        {
+          "label": "person",
+          "confidence": 0.7577,
+          "xyxy": [
+            186.6,
+            214.5,
+            549.4,
+            479.7
+          ]
+        },
+        {
+          "label": "person",
+          "confidence": 0.7064,
+          "xyxy": [
+            58.7,
+            218.5,
+            299.3,
+            479.7
+          ]
+        },
+        {
+          "label": "couch",
+          "confidence": 0.6251,
+          "xyxy": [
+            435.0,
+            309.7,
+            638.5,
+            479.2
+          ]
+        },
+        {
+          "label": "chair",
+          "confidence": 0.2251,
+          "xyxy": [
+            474.4,
+            310.9,
+            558.6,
+            354.4
+          ]
+        }
+      ]
+    },
+    {
+      "frame": "frame_000026.png",
+      "src_index": 372,
+      "ts_sec": 12.51,
+      "count": 4,
+      "labels": [
+        "chair",
+        "couch",
+        "person"
+      ],
+      "detections": [
+        {
+          "label": "person",
+          "confidence": 0.7734,
+          "xyxy": [
+            180.3,
+            215.0,
+            547.1,
+            479.7
+          ]
+        },
+        {
+          "label": "person",
+          "confidence": 0.7415,
+          "xyxy": [
+            53.5,
+            217.9,
+            297.8,
+            479.6
+          ]
+        },
+        {
+          "label": "couch",
+          "confidence": 0.5526,
+          "xyxy": [
+            435.8,
+            309.3,
+            638.6,
+            479.0
+          ]
+        },
+        {
+          "label": "chair",
+          "confidence": 0.2561,
+          "xyxy": [
+            473.4,
+            310.8,
+            558.2,
+            355.5
+          ]
+        }
+      ]
+    },
+    {
+      "frame": "frame_000027.png",
+      "src_index": 387,
+      "ts_sec": 13.018,
+      "count": 3,
+      "labels": [
+        "couch",
+        "person"
+      ],
+      "detections": [
+        {
+          "label": "couch",
+          "confidence": 0.6434,
+          "xyxy": [
+            432.6,
+            309.3,
+            637.5,
+            479.2
+          ]
+        },
+        {
+          "label": "person",
+          "confidence": 0.6012,
+          "xyxy": [
+            181.0,
+            215.9,
+            546.1,
+            479.9
+          ]
+        },
+        {
+          "label": "person",
+          "confidence": 0.4914,
+          "xyxy": [
+            53.7,
+            218.1,
+            297.9,
+            479.6
+          ]
+        }
+      ]
+    }
+  ]
+}

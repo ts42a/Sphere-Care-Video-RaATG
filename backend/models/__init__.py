@@ -25,5 +25,11 @@ from backend.models.consent_document import ConsentDocument
 from backend.models.attachment import Attachment
 from backend.models.audit_log import AuditLog
 from backend.models.call import Call, CallParticipant, CallEvent
-from backend.models.vault_security import VaultKeyEnvelope, VaultRetentionPolicy, VaultRecoveryRequest
-from .flag_review import FlagReview
+from backend.models.vault_security import (
+    VaultAiAccessPolicy,
+    VaultKeyEnvelope,
+    VaultRecoveryRequest,
+    VaultRetentionPolicy,
+)
+from backend.models.ai_explainer_chunk import AiExplainerChunk
+from backend.models.scvam_job import ScvamJob

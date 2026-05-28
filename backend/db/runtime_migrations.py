@@ -152,36 +152,80 @@ def run_runtime_migrations(engine: Engine) -> None:
         WHERE processed = FALSE AND failed = FALSE
     """)
 
-
-    # ── care_tasks table for doctor-assigned client activities ─────────────
+    # ── AI Explainer narration timeline table ─────────────────────────────
     statements.append("""
-        CREATE TABLE IF NOT EXISTS care_tasks (
+        CREATE TABLE IF NOT EXISTS ai_explainer_chunks (
             id BIGSERIAL PRIMARY KEY,
             admin_id BIGINT NOT NULL,
-            resident_id BIGINT NOT NULL REFERENCES residents(id) ON DELETE CASCADE,
-            assigned_staff_id BIGINT NULL REFERENCES staff(id) ON DELETE SET NULL,
-            title VARCHAR(255) NOT NULL,
-            description TEXT NULL,
-            task_type VARCHAR(100) NOT NULL DEFAULT 'activity',
-            priority VARCHAR(30) NOT NULL DEFAULT 'medium',
-            due_date DATE NULL,
-            due_time TIME NULL,
-            status VARCHAR(50) NOT NULL DEFAULT 'pending',
-            completed_at TIMESTAMPTZ NULL,
-            completed_by BIGINT NULL,
-            notes TEXT NULL,
-            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-            updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            camera_id VARCHAR(120) NOT NULL,
+            chunk_id VARCHAR(120) NOT NULL UNIQUE,
+            zone VARCHAR(80) NOT NULL DEFAULT 'unknown',
+            start_ts DOUBLE PRECISION NOT NULL DEFAULT 0.0,
+            end_ts DOUBLE PRECISION NOT NULL DEFAULT 0.0,
+            headline VARCHAR(255) NOT NULL,
+            summary TEXT NOT NULL,
+            details_json TEXT NOT NULL DEFAULT '[]',
+            severity VARCHAR(30) NOT NULL DEFAULT 'routine',
+            confidence DOUBLE PRECISION NOT NULL DEFAULT 0.0,
+            source_video VARCHAR(255) NULL,
+            run_id VARCHAR(80) NULL,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
         )
     """)
     statements.append("""
-        CREATE INDEX IF NOT EXISTS idx_care_tasks_admin_id ON care_tasks(admin_id)
+        CREATE INDEX IF NOT EXISTS idx_ai_explainer_chunks_admin_camera_created
+        ON ai_explainer_chunks (admin_id, camera_id, created_at DESC)
     """)
     statements.append("""
-        CREATE INDEX IF NOT EXISTS idx_care_tasks_resident_id ON care_tasks(resident_id)
+        CREATE INDEX IF NOT EXISTS idx_ai_explainer_chunks_run_id
+        ON ai_explainer_chunks (run_id)
     """)
     statements.append("""
-        CREATE INDEX IF NOT EXISTS idx_care_tasks_due_date ON care_tasks(due_date)
+        CREATE INDEX IF NOT EXISTS idx_ai_explainer_chunks_summary_fts
+        ON ai_explainer_chunks
+        USING GIN (to_tsvector('english', coalesce(headline, '') || ' ' || coalesce(summary, '') || ' ' || coalesce(zone, '')))
+    """)
+
+    # ── SCVAM job queue + record status ─────────────────────────────────────
+    statements.append("""
+        ALTER TABLE records
+        ADD COLUMN IF NOT EXISTS scvam_status VARCHAR(30) NOT NULL DEFAULT 'none'
+    """)
+    statements.append("""
+        ALTER TABLE records
+        ADD COLUMN IF NOT EXISTS scvam_output_path VARCHAR(512) NULL
+    """)
+    statements.append("""
+        CREATE TABLE IF NOT EXISTS scvam_jobs (
+            id BIGSERIAL PRIMARY KEY,
+            organization_id BIGINT NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+            admin_id BIGINT NOT NULL REFERENCES admins(id) ON DELETE CASCADE,
+            vault_record_id VARCHAR(120) NOT NULL,
+            db_record_id BIGINT NOT NULL REFERENCES records(id) ON DELETE CASCADE,
+            enc_relative_path VARCHAR(512) NOT NULL,
+            segment_index INTEGER NOT NULL DEFAULT 1,
+            status VARCHAR(30) NOT NULL DEFAULT 'pending',
+            staging_path VARCHAR(512) NULL,
+            work_path VARCHAR(512) NULL,
+            error_message TEXT NULL,
+            attempts INTEGER NOT NULL DEFAULT 0,
+            max_attempts INTEGER NOT NULL DEFAULT 3,
+            duration_sec INTEGER NULL,
+            camera_id VARCHAR(120) NULL,
+            resident_name VARCHAR(255) NULL,
+            room VARCHAR(120) NULL,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            started_at TIMESTAMPTZ NULL,
+            finished_at TIMESTAMPTZ NULL
+        )
+    """)
+    statements.append("""
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_scvam_jobs_vault_segment
+        ON scvam_jobs (vault_record_id, segment_index)
+    """)
+    statements.append("""
+        CREATE INDEX IF NOT EXISTS idx_scvam_jobs_status_created
+        ON scvam_jobs (status, created_at)
     """)
 
     with engine.begin() as conn:

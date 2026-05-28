@@ -1,70 +1,3 @@
-// ══════════════════════════════════════════════════════
-// REAL-TIME VALIDATION HINTS
-// ══════════════════════════════════════════════════════
-
-function _setHint(id, msg, isOk) {
-  var el = document.getElementById(id);
-  if (!el) return;
-  if (!msg) { el.style.display = 'none'; return; }
-  el.style.display = 'block';
-  el.textContent = msg;
-  el.style.background = isOk ? '#f0fdf4' : '#fef2f2';
-  el.style.color       = isOk ? '#15803d' : '#dc2626';
-  el.style.border      = 'none';
-}
-
-function checkEmailMatch() {
-  var email = (document.getElementById('reg-email') || {}).value || '';
-  var conf  = (document.getElementById('reg-email-conf') || {}).value || '';
-  if (!conf) { _setHint('hint-email-conf', '', true); return; }
-  if (email === conf) {
-    _setHint('hint-email-conf', '✓ Emails match', true);
-  } else {
-    _setHint('hint-email-conf', '✗ Emails do not match', false);
-  }
-}
-
-function checkPasswordStrength() {
-  var pass = (document.getElementById('reg-pass') || {}).value || '';
-  if (!pass) { _setHint('hint-password', '', true); return; }
-
-  var checks = [
-    { ok: pass.length >= 8,        msg: '8+ characters' },
-    { ok: /[A-Z]/.test(pass),      msg: 'uppercase letter' },
-    { ok: /[a-z]/.test(pass),      msg: 'lowercase letter' },
-    { ok: /[0-9]/.test(pass),      msg: 'number' },
-  ];
-
-  var failed = checks.filter(function(c){ return !c.ok; });
-
-  if (failed.length === 0) {
-    _setHint('hint-password', '✓ Strong password', true);
-  } else {
-    _setHint('hint-password',
-      '✗ Password needs: ' + failed.map(function(c){ return c.msg; }).join(', '),
-      false
-    );
-  }
-
-  // Also re-check match if retype already filled
-  checkPasswordMatch();
-}
-
-function checkPasswordMatch() {
-  var pass  = (document.getElementById('reg-pass')  || {}).value || '';
-  var pass2 = (document.getElementById('reg-pass2') || {}).value || '';
-  if (!pass2) { _setHint('hint-pass2', '', true); return; }
-  if (pass === pass2) {
-    _setHint('hint-pass2', '✓ Passwords match', true);
-  } else {
-    _setHint('hint-pass2', '✗ Passwords do not match', false);
-  }
-}
-
-window.checkEmailMatch      = checkEmailMatch;
-window.checkPasswordStrength = checkPasswordStrength;
-window.checkPasswordMatch   = checkPasswordMatch;
-
 const AUTH_API_BASE = (typeof API_BASE !== 'undefined' ? API_BASE.replace(/\/+$/, '') : '/api/v1');
 let selectedRole = "staff";
 let regStep = 1;
@@ -122,15 +55,6 @@ function nextRegStep() {
   }
   if (password !== retype_password) {
     showError("register-error", "Passwords do not match.");
-    return;
-  }
-
-  // Password strength check
-  const hasUpper  = /[A-Z]/.test(password);
-  const hasLower  = /[a-z]/.test(password);
-  const hasNumber = /[0-9]/.test(password);
-  if (password.length < 8 || !hasUpper || !hasLower || !hasNumber) {
-    showError("register-error", "Password must be at least 8 characters and include uppercase, lowercase, and a number.");
     return;
   }
 
@@ -368,8 +292,13 @@ async function handleLogin(event) {
       sessionStorage.setItem("spherecare_admin_id", data.admin_id || "");
     }
 
-    // Redirect to dashboard
-    window.location.href = "/pages/dashboard.html";
+    const params = new URLSearchParams(window.location.search);
+    const returnTo = params.get("return");
+    if (returnTo && returnTo.startsWith("/pages/")) {
+      window.location.href = returnTo;
+    } else {
+      window.location.href = "/pages/dashboard.html";
+    }
   } catch (error) {
     console.error(error);
     showError("login-error", "Could not connect to server.");

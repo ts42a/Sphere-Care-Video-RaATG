@@ -18,13 +18,12 @@ from . import cameras
 from . import flags
 from . import uploads
 from . import call
-#from . import calls              
 from . import account
 from . import admin_console
 from . import center_membership
 from . import asl
 from . import vault
-from . import care_tasks
+from . import ai_explainer
 
 api_router = APIRouter()
 
@@ -46,10 +45,9 @@ api_router.include_router(cameras.router, prefix="/cameras", tags=["Cameras"])
 api_router.include_router(flags.router, prefix="/flags", tags=["Flags"])
 api_router.include_router(uploads.router, prefix="/uploads", tags=["Uploads"])
 api_router.include_router(call.router)
-#api_router.include_router(calls.router, tags=["Hazard Detection"])   # /calls/transcript, /calls/event
 api_router.include_router(account.router, prefix="/account", tags=["Account"])
 api_router.include_router(admin_console.router, prefix="/admin", tags=["Admin Console"])
 api_router.include_router(center_membership.router)
 api_router.include_router(asl.router, prefix="/asl", tags=["ASL"])
 api_router.include_router(vault.router)
-api_router.include_router(care_tasks.router)
+api_router.include_router(ai_explainer.router)

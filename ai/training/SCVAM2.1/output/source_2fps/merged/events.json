@@ -1,0 +1,297 @@
+{
+  "merged_path": "C:/Users/tonmo/.cursor/projects/Sphere-Care-Video-RaATG/ai/training/SCVAM2.1/output/source_2fps/merged/merged_frames.json",
+  "temporal_path": "C:/Users/tonmo/.cursor/projects/Sphere-Care-Video-RaATG/ai/training/SCVAM2.1/output/source_2fps/merged/temporal.json",
+  "video": "C:/Users/tonmo/.cursor/projects/Sphere-Care-Video-RaATG/ai/training/SCVAM2.1/source.webm",
+  "src_fps": 29.716792979656958,
+  "thresholds": {
+    "theta_enter": 0.6,
+    "theta_leave": 0.3,
+    "min_run": 2,
+    "merge_gap": 4,
+    "evidence_top_k": 3
+  },
+  "n_events": 4,
+  "events_by_type": {
+    "prolonged_immobility": 1,
+    "environment_hazard_context": 1,
+    "person_active": 1,
+    "hand_visible": 1
+  },
+  "max_severity_by_type": {
+    "prolonged_immobility": 0.78,
+    "environment_hazard_context": 0.631,
+    "person_active": 0.348,
+    "hand_visible": 0.333
+  },
+  "events": [
+    {
+      "event_type": "prolonged_immobility",
+      "start_ts_sec": 0.0,
+      "end_ts_sec": 13.018,
+      "duration_sec": 13.018,
+      "frame_index_span": [
+        0,
+        26
+      ],
+      "n_frames": 27,
+      "severity": 0.78,
+      "max_event_prob": 0.611,
+      "max_anomaly": 0.869,
+      "reasons": [
+        "proxy=ac_immobility_proxy (rolling low limb motion + seated/lying)"
+      ],
+      "evidence": [
+        {
+          "sample_frame": "frame_000001.png",
+          "sample_ts_sec": 0.0,
+          "event_prob": 0.611,
+          "anomaly_score": 0.796,
+          "obj_in_hand_label_set": [],
+          "obj_in_hand_category_set": [],
+          "posture": null,
+          "fall_score": 0.0,
+          "gait_instability_score": 0.0,
+          "hands_visible": true,
+          "obj_in_hand_label": null,
+          "obj_in_hand_raw_label": null,
+          "obj_in_hand_max_conf": 0.0,
+          "obj_in_hand_max_conf_grade": null
+        },
+        {
+          "sample_frame": "frame_000002.png",
+          "sample_ts_sec": 0.519,
+          "event_prob": 0.611,
+          "anomaly_score": 0.257,
+          "obj_in_hand_label_set": [],
+          "obj_in_hand_category_set": [],
+          "posture": null,
+          "fall_score": 0.0,
+          "gait_instability_score": 0.0,
+          "hands_visible": false,
+          "obj_in_hand_label": null,
+          "obj_in_hand_raw_label": null,
+          "obj_in_hand_max_conf": 0.0,
+          "obj_in_hand_max_conf_grade": null
+        },
+        {
+          "sample_frame": "frame_000003.png",
+          "sample_ts_sec": 1.009,
+          "event_prob": 0.611,
+          "anomaly_score": 0.256,
+          "obj_in_hand_label_set": [],
+          "obj_in_hand_category_set": [],
+          "posture": null,
+          "fall_score": 0.0,
+          "gait_instability_score": 0.0,
+          "hands_visible": false,
+          "obj_in_hand_label": null,
+          "obj_in_hand_raw_label": null,
+          "obj_in_hand_max_conf": 0.0,
+          "obj_in_hand_max_conf_grade": null
+        }
+      ]
+    },
+    {
+      "event_type": "environment_hazard_context",
+      "start_ts_sec": 0.0,
+      "end_ts_sec": 13.018,
+      "duration_sec": 13.018,
+      "frame_index_span": [
+        0,
+        26
+      ],
+      "n_frames": 27,
+      "severity": 0.631,
+      "max_event_prob": 0.673,
+      "max_anomaly": 0.869,
+      "reasons": [
+        "proxy=ac_home_hazard_proxy (object load + gait instability)",
+        "object_count=4"
+      ],
+      "evidence": [
+        {
+          "sample_frame": "frame_000010.png",
+          "sample_ts_sec": 4.506,
+          "event_prob": 0.672,
+          "anomaly_score": 0.859,
+          "obj_in_hand_label_set": [],
+          "obj_in_hand_category_set": [],
+          "posture": null,
+          "fall_score": 0.0,
+          "gait_instability_score": 0.0,
+          "hands_visible": true,
+          "obj_in_hand_label": null,
+          "obj_in_hand_raw_label": null,
+          "obj_in_hand_max_conf": 0.0,
+          "obj_in_hand_max_conf_grade": null
+        },
+        {
+          "sample_frame": "frame_000022.png",
+          "sample_ts_sec": 10.537,
+          "event_prob": 0.673,
+          "anomaly_score": 0.543,
+          "obj_in_hand_label_set": [],
+          "obj_in_hand_category_set": [],
+          "posture": null,
+          "fall_score": 0.0,
+          "gait_instability_score": 0.0,
+          "hands_visible": true,
+          "obj_in_hand_label": null,
+          "obj_in_hand_raw_label": null,
+          "obj_in_hand_max_conf": 0.0,
+          "obj_in_hand_max_conf_grade": null
+        },
+        {
+          "sample_frame": "frame_000025.png",
+          "sample_ts_sec": 12.02,
+          "event_prob": 0.672,
+          "anomaly_score": 0.397,
+          "obj_in_hand_label_set": [],
+          "obj_in_hand_category_set": [],
+          "posture": null,
+          "fall_score": 0.0,
+          "gait_instability_score": 0.0,
+          "hands_visible": false,
+          "obj_in_hand_label": null,
+          "obj_in_hand_raw_label": null,
+          "obj_in_hand_max_conf": 0.0,
+          "obj_in_hand_max_conf_grade": null
+        }
+      ]
+    },
+    {
+      "event_type": "person_active",
+      "start_ts_sec": 0.0,
+      "end_ts_sec": 13.018,
+      "duration_sec": 13.018,
+      "frame_index_span": [
+        0,
+        26
+      ],
+      "n_frames": 27,
+      "severity": 0.348,
+      "max_event_prob": 0.872,
+      "max_anomaly": 0.869,
+      "reasons": [
+        "person_conf=0.8665",
+        "person_conf=0.8821",
+        "person_conf=0.8519"
+      ],
+      "evidence": [
+        {
+          "sample_frame": "frame_000002.png",
+          "sample_ts_sec": 0.519,
+          "event_prob": 0.87,
+          "anomaly_score": 0.257,
+          "obj_in_hand_label_set": [],
+          "obj_in_hand_category_set": [],
+          "posture": null,
+          "fall_score": 0.0,
+          "gait_instability_score": 0.0,
+          "hands_visible": false,
+          "obj_in_hand_label": null,
+          "obj_in_hand_raw_label": null,
+          "obj_in_hand_max_conf": 0.0,
+          "obj_in_hand_max_conf_grade": null
+        },
+        {
+          "sample_frame": "frame_000005.png",
+          "sample_ts_sec": 2.001,
+          "event_prob": 0.872,
+          "anomaly_score": 0.257,
+          "obj_in_hand_label_set": [],
+          "obj_in_hand_category_set": [],
+          "posture": null,
+          "fall_score": 0.0,
+          "gait_instability_score": 0.0,
+          "hands_visible": false,
+          "obj_in_hand_label": null,
+          "obj_in_hand_raw_label": null,
+          "obj_in_hand_max_conf": 0.0,
+          "obj_in_hand_max_conf_grade": null
+        },
+        {
+          "sample_frame": "frame_000009.png",
+          "sample_ts_sec": 4.015,
+          "event_prob": 0.866,
+          "anomaly_score": 0.253,
+          "obj_in_hand_label_set": [],
+          "obj_in_hand_category_set": [],
+          "posture": null,
+          "fall_score": 0.0,
+          "gait_instability_score": 0.0,
+          "hands_visible": false,
+          "obj_in_hand_label": null,
+          "obj_in_hand_raw_label": null,
+          "obj_in_hand_max_conf": 0.0,
+          "obj_in_hand_max_conf_grade": null
+        }
+      ]
+    },
+    {
+      "event_type": "hand_visible",
+      "start_ts_sec": 8.522,
+      "end_ts_sec": 10.537,
+      "duration_sec": 2.015,
+      "frame_index_span": [
+        17,
+        21
+      ],
+      "n_frames": 5,
+      "severity": 0.333,
+      "max_event_prob": 0.863,
+      "max_anomaly": 0.821,
+      "reasons": [],
+      "evidence": [
+        {
+          "sample_frame": "frame_000018.png",
+          "sample_ts_sec": 8.522,
+          "event_prob": 0.863,
+          "anomaly_score": 0.816,
+          "obj_in_hand_label_set": [],
+          "obj_in_hand_category_set": [],
+          "posture": null,
+          "fall_score": 0.0,
+          "gait_instability_score": 0.0,
+          "hands_visible": true,
+          "obj_in_hand_label": null,
+          "obj_in_hand_raw_label": null,
+          "obj_in_hand_max_conf": 0.0,
+          "obj_in_hand_max_conf_grade": null
+        },
+        {
+          "sample_frame": "frame_000019.png",
+          "sample_ts_sec": 9.013,
+          "event_prob": 0.863,
+          "anomaly_score": 0.815,
+          "obj_in_hand_label_set": [],
+          "obj_in_hand_category_set": [],
+          "posture": null,
+          "fall_score": 0.0,
+          "gait_instability_score": 0.0,
+          "hands_visible": true,
+          "obj_in_hand_label": null,
+          "obj_in_hand_raw_label": null,
+          "obj_in_hand_max_conf": 0.0,
+          "obj_in_hand_max_conf_grade": null
+        },
+        {
+          "sample_frame": "frame_000020.png",
+          "sample_ts_sec": 9.521,
+          "event_prob": 0.863,
+          "anomaly_score": 0.818,
+          "obj_in_hand_label_set": [],
+          "obj_in_hand_category_set": [],
+          "posture": null,
+          "fall_score": 0.0,
+          "gait_instability_score": 0.0,
+          "hands_visible": true,
+          "obj_in_hand_label": null,
+          "obj_in_hand_raw_label": null,
+          "obj_in_hand_max_conf": 0.0,
+          "obj_in_hand_max_conf_grade": null
+        }
+      ]
+    }
+  ]
+}

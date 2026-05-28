@@ -1,0 +1,74 @@
+{
+  "run_dir": "C:/Users/tonmo/.cursor/projects/Sphere-Care-Video-RaATG/ai/training/SCVAM2.1/output/source_2fps",
+  "frames_scanned": 27,
+  "total_detections": 80,
+  "classes": [
+    {
+      "label": "person",
+      "frames_seen": 27,
+      "total_detections": 46,
+      "first_seen_ts": 0.0,
+      "first_seen_frame": "frame_000001.png",
+      "last_seen_ts": 13.018,
+      "last_seen_frame": "frame_000027.png",
+      "max_confidence": 0.8821
+    },
+    {
+      "label": "chair",
+      "frames_seen": 5,
+      "total_detections": 5,
+      "first_seen_ts": 2.532,
+      "first_seen_frame": "frame_000006.png",
+      "last_seen_ts": 12.51,
+      "last_seen_frame": "frame_000026.png",
+      "max_confidence": 0.2561
+    },
+    {
+      "label": "couch",
+      "frames_seen": 27,
+      "total_detections": 27,
+      "first_seen_ts": 0.0,
+      "first_seen_frame": "frame_000001.png",
+      "last_seen_ts": 13.018,
+      "last_seen_frame": "frame_000027.png",
+      "max_confidence": 0.7342
+    },
+    {
+      "label": "bed",
+      "frames_seen": 1,
+      "total_detections": 1,
+      "first_seen_ts": 0.0,
+      "first_seen_frame": "frame_000001.png",
+      "last_seen_ts": 0.0,
+      "last_seen_frame": "frame_000001.png",
+      "max_confidence": 0.4096
+    },
+    {
+      "label": "toilet",
+      "frames_seen": 1,
+      "total_detections": 1,
+      "first_seen_ts": 6.524,
+      "first_seen_frame": "frame_000014.png",
+      "last_seen_ts": 6.524,
+      "last_seen_frame": "frame_000014.png",
+      "max_confidence": 0.2587
+    }
+  ],
+  "classes_never_seen": [
+    "knife",
+    "bottle",
+    "wine glass",
+    "cup",
+    "fork",
+    "spoon",
+    "bowl",
+    "scissors",
+    "dining table",
+    "oven",
+    "microwave",
+    "toaster",
+    "sink",
+    "refrigerator",
+    "cell phone"
+  ]
+}

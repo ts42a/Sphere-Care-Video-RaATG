@@ -1,0 +1,14 @@
+{
+  "video_name": "input",
+  "original_filename": "input.mp4",
+  "vault_record_id": "rec_fail_1779954995_s1",
+  "db_record_id": 24,
+  "duration_sec": 13.0,
+  "duration_hhmmss": "00:13",
+  "model": "scvam2.1",
+  "processed_at": "2026-05-28T08:15:48.905962+00:00",
+  "summary_heading": "No concerning events detected",
+  "events_count": 0,
+  "output_dir": "C:\\Users\\tonmo\\.cursor\\projects\\Sphere-Care-Video-RaATG\\databases\\org_1\\scvam_output\\input",
+  "run_dir": "C:\\Users\\tonmo\\.cursor\\projects\\Sphere-Care-Video-RaATG\\databases\\org_1\\scvam_input\\jobs\\rec_fail_1779954995_s1\\work\\input_2fps"
+}

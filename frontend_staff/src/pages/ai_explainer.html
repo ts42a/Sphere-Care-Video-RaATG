@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Explainer</title>
+  <link rel="stylesheet" href="/style/css/dashboard.css" />
+  <style>
+    .panel { background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:16px; margin-bottom:14px; }
+    .row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+    input, button { padding:8px 10px; border:1px solid #d1d5db; border-radius:8px; }
+    button { background:#2563eb; color:#fff; border:none; cursor:pointer; }
+    .muted { color:#6b7280; font-size:13px; }
+    .timeline-item { border-top:1px solid #eef2f7; padding:10px 0; }
+    .timeline-item:first-child { border-top:none; }
+    .sev-notable { color:#b45309; font-weight:700; }
+    .sev-incident { color:#b91c1c; font-weight:700; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div id="sidebar-container"></div>
+    <div class="main">
+      <div class="topbar">
+        <div class="topbar-title">AI Explainer Live</div>
+      </div>
+      <div class="content">
+        <div class="panel">
+          <h3>Run Video Narration Job</h3>
+          <div class="row" style="margin-top:8px;">
+            <input id="videoPath" style="min-width:360px;" value="ai/training/ai_flags/video/Recording 2026-05-07 213352.mp4" />
+            <input id="cameraId" value="camera_0" />
+            <button onclick="runJob()">Run</button>
+          </div>
+          <div id="jobResult" class="muted" style="margin-top:10px;">No job run yet.</div>
+        </div>
+
+        <div class="panel">
+          <h3>Search Timeline</h3>
+          <div class="row" style="margin-top:8px;">
+            <input id="searchText" placeholder="Search summary/headline/zone" />
+            <button onclick="loadTimeline()">Search</button>
+            <button onclick="loadDigest()">Refresh Digest</button>
+          </div>
+          <div id="digest" class="muted" style="margin-top:10px;"></div>
+          <div id="timeline" style="margin-top:10px;"></div>
+        </div>
+
+        <div class="panel">
+          <h3>Live Stream (WebSocket)</h3>
+          <div id="liveFeed" class="muted">Waiting for live narration chunks...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/components/sidebar.js"></script>
+  <script>
+    const API = "/api/v1/ai/explainer";
+    const token = localStorage.getItem("access_token") || "";
+
+    function authHeaders() {
+      return token ? { "Authorization": `Bearer ${token}` } : {};
+    }
+
+    async function runJob() {
+      const body = {
+        video_path: document.getElementById("videoPath").value,
+        camera_id: document.getElementById("cameraId").value,
+        chunk_seconds: 8,
+        max_frames: 220
+      };
+      const res = await fetch(`${API}/jobs`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        body: JSON.stringify(body)
+      });
+      const data = await res.json();
+      document.getElementById("jobResult").textContent = res.ok
+        ? `Run ${data.run_id}: ${data.chunk_count} chunks, backend=${data.perception_backend}`
+        : `Job failed: ${JSON.stringify(data)}`;
+      await loadTimeline();
+      await loadDigest();
+    }
+
+    async function loadTimeline() {
+      const cameraId = document.getElementById("cameraId").value;
+      const q = encodeURIComponent(document.getElementById("searchText").value || "");
+      const res = await fetch(`${API}/timeline?camera_id=${encodeURIComponent(cameraId)}&q=${q}&limit=60`, {
+        headers: authHeaders()
+      });
+      const rows = await res.json();
+      const holder = document.getElementById("timeline");
+      if (!Array.isArray(rows) || rows.length === 0) {
+        holder.innerHTML = '<div class="muted">No timeline rows.</div>';
+        return;
+      }
+      holder.innerHTML = rows.map(r => {
+        const sevClass = r.severity === "incident_linked" ? "sev-incident" : (r.severity === "notable" ? "sev-notable" : "");
+        return `<div class="timeline-item">
+          <div><strong>[${r.start_ts.toFixed(1)}s-${r.end_ts.toFixed(1)}s]</strong> ${r.headline}</div>
+          <div class="muted">${r.summary}</div>
+          <div class="${sevClass}">severity=${r.severity}, confidence=${r.confidence}</div>
+        </div>`;
+      }).join("");
+    }
+
+    async function loadDigest() {
+      const cameraId = document.getElementById("cameraId").value;
+      const res = await fetch(`${API}/digest?camera_id=${encodeURIComponent(cameraId)}`, { headers: authHeaders() });
+      const d = await res.json();
+      document.getElementById("digest").textContent = d.summary || "No digest";
+    }
+
+    function startWs() {
+      const cameraId = document.getElementById("cameraId").value;
+      const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+      const ws = new WebSocket(`${protocol}://${window.location.host}/api/v1/ai/explainer/ws/${encodeURIComponent(cameraId)}`);
+      ws.onopen = () => {
+        document.getElementById("liveFeed").textContent = "Connected. Waiting for live chunks...";
+      };
+      ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        if (data.type === "ai_explainer.chunk") {
+          const p = data.payload || {};
+          document.getElementById("liveFeed").textContent = `[${p.start_ts}s-${p.end_ts}s] ${p.headline} (${p.severity}, ${p.confidence})`;
+          loadTimeline();
+          loadDigest();
+        }
+      };
+      ws.onclose = () => {
+        document.getElementById("liveFeed").textContent = "WebSocket closed. Reconnecting...";
+        setTimeout(startWs, 2000);
+      };
+    }
+
+    loadTimeline();
+    loadDigest();
+    startWs();
+  </script>
+</body>
+</html>

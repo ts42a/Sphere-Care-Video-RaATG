@@ -182,75 +182,6 @@ html,body{height:100%;font-family:'Inter', sans-serif;background:var(--bg);color
 .task-info .task-status.done{color:var(--green);}
 .task-info .task-status.urgent{color:var(--red);}
 
-/* ── BOOKING SCHEDULE TABLE (Dashboard) ── */
-.bk-table-wrap{
-  overflow-x:auto;
-  margin-top:4px;
-  border-radius:10px;
-  border:1px solid var(--border);
-}
-.bk-sched-table{
-  width:100%;
-  border-collapse:collapse;
-  font-size:12.5px;
-  background:#fff;
-}
-.bk-th-doc{
-  text-align:left;
-  padding:10px 14px;
-  font-size:11.5px;font-weight:700;color:var(--text2);
-  background:#F8FAFC;
-  border-bottom:2px solid var(--border);
-  border-right:2px solid var(--border);
-  white-space:nowrap;
-  min-width:150px;
-  position:sticky;left:0;z-index:1;
-}
-.bk-th-time{
-  text-align:center;
-  padding:8px 10px;
-  font-size:11.5px;font-weight:700;color:var(--text2);
-  background:#F8FAFC;
-  border-bottom:2px solid var(--border);
-  border-right:1px solid var(--border);
-  white-space:nowrap;
-  min-width:100px;
-}
-.bk-th-date{display:block;font-size:10px;color:var(--text3);font-weight:500;}
-.bk-th-t   {display:block;font-size:12px;font-weight:800;color:var(--text);}
-.bk-td-doc{
-  padding:10px 14px;
-  border-bottom:1px solid var(--border);
-  border-right:2px solid var(--border);
-  background:#fff;
-  vertical-align:middle;
-  position:sticky;left:0;z-index:1;
-}
-.bk-doc-name{font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;}
-.bk-doc-spec{font-size:11px;color:var(--text3);margin-top:2px;white-space:nowrap;}
-.bk-td-cell{
-  padding:6px 8px;
-  border-bottom:1px solid var(--border);
-  border-right:1px solid var(--border);
-  vertical-align:top;
-}
-.bk-td-empty{
-  padding:6px 8px;
-  border-bottom:1px solid var(--border);
-  border-right:1px solid var(--border);
-  background:#FAFBFC;
-}
-.bk-appt{
-  border-radius:8px;
-  padding:6px 8px;
-  min-width:84px;
-}
-.bk-appt.done   {background:#f0fdf4;border-left:3px solid var(--green);}
-.bk-appt.urgent {background:#fef2f2;border-left:3px solid var(--red);}
-.bk-appt.pending{background:#fffbeb;border-left:3px solid var(--amber);}
-.bk-appt-resident{font-size:12px;font-weight:700;color:var(--text);line-height:1.3;}
-.bk-appt-type   {font-size:11px;color:var(--text2);margin-top:2px;}
-
 /* ── MONITORING (Dashboard) ── */
 .monitoring-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;flex-wrap:wrap;}
 .monitoring-refresh-btn{
@@ -285,18 +216,17 @@ html,body{height:100%;font-family:'Inter', sans-serif;background:var(--bg);color
 .table-wrap{overflow-x:auto;}
 table{width:100%;border-collapse:collapse;}
 thead tr{border-bottom:2px solid #F8FAFC;}
-th{font-size:12px;font-weight:700;color:var(--text2);text-align:left;padding:10px 12px;}
-td{font-size:13px;color:var(--text);padding:12px 12px;text-align:left;border-bottom:1px solid #f6f8fb;}
-td:first-child{font-weight:600;}
+th{font-size:12px;font-weight:700;color:var(--text2);text-align:center;padding:10px 12px;}
+th:first-child{text-align:left;}
+td{font-size:13px;color:var(--text);padding:12px 12px;text-align:center;border-bottom:1px solid #f6f8fb;}
+td:first-child{text-align:left;font-weight:600;}
 tr:last-child td{border-bottom:none;}
-/* higher specificity than Bootstrap's .badge to avoid override */
-table .badge{
-  display:inline-block;padding:1px 10px;border-radius:6px;
-  font-size:12px;font-weight:600;line-height:1.4;white-space:nowrap;
+.badge{
+  display:inline-block;padding:4px 12px;border-radius:20px;font-size:11.5px;font-weight:700;
 }
-table .badge.complete{background:#dcfce7;color:#166634;}
-table .badge.progress{background:#fef9c3;color:#a16207;}
-table .badge.pending {background:#fee2e2;color:#b91c1c;}
+.badge.complete{background:#dcfce7;color:#166534;}
+.badge.progress{background:#fef9c3;color:#a16207;}
+.badge.pending{background:#fee2e2;color:#b91c1c;}
 
 /* ── RIGHT PANEL CARDS ── */
 .rp-card{

@@ -1,0 +1,11 @@
+{
+  "run_dir": "C:/Users/tonmo/.cursor/projects/Sphere-Care-Video-RaATG/databases/org_1/scvam_input/jobs/rec_fail_1779954995_s1/work/input_2fps",
+  "llm_provider": "ollama",
+  "summary_text": "No concerning events detected\n\nThe person was standing around 1s, then possibly walking from 2s to 5s and again from 6s onwards. No notable changes in posture were observed. An earlier automated pass flagged possible scissors at about 3s, but the verification step did not confirm it.",
+  "summary_heading": "No concerning events detected",
+  "summary_posture_lines": [],
+  "sharp_audit_lines": [],
+  "llm_event_lines": [],
+  "debug_event_lines": [],
+  "context_excerpt": "clip: input.mp4, 26 sampled frames\nheading (must reuse verbatim): No concerning events detected\nno concerning events detected"
+}

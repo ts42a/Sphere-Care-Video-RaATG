@@ -1,0 +1,495 @@
+{
+  "run_dir": "C:/Users/tonmo/.cursor/projects/Sphere-Care-Video-RaATG/ai/training/SCVAM2.1/output/source_2fps",
+  "video": null,
+  "tracked_classes": [
+    "bottle",
+    "cell phone",
+    "cup",
+    "fork",
+    "knife",
+    "person",
+    "scissors",
+    "wine glass"
+  ],
+  "motion_threshold": 0.015,
+  "keepalive_sec": 5.0,
+  "n_total": 27,
+  "n_kept": 10,
+  "n_dropped": 17,
+  "compute_saved_pct_step2_step3": 63.0,
+  "state_counts": {
+    "active": 9,
+    "person_still": 18
+  },
+  "idle_intervals": [],
+  "n_idle_intervals": 0,
+  "n_frames_idle_collapsed": 0,
+  "decisions": [
+    {
+      "sample_frame": "frame_000001.png",
+      "ts_sec": 0.0,
+      "src_index": 0,
+      "labels": [
+        "bed",
+        "couch",
+        "person"
+      ],
+      "motion": 0.0,
+      "motion_since_kept": 0.0,
+      "motion_adjacent": null,
+      "state": "active",
+      "kept": true,
+      "reasons": [
+        "first_frame",
+        "new_tracked=['person']",
+        "person_flip=False->True"
+      ]
+    },
+    {
+      "sample_frame": "frame_000002.png",
+      "ts_sec": 0.519,
+      "src_index": 15,
+      "labels": [
+        "couch",
+        "person"
+      ],
+      "motion": 0.00434,
+      "motion_since_kept": 0.00434,
+      "motion_adjacent": 0.00434,
+      "state": "person_still",
+      "kept": false,
+      "reasons": [
+        "person_still_thinned"
+      ]
+    },
+    {
+      "sample_frame": "frame_000003.png",
+      "ts_sec": 1.009,
+      "src_index": 30,
+      "labels": [
+        "couch",
+        "person"
+      ],
+      "motion": 0.00602,
+      "motion_since_kept": 0.0065,
+      "motion_adjacent": 0.00602,
+      "state": "person_still",
+      "kept": false,
+      "reasons": [
+        "person_still_thinned"
+      ]
+    },
+    {
+      "sample_frame": "frame_000004.png",
+      "ts_sec": 1.518,
+      "src_index": 45,
+      "labels": [
+        "couch",
+        "person"
+      ],
+      "motion": 0.0059,
+      "motion_since_kept": 0.00785,
+      "motion_adjacent": 0.0059,
+      "state": "person_still",
+      "kept": false,
+      "reasons": [
+        "person_still_thinned"
+      ]
+    },
+    {
+      "sample_frame": "frame_000005.png",
+      "ts_sec": 2.001,
+      "src_index": 59,
+      "labels": [
+        "couch",
+        "person"
+      ],
+      "motion": 0.00426,
+      "motion_since_kept": 0.00773,
+      "motion_adjacent": 0.00426,
+      "state": "person_still",
+      "kept": false,
+      "reasons": [
+        "person_still_thinned"
+      ]
+    },
+    {
+      "sample_frame": "frame_000006.png",
+      "ts_sec": 2.532,
+      "src_index": 75,
+      "labels": [
+        "chair",
+        "couch",
+        "person"
+      ],
+      "motion": 0.00655,
+      "motion_since_kept": 0.00759,
+      "motion_adjacent": 0.00655,
+      "state": "person_still",
+      "kept": false,
+      "reasons": [
+        "person_still_thinned"
+      ]
+    },
+    {
+      "sample_frame": "frame_000007.png",
+      "ts_sec": 3.027,
+      "src_index": 90,
+      "labels": [
+        "couch",
+        "person"
+      ],
+      "motion": 0.00721,
+      "motion_since_kept": 0.00896,
+      "motion_adjacent": 0.00721,
+      "state": "person_still",
+      "kept": false,
+      "reasons": [
+        "person_still_thinned"
+      ]
+    },
+    {
+      "sample_frame": "frame_000008.png",
+      "ts_sec": 3.546,
+      "src_index": 105,
+      "labels": [
+        "couch",
+        "person"
+      ],
+      "motion": 0.0051,
+      "motion_since_kept": 0.0077,
+      "motion_adjacent": 0.0051,
+      "state": "person_still",
+      "kept": false,
+      "reasons": [
+        "person_still_thinned"
+      ]
+    },
+    {
+      "sample_frame": "frame_000009.png",
+      "ts_sec": 4.015,
+      "src_index": 119,
+      "labels": [
+        "couch",
+        "person"
+      ],
+      "motion": 0.00421,
+      "motion_since_kept": 0.00764,
+      "motion_adjacent": 0.00421,
+      "state": "person_still",
+      "kept": false,
+      "reasons": [
+        "person_still_thinned"
+      ]
+    },
+    {
+      "sample_frame": "frame_000010.png",
+      "ts_sec": 4.506,
+      "src_index": 134,
+      "labels": [
+        "chair",
+        "couch",
+        "person"
+      ],
+      "motion": 0.01781,
+      "motion_since_kept": 0.01984,
+      "motion_adjacent": 0.01781,
+      "state": "active",
+      "kept": true,
+      "reasons": [
+        "motion=0.0178>=thr"
+      ]
+    },
+    {
+      "sample_frame": "frame_000011.png",
+      "ts_sec": 5.014,
+      "src_index": 149,
+      "labels": [
+        "couch",
+        "person"
+      ],
+      "motion": 0.00893,
+      "motion_since_kept": 0.00893,
+      "motion_adjacent": 0.00893,
+      "state": "person_still",
+      "kept": false,
+      "reasons": [
+        "person_still_thinned"
+      ]
+    },
+    {
+      "sample_frame": "frame_000012.png",
+      "ts_sec": 5.515,
+      "src_index": 164,
+      "labels": [
+        "couch",
+        "person"
+      ],
+      "motion": 0.01131,
+      "motion_since_kept": 0.01257,
+      "motion_adjacent": 0.01131,
+      "state": "person_still",
+      "kept": false,
+      "reasons": [
+        "person_still_thinned"
+      ]
+    },
+    {
+      "sample_frame": "frame_000013.png",
+      "ts_sec": 6.024,
+      "src_index": 179,
+      "labels": [
+        "couch",
+        "person"
+      ],
+      "motion": 0.01258,
+      "motion_since_kept": 0.01724,
+      "motion_adjacent": 0.01258,
+      "state": "person_still",
+      "kept": false,
+      "reasons": [
+        "person_still_thinned"
+      ]
+    },
+    {
+      "sample_frame": "frame_000014.png",
+      "ts_sec": 6.524,
+      "src_index": 194,
+      "labels": [
+        "couch",
+        "person",
+        "toilet"
+      ],
+      "motion": 0.01575,
+      "motion_since_kept": 0.0195,
+      "motion_adjacent": 0.01575,
+      "state": "active",
+      "kept": true,
+      "reasons": [
+        "motion=0.0157>=thr"
+      ]
+    },
+    {
+      "sample_frame": "frame_000015.png",
+      "ts_sec": 7.041,
+      "src_index": 209,
+      "labels": [
+        "couch",
+        "person"
+      ],
+      "motion": 0.01176,
+      "motion_since_kept": 0.01176,
+      "motion_adjacent": 0.01176,
+      "state": "person_still",
+      "kept": false,
+      "reasons": [
+        "person_still_thinned"
+      ]
+    },
+    {
+      "sample_frame": "frame_000016.png",
+      "ts_sec": 7.509,
+      "src_index": 223,
+      "labels": [
+        "couch",
+        "person"
+      ],
+      "motion": 0.01667,
+      "motion_since_kept": 0.01849,
+      "motion_adjacent": 0.01667,
+      "state": "active",
+      "kept": true,
+      "reasons": [
+        "motion=0.0167>=thr"
+      ]
+    },
+    {
+      "sample_frame": "frame_000017.png",
+      "ts_sec": 8.003,
+      "src_index": 238,
+      "labels": [
+        "couch",
+        "person"
+      ],
+      "motion": 0.01232,
+      "motion_since_kept": 0.01232,
+      "motion_adjacent": 0.01232,
+      "state": "person_still",
+      "kept": false,
+      "reasons": [
+        "person_still_thinned"
+      ]
+    },
+    {
+      "sample_frame": "frame_000018.png",
+      "ts_sec": 8.522,
+      "src_index": 253,
+      "labels": [
+        "couch",
+        "person"
+      ],
+      "motion": 0.02473,
+      "motion_since_kept": 0.02688,
+      "motion_adjacent": 0.02473,
+      "state": "active",
+      "kept": true,
+      "reasons": [
+        "motion=0.0247>=thr"
+      ]
+    },
+    {
+      "sample_frame": "frame_000019.png",
+      "ts_sec": 9.013,
+      "src_index": 268,
+      "labels": [
+        "couch",
+        "person"
+      ],
+      "motion": 0.03127,
+      "motion_since_kept": 0.03127,
+      "motion_adjacent": 0.03127,
+      "state": "active",
+      "kept": true,
+      "reasons": [
+        "motion=0.0313>=thr"
+      ]
+    },
+    {
+      "sample_frame": "frame_000020.png",
+      "ts_sec": 9.521,
+      "src_index": 283,
+      "labels": [
+        "couch",
+        "person"
+      ],
+      "motion": 0.01699,
+      "motion_since_kept": 0.01699,
+      "motion_adjacent": 0.01699,
+      "state": "active",
+      "kept": true,
+      "reasons": [
+        "motion=0.0170>=thr"
+      ]
+    },
+    {
+      "sample_frame": "frame_000021.png",
+      "ts_sec": 10.021,
+      "src_index": 298,
+      "labels": [
+        "couch",
+        "person"
+      ],
+      "motion": 0.02129,
+      "motion_since_kept": 0.02129,
+      "motion_adjacent": 0.02129,
+      "state": "active",
+      "kept": true,
+      "reasons": [
+        "motion=0.0213>=thr"
+      ]
+    },
+    {
+      "sample_frame": "frame_000022.png",
+      "ts_sec": 10.537,
+      "src_index": 313,
+      "labels": [
+        "chair",
+        "couch",
+        "person"
+      ],
+      "motion": 0.01523,
+      "motion_since_kept": 0.01523,
+      "motion_adjacent": 0.01523,
+      "state": "active",
+      "kept": true,
+      "reasons": [
+        "motion=0.0152>=thr"
+      ]
+    },
+    {
+      "sample_frame": "frame_000023.png",
+      "ts_sec": 11.005,
+      "src_index": 327,
+      "labels": [
+        "couch",
+        "person"
+      ],
+      "motion": 0.00685,
+      "motion_since_kept": 0.00685,
+      "motion_adjacent": 0.00685,
+      "state": "person_still",
+      "kept": false,
+      "reasons": [
+        "person_still_thinned"
+      ]
+    },
+    {
+      "sample_frame": "frame_000024.png",
+      "ts_sec": 11.501,
+      "src_index": 342,
+      "labels": [
+        "couch",
+        "person"
+      ],
+      "motion": 0.00633,
+      "motion_since_kept": 0.00985,
+      "motion_adjacent": 0.00633,
+      "state": "person_still",
+      "kept": false,
+      "reasons": [
+        "person_still_thinned"
+      ]
+    },
+    {
+      "sample_frame": "frame_000025.png",
+      "ts_sec": 12.02,
+      "src_index": 357,
+      "labels": [
+        "chair",
+        "couch",
+        "person"
+      ],
+      "motion": 0.00564,
+      "motion_since_kept": 0.01187,
+      "motion_adjacent": 0.00564,
+      "state": "person_still",
+      "kept": false,
+      "reasons": [
+        "person_still_thinned"
+      ]
+    },
+    {
+      "sample_frame": "frame_000026.png",
+      "ts_sec": 12.51,
+      "src_index": 372,
+      "labels": [
+        "chair",
+        "couch",
+        "person"
+      ],
+      "motion": 0.0053,
+      "motion_since_kept": 0.01271,
+      "motion_adjacent": 0.0053,
+      "state": "person_still",
+      "kept": false,
+      "reasons": [
+        "person_still_thinned"
+      ]
+    },
+    {
+      "sample_frame": "frame_000027.png",
+      "ts_sec": 13.018,
+      "src_index": 387,
+      "labels": [
+        "couch",
+        "person"
+      ],
+      "motion": 0.00518,
+      "motion_since_kept": 0.01352,
+      "motion_adjacent": 0.00518,
+      "state": "person_still",
+      "kept": true,
+      "reasons": []
+    }
+  ]
+}

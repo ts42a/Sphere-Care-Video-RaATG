@@ -1,0 +1,7 @@
+Video: input.mp4
+Duration: 00:13 (13.0 sec)
+Processed: 2026-05-28T08:15:48.905962+00:00
+
+No concerning events detected
+
+The person was standing around 1s, then possibly walking from 2s to 5s and again from 6s onwards. No notable changes in posture were observed. An earlier automated pass flagged possible scissors at about 3s, but the verification step did not confirm it.

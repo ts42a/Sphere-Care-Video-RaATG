@@ -26,6 +26,9 @@
         <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         <input class="search-input" id="conv-search" placeholder="Search messages..." oninput="filterConvs()"/>
       </div>
+      <div class="asl-launch-row">
+        <button id="btn-asl-launch" class="btn-asl-launch" onclick="openAslModeModal()">ASL Translation</button>
+      </div>
       <div class="tab-row">
         <button class="cat-tab active" onclick="setCat('',this)">All</button>
         <button class="cat-tab" onclick="setCat('team',this)">Team</button>
@@ -89,6 +92,27 @@
         </div>
       </div>
     </div>
+    <div class="asl-translation-panel" id="asl-translation-panel" style="display:none;" onclick="if(event.target===this)closeAslTranslation()">
+      <div class="asl-video-wrap">
+        <video id="asl-translation-video" autoplay playsinline muted></video>
+      </div>
+      <div class="asl-translation-box" onclick="event.stopPropagation()">
+        <div class="asl-box-top">
+          <div class="asl-box-title">ASL Translation</div>
+          <button class="asl-close-btn" onclick="closeAslTranslation()">Close</button>
+        </div>
+        <div class="asl-mode-row">
+          <button id="asl-mode-static-btn" class="asl-mode-btn active" onclick="setAslTranslationMode('static')">Static</button>
+        </div>
+        <div class="asl-camera-row">
+          <label class="asl-camera-label" for="asl-camera-select">Camera</label>
+          <select id="asl-camera-select" class="asl-camera-select" onchange="switchAslCamera(this.value)">
+            <option value="">Default camera</option>
+          </select>
+        </div>
+        <div class="asl-result-text" id="asl-result-text">Camera is live. Choose a translation mode.</div>
+      </div>
+    </div>
   </div>
 </div>
 </div>
@@ -139,6 +163,24 @@
     <div class="mfooter">
       <button class="btn btn-outline" onclick="closeModal('modal-new')">Cancel</button>
       <button class="btn btn-primary" id="new-modal-submit" onclick="createConv()">Create</button>
+    </div>
+  </div>
+</div>
+<div class="overlay" id="modal-asl-mode" onclick="if(event.target===this)closeAslModeModal()">
+  <div class="sc-modal asl-mode-modal">
+    <div class="mhdr">
+      <h3>Select ASL Translator Mode</h3>
+      <button class="mclose" onclick="closeAslModeModal()">×</button>
+    </div>
+    <div class="mbody asl-mode-body">
+      <button class="asl-mode-choice" onclick="selectAslMode('static')">
+        <span class="asl-mode-choice-title">Static</span>
+        <span class="asl-mode-choice-sub">Letters/poses with Python camera.</span>
+      </button>
+      <button class="asl-mode-choice" onclick="selectAslMode('motion')">
+        <span class="asl-mode-choice-title">Motion</span>
+        <span class="asl-mode-choice-sub">Dynamic signs with Python camera.</span>
+      </button>
     </div>
   </div>
 </div>
@@ -217,127 +259,5 @@
 <script src="../style/js/message.js"></script>
 <script src="/components/sidebar.js"></script>
 <div id="call-overlay" style="display:none;position:fixed;inset:0;z-index:99999;flex-direction:column;align-items:center;justify-content:flex-end;"></div>
-
-<!-- ── Hazard Detection Warning Banner ─────────────────────────── -->
-<div id="hazard-banner" style="
-  display:none;
-  position:fixed;
-  top:18px;
-  left:50%;
-  transform:translateX(-50%);
-  z-index:999999;
-  background:#7f1d1d;
-  color:#fff;
-  border-radius:14px;
-  padding:14px 22px 14px 16px;
-  box-shadow:0 8px 32px rgba(0,0,0,0.35);
-  max-width:480px;
-  width:calc(100vw - 40px);
-  display:none;
-  align-items:flex-start;
-  gap:12px;
-  font-family:'Inter',sans-serif;
-">
-  <svg style="flex-shrink:0;margin-top:2px;" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fca5a5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-    <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
-  </svg>
-  <div style="flex:1;">
-    <div id="hazard-banner-title" style="font-weight:700;font-size:14px;color:#fca5a5;margin-bottom:3px;">⚠ Hazard Detected</div>
-    <div id="hazard-banner-body" style="font-size:13px;color:#fecaca;line-height:1.5;"></div>
-  </div>
-  <button onclick="document.getElementById('hazard-banner').style.display='none'" style="background:none;border:none;color:#fca5a5;font-size:20px;cursor:pointer;padding:0;line-height:1;flex-shrink:0;">×</button>
-</div>
-
-<script>
-// ── Hazard banner helper ─────────────────────────────────────────
-function showHazardBanner(hazards) {
-  if (!hazards || !hazards.length) return;
-  const banner = document.getElementById('hazard-banner');
-  const title  = document.getElementById('hazard-banner-title');
-  const body   = document.getElementById('hazard-banner-body');
-  const labels = hazards.map(h => `${h.event_type} (${h.severity})`).join(', ');
-  const keywords = hazards.flatMap(h => h.matched_keywords || []).join(', ');
-  title.textContent = `⚠ ${hazards.length > 1 ? 'Multiple Hazards' : hazards[0].event_type} Detected`;
-  body.textContent  = `Keywords: ${keywords}. An alert and flag have been created automatically.`;
-  banner.style.display = 'flex';
-  // Auto-dismiss after 12 seconds
-  setTimeout(() => { banner.style.display = 'none'; }, 12000);
-}
-
-// ── Patch sendMessage to check hazard response ───────────────────
-// message.js sends to the API — we intercept the response via a
-// MutationObserver on the chat list to detect new messages, but the
-// cleaner approach is to wrap fetch globally for /messages endpoints.
-(function patchFetchForHazard() {
-  const _origFetch = window.fetch;
-  window.fetch = async function(url, opts) {
-    const res = await _origFetch(url, opts);
-    // Only intercept POST to .../messages (send message)
-    if (opts && opts.method === 'POST' && typeof url === 'string' && url.includes('/messages')) {
-      try {
-        const clone = res.clone();
-        // Response is already consumed by message.js — we read a clone
-        // The hazard detection happens server-side; we query the latest flag
-        // to show the banner. Poll once after 800ms to give server time.
-        setTimeout(async () => {
-          try {
-            const token = sessionStorage.getItem('access_token') || sessionStorage.getItem('spherecare_token');
-            const r = await _origFetch('/api/v1/flags/?limit=1&source=AI&status=Open', {
-              headers: { 'Authorization': `Bearer ${token}` }
-            });
-            if (r.ok) {
-              const flags = await r.json();
-              if (flags && flags.length) {
-                const latest = flags[0];
-                const now = Date.now();
-                const flagTime = new Date(latest.flagged_at || latest.created_at).getTime();
-                // Only show banner if flag was created within the last 5 seconds
-                if (now - flagTime < 5000) {
-                  showHazardBanner([{ event_type: latest.event_type, severity: latest.severity, matched_keywords: [] }]);
-                }
-              }
-            }
-          } catch (_) {}
-        }, 800);
-      } catch (_) {}
-    }
-    return res;
-  };
-})();
-
-// ── Call end → submit transcript for hazard scan ─────────────────
-// Called by message.js when a LiveKit call ends with a transcript
-window.submitCallTranscript = async function({ roomId, transcript, senderName, residentName, residentId, videoTimestamp, kind }) {
-  if (!transcript || !transcript.trim()) return;
-  try {
-    const token = sessionStorage.getItem('access_token') || sessionStorage.getItem('spherecare_token');
-    const user  = JSON.parse(sessionStorage.getItem('user') || '{}');
-    const res = await fetch('/api/v1/calls/transcript', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-      body: JSON.stringify({
-        room_id:       roomId,
-        admin_id:      user.admin_id || 0,
-        transcript:    transcript,
-        sender_name:   senderName  || user.full_name || 'Unknown',
-        resident_name: residentName || null,
-        resident_id:   residentId   || null,
-        video_timestamp: videoTimestamp || null,
-        kind:          kind || 'video'
-      })
-    });
-    if (res.ok) {
-      const data = await res.json();
-      if (data.hazards_found > 0) {
-        showHazardBanner(data.details);
-      }
-    }
-  } catch (err) {
-    console.warn('Hazard transcript scan failed:', err);
-  }
-};
-</script>
-
 </body>
 </html>

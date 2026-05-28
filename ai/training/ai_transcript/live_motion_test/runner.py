@@ -123,6 +123,21 @@ def draw_text(img, lines, x=10, y=30, gap=30):
         )
 
 
+def draw_hud(frame, prediction: str, segment: str, confidence: float, text_buffer: str) -> None:
+    h, w = frame.shape[:2]
+    box_h = 118
+    overlay = frame.copy()
+    cv2.rectangle(overlay, (10, h - box_h - 10), (w - 10, h - 10), (10, 20, 35), -1)
+    cv2.addWeighted(overlay, 0.52, frame, 0.48, 0, frame)
+    lines = [
+        f"Prediction: {prediction}",
+        f"Segment: {segment} ({confidence:.2f})",
+        f"Text: {text_buffer if text_buffer else '(empty)'}",
+        "Keys: C clear, SPACE add, Q/ESC quit",
+    ]
+    draw_text(frame, lines, x=22, y=h - box_h + 16, gap=25)
+
+
 def majority_vote(items):
     if not items:
         return None
@@ -340,7 +355,7 @@ def main() -> None:
         f"Using checkpoint: {MODEL_PATH.resolve()} (updated each time you run train.py --mode motion)."
     )
     print(
-        "Motion segmentation: adaptive thresholds + windowΔ (no visible-only start); "
+        "Motion segmentation: adaptive thresholds + window_delta (no visible-only start); "
         f"min_frames_before_idle={MOTION_LIVE_MIN_FRAMES_BEFORE_IDLE}; onset_skip={onset_skip}."
     )
     print(
@@ -536,20 +551,13 @@ def main() -> None:
                         current_conf = 0.0
                         smoothed_pred = majority_vote(list(pred_history)) or "NO_HAND"
                         sess_line = str(session_dir.name) if session_dir else "(no save)"
-                        draw_text(frame, [
-                            f"Prediction: {smoothed_pred}",
-                            f"Current segment: {current_pred}",
-                            f"Confidence: {current_conf:.2f}",
-                            track_hud,
-                            f"Energy: {energy:.3f} | winΔ: {window_delta:.3f}",
-                            f"Start/Keep thr: {current_start_threshold:.3f} / {current_keep_threshold:.3f}",
-                            f"In motion: {'YES' if in_motion else 'NO'}",
-                            f"Active buffer: {len(active_sequence)} | onset_skip={onset_skip}",
-                            f"Session: {sess_line}",
-                            f"Text: {text_buffer if text_buffer else '(empty)'}",
-                            f"Labels: {', '.join(labels)}",
-                            "Keys: C clear, SPACE add, Q/ESC quit",
-                        ])
+                        draw_hud(
+                            frame=frame,
+                            prediction=smoothed_pred,
+                            segment=current_pred,
+                            confidence=current_conf,
+                            text_buffer=text_buffer,
+                        )
                         cv2.imshow(win, frame)
                         key = cv2.waitKey(1) & 0xFF
                         if key in (27, ord("q")):
@@ -579,20 +587,13 @@ def main() -> None:
             now = time.time()
 
             sess_line = str(session_dir.name) if session_dir else "(no save)"
-            draw_text(frame, [
-                f"Prediction: {smoothed_pred}",
-                f"Current segment: {current_pred}",
-                f"Confidence: {current_conf:.2f}",
-                track_hud,
-                f"Energy: {energy:.3f} | winΔ: {window_delta:.3f}",
-                f"Start/Keep thr: {current_start_threshold:.3f} / {current_keep_threshold:.3f}",
-                f"In motion: {'YES' if in_motion else 'NO'}",
-                f"Active buffer: {len(active_sequence)} | onset_skip={onset_skip}",
-                f"Session: {sess_line}",
-                f"Text: {text_buffer if text_buffer else '(empty)'}",
-                f"Labels: {', '.join(labels)}",
-                "Keys: C clear, SPACE add, Q/ESC quit",
-            ])
+            draw_hud(
+                frame=frame,
+                prediction=smoothed_pred,
+                segment=current_pred,
+                confidence=current_conf,
+                text_buffer=text_buffer,
+            )
 
             cv2.imshow(win, frame)
             key = cv2.waitKey(1) & 0xFF

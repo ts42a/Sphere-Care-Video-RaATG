@@ -1,0 +1,13 @@
+{
+  "record_id": "rec_cli_1779954931_s3",
+  "organization_id": 1,
+  "admin_id": 1,
+  "iv_b64": "none",
+  "mime_type": "video/mp4",
+  "duration": 13,
+  "started_at": null,
+  "ended_at": null,
+  "notes": "SCVAM pipeline verification upload",
+  "scvam_status": "ready",
+  "scvam_job_id": 7
+}

@@ -1,0 +1,1140 @@
+{
+  "run_dir": "C:/Users/tonmo/.cursor/projects/Sphere-Care-Video-RaATG/ai/training/SCVAM2.1/output/source_2fps",
+  "video": "C:/Users/tonmo/.cursor/projects/Sphere-Care-Video-RaATG/ai/training/SCVAM2.1/source.webm",
+  "weights": "C:/Users/tonmo/.cursor/projects/Sphere-Care-Video-RaATG/ai/models/yolo/yolov8n.pt",
+  "target_size": 640,
+  "obj_conf": 0.1,
+  "crop_pad": 0.25,
+  "classes": [
+    "knife",
+    "scissors",
+    "fork",
+    "cell phone"
+  ],
+  "n_pick_rows": 30,
+  "n_hands": 53,
+  "n_hands_with_obj": 0,
+  "n_hands_skipped_small": 0,
+  "n_hands_skipped_edge": 32,
+  "n_dets_dropped_oversize": 0,
+  "n_categories": {},
+  "frames": [
+    {
+      "sample_frame": "frame_000001.png",
+      "sample_ts_sec": 0.0,
+      "source_frame_index": 12,
+      "source_ts_sec": 0.404,
+      "hands": [
+        {
+          "side": "Left",
+          "bbox": [
+            447,
+            387,
+            558,
+            480
+          ],
+          "objects": [],
+          "object_in_hand": null,
+          "category": null,
+          "annotated_crop": null,
+          "skip_reason": "frame_edge"
+        },
+        {
+          "side": "Right",
+          "bbox": [
+            209,
+            394,
+            349,
+            480
+          ],
+          "objects": [],
+          "object_in_hand": null,
+          "category": null,
+          "annotated_crop": null,
+          "skip_reason": "frame_edge"
+        }
+      ],
+      "held_categories": []
+    },
+    {
+      "sample_frame": "frame_000001.png",
+      "sample_ts_sec": 0.0,
+      "source_frame_index": 11,
+      "source_ts_sec": 0.37,
+      "hands": [
+        {
+          "side": "Left",
+          "bbox": [
+            462,
+            423,
+            574,
+            480
+          ],
+          "objects": [],
+          "object_in_hand": null,
+          "category": null,
+          "annotated_crop": null,
+          "skip_reason": "frame_edge"
+        },
+        {
+          "side": "Right",
+          "bbox": [
+            226,
+            404,
+            366,
+            480
+          ],
+          "objects": [],
+          "object_in_hand": null,
+          "category": null,
+          "annotated_crop": null,
+          "skip_reason": "frame_edge"
+        }
+      ],
+      "held_categories": []
+    },
+    {
+      "sample_frame": "frame_000001.png",
+      "sample_ts_sec": 0.0,
+      "source_frame_index": 10,
+      "source_ts_sec": 0.337,
+      "hands": [
+        {
+          "side": "Left",
+          "bbox": [
+            467,
+            419,
+            570,
+            480
+          ],
+          "objects": [],
+          "object_in_hand": null,
+          "category": null,
+          "annotated_crop": null,
+          "skip_reason": "frame_edge"
+        }
+      ],
+      "held_categories": []
+    },
+    {
+      "sample_frame": "frame_000010.png",
+      "sample_ts_sec": 4.506,
+      "source_frame_index": 146,
+      "source_ts_sec": 4.913,
+      "hands": [
+        {
+          "side": "Left",
+          "bbox": [
+            485,
+            426,
+            598,
+            480
+          ],
+          "objects": [],
+          "object_in_hand": null,
+          "category": null,
+          "annotated_crop": null,
+          "skip_reason": "frame_edge"
+        },
+        {
+          "side": "Right",
+          "bbox": [
+            198,
+            124,
+            461,
+            387
+          ],
+          "crop_bbox_full_frame": [
+            132,
+            58,
+            527,
+            453
+          ],
+          "objects": [],
+          "object_in_hand": null,
+          "category": null,
+          "annotated_crop": null
+        }
+      ],
+      "held_categories": []
+    },
+    {
+      "sample_frame": "frame_000010.png",
+      "sample_ts_sec": 4.506,
+      "source_frame_index": 145,
+      "source_ts_sec": 4.879,
+      "hands": [
+        {
+          "side": "Left",
+          "bbox": [
+            469,
+            417,
+            581,
+            480
+          ],
+          "objects": [],
+          "object_in_hand": null,
+          "category": null,
+          "annotated_crop": null,
+          "skip_reason": "frame_edge"
+        },
+        {
+          "side": "Right",
+          "bbox": [
+            196,
+            116,
+            469,
+            389
+          ],
+          "crop_bbox_full_frame": [
+            128,
+            48,
+            537,
+            457
+          ],
+          "objects": [],
+          "object_in_hand": null,
+          "category": null,
+          "annotated_crop": null
+        }
+      ],
+      "held_categories": []
+    },
+    {
+      "sample_frame": "frame_000010.png",
+      "sample_ts_sec": 4.506,
+      "source_frame_index": 144,
+      "source_ts_sec": 4.846,
+      "hands": [
+        {
+          "side": "Left",
+          "bbox": [
+            485,
+            416,
+            576,
+            480
+          ],
+          "objects": [],
+          "object_in_hand": null,
+          "category": null,
+          "annotated_crop": null,
+          "skip_reason": "frame_edge"
+        },
+        {
+          "side": "Right",
+          "bbox": [
+            197,
+            121,
+            463,
+            387
+          ],
+          "crop_bbox_full_frame": [
+            130,
+            54,
+            530,
+            454
+          ],
+          "objects": [],
+          "object_in_hand": null,
+          "category": null,
+          "annotated_crop": null
+        }
+      ],
+      "held_categories": []
+    },
+    {
+      "sample_frame": "frame_000014.png",
+      "sample_ts_sec": 6.524,
+      "source_frame_index": 201,
+      "source_ts_sec": 6.764,
+      "hands": [
+        {
+          "side": "Left",
+          "bbox": [
+            502,
+            424,
+            597,
+            480
+          ],
+          "objects": [],
+          "object_in_hand": null,
+          "category": null,
+          "annotated_crop": null,
+          "skip_reason": "frame_edge"
+        },
+        {
+          "side": "Right",
+          "bbox": [
+            211,
+            348,
+            324,
+            461
+          ],
+          "crop_bbox_full_frame": [
+            183,
+            320,
+            352,
+            480
+          ],
+          "objects": [],
+          "object_in_hand": null,
+          "category": null,
+          "annotated_crop": null
+        }
+      ],
+      "held_categories": []
+    },
+    {
+      "sample_frame": "frame_000014.png",
+      "sample_ts_sec": 6.524,
+      "source_frame_index": 200,
+      "source_ts_sec": 6.73,
+      "hands": [
+        {
+          "side": "Left",
+          "bbox": [
+            507,
+            425,
+            602,
+            480
+          ],
+          "objects": [],
+          "object_in_hand": null,
+          "category": null,
+          "annotated_crop": null,
+          "skip_reason": "frame_edge"
+        },
+        {
+          "side": "Right",
+          "bbox": [
+            207,
+            347,
+            321,
+            461
+          ],
+          "crop_bbox_full_frame": [
+            178,
+            318,
+            350,
+            480
+          ],
+          "objects": [],
+          "object_in_hand": null,
+          "category": null,
+          "annotated_crop": null
+        }
+      ],
+      "held_categories": []
+    },
+    {
+      "sample_frame": "frame_000014.png",
+      "sample_ts_sec": 6.524,
+      "source_frame_index": 199,
+      "source_ts_sec": 6.697,
+      "hands": [
+        {
+          "side": "Left",
+          "bbox": [
+            505,
+            425,
+            602,
+            480
+          ],
+          "objects": [],
+          "object_in_hand": null,
+          "category": null,
+          "annotated_crop": null,
+          "skip_reason": "frame_edge"
+        },
+        {
+          "side": "Right",
+          "bbox": [
+            196,
+            345,
+            307,
+            456
+          ],
+          "crop_bbox_full_frame": [
+            168,
+            317,
+            335,
+            480
+          ],
+          "objects": [],
+          "object_in_hand": null,
+          "category": null,
+          "annotated_crop": null
+        }
+      ],
+      "held_categories": []
+    },
+    {
+      "sample_frame": "frame_000016.png",
+      "sample_ts_sec": 7.509,
+      "source_frame_index": 235,
+      "source_ts_sec": 7.908,
+      "hands": [
+        {
+          "side": "Left",
+          "bbox": [
+            440,
+            415,
+            542,
+            480
+          ],
+          "objects": [],
+          "object_in_hand": null,
+          "category": null,
+          "annotated_crop": null,
+          "skip_reason": "frame_edge"
+        },
+        {
+          "side": "Right",
+          "bbox": [
+            248,
+            229,
+            458,
+            439
+          ],
+          "crop_bbox_full_frame": [
+            196,
+            176,
+            510,
+            480
+          ],
+          "objects": [],
+          "object_in_hand": null,
+          "category": null,
+          "annotated_crop": null
+        }
+      ],
+      "held_categories": []
+    },
+    {
+      "sample_frame": "frame_000016.png",
+      "sample_ts_sec": 7.509,
+      "source_frame_index": 234,
+      "source_ts_sec": 7.874,
+      "hands": [
+        {
+          "side": "Left",
+          "bbox": [
+            450,
+            427,
+            556,
+            480
+          ],
+          "objects": [],
+          "object_in_hand": null,
+          "category": null,
+          "annotated_crop": null,
+          "skip_reason": "frame_edge"
+        },
+        {
+          "side": "Right",
+          "bbox": [
+            249,
+            233,
+            454,
+            439
+          ],
+          "crop_bbox_full_frame": [
+            198,
+            182,
+            505,
+            480
+          ],
+          "objects": [],
+          "object_in_hand": null,
+          "category": null,
+          "annotated_crop": null
+        }
+      ],
+      "held_categories": []
+    },
+    {
+      "sample_frame": "frame_000016.png",
+      "sample_ts_sec": 7.509,
+      "source_frame_index": 230,
+      "source_ts_sec": 7.74,
+      "hands": [
+        {
+          "side": "Left",
+          "bbox": [
+            467,
+            440,
+            555,
+            480
+          ],
+          "objects": [],
+          "object_in_hand": null,
+          "category": null,
+          "annotated_crop": null,
+          "skip_reason": "frame_edge"
+        },
+        {
+          "side": "Right",
+          "bbox": [
+            248,
+            237,
+            451,
+            440
+          ],
+          "crop_bbox_full_frame": [
+            197,
+            186,
+            502,
+            480
+          ],
+          "objects": [],
+          "object_in_hand": null,
+          "category": null,
+          "annotated_crop": null
+        }
+      ],
+      "held_categories": []
+    },
+    {
+      "sample_frame": "frame_000018.png",
+      "sample_ts_sec": 8.522,
+      "source_frame_index": 257,
+      "source_ts_sec": 8.648,
+      "hands": [
+        {
+          "side": "Left",
+          "bbox": [
+            499,
+            422,
+            587,
+            480
+          ],
+          "objects": [],
+          "object_in_hand": null,
+          "category": null,
+          "annotated_crop": null,
+          "skip_reason": "frame_edge"
+        },
+        {
+          "side": "Right",
+          "bbox": [
+            255,
+            315,
+            442,
+            480
+          ],
+          "objects": [],
+          "object_in_hand": null,
+          "category": null,
+          "annotated_crop": null,
+          "skip_reason": "frame_edge"
+        }
+      ],
+      "held_categories": []
+    },
+    {
+      "sample_frame": "frame_000018.png",
+      "sample_ts_sec": 8.522,
+      "source_frame_index": 258,
+      "source_ts_sec": 8.682,
+      "hands": [
+        {
+          "side": "Left",
+          "bbox": [
+            481,
+            419,
+            588,
+            480
+          ],
+          "objects": [],
+          "object_in_hand": null,
+          "category": null,
+          "annotated_crop": null,
+          "skip_reason": "frame_edge"
+        },
+        {
+          "side": "Right",
+          "bbox": [
+            251,
+            317,
+            428,
+            480
+          ],
+          "objects": [],
+          "object_in_hand": null,
+          "category": null,
+          "annotated_crop": null,
+          "skip_reason": "frame_edge"
+        }
+      ],
+      "held_categories": []
+    },
+    {
+      "sample_frame": "frame_000018.png",
+      "sample_ts_sec": 8.522,
+      "source_frame_index": 253,
+      "source_ts_sec": 8.514,
+      "hands": [
+        {
+          "side": "Left",
+          "bbox": [
+            475,
+            425,
+            588,
+            480
+          ],
+          "objects": [],
+          "object_in_hand": null,
+          "category": null,
+          "annotated_crop": null,
+          "skip_reason": "frame_edge"
+        },
+        {
+          "side": "Right",
+          "bbox": [
+            257,
+            339,
+            426,
+            480
+          ],
+          "objects": [],
+          "object_in_hand": null,
+          "category": null,
+          "annotated_crop": null,
+          "skip_reason": "frame_edge"
+        }
+      ],
+      "held_categories": []
+    },
+    {
+      "sample_frame": "frame_000019.png",
+      "sample_ts_sec": 9.013,
+      "source_frame_index": 269,
+      "source_ts_sec": 9.052,
+      "hands": [
+        {
+          "side": "Left",
+          "bbox": [
+            439,
+            413,
+            540,
+            480
+          ],
+          "objects": [],
+          "object_in_hand": null,
+          "category": null,
+          "annotated_crop": null,
+          "skip_reason": "frame_edge"
+        },
+        {
+          "side": "Right",
+          "bbox": [
+            212,
+            192,
+            441,
+            421
+          ],
+          "crop_bbox_full_frame": [
+            155,
+            135,
+            498,
+            478
+          ],
+          "objects": [],
+          "object_in_hand": null,
+          "category": null,
+          "annotated_crop": null
+        }
+      ],
+      "held_categories": []
+    },
+    {
+      "sample_frame": "frame_000019.png",
+      "sample_ts_sec": 9.013,
+      "source_frame_index": 274,
+      "source_ts_sec": 9.22,
+      "hands": [
+        {
+          "side": "Left",
+          "bbox": [
+            436,
+            367,
+            546,
+            477
+          ],
+          "objects": [],
+          "object_in_hand": null,
+          "category": null,
+          "annotated_crop": null,
+          "skip_reason": "frame_edge"
+        },
+        {
+          "side": "Right",
+          "bbox": [
+            207,
+            144,
+            482,
+            419
+          ],
+          "crop_bbox_full_frame": [
+            138,
+            75,
+            551,
+            480
+          ],
+          "objects": [],
+          "object_in_hand": null,
+          "category": null,
+          "annotated_crop": null
+        }
+      ],
+      "held_categories": []
+    },
+    {
+      "sample_frame": "frame_000019.png",
+      "sample_ts_sec": 9.013,
+      "source_frame_index": 256,
+      "source_ts_sec": 8.615,
+      "hands": [
+        {
+          "side": "Left",
+          "bbox": [
+            478,
+            428,
+            591,
+            480
+          ],
+          "objects": [],
+          "object_in_hand": null,
+          "category": null,
+          "annotated_crop": null,
+          "skip_reason": "frame_edge"
+        },
+        {
+          "side": "Right",
+          "bbox": [
+            252,
+            332,
+            419,
+            480
+          ],
+          "objects": [],
+          "object_in_hand": null,
+          "category": null,
+          "annotated_crop": null,
+          "skip_reason": "frame_edge"
+        }
+      ],
+      "held_categories": []
+    },
+    {
+      "sample_frame": "frame_000020.png",
+      "sample_ts_sec": 9.521,
+      "source_frame_index": 276,
+      "source_ts_sec": 9.288,
+      "hands": [
+        {
+          "side": "Left",
+          "bbox": [
+            441,
+            366,
+            549,
+            475
+          ],
+          "crop_bbox_full_frame": [
+            414,
+            339,
+            576,
+            480
+          ],
+          "objects": [],
+          "object_in_hand": null,
+          "category": null,
+          "annotated_crop": null
+        },
+        {
+          "side": "Right",
+          "bbox": [
+            208,
+            135,
+            496,
+            423
+          ],
+          "crop_bbox_full_frame": [
+            136,
+            63,
+            568,
+            480
+          ],
+          "objects": [],
+          "object_in_hand": null,
+          "category": null,
+          "annotated_crop": null
+        }
+      ],
+      "held_categories": []
+    },
+    {
+      "sample_frame": "frame_000020.png",
+      "sample_ts_sec": 9.521,
+      "source_frame_index": 273,
+      "source_ts_sec": 9.187,
+      "hands": [
+        {
+          "side": "Left",
+          "bbox": [
+            429,
+            371,
+            541,
+            480
+          ],
+          "objects": [],
+          "object_in_hand": null,
+          "category": null,
+          "annotated_crop": null,
+          "skip_reason": "frame_edge"
+        },
+        {
+          "side": "Right",
+          "bbox": [
+            207,
+            156,
+            465,
+            415
+          ],
+          "crop_bbox_full_frame": [
+            142,
+            91,
+            530,
+            480
+          ],
+          "objects": [],
+          "object_in_hand": null,
+          "category": null,
+          "annotated_crop": null
+        }
+      ],
+      "held_categories": []
+    },
+    {
+      "sample_frame": "frame_000020.png",
+      "sample_ts_sec": 9.521,
+      "source_frame_index": 275,
+      "source_ts_sec": 9.254,
+      "hands": [
+        {
+          "side": "Left",
+          "bbox": [
+            441,
+            367,
+            549,
+            475
+          ],
+          "crop_bbox_full_frame": [
+            414,
+            340,
+            576,
+            480
+          ],
+          "objects": [],
+          "object_in_hand": null,
+          "category": null,
+          "annotated_crop": null
+        },
+        {
+          "side": "Right",
+          "bbox": [
+            209,
+            147,
+            486,
+            424
+          ],
+          "crop_bbox_full_frame": [
+            140,
+            78,
+            555,
+            480
+          ],
+          "objects": [],
+          "object_in_hand": null,
+          "category": null,
+          "annotated_crop": null
+        }
+      ],
+      "held_categories": []
+    },
+    {
+      "sample_frame": "frame_000021.png",
+      "sample_ts_sec": 10.021,
+      "source_frame_index": 293,
+      "source_ts_sec": 9.86,
+      "hands": [
+        {
+          "side": "Left",
+          "bbox": [
+            395,
+            276,
+            592,
+            473
+          ],
+          "crop_bbox_full_frame": [
+            346,
+            227,
+            640,
+            480
+          ],
+          "objects": [],
+          "object_in_hand": null,
+          "category": null,
+          "annotated_crop": null
+        },
+        {
+          "side": "Right",
+          "bbox": [
+            254,
+            115,
+            594,
+            455
+          ],
+          "crop_bbox_full_frame": [
+            169,
+            30,
+            640,
+            480
+          ],
+          "objects": [],
+          "object_in_hand": null,
+          "category": null,
+          "annotated_crop": null
+        }
+      ],
+      "held_categories": []
+    },
+    {
+      "sample_frame": "frame_000021.png",
+      "sample_ts_sec": 10.021,
+      "source_frame_index": 294,
+      "source_ts_sec": 9.893,
+      "hands": [
+        {
+          "side": "Left",
+          "bbox": [
+            278,
+            197,
+            494,
+            413
+          ],
+          "crop_bbox_full_frame": [
+            224,
+            143,
+            548,
+            467
+          ],
+          "objects": [],
+          "object_in_hand": null,
+          "category": null,
+          "annotated_crop": null
+        },
+        {
+          "side": "Right",
+          "bbox": [
+            256,
+            123,
+            589,
+            456
+          ],
+          "crop_bbox_full_frame": [
+            173,
+            40,
+            640,
+            480
+          ],
+          "objects": [],
+          "object_in_hand": null,
+          "category": null,
+          "annotated_crop": null
+        }
+      ],
+      "held_categories": []
+    },
+    {
+      "sample_frame": "frame_000021.png",
+      "sample_ts_sec": 10.021,
+      "source_frame_index": 292,
+      "source_ts_sec": 9.826,
+      "hands": [
+        {
+          "side": "Left",
+          "bbox": [
+            377,
+            247,
+            617,
+            480
+          ],
+          "objects": [],
+          "object_in_hand": null,
+          "category": null,
+          "annotated_crop": null,
+          "skip_reason": "frame_edge"
+        },
+        {
+          "side": "Right",
+          "bbox": [
+            253,
+            114,
+            592,
+            453
+          ],
+          "crop_bbox_full_frame": [
+            168,
+            29,
+            640,
+            480
+          ],
+          "objects": [],
+          "object_in_hand": null,
+          "category": null,
+          "annotated_crop": null
+        }
+      ],
+      "held_categories": []
+    },
+    {
+      "sample_frame": "frame_000022.png",
+      "sample_ts_sec": 10.537,
+      "source_frame_index": 319,
+      "source_ts_sec": 10.735,
+      "hands": [
+        {
+          "side": "Left",
+          "bbox": [
+            442,
+            434,
+            540,
+            480
+          ],
+          "objects": [],
+          "object_in_hand": null,
+          "category": null,
+          "annotated_crop": null,
+          "skip_reason": "frame_edge"
+        }
+      ],
+      "held_categories": []
+    },
+    {
+      "sample_frame": "frame_000022.png",
+      "sample_ts_sec": 10.537,
+      "source_frame_index": 320,
+      "source_ts_sec": 10.768,
+      "hands": [
+        {
+          "side": "Left",
+          "bbox": [
+            468,
+            434,
+            572,
+            480
+          ],
+          "objects": [],
+          "object_in_hand": null,
+          "category": null,
+          "annotated_crop": null,
+          "skip_reason": "frame_edge"
+        }
+      ],
+      "held_categories": []
+    },
+    {
+      "sample_frame": "frame_000022.png",
+      "sample_ts_sec": 10.537,
+      "source_frame_index": 318,
+      "source_ts_sec": 10.701,
+      "hands": [
+        {
+          "side": "Left",
+          "bbox": [
+            470,
+            435,
+            575,
+            480
+          ],
+          "objects": [],
+          "object_in_hand": null,
+          "category": null,
+          "annotated_crop": null,
+          "skip_reason": "frame_edge"
+        }
+      ],
+      "held_categories": []
+    },
+    {
+      "sample_frame": "frame_000027.png",
+      "sample_ts_sec": 13.018,
+      "source_frame_index": 387,
+      "source_ts_sec": 13.023,
+      "hands": [
+        {
+          "side": "Left",
+          "bbox": [
+            473,
+            426,
+            586,
+            480
+          ],
+          "objects": [],
+          "object_in_hand": null,
+          "category": null,
+          "annotated_crop": null,
+          "skip_reason": "frame_edge"
+        }
+      ],
+      "held_categories": []
+    },
+    {
+      "sample_frame": "frame_000027.png",
+      "sample_ts_sec": 13.018,
+      "source_frame_index": 388,
+      "source_ts_sec": 13.057,
+      "hands": [
+        {
+          "side": "Left",
+          "bbox": [
+            475,
+            432,
+            586,
+            480
+          ],
+          "objects": [],
+          "object_in_hand": null,
+          "category": null,
+          "annotated_crop": null,
+          "skip_reason": "frame_edge"
+        }
+      ],
+      "held_categories": []
+    },
+    {
+      "sample_frame": "frame_000027.png",
+      "sample_ts_sec": 13.018,
+      "source_frame_index": 389,
+      "source_ts_sec": 13.09,
+      "hands": [
+        {
+          "side": "Left",
+          "bbox": [
+            477,
+            431,
+            590,
+            480
+          ],
+          "objects": [],
+          "object_in_hand": null,
+          "category": null,
+          "annotated_crop": null,
+          "skip_reason": "frame_edge"
+        }
+      ],
+      "held_categories": []
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "run_dir": "C:/Users/tonmo/.cursor/projects/Sphere-Care-Video-RaATG/ai/training/SCVAM2.1/output/source_2fps",
+  "n_active": 10,
+  "n_total": 27,
+  "active_frames": [
+    "frame_000001.png",
+    "frame_000010.png",
+    "frame_000014.png",
+    "frame_000016.png",
+    "frame_000018.png",
+    "frame_000019.png",
+    "frame_000020.png",
+    "frame_000021.png",
+    "frame_000022.png",
+    "frame_000027.png"
+  ]
+}

@@ -3,7 +3,6 @@ import json
 import os
 from datetime import datetime, timezone
 from pathlib import Path
-
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
@@ -13,6 +12,8 @@ from typing import Optional
 from backend.api.deps import get_db
 from backend.api.rbac import resolve_staff_admin_scope_id
 from backend import models, schemas
+from backend.services.records_purge import purge_record
+from backend.services.scvam.queue import maybe_enqueue_scvam_job
 
 router = APIRouter(tags=["Records Library"])
 
@@ -30,6 +31,8 @@ def _fmt_record(r: models.Record) -> schemas.RecordResponse:
         duration=r.duration,
         notes=r.notes,
         recorded_at=r.recorded_at,
+        ai_summary=r.ai_summary,
+        scvam_status=getattr(r, "scvam_status", None) or "none",
         created_at=r.created_at.strftime("%Y-%m-%d %H:%M"),
     )
 
@@ -40,6 +43,7 @@ def _fmt_insight(i: models.AiInsight) -> schemas.AiInsightResponse:
         resident_name=i.resident_name,
         title=i.title,
         body=i.body,
+        category=i.category,
         priority=i.priority,
         is_new=i.is_new,
         created_at=i.created_at.strftime("%Y-%m-%d %H:%M"),
@@ -169,23 +173,19 @@ def upload_vault_recording(
     meta_path = abs_dir / meta_name
 
     enc_path.write_bytes(cipher_bytes)
-    meta_path.write_text(
-        json.dumps(
-            {
-                "record_id": safe_record_id,
-                "organization_id": int(admin.organization_id),
-                "admin_id": int(admin_id),
-                "iv_b64": payload.iv_b64,
-                "mime_type": payload.mime_type,
-                "duration": payload.duration,
-                "started_at": payload.started_at.isoformat() if payload.started_at else None,
-                "ended_at": payload.ended_at.isoformat() if payload.ended_at else None,
-                "notes": payload.notes,
-            },
-            ensure_ascii=True,
-        ),
-        encoding="utf-8",
-    )
+    meta_payload = {
+        "record_id": safe_record_id,
+        "organization_id": int(admin.organization_id),
+        "admin_id": int(admin_id),
+        "iv_b64": payload.iv_b64,
+        "mime_type": payload.mime_type,
+        "duration": payload.duration,
+        "started_at": payload.started_at.isoformat() if payload.started_at else None,
+        "ended_at": payload.ended_at.isoformat() if payload.ended_at else None,
+        "notes": payload.notes,
+        "scvam_status": "none",
+    }
+    meta_path.write_text(json.dumps(meta_payload, ensure_ascii=True), encoding="utf-8")
 
     file_url = payload.file_url or f"localvault://{safe_record_id}"
     record = models.Record(
@@ -203,8 +203,30 @@ def upload_vault_recording(
         recorded_at=payload.started_at or payload.ended_at,
     )
     db.add(record)
+    db.flush()
+
+    maybe_enqueue_scvam_job(
+        db,
+        admin=admin,
+        record=record,
+        vault_record_id=safe_record_id,
+        enc_relative_path=str((rel_dir / enc_name).as_posix()),
+        meta_path=meta_path,
+        ai_analyze=bool(payload.ai_analyze),
+        ai_plain_b64=payload.ai_plain_b64,
+        duration_sec=payload.duration,
+        camera_id=payload.camera_id,
+        resident_name=payload.resident_name,
+        room=payload.room,
+        iv_b64=payload.iv_b64,
+        mime_type=payload.mime_type,
+        started_at=payload.started_at,
+        ended_at=payload.ended_at,
+    )
+
     db.commit()
     db.refresh(record)
+
     return schemas.VaultRecordingUploadOut(
         ok=True,
         record_id=int(record.id),
@@ -213,13 +235,31 @@ def upload_vault_recording(
     )
 
 
+@router.delete("/bulk/all")
+def delete_all_records(
+    admin_id: int = Depends(resolve_staff_admin_scope_id),
+    db: Session = Depends(get_db),
+):
+    """Delete every record for this admin (vault files + SCVAM artifacts)."""
+    rows = (
+        db.query(models.Record)
+        .filter(models.Record.admin_id == admin_id, models.Record.is_deleted == False)  # noqa: E712
+        .all()
+    )
+    count = len(rows)
+    for r in rows:
+        purge_record(db, r)
+    db.commit()
+    return {"ok": True, "deleted": count}
+
+
 @router.delete("/{record_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_record(record_id: int, admin_id: int = Depends(resolve_staff_admin_scope_id), db: Session = Depends(get_db)):
-    """Delete a record by ID."""
+    """Delete a record by ID and remove encrypted vault / SCVAM files."""
     r = db.query(models.Record).filter(models.Record.id == record_id, models.Record.admin_id == admin_id).first()
     if not r:
         raise HTTPException(status_code=404, detail="Record not found.")
-    db.delete(r)
+    purge_record(db, r)
     db.commit()
 
 
@@ -307,6 +347,140 @@ def get_record(
     if not r:
         raise HTTPException(status_code=404, detail="Record not found.")
     return _fmt_record(r)
+
+
+@router.get("/scvam-output/{folder_name}/script", response_model=schemas.ScvamScriptOut)
+def get_scvam_output_script(
+    folder_name: str,
+    admin_id: int = Depends(resolve_staff_admin_scope_id),
+):
+    """Load minute-by-minute script from databases/org_X/scvam_output/{folder_name}/."""
+    from backend.services.scvam.paths import scvam_output_dir, vault_root
+    from backend.services.scvam.script_reader import read_scvam_script_for_record
+
+    safe = "".join(ch for ch in folder_name if ch.isalnum() or ch in {"_", "-"})
+    out_dir = scvam_output_dir(1, safe)
+    if not out_dir.is_dir():
+        raise HTTPException(status_code=404, detail="SCVAM output folder not found")
+
+    class _Tmp:
+        id = 0
+        category = safe.replace("_", " ")
+        duration = None
+        ai_summary = None
+        scvam_status = "ready"
+        scvam_output_path = out_dir.relative_to(vault_root()).as_posix()
+
+    meta = out_dir / "metadata.json"
+    if meta.is_file():
+        import json as _json
+
+        try:
+            m = _json.loads(meta.read_text(encoding="utf-8"))
+            _Tmp.duration = int(m.get("duration_sec") or 0) or None
+            _Tmp.ai_summary = (out_dir / "summary.txt").read_text(encoding="utf-8") if (out_dir / "summary.txt").is_file() else None
+        except Exception:
+            pass
+
+    return schemas.ScvamScriptOut(**read_scvam_script_for_record(_Tmp()))
+
+
+@router.get("/{record_id}/scvam-script", response_model=schemas.ScvamScriptOut)
+def get_scvam_script(
+    record_id: int,
+    admin_id: int = Depends(resolve_staff_admin_scope_id),
+    db: Session = Depends(get_db),
+):
+    """Minute-by-minute SCVAM script for Playback panel."""
+    r = db.query(models.Record).filter(models.Record.id == record_id, models.Record.admin_id == admin_id).first()
+    if not r:
+        raise HTTPException(status_code=404, detail="Record not found.")
+    from backend.services.scvam.script_reader import read_scvam_script_for_record
+
+    data = read_scvam_script_for_record(r)
+    job = (
+        db.query(models.ScvamJob)
+        .filter(models.ScvamJob.db_record_id == record_id)
+        .order_by(models.ScvamJob.created_at.desc())
+        .first()
+    )
+    if job and job.error_message and data.get("scvam_status") == "failed":
+        err = str(job.error_message).strip()
+        if "unrecognized arguments: --run" in err:
+            data["message"] = (
+                "SCVAM failed on an older pipeline bug (now fixed). "
+                "Unlock the vault and click Retry SCVAM to re-run analysis."
+            )
+        else:
+            data["message"] = f"SCVAM analysis failed: {err[:480]}"
+
+    return schemas.ScvamScriptOut(**data)
+
+
+@router.post("/{record_id}/scvam-retry", response_model=schemas.ScvamStatusOut)
+def retry_scvam_for_record(
+    record_id: int,
+    body: schemas.ScvamRetryIn | None = None,
+    admin_id: int = Depends(resolve_staff_admin_scope_id),
+    db: Session = Depends(get_db),
+):
+    """Re-queue SCVAM for a failed recording (rebuild staging from vault plaintext if needed)."""
+    from backend.services.scvam.retry import requeue_scvam_for_record
+
+    admin = db.query(models.Admin).filter(models.Admin.id == admin_id).first()
+    if not admin:
+        raise HTTPException(status_code=404, detail="Admin not found.")
+
+    r = db.query(models.Record).filter(models.Record.id == record_id, models.Record.admin_id == admin_id).first()
+    if not r:
+        raise HTTPException(status_code=404, detail="Record not found.")
+
+    ai_plain = body.ai_plain_b64 if body else None
+    try:
+        r, job = requeue_scvam_for_record(
+            db,
+            admin=admin,
+            record=r,
+            ai_plain_b64=ai_plain,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    preview = (r.ai_summary or "")[:280] if r.ai_summary else None
+    return schemas.ScvamStatusOut(
+        record_id=int(r.id),
+        scvam_status="pending",
+        ai_summary_preview=preview,
+        job_status=job.status,
+        error_message=None,
+    )
+
+
+@router.get("/{record_id}/scvam-status", response_model=schemas.ScvamStatusOut)
+def get_scvam_status(
+    record_id: int,
+    admin_id: int = Depends(resolve_staff_admin_scope_id),
+    db: Session = Depends(get_db),
+):
+    """Poll SCVAM analysis status for a vault recording."""
+    r = db.query(models.Record).filter(models.Record.id == record_id, models.Record.admin_id == admin_id).first()
+    if not r:
+        raise HTTPException(status_code=404, detail="Record not found.")
+
+    job = (
+        db.query(models.ScvamJob)
+        .filter(models.ScvamJob.db_record_id == record_id)
+        .order_by(models.ScvamJob.created_at.desc())
+        .first()
+    )
+    preview = (r.ai_summary or "")[:280] if r.ai_summary else None
+    return schemas.ScvamStatusOut(
+        record_id=int(r.id),
+        scvam_status=getattr(r, "scvam_status", None) or "none",
+        ai_summary_preview=preview,
+        job_status=job.status if job else None,
+        error_message=job.error_message if job else None,
+    )
 
 
 @router.get("/{record_id}/vault/encrypted")

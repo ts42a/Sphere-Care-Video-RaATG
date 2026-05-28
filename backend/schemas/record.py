@@ -32,6 +32,10 @@ class VaultRecordingUploadIn(BaseModel):
     ended_at: Optional[datetime] = None
     iv_b64: str
     cipher_b64: str
+    ai_plain_b64: Optional[str] = None
+    ai_analyze: bool = False
+    room: Optional[str] = None
+    camera_id: Optional[str] = None
     notes: Optional[str] = "Encrypted local vault recording"
     file_url: Optional[str] = None
 
@@ -57,11 +61,43 @@ class RecordResponse(BaseModel):
     duration: Optional[int] = None
     transcript_text: Optional[str] = None
     ai_summary: Optional[str] = None
+    scvam_status: Optional[str] = "none"
     notes: Optional[str] = None
     recorded_at: Optional[datetime] = None
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class ScvamRetryIn(BaseModel):
+    ai_plain_b64: Optional[str] = None
+
+
+class ScvamStatusOut(BaseModel):
+    record_id: int
+    scvam_status: str
+    ai_summary_preview: Optional[str] = None
+    job_status: Optional[str] = None
+    error_message: Optional[str] = None
+
+
+class ScvamScriptMinuteBlock(BaseModel):
+    minute: int
+    label: str
+    lines: list[str]
+
+
+class ScvamScriptOut(BaseModel):
+    record_id: Optional[int] = None
+    scvam_status: str = "none"
+    duration_sec: Optional[int] = None
+    title: Optional[str] = None
+    heading: Optional[str] = None
+    summary_text: Optional[str] = None
+    message: Optional[str] = None
+    timeline: list[ScvamScriptMinuteBlock] = []
+    source: Optional[str] = None
+    video_name: Optional[str] = None
 
 
 class AiInsightCreate(BaseModel):

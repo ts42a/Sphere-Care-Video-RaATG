@@ -20,6 +20,8 @@ class Record(Base):
     duration = Column(Integer, nullable=True)  # seconds
     transcript_text = Column(Text, nullable=True)
     ai_summary = Column(Text, nullable=True)
+    scvam_status = Column(String(30), nullable=False, default="none")
+    scvam_output_path = Column(String(512), nullable=True)
     notes = Column(Text, nullable=True)
     recorded_at = Column(DateTime(timezone=True), nullable=True)
     created_by = Column(BigInteger, nullable=True)

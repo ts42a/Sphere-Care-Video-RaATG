@@ -208,7 +208,6 @@
       <div>
         <h3 id="fm-name">—</h3>
         <span class="ai-badge" id="fm-source">🤖 AI Detected</span>
-        <span id="fm-status-pill" style="margin-left:6px;"></span>
         <div style="font-size:12.5px;color:var(--text2);margin-top:4px;" id="fm-etype">—</div>
       </div>
       <button class="mclose" onclick="closeModal('modal-flag')">✕</button>
@@ -221,15 +220,6 @@
           <div class="flag-sev-desc" id="fm-sev-desc">—</div>
         </div>
       </div>
-
-      <!-- Source action (message link / call screenshot / recording screenshot) -->
-      <div id="fm-source-action"></div>
-
-      <!-- Call snapshot (shown for call-sourced flags) -->
-      <div id="fm-call-snapshot" style="display:none;"></div>
-
-      <!-- Recording snapshot (shown for camera-sourced flags) -->
-      <div id="fm-recording-snapshot" style="display:none;"></div>
 
       <div style="font-size:13.5px;font-weight:800;margin-bottom:8px;">Video Snapshot</div>
       <div class="video-snap" onclick="alert('Video playback coming soon')">
@@ -314,38 +304,8 @@ if (typeof API_BASE === 'undefined') {
   window.API_BASE = '';
 }
 </script>
-<script src="../style/js/flags.js?v=12"></script>
+<script src="../style/js/flags.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="/components/sidebar.js"></script>
-<!-- ══════ RESIDENT CONTACT MODAL ══════ -->
-<div id="modal-contact" style="display:none;position:fixed;inset:0;z-index:10001;align-items:center;justify-content:center;background:rgba(15,23,42,0.55);backdrop-filter:blur(4px);">
-  <div style="background:#fff;border-radius:16px;width:360px;max-width:95vw;box-shadow:0 20px 60px rgba(0,0,0,0.2);font-family:'Inter',sans-serif;">
-    <div style="display:flex;justify-content:space-between;align-items:center;padding:18px 20px 14px;border-bottom:1px solid #f1f5f9;">
-      <div>
-        <h3 id="mc-name" style="font-size:16px;font-weight:800;color:#1e293b;margin:0 0 3px;">—</h3>
-        <div style="font-size:12px;color:#94a3b8;">Contact resident or family</div>
-      </div>
-      <button onclick="closeModal('modal-contact')" style="background:none;border:none;font-size:20px;cursor:pointer;color:#94a3b8;line-height:1;">✕</button>
-    </div>
-    <div style="padding:14px 16px 18px;display:flex;flex-direction:column;gap:8px;">
-      <button onclick="contactAction('message')" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:10px;border:1.5px solid #e2e8f0;background:#fff;cursor:pointer;width:100%;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='#fff'">
-        <div style="width:36px;height:36px;border-radius:10px;background:#ede9fe;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">💬</div>
-        <div style="text-align:left;"><div style="font-weight:700;font-size:13.5px;color:#1e293b;">Send Message</div><div style="font-size:12px;color:#94a3b8;margin-top:1px;">Open chat with this resident</div></div>
-      </button>
-      <button onclick="contactAction('call')" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:10px;border:1.5px solid #e2e8f0;background:#fff;cursor:pointer;width:100%;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='#fff'">
-        <div style="width:36px;height:36px;border-radius:10px;background:#dbeafe;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">📞</div>
-        <div style="text-align:left;"><div style="font-weight:700;font-size:13.5px;color:#1e293b;">Audio Call</div><div style="font-size:12px;color:#94a3b8;margin-top:1px;">Start an audio call</div></div>
-      </button>
-      <button onclick="contactAction('video')" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:10px;border:1.5px solid #e2e8f0;background:#fff;cursor:pointer;width:100%;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='#fff'">
-        <div style="width:36px;height:36px;border-radius:10px;background:#dcfce7;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">📹</div>
-        <div style="text-align:left;"><div style="font-weight:700;font-size:13.5px;color:#1e293b;">Video Call</div><div style="font-size:12px;color:#94a3b8;margin-top:1px;">Start a video call</div></div>
-      </button>
-      <button onclick="contactAction('flag')" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:10px;border:1.5px solid #fee2e2;background:#fff;cursor:pointer;width:100%;" onmouseover="this.style.background='#fff5f5'" onmouseout="this.style.background='#fff'">
-        <div style="width:36px;height:36px;border-radius:10px;background:#fee2e2;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">🚨</div>
-        <div style="text-align:left;"><div style="font-weight:700;font-size:13.5px;color:#991b1b;">Raise Welfare Check</div><div style="font-size:12px;color:#94a3b8;margin-top:1px;">Escalate to on-duty staff</div></div>
-      </button>
-    </div>
-  </div>
-</div>
 </body>
 </html>

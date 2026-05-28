@@ -1,0 +1,2540 @@
+{
+  "run_dir": "C:/Users/tonmo/.cursor/projects/Sphere-Care-Video-RaATG/ai/training/SCVAM2.1/output/source_2fps",
+  "video": "C:/Users/tonmo/.cursor/projects/Sphere-Care-Video-RaATG/ai/training/SCVAM2.1/source.webm",
+  "src_fps": 29.716792979656958,
+  "window_sec": 0.4,
+  "picks_per_sample": 1,
+  "person_conf": 0.2,
+  "kp_conf": 0.2,
+  "person_pad": 0.25,
+  "hand_near_thresh_px": null,
+  "hand_near_diag_frac": 0.055,
+  "fall_threshold": 0.42,
+  "gait_threshold": 0.45,
+  "step2_evidence_used": true,
+  "feature_vector_names": [
+    "torso_angle_deg",
+    "torso_len_norm",
+    "knee_angle_l_deg",
+    "knee_angle_r_deg",
+    "knee_asymmetry_deg",
+    "stance_width_norm",
+    "bbox_aspect_h_over_w",
+    "bbox_h_norm",
+    "bbox_w_norm",
+    "head_below_hip_flag",
+    "valid_joints_norm",
+    "head_y_norm",
+    "shoulder_y_norm",
+    "hip_y_norm",
+    "knee_y_norm",
+    "ankle_y_norm",
+    "hip_y_drift_norm",
+    "torso_angle_drift_deg",
+    "ankle_l_motion_norm",
+    "ankle_r_motion_norm",
+    "ankle_motion_asymmetry",
+    "fall_score",
+    "gait_instability_score",
+    "posture_standing_score",
+    "posture_sitting_score",
+    "posture_lying_score",
+    "posture_unknown_score",
+    "l_wrist_obj_dist_norm",
+    "r_wrist_obj_dist_norm",
+    "min_wrist_obj_dist_norm",
+    "hand_near_any_flag"
+  ],
+  "feature_vector_dim": 31,
+  "person_samples": 10,
+  "frames_emitted": 10,
+  "posture_counts": {
+    "unknown": 1,
+    "lying": 9
+  },
+  "fall_like_frames": 0,
+  "unstable_gait_frames": 0,
+  "hand_near_object_frames": 0,
+  "frames": [
+    {
+      "sample_frame": "frame_000001.png",
+      "sample_ts_sec": 0.0,
+      "source_frame_index": 12,
+      "source_ts_sec": 0.404,
+      "sharpness": 81.0,
+      "person_bbox": [
+        202.7,
+        212.8,
+        519.4,
+        479.5
+      ],
+      "crop_bbox": [
+        123.52499999999999,
+        146.125,
+        598.5749999999999,
+        479.0
+      ],
+      "pose_det_bbox": [
+        192.1335678100586,
+        212.51991271972656,
+        517.4596557617188,
+        475.5541687011719
+      ],
+      "pose_det_conf": 0.845,
+      "keypoints": [
+        {
+          "name": "nose",
+          "x": 374.2,
+          "y": 303.8,
+          "conf": 0.996
+        },
+        {
+          "name": "l_eye",
+          "x": 382.3,
+          "y": 283.9,
+          "conf": 0.963
+        },
+        {
+          "name": "r_eye",
+          "x": 350.1,
+          "y": 284.4,
+          "conf": 0.995
+        },
+        {
+          "name": "l_ear",
+          "x": null,
+          "y": null,
+          "conf": 0.065
+        },
+        {
+          "name": "r_ear",
+          "x": 293.4,
+          "y": 299.1,
+          "conf": 0.969
+        },
+        {
+          "name": "l_shoulder",
+          "x": 411.2,
+          "y": 391.1,
+          "conf": 0.969
+        },
+        {
+          "name": "r_shoulder",
+          "x": 245.0,
+          "y": 415.8,
+          "conf": 0.866
+        },
+        {
+          "name": "l_elbow",
+          "x": 489.6,
+          "y": 461.7,
+          "conf": 0.479
+        },
+        {
+          "name": "r_elbow",
+          "x": null,
+          "y": null,
+          "conf": 0.069
+        },
+        {
+          "name": "l_wrist",
+          "x": 492.3,
+          "y": 457.6,
+          "conf": 0.493
+        },
+        {
+          "name": "r_wrist",
+          "x": 279.2,
+          "y": 464.4,
+          "conf": 0.239
+        },
+        {
+          "name": "l_hip",
+          "x": null,
+          "y": null,
+          "conf": 0.019
+        },
+        {
+          "name": "r_hip",
+          "x": null,
+          "y": null,
+          "conf": 0.006
+        },
+        {
+          "name": "l_knee",
+          "x": null,
+          "y": null,
+          "conf": 0.004
+        },
+        {
+          "name": "r_knee",
+          "x": null,
+          "y": null,
+          "conf": 0.001
+        },
+        {
+          "name": "l_ankle",
+          "x": null,
+          "y": null,
+          "conf": 0.002
+        },
+        {
+          "name": "r_ankle",
+          "x": null,
+          "y": null,
+          "conf": 0.001
+        }
+      ],
+      "features": {
+        "torso_angle_deg": null,
+        "torso_len_px": null,
+        "knee_angle_l_deg": null,
+        "knee_angle_r_deg": null,
+        "knee_asymmetry_deg": null,
+        "hip_y": null,
+        "knee_y": null,
+        "ankle_y": null,
+        "head_y": 303.793,
+        "shoulder_y": 403.456,
+        "bbox_aspect_h_over_w": 0.809,
+        "bbox_bottom_px_to_image_bottom": 4.446,
+        "stance_width_norm": null,
+        "head_below_hip": null,
+        "valid_joints": 9,
+        "lower_body_visible": false,
+        "clipped_left": false,
+        "clipped_right": false,
+        "clipped_top": false,
+        "clipped_bottom": true,
+        "partial_visibility": true
+      },
+      "gait_features": {
+        "knee_asymmetry_deg": null,
+        "torso_lean_abs_deg": null,
+        "stance_width_norm": null,
+        "hip_y_drift_px": null,
+        "torso_angle_drift_deg": null,
+        "ankle_l_motion_norm": null,
+        "ankle_r_motion_norm": null,
+        "ankle_motion_asymmetry": null,
+        "gait_instability_score": 0.0
+      },
+      "posture": "unknown",
+      "posture_scores": {
+        "standing": 0.0,
+        "sitting": 0.053,
+        "lying": 0.457,
+        "unknown": 0.49
+      },
+      "bend_angle_deg": null,
+      "fall_score": 0.0,
+      "fall_like": false,
+      "gait_instability_score": 0.0,
+      "unstable_gait": false,
+      "hand_near_object": {
+        "left": null,
+        "right": null,
+        "any_near": false
+      },
+      "feature_vector": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.8085,
+        0.548,
+        0.5083,
+        0.0,
+        0.5294,
+        0.6329,
+        0.8405,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0532,
+        0.4567,
+        0.49,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "feature_mask": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "output": "frame_000001_pick1_src000012.png"
+    },
+    {
+      "sample_frame": "frame_000010.png",
+      "sample_ts_sec": 4.506,
+      "source_frame_index": 146,
+      "source_ts_sec": 4.913,
+      "sharpness": 90.9,
+      "person_bbox": [
+        11.2,
+        181.2,
+        603.1,
+        479.4
+      ],
+      "crop_bbox": [
+        0.0,
+        106.64999999999999,
+        639.0,
+        479.0
+      ],
+      "pose_det_bbox": [
+        150.93670654296875,
+        205.88150787353516,
+        557.9522705078125,
+        476.5901184082031
+      ],
+      "pose_det_conf": 0.811,
+      "keypoints": [
+        {
+          "name": "nose",
+          "x": 384.2,
+          "y": 308.2,
+          "conf": 0.994
+        },
+        {
+          "name": "l_eye",
+          "x": 394.1,
+          "y": 287.5,
+          "conf": 0.933
+        },
+        {
+          "name": "r_eye",
+          "x": 361.7,
+          "y": 283.8,
+          "conf": 0.994
+        },
+        {
+          "name": "l_ear",
+          "x": null,
+          "y": null,
+          "conf": 0.053
+        },
+        {
+          "name": "r_ear",
+          "x": 301.3,
+          "y": 286.3,
+          "conf": 0.97
+        },
+        {
+          "name": "l_shoulder",
+          "x": 416.0,
+          "y": 385.2,
+          "conf": 0.943
+        },
+        {
+          "name": "r_shoulder",
+          "x": 243.0,
+          "y": 390.8,
+          "conf": 0.961
+        },
+        {
+          "name": "l_elbow",
+          "x": 517.6,
+          "y": 457.5,
+          "conf": 0.543
+        },
+        {
+          "name": "r_elbow",
+          "x": 188.6,
+          "y": 464.2,
+          "conf": 0.644
+        },
+        {
+          "name": "l_wrist",
+          "x": 527.1,
+          "y": 467.4,
+          "conf": 0.708
+        },
+        {
+          "name": "r_wrist",
+          "x": 277.1,
+          "y": 333.1,
+          "conf": 0.88
+        },
+        {
+          "name": "l_hip",
+          "x": null,
+          "y": null,
+          "conf": 0.045
+        },
+        {
+          "name": "r_hip",
+          "x": null,
+          "y": null,
+          "conf": 0.044
+        },
+        {
+          "name": "l_knee",
+          "x": null,
+          "y": null,
+          "conf": 0.007
+        },
+        {
+          "name": "r_knee",
+          "x": null,
+          "y": null,
+          "conf": 0.008
+        },
+        {
+          "name": "l_ankle",
+          "x": null,
+          "y": null,
+          "conf": 0.003
+        },
+        {
+          "name": "r_ankle",
+          "x": null,
+          "y": null,
+          "conf": 0.003
+        }
+      ],
+      "features": {
+        "torso_angle_deg": null,
+        "torso_len_px": null,
+        "knee_angle_l_deg": null,
+        "knee_angle_r_deg": null,
+        "knee_asymmetry_deg": null,
+        "hip_y": null,
+        "knee_y": null,
+        "ankle_y": null,
+        "head_y": 308.151,
+        "shoulder_y": 388.022,
+        "bbox_aspect_h_over_w": 0.665,
+        "bbox_bottom_px_to_image_bottom": 3.41,
+        "stance_width_norm": null,
+        "head_below_hip": null,
+        "valid_joints": 10,
+        "lower_body_visible": false,
+        "clipped_left": false,
+        "clipped_right": false,
+        "clipped_top": false,
+        "clipped_bottom": true,
+        "partial_visibility": true
+      },
+      "gait_features": {
+        "knee_asymmetry_deg": null,
+        "torso_lean_abs_deg": null,
+        "stance_width_norm": null,
+        "hip_y_drift_px": null,
+        "torso_angle_drift_deg": null,
+        "ankle_l_motion_norm": null,
+        "ankle_r_motion_norm": null,
+        "ankle_motion_asymmetry": null,
+        "gait_instability_score": 0.0
+      },
+      "posture": "lying",
+      "posture_scores": {
+        "standing": 0.0,
+        "sitting": 0.015,
+        "lying": 0.552,
+        "unknown": 0.433
+      },
+      "bend_angle_deg": null,
+      "fall_score": 0.0,
+      "fall_like": false,
+      "gait_instability_score": 0.0,
+      "unstable_gait": false,
+      "hand_near_object": {
+        "left": null,
+        "right": null,
+        "any_near": false
+      },
+      "feature_vector": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.6651,
+        0.564,
+        0.636,
+        0.0,
+        0.5882,
+        0.642,
+        0.8084,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0147,
+        0.5519,
+        0.4334,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "feature_mask": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "output": "frame_000010_pick1_src000146.png"
+    },
+    {
+      "sample_frame": "frame_000014.png",
+      "sample_ts_sec": 6.524,
+      "source_frame_index": 201,
+      "source_ts_sec": 6.764,
+      "sharpness": 97.1,
+      "person_bbox": [
+        71.7,
+        188.9,
+        564.4,
+        479.8
+      ],
+      "crop_bbox": [
+        0.0,
+        116.17500000000001,
+        639.0,
+        479.0
+      ],
+      "pose_det_bbox": [
+        188.37335205078125,
+        214.55609130859375,
+        548.409912109375,
+        476.5812072753906
+      ],
+      "pose_det_conf": 0.862,
+      "keypoints": [
+        {
+          "name": "nose",
+          "x": 384.6,
+          "y": 305.9,
+          "conf": 0.995
+        },
+        {
+          "name": "l_eye",
+          "x": 393.4,
+          "y": 287.5,
+          "conf": 0.951
+        },
+        {
+          "name": "r_eye",
+          "x": 364.1,
+          "y": 285.1,
+          "conf": 0.994
+        },
+        {
+          "name": "l_ear",
+          "x": null,
+          "y": null,
+          "conf": 0.105
+        },
+        {
+          "name": "r_ear",
+          "x": 310.0,
+          "y": 291.7,
+          "conf": 0.966
+        },
+        {
+          "name": "l_shoulder",
+          "x": 418.5,
+          "y": 389.6,
+          "conf": 0.962
+        },
+        {
+          "name": "r_shoulder",
+          "x": 250.8,
+          "y": 394.4,
+          "conf": 0.963
+        },
+        {
+          "name": "l_elbow",
+          "x": 514.6,
+          "y": 464.5,
+          "conf": 0.604
+        },
+        {
+          "name": "r_elbow",
+          "x": 193.6,
+          "y": 479.0,
+          "conf": 0.585
+        },
+        {
+          "name": "l_wrist",
+          "x": 528.5,
+          "y": 467.5,
+          "conf": 0.68
+        },
+        {
+          "name": "r_wrist",
+          "x": 240.1,
+          "y": 432.0,
+          "conf": 0.78
+        },
+        {
+          "name": "l_hip",
+          "x": null,
+          "y": null,
+          "conf": 0.06
+        },
+        {
+          "name": "r_hip",
+          "x": null,
+          "y": null,
+          "conf": 0.051
+        },
+        {
+          "name": "l_knee",
+          "x": null,
+          "y": null,
+          "conf": 0.009
+        },
+        {
+          "name": "r_knee",
+          "x": null,
+          "y": null,
+          "conf": 0.008
+        },
+        {
+          "name": "l_ankle",
+          "x": null,
+          "y": null,
+          "conf": 0.004
+        },
+        {
+          "name": "r_ankle",
+          "x": null,
+          "y": null,
+          "conf": 0.003
+        }
+      ],
+      "features": {
+        "torso_angle_deg": null,
+        "torso_len_px": null,
+        "knee_angle_l_deg": null,
+        "knee_angle_r_deg": null,
+        "knee_asymmetry_deg": null,
+        "hip_y": null,
+        "knee_y": null,
+        "ankle_y": null,
+        "head_y": 305.942,
+        "shoulder_y": 392.002,
+        "bbox_aspect_h_over_w": 0.728,
+        "bbox_bottom_px_to_image_bottom": 3.419,
+        "stance_width_norm": null,
+        "head_below_hip": null,
+        "valid_joints": 10,
+        "lower_body_visible": false,
+        "clipped_left": false,
+        "clipped_right": false,
+        "clipped_top": false,
+        "clipped_bottom": true,
+        "partial_visibility": true
+      },
+      "gait_features": {
+        "knee_asymmetry_deg": null,
+        "torso_lean_abs_deg": null,
+        "stance_width_norm": null,
+        "hip_y_drift_px": null,
+        "torso_angle_drift_deg": null,
+        "ankle_l_motion_norm": null,
+        "ankle_r_motion_norm": null,
+        "ankle_motion_asymmetry": null,
+        "gait_instability_score": 0.0
+      },
+      "posture": "lying",
+      "posture_scores": {
+        "standing": 0.0,
+        "sitting": 0.03,
+        "lying": 0.513,
+        "unknown": 0.456
+      },
+      "bend_angle_deg": null,
+      "fall_score": 0.0,
+      "fall_like": false,
+      "gait_instability_score": 0.0,
+      "unstable_gait": false,
+      "hand_near_object": {
+        "left": null,
+        "right": null,
+        "any_near": false
+      },
+      "feature_vector": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.7278,
+        0.5459,
+        0.5626,
+        0.0,
+        0.5882,
+        0.6374,
+        0.8167,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0304,
+        0.5132,
+        0.4564,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "feature_mask": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "output": "frame_000014_pick1_src000201.png"
+    },
+    {
+      "sample_frame": "frame_000016.png",
+      "sample_ts_sec": 7.509,
+      "source_frame_index": 219,
+      "source_ts_sec": 7.37,
+      "sharpness": 83.8,
+      "person_bbox": [
+        168.5,
+        215.4,
+        550.5,
+        479.6
+      ],
+      "crop_bbox": [
+        73.0,
+        149.35,
+        639.0,
+        479.0
+      ],
+      "pose_det_bbox": [
+        166.77429962158203,
+        216.61212158203125,
+        565.817626953125,
+        476.02996826171875
+      ],
+      "pose_det_conf": 0.873,
+      "keypoints": [
+        {
+          "name": "nose",
+          "x": 381.5,
+          "y": 295.8,
+          "conf": 0.993
+        },
+        {
+          "name": "l_eye",
+          "x": 392.7,
+          "y": 281.8,
+          "conf": 0.963
+        },
+        {
+          "name": "r_eye",
+          "x": 362.2,
+          "y": 278.2,
+          "conf": 0.992
+        },
+        {
+          "name": "l_ear",
+          "x": 400.1,
+          "y": 296.7,
+          "conf": 0.252
+        },
+        {
+          "name": "r_ear",
+          "x": 319.8,
+          "y": 288.2,
+          "conf": 0.959
+        },
+        {
+          "name": "l_shoulder",
+          "x": 418.5,
+          "y": 377.3,
+          "conf": 0.955
+        },
+        {
+          "name": "r_shoulder",
+          "x": 273.5,
+          "y": 380.3,
+          "conf": 0.977
+        },
+        {
+          "name": "l_elbow",
+          "x": 500.3,
+          "y": 456.1,
+          "conf": 0.492
+        },
+        {
+          "name": "r_elbow",
+          "x": 198.4,
+          "y": 463.4,
+          "conf": 0.642
+        },
+        {
+          "name": "l_wrist",
+          "x": 517.8,
+          "y": 468.5,
+          "conf": 0.516
+        },
+        {
+          "name": "r_wrist",
+          "x": 270.9,
+          "y": 378.6,
+          "conf": 0.764
+        },
+        {
+          "name": "l_hip",
+          "x": null,
+          "y": null,
+          "conf": 0.069
+        },
+        {
+          "name": "r_hip",
+          "x": null,
+          "y": null,
+          "conf": 0.077
+        },
+        {
+          "name": "l_knee",
+          "x": null,
+          "y": null,
+          "conf": 0.009
+        },
+        {
+          "name": "r_knee",
+          "x": null,
+          "y": null,
+          "conf": 0.011
+        },
+        {
+          "name": "l_ankle",
+          "x": null,
+          "y": null,
+          "conf": 0.004
+        },
+        {
+          "name": "r_ankle",
+          "x": null,
+          "y": null,
+          "conf": 0.004
+        }
+      ],
+      "features": {
+        "torso_angle_deg": null,
+        "torso_len_px": null,
+        "knee_angle_l_deg": null,
+        "knee_angle_r_deg": null,
+        "knee_asymmetry_deg": null,
+        "hip_y": null,
+        "knee_y": null,
+        "ankle_y": null,
+        "head_y": 295.815,
+        "shoulder_y": 378.801,
+        "bbox_aspect_h_over_w": 0.65,
+        "bbox_bottom_px_to_image_bottom": 3.97,
+        "stance_width_norm": null,
+        "head_below_hip": null,
+        "valid_joints": 11,
+        "lower_body_visible": false,
+        "clipped_left": false,
+        "clipped_right": false,
+        "clipped_top": false,
+        "clipped_bottom": true,
+        "partial_visibility": true
+      },
+      "gait_features": {
+        "knee_asymmetry_deg": null,
+        "torso_lean_abs_deg": null,
+        "stance_width_norm": null,
+        "hip_y_drift_px": null,
+        "torso_angle_drift_deg": null,
+        "ankle_l_motion_norm": null,
+        "ankle_r_motion_norm": null,
+        "ankle_motion_asymmetry": null,
+        "gait_instability_score": 0.0
+      },
+      "posture": "lying",
+      "posture_scores": {
+        "standing": 0.0,
+        "sitting": 0.011,
+        "lying": 0.561,
+        "unknown": 0.428
+      },
+      "bend_angle_deg": null,
+      "fall_score": 0.0,
+      "fall_like": false,
+      "gait_instability_score": 0.0,
+      "unstable_gait": false,
+      "hand_near_object": {
+        "left": null,
+        "right": null,
+        "any_near": false
+      },
+      "feature_vector": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.6501,
+        0.5405,
+        0.6235,
+        0.0,
+        0.6471,
+        0.6163,
+        0.7892,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0112,
+        0.5606,
+        0.4282,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "feature_mask": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "output": "frame_000016_pick1_src000219.png"
+    },
+    {
+      "sample_frame": "frame_000018.png",
+      "sample_ts_sec": 8.522,
+      "source_frame_index": 257,
+      "source_ts_sec": 8.648,
+      "sharpness": 98.0,
+      "person_bbox": [
+        103.2,
+        214.6,
+        558.4,
+        479.8
+      ],
+      "crop_bbox": [
+        0.0,
+        148.29999999999998,
+        639.0,
+        479.0
+      ],
+      "pose_det_bbox": [
+        165.711669921875,
+        216.1503677368164,
+        558.48828125,
+        477.74859619140625
+      ],
+      "pose_det_conf": 0.805,
+      "keypoints": [
+        {
+          "name": "nose",
+          "x": 384.3,
+          "y": 306.3,
+          "conf": 0.995
+        },
+        {
+          "name": "l_eye",
+          "x": 392.2,
+          "y": 287.5,
+          "conf": 0.942
+        },
+        {
+          "name": "r_eye",
+          "x": 360.6,
+          "y": 285.7,
+          "conf": 0.996
+        },
+        {
+          "name": "l_ear",
+          "x": null,
+          "y": null,
+          "conf": 0.046
+        },
+        {
+          "name": "r_ear",
+          "x": 298.5,
+          "y": 294.0,
+          "conf": 0.979
+        },
+        {
+          "name": "l_shoulder",
+          "x": 411.4,
+          "y": 381.0,
+          "conf": 0.956
+        },
+        {
+          "name": "r_shoulder",
+          "x": 234.1,
+          "y": 394.4,
+          "conf": 0.953
+        },
+        {
+          "name": "l_elbow",
+          "x": 515.1,
+          "y": 462.9,
+          "conf": 0.604
+        },
+        {
+          "name": "r_elbow",
+          "x": 171.2,
+          "y": 479.0,
+          "conf": 0.53
+        },
+        {
+          "name": "l_wrist",
+          "x": 523.8,
+          "y": 463.8,
+          "conf": 0.712
+        },
+        {
+          "name": "r_wrist",
+          "x": 282.6,
+          "y": 434.4,
+          "conf": 0.813
+        },
+        {
+          "name": "l_hip",
+          "x": null,
+          "y": null,
+          "conf": 0.051
+        },
+        {
+          "name": "r_hip",
+          "x": null,
+          "y": null,
+          "conf": 0.038
+        },
+        {
+          "name": "l_knee",
+          "x": null,
+          "y": null,
+          "conf": 0.007
+        },
+        {
+          "name": "r_knee",
+          "x": null,
+          "y": null,
+          "conf": 0.006
+        },
+        {
+          "name": "l_ankle",
+          "x": null,
+          "y": null,
+          "conf": 0.003
+        },
+        {
+          "name": "r_ankle",
+          "x": null,
+          "y": null,
+          "conf": 0.002
+        }
+      ],
+      "features": {
+        "torso_angle_deg": null,
+        "torso_len_px": null,
+        "knee_angle_l_deg": null,
+        "knee_angle_r_deg": null,
+        "knee_asymmetry_deg": null,
+        "hip_y": null,
+        "knee_y": null,
+        "ankle_y": null,
+        "head_y": 306.294,
+        "shoulder_y": 387.655,
+        "bbox_aspect_h_over_w": 0.666,
+        "bbox_bottom_px_to_image_bottom": 2.251,
+        "stance_width_norm": null,
+        "head_below_hip": null,
+        "valid_joints": 10,
+        "lower_body_visible": false,
+        "clipped_left": false,
+        "clipped_right": false,
+        "clipped_top": false,
+        "clipped_bottom": true,
+        "partial_visibility": true
+      },
+      "gait_features": {
+        "knee_asymmetry_deg": null,
+        "torso_lean_abs_deg": null,
+        "stance_width_norm": null,
+        "hip_y_drift_px": null,
+        "torso_angle_drift_deg": null,
+        "ankle_l_motion_norm": null,
+        "ankle_r_motion_norm": null,
+        "ankle_motion_asymmetry": null,
+        "gait_instability_score": 0.0
+      },
+      "posture": "lying",
+      "posture_scores": {
+        "standing": 0.0,
+        "sitting": 0.015,
+        "lying": 0.551,
+        "unknown": 0.434
+      },
+      "bend_angle_deg": null,
+      "fall_score": 0.0,
+      "fall_like": false,
+      "gait_instability_score": 0.0,
+      "unstable_gait": false,
+      "hand_near_object": {
+        "left": null,
+        "right": null,
+        "any_near": false
+      },
+      "feature_vector": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.666,
+        0.545,
+        0.6137,
+        0.0,
+        0.5882,
+        0.6381,
+        0.8076,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0149,
+        0.5514,
+        0.4337,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "feature_mask": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "output": "frame_000018_pick1_src000257.png"
+    },
+    {
+      "sample_frame": "frame_000019.png",
+      "sample_ts_sec": 9.013,
+      "source_frame_index": 258,
+      "source_ts_sec": 8.682,
+      "sharpness": 97.4,
+      "person_bbox": [
+        32.0,
+        216.6,
+        597.5,
+        479.6
+      ],
+      "crop_bbox": [
+        0.0,
+        150.85,
+        639.0,
+        479.0
+      ],
+      "pose_det_bbox": [
+        160.5968780517578,
+        215.81330108642578,
+        545.1443481445312,
+        477.0369873046875
+      ],
+      "pose_det_conf": 0.825,
+      "keypoints": [
+        {
+          "name": "nose",
+          "x": 384.2,
+          "y": 305.6,
+          "conf": 0.996
+        },
+        {
+          "name": "l_eye",
+          "x": 393.2,
+          "y": 287.0,
+          "conf": 0.943
+        },
+        {
+          "name": "r_eye",
+          "x": 362.2,
+          "y": 284.8,
+          "conf": 0.996
+        },
+        {
+          "name": "l_ear",
+          "x": null,
+          "y": null,
+          "conf": 0.052
+        },
+        {
+          "name": "r_ear",
+          "x": 302.1,
+          "y": 290.3,
+          "conf": 0.982
+        },
+        {
+          "name": "l_shoulder",
+          "x": 408.5,
+          "y": 375.6,
+          "conf": 0.964
+        },
+        {
+          "name": "r_shoulder",
+          "x": 229.8,
+          "y": 387.5,
+          "conf": 0.963
+        },
+        {
+          "name": "l_elbow",
+          "x": 513.2,
+          "y": 463.9,
+          "conf": 0.666
+        },
+        {
+          "name": "r_elbow",
+          "x": 164.8,
+          "y": 479.0,
+          "conf": 0.598
+        },
+        {
+          "name": "l_wrist",
+          "x": 518.1,
+          "y": 465.8,
+          "conf": 0.731
+        },
+        {
+          "name": "r_wrist",
+          "x": 278.7,
+          "y": 433.8,
+          "conf": 0.826
+        },
+        {
+          "name": "l_hip",
+          "x": null,
+          "y": null,
+          "conf": 0.073
+        },
+        {
+          "name": "r_hip",
+          "x": null,
+          "y": null,
+          "conf": 0.054
+        },
+        {
+          "name": "l_knee",
+          "x": null,
+          "y": null,
+          "conf": 0.007
+        },
+        {
+          "name": "r_knee",
+          "x": null,
+          "y": null,
+          "conf": 0.006
+        },
+        {
+          "name": "l_ankle",
+          "x": null,
+          "y": null,
+          "conf": 0.002
+        },
+        {
+          "name": "r_ankle",
+          "x": null,
+          "y": null,
+          "conf": 0.002
+        }
+      ],
+      "features": {
+        "torso_angle_deg": null,
+        "torso_len_px": null,
+        "knee_angle_l_deg": null,
+        "knee_angle_r_deg": null,
+        "knee_asymmetry_deg": null,
+        "hip_y": null,
+        "knee_y": null,
+        "ankle_y": null,
+        "head_y": 305.574,
+        "shoulder_y": 381.574,
+        "bbox_aspect_h_over_w": 0.679,
+        "bbox_bottom_px_to_image_bottom": 2.963,
+        "stance_width_norm": null,
+        "head_below_hip": null,
+        "valid_joints": 10,
+        "lower_body_visible": false,
+        "clipped_left": false,
+        "clipped_right": false,
+        "clipped_top": false,
+        "clipped_bottom": true,
+        "partial_visibility": true
+      },
+      "gait_features": {
+        "knee_asymmetry_deg": null,
+        "torso_lean_abs_deg": null,
+        "stance_width_norm": null,
+        "hip_y_drift_px": null,
+        "torso_angle_drift_deg": null,
+        "ankle_l_motion_norm": null,
+        "ankle_r_motion_norm": null,
+        "ankle_motion_asymmetry": null,
+        "gait_instability_score": 0.0
+      },
+      "posture": "lying",
+      "posture_scores": {
+        "standing": 0.0,
+        "sitting": 0.018,
+        "lying": 0.544,
+        "unknown": 0.438
+      },
+      "bend_angle_deg": null,
+      "fall_score": 0.0,
+      "fall_like": false,
+      "gait_instability_score": 0.0,
+      "unstable_gait": false,
+      "hand_near_object": {
+        "left": null,
+        "right": null,
+        "any_near": false
+      },
+      "feature_vector": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.6793,
+        0.5442,
+        0.6009,
+        0.0,
+        0.5882,
+        0.6366,
+        0.7949,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0181,
+        0.5435,
+        0.4384,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "feature_mask": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "output": "frame_000019_pick1_src000258.png"
+    },
+    {
+      "sample_frame": "frame_000020.png",
+      "sample_ts_sec": 9.521,
+      "source_frame_index": 274,
+      "source_ts_sec": 9.22,
+      "sharpness": 92.7,
+      "person_bbox": [
+        69.5,
+        216.2,
+        610.8,
+        479.6
+      ],
+      "crop_bbox": [
+        0.0,
+        150.34999999999997,
+        639.0,
+        479.0
+      ],
+      "pose_det_bbox": [
+        134.38661193847656,
+        215.01154327392578,
+        566.9859619140625,
+        475.7698974609375
+      ],
+      "pose_det_conf": 0.819,
+      "keypoints": [
+        {
+          "name": "nose",
+          "x": 384.3,
+          "y": 306.5,
+          "conf": 0.994
+        },
+        {
+          "name": "l_eye",
+          "x": 392.7,
+          "y": 291.3,
+          "conf": 0.946
+        },
+        {
+          "name": "r_eye",
+          "x": 362.6,
+          "y": 284.8,
+          "conf": 0.994
+        },
+        {
+          "name": "l_ear",
+          "x": null,
+          "y": null,
+          "conf": 0.069
+        },
+        {
+          "name": "r_ear",
+          "x": 304.3,
+          "y": 293.5,
+          "conf": 0.974
+        },
+        {
+          "name": "l_shoulder",
+          "x": 422.3,
+          "y": 395.2,
+          "conf": 0.932
+        },
+        {
+          "name": "r_shoulder",
+          "x": 244.4,
+          "y": 393.1,
+          "conf": 0.964
+        },
+        {
+          "name": "l_elbow",
+          "x": 514.4,
+          "y": 462.2,
+          "conf": 0.37
+        },
+        {
+          "name": "r_elbow",
+          "x": 173.1,
+          "y": 471.1,
+          "conf": 0.576
+        },
+        {
+          "name": "l_wrist",
+          "x": 497.4,
+          "y": 439.5,
+          "conf": 0.561
+        },
+        {
+          "name": "r_wrist",
+          "x": 280.8,
+          "y": 350.5,
+          "conf": 0.838
+        },
+        {
+          "name": "l_hip",
+          "x": null,
+          "y": null,
+          "conf": 0.025
+        },
+        {
+          "name": "r_hip",
+          "x": null,
+          "y": null,
+          "conf": 0.028
+        },
+        {
+          "name": "l_knee",
+          "x": null,
+          "y": null,
+          "conf": 0.005
+        },
+        {
+          "name": "r_knee",
+          "x": null,
+          "y": null,
+          "conf": 0.006
+        },
+        {
+          "name": "l_ankle",
+          "x": null,
+          "y": null,
+          "conf": 0.002
+        },
+        {
+          "name": "r_ankle",
+          "x": null,
+          "y": null,
+          "conf": 0.002
+        }
+      ],
+      "features": {
+        "torso_angle_deg": null,
+        "torso_len_px": null,
+        "knee_angle_l_deg": null,
+        "knee_angle_r_deg": null,
+        "knee_asymmetry_deg": null,
+        "hip_y": null,
+        "knee_y": null,
+        "ankle_y": null,
+        "head_y": 306.522,
+        "shoulder_y": 394.16,
+        "bbox_aspect_h_over_w": 0.603,
+        "bbox_bottom_px_to_image_bottom": 4.23,
+        "stance_width_norm": null,
+        "head_below_hip": null,
+        "valid_joints": 10,
+        "lower_body_visible": false,
+        "clipped_left": false,
+        "clipped_right": false,
+        "clipped_top": false,
+        "clipped_bottom": true,
+        "partial_visibility": true
+      },
+      "gait_features": {
+        "knee_asymmetry_deg": null,
+        "torso_lean_abs_deg": null,
+        "stance_width_norm": null,
+        "hip_y_drift_px": null,
+        "torso_angle_drift_deg": null,
+        "ankle_l_motion_norm": null,
+        "ankle_r_motion_norm": null,
+        "ankle_motion_asymmetry": null,
+        "gait_instability_score": 0.0
+      },
+      "posture": "lying",
+      "posture_scores": {
+        "standing": 0.0,
+        "sitting": 0.001,
+        "lying": 0.587,
+        "unknown": 0.413
+      },
+      "bend_angle_deg": null,
+      "fall_score": 0.0,
+      "fall_like": false,
+      "gait_instability_score": 0.0,
+      "unstable_gait": false,
+      "hand_near_object": {
+        "left": null,
+        "right": null,
+        "any_near": false
+      },
+      "feature_vector": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.6028,
+        0.5432,
+        0.6759,
+        0.0,
+        0.5882,
+        0.6386,
+        0.8212,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0006,
+        0.5868,
+        0.4126,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "feature_mask": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "output": "frame_000020_pick1_src000274.png"
+    },
+    {
+      "sample_frame": "frame_000021.png",
+      "sample_ts_sec": 10.021,
+      "source_frame_index": 297,
+      "source_ts_sec": 9.994,
+      "sharpness": 87.7,
+      "person_bbox": [
+        55.1,
+        215.8,
+        559.4,
+        479.3
+      ],
+      "crop_bbox": [
+        0.0,
+        149.925,
+        639.0,
+        479.0
+      ],
+      "pose_det_bbox": [
+        125.54441833496094,
+        216.27753448486328,
+        546.2930908203125,
+        476.1497802734375
+      ],
+      "pose_det_conf": 0.641,
+      "keypoints": [
+        {
+          "name": "nose",
+          "x": 369.4,
+          "y": 278.3,
+          "conf": 0.868
+        },
+        {
+          "name": "l_eye",
+          "x": 372.6,
+          "y": 268.1,
+          "conf": 0.481
+        },
+        {
+          "name": "r_eye",
+          "x": 344.0,
+          "y": 272.1,
+          "conf": 0.856
+        },
+        {
+          "name": "l_ear",
+          "x": null,
+          "y": null,
+          "conf": 0.049
+        },
+        {
+          "name": "r_ear",
+          "x": 304.3,
+          "y": 312.7,
+          "conf": 0.867
+        },
+        {
+          "name": "l_shoulder",
+          "x": 399.1,
+          "y": 381.8,
+          "conf": 0.848
+        },
+        {
+          "name": "r_shoulder",
+          "x": 245.0,
+          "y": 392.1,
+          "conf": 0.904
+        },
+        {
+          "name": "l_elbow",
+          "x": 446.1,
+          "y": 458.0,
+          "conf": 0.456
+        },
+        {
+          "name": "r_elbow",
+          "x": 168.2,
+          "y": 476.0,
+          "conf": 0.567
+        },
+        {
+          "name": "l_wrist",
+          "x": 474.3,
+          "y": 428.2,
+          "conf": 0.589
+        },
+        {
+          "name": "r_wrist",
+          "x": 324.8,
+          "y": 358.9,
+          "conf": 0.794
+        },
+        {
+          "name": "l_hip",
+          "x": null,
+          "y": null,
+          "conf": 0.074
+        },
+        {
+          "name": "r_hip",
+          "x": null,
+          "y": null,
+          "conf": 0.07
+        },
+        {
+          "name": "l_knee",
+          "x": null,
+          "y": null,
+          "conf": 0.021
+        },
+        {
+          "name": "r_knee",
+          "x": null,
+          "y": null,
+          "conf": 0.024
+        },
+        {
+          "name": "l_ankle",
+          "x": null,
+          "y": null,
+          "conf": 0.009
+        },
+        {
+          "name": "r_ankle",
+          "x": null,
+          "y": null,
+          "conf": 0.009
+        }
+      ],
+      "features": {
+        "torso_angle_deg": null,
+        "torso_len_px": null,
+        "knee_angle_l_deg": null,
+        "knee_angle_r_deg": null,
+        "knee_asymmetry_deg": null,
+        "hip_y": null,
+        "knee_y": null,
+        "ankle_y": null,
+        "head_y": 278.348,
+        "shoulder_y": 386.971,
+        "bbox_aspect_h_over_w": 0.618,
+        "bbox_bottom_px_to_image_bottom": 3.85,
+        "stance_width_norm": null,
+        "head_below_hip": null,
+        "valid_joints": 10,
+        "lower_body_visible": false,
+        "clipped_left": false,
+        "clipped_right": false,
+        "clipped_top": false,
+        "clipped_bottom": true,
+        "partial_visibility": true
+      },
+      "gait_features": {
+        "knee_asymmetry_deg": null,
+        "torso_lean_abs_deg": null,
+        "stance_width_norm": null,
+        "hip_y_drift_px": null,
+        "torso_angle_drift_deg": null,
+        "ankle_l_motion_norm": null,
+        "ankle_r_motion_norm": null,
+        "ankle_motion_asymmetry": null,
+        "gait_instability_score": 0.0
+      },
+      "posture": "lying",
+      "posture_scores": {
+        "standing": 0.0,
+        "sitting": 0.004,
+        "lying": 0.579,
+        "unknown": 0.417
+      },
+      "bend_angle_deg": null,
+      "fall_score": 0.0,
+      "fall_like": false,
+      "gait_instability_score": 0.0,
+      "unstable_gait": false,
+      "hand_near_object": {
+        "left": null,
+        "right": null,
+        "any_near": false
+      },
+      "feature_vector": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.6176,
+        0.5414,
+        0.6574,
+        0.0,
+        0.5882,
+        0.5799,
+        0.8062,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0038,
+        0.5788,
+        0.4174,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "feature_mask": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "output": "frame_000021_pick1_src000297.png"
+    },
+    {
+      "sample_frame": "frame_000022.png",
+      "sample_ts_sec": 10.537,
+      "source_frame_index": 301,
+      "source_ts_sec": 10.129,
+      "sharpness": 81.9,
+      "person_bbox": [
+        170.0,
+        215.4,
+        547.1,
+        479.9
+      ],
+      "crop_bbox": [
+        75.725,
+        149.275,
+        639.0,
+        479.0
+      ],
+      "pose_det_bbox": [
+        104.06185340881348,
+        215.3783416748047,
+        534.0079345703125,
+        475.3335266113281
+      ],
+      "pose_det_conf": 0.868,
+      "keypoints": [
+        {
+          "name": "nose",
+          "x": 397.2,
+          "y": 306.9,
+          "conf": 0.996
+        },
+        {
+          "name": "l_eye",
+          "x": 404.4,
+          "y": 286.2,
+          "conf": 0.933
+        },
+        {
+          "name": "r_eye",
+          "x": 365.6,
+          "y": 288.9,
+          "conf": 0.997
+        },
+        {
+          "name": "l_ear",
+          "x": null,
+          "y": null,
+          "conf": 0.02
+        },
+        {
+          "name": "r_ear",
+          "x": 300.5,
+          "y": 309.5,
+          "conf": 0.986
+        },
+        {
+          "name": "l_shoulder",
+          "x": 417.2,
+          "y": 388.6,
+          "conf": 0.935
+        },
+        {
+          "name": "r_shoulder",
+          "x": 246.5,
+          "y": 400.5,
+          "conf": 0.95
+        },
+        {
+          "name": "l_elbow",
+          "x": 488.6,
+          "y": 458.4,
+          "conf": 0.538
+        },
+        {
+          "name": "r_elbow",
+          "x": 172.4,
+          "y": 479.0,
+          "conf": 0.597
+        },
+        {
+          "name": "l_wrist",
+          "x": 483.5,
+          "y": 439.1,
+          "conf": 0.799
+        },
+        {
+          "name": "r_wrist",
+          "x": 322.4,
+          "y": 381.4,
+          "conf": 0.926
+        },
+        {
+          "name": "l_hip",
+          "x": null,
+          "y": null,
+          "conf": 0.035
+        },
+        {
+          "name": "r_hip",
+          "x": null,
+          "y": null,
+          "conf": 0.029
+        },
+        {
+          "name": "l_knee",
+          "x": null,
+          "y": null,
+          "conf": 0.004
+        },
+        {
+          "name": "r_knee",
+          "x": null,
+          "y": null,
+          "conf": 0.004
+        },
+        {
+          "name": "l_ankle",
+          "x": null,
+          "y": null,
+          "conf": 0.002
+        },
+        {
+          "name": "r_ankle",
+          "x": null,
+          "y": null,
+          "conf": 0.001
+        }
+      ],
+      "features": {
+        "torso_angle_deg": null,
+        "torso_len_px": null,
+        "knee_angle_l_deg": null,
+        "knee_angle_r_deg": null,
+        "knee_asymmetry_deg": null,
+        "hip_y": null,
+        "knee_y": null,
+        "ankle_y": null,
+        "head_y": 306.852,
+        "shoulder_y": 394.516,
+        "bbox_aspect_h_over_w": 0.605,
+        "bbox_bottom_px_to_image_bottom": 4.666,
+        "stance_width_norm": null,
+        "head_below_hip": null,
+        "valid_joints": 10,
+        "lower_body_visible": false,
+        "clipped_left": false,
+        "clipped_right": false,
+        "clipped_top": false,
+        "clipped_bottom": true,
+        "partial_visibility": true
+      },
+      "gait_features": {
+        "knee_asymmetry_deg": null,
+        "torso_lean_abs_deg": null,
+        "stance_width_norm": null,
+        "hip_y_drift_px": null,
+        "torso_angle_drift_deg": null,
+        "ankle_l_motion_norm": null,
+        "ankle_r_motion_norm": null,
+        "ankle_motion_asymmetry": null,
+        "gait_instability_score": 0.0
+      },
+      "posture": "lying",
+      "posture_scores": {
+        "standing": 0.0,
+        "sitting": 0.001,
+        "lying": 0.586,
+        "unknown": 0.413
+      },
+      "bend_angle_deg": null,
+      "fall_score": 0.0,
+      "fall_like": false,
+      "gait_instability_score": 0.0,
+      "unstable_gait": false,
+      "hand_near_object": {
+        "left": null,
+        "right": null,
+        "any_near": false
+      },
+      "feature_vector": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.6046,
+        0.5416,
+        0.6718,
+        0.0,
+        0.5882,
+        0.6393,
+        0.8219,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.001,
+        0.5858,
+        0.4132,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "feature_mask": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "output": "frame_000022_pick1_src000301.png"
+    },
+    {
+      "sample_frame": "frame_000027.png",
+      "sample_ts_sec": 13.018,
+      "source_frame_index": 387,
+      "source_ts_sec": 13.023,
+      "sharpness": 82.9,
+      "person_bbox": [
+        181.0,
+        215.9,
+        546.1,
+        479.9
+      ],
+      "crop_bbox": [
+        89.725,
+        149.9,
+        637.375,
+        479.0
+      ],
+      "pose_det_bbox": [
+        188.38451385498047,
+        215.0267791748047,
+        568.5226440429688,
+        475.11962890625
+      ],
+      "pose_det_conf": 0.874,
+      "keypoints": [
+        {
+          "name": "nose",
+          "x": 368.1,
+          "y": 313.0,
+          "conf": 0.993
+        },
+        {
+          "name": "l_eye",
+          "x": 377.1,
+          "y": 290.7,
+          "conf": 0.965
+        },
+        {
+          "name": "r_eye",
+          "x": 343.9,
+          "y": 291.9,
+          "conf": 0.992
+        },
+        {
+          "name": "l_ear",
+          "x": null,
+          "y": null,
+          "conf": 0.149
+        },
+        {
+          "name": "r_ear",
+          "x": 288.3,
+          "y": 302.6,
+          "conf": 0.952
+        },
+        {
+          "name": "l_shoulder",
+          "x": 413.7,
+          "y": 393.6,
+          "conf": 0.968
+        },
+        {
+          "name": "r_shoulder",
+          "x": 233.0,
+          "y": 421.8,
+          "conf": 0.875
+        },
+        {
+          "name": "l_elbow",
+          "x": 503.3,
+          "y": 453.6,
+          "conf": 0.467
+        },
+        {
+          "name": "r_elbow",
+          "x": null,
+          "y": null,
+          "conf": 0.069
+        },
+        {
+          "name": "l_wrist",
+          "x": 515.0,
+          "y": 466.3,
+          "conf": 0.368
+        },
+        {
+          "name": "r_wrist",
+          "x": null,
+          "y": null,
+          "conf": 0.144
+        },
+        {
+          "name": "l_hip",
+          "x": null,
+          "y": null,
+          "conf": 0.03
+        },
+        {
+          "name": "r_hip",
+          "x": null,
+          "y": null,
+          "conf": 0.01
+        },
+        {
+          "name": "l_knee",
+          "x": null,
+          "y": null,
+          "conf": 0.006
+        },
+        {
+          "name": "r_knee",
+          "x": null,
+          "y": null,
+          "conf": 0.002
+        },
+        {
+          "name": "l_ankle",
+          "x": null,
+          "y": null,
+          "conf": 0.003
+        },
+        {
+          "name": "r_ankle",
+          "x": null,
+          "y": null,
+          "conf": 0.002
+        }
+      ],
+      "features": {
+        "torso_angle_deg": null,
+        "torso_len_px": null,
+        "knee_angle_l_deg": null,
+        "knee_angle_r_deg": null,
+        "knee_asymmetry_deg": null,
+        "hip_y": null,
+        "knee_y": null,
+        "ankle_y": null,
+        "head_y": 312.983,
+        "shoulder_y": 407.687,
+        "bbox_aspect_h_over_w": 0.684,
+        "bbox_bottom_px_to_image_bottom": 4.88,
+        "stance_width_norm": null,
+        "head_below_hip": null,
+        "valid_joints": 8,
+        "lower_body_visible": false,
+        "clipped_left": false,
+        "clipped_right": false,
+        "clipped_top": false,
+        "clipped_bottom": true,
+        "partial_visibility": true
+      },
+      "gait_features": {
+        "knee_asymmetry_deg": null,
+        "torso_lean_abs_deg": null,
+        "stance_width_norm": null,
+        "hip_y_drift_px": null,
+        "torso_angle_drift_deg": null,
+        "ankle_l_motion_norm": null,
+        "ankle_r_motion_norm": null,
+        "ankle_motion_asymmetry": null,
+        "gait_instability_score": 0.0
+      },
+      "posture": "lying",
+      "posture_scores": {
+        "standing": 0.0,
+        "sitting": 0.019,
+        "lying": 0.541,
+        "unknown": 0.44
+      },
+      "bend_angle_deg": null,
+      "fall_score": 0.0,
+      "fall_like": false,
+      "gait_instability_score": 0.0,
+      "unstable_gait": false,
+      "hand_near_object": {
+        "left": null,
+        "right": null,
+        "any_near": false
+      },
+      "feature_vector": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.6842,
+        0.5419,
+        0.594,
+        0.0,
+        0.4706,
+        0.652,
+        0.8493,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0193,
+        0.5405,
+        0.4402,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "feature_mask": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "output": "frame_000027_pick1_src000387.png"
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "record_id": "rec_fail_1779954995_s1",
+  "organization_id": 1,
+  "admin_id": 1,
+  "iv_b64": "none",
+  "mime_type": "video/mp4",
+  "duration": 13,
+  "started_at": null,
+  "ended_at": null,
+  "notes": "intentional failure clip",
+  "scvam_status": "ready",
+  "scvam_job_id": 8
+}

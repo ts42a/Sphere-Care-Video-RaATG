@@ -61,12 +61,10 @@
     <a class="nav-item" href="/pages/notifications.html">
       <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span>
       Notifications
-      <span class="sidebar-badge" id="badge-notifications" style="display:none;"></span>
     </a>
     <a class="nav-item" href="/pages/message.html">
       <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>
       Messages
-      <span class="sidebar-badge" id="badge-messages" style="display:none;"></span>
     </a>
     <a class="nav-item" href="/pages/help_support.html">
       <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>
@@ -81,14 +79,6 @@
 
   // Inject sidebar
   document.addEventListener('DOMContentLoaded', function() {
-    // Inject badge CSS
-    if (!document.getElementById('sidebar-badge-style')) {
-      const style = document.createElement('style');
-      style.id = 'sidebar-badge-style';
-      style.textContent = `.sidebar-badge{position:absolute;right:14px;top:50%;transform:translateY(-50%);min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#ef4444;color:#fff;font-size:11px;font-weight:700;line-height:18px;text-align:center;font-family:Inter,sans-serif;pointer-events:none;}`;
-      document.head.appendChild(style);
-    }
-
     const container = document.getElementById('sidebar-container');
     if (container) {
       container.outerHTML = SIDEBAR_HTML;
@@ -103,11 +93,6 @@
       }
     });
 
-    // Make nav-items position:relative so badge can be absolutely positioned
-    document.querySelectorAll('.sidebar .nav-item').forEach(item => {
-      item.style.position = 'relative';
-    });
-
     try {
       const u = JSON.parse(sessionStorage.getItem('user') || '{}');
       const role = u.role || u.global_role || 'staff';
@@ -115,53 +100,5 @@
         el.style.display = role === 'admin' ? '' : 'none';
       });
     } catch (_) {}
-
-    // Fetch unread counts for sidebar badges
-    _fetchSidebarBadges();
   });
-
-  function _fetchSidebarBadges() {
-    const API_BASE = (typeof window.API_BASE !== 'undefined') ? window.API_BASE : '/api/v1';
-    const token = sessionStorage.getItem('access_token');
-    if (!token) return;
-
-    const headers = { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' };
-
-    // Fetch notification unread counts
-    fetch(API_BASE + '/notifications/unread-counts', { headers: headers })
-      .then(function(res) { if (!res.ok) return null; return res.json(); })
-      .then(function(data) {
-        if (!data) return;
-        var badge = document.getElementById('badge-notifications');
-        if (!badge) return;
-        var total = Number(data.total) || 0;
-        if (total > 0) {
-          badge.textContent = total > 99 ? '99+' : String(total);
-          badge.style.display = '';
-        } else {
-          badge.style.display = 'none';
-        }
-      })
-      .catch(function() {});
-
-    // Fetch message unread count (sum of conversation unread_count)
-    fetch(API_BASE + '/messages/conversations', { headers: headers })
-      .then(function(res) { if (!res.ok) return null; return res.json(); })
-      .then(function(data) {
-        if (!Array.isArray(data)) return;
-        var unread = 0;
-        for (var i = 0; i < data.length; i++) {
-          unread += Number(data[i].unread_count) || 0;
-        }
-        var badge = document.getElementById('badge-messages');
-        if (!badge) return;
-        if (unread > 0) {
-          badge.textContent = unread > 99 ? '99+' : String(unread);
-          badge.style.display = '';
-        } else {
-          badge.style.display = 'none';
-        }
-      })
-      .catch(function() {});
-  }
 })();

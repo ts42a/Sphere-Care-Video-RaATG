@@ -58,27 +58,24 @@ function senderClr(n) { if (!SENDER_CLR[n]) SENDER_CLR[n] = SC_CLR[sci++ % SC_CL
 function catLabel(c) { return { team: 'Team Chat', resident: 'Resident Care', alerts: 'System Alerts' }[c] || 'Chat'; }
 
 async function loadConvs() {
-  var hasAuth = !!sessionStorage.getItem('access_token');
-  if (hasAuth) {
-    try {
-      var r = await fetch(API_BASE + '/messages/conversations', { headers: authH() });
-      if (!r.ok) throw new Error('HTTP ' + r.status);
-      var d = await r.json();
+  try {
+    var r = await fetch(API_BASE + '/messages/conversations', { headers: authH() });
+    if (!r.ok) throw new Error();
+    var d = await r.json();
+    if (d.length) {
       allConvs = d.map(function (c) {
         return { id: c.id, name: c.name, category: c.category, last_message: c.last_message || '', last_message_at: c.last_message_at || '', unread_count: c.unread_count || 0, sub: catLabel(c.category), color: convClr(c.id, c.category), online: false };
       });
       demo = false;
-    } catch (e) {
-      allConvs = [];
-      demo = false;
-    }
-  } else {
-    // No token — show demo UI for unauthenticated preview only
+    } else throw new Error();
+  } catch (e) {
     allConvs = DEMO_CONVS.map(function (c) { return Object.assign({}, c); });
     demo = true;
   }
 
   // Auto-sync: create conversations for residents that don't have one yet
+  // Run always — even if no conversations exist yet (demo=true means no convs, not no auth)
+  var hasAuth = !!sessionStorage.getItem('access_token');
   if (hasAuth) {
     try {
       var rr = await fetch(API_BASE + '/residents/', { headers: authH() });
@@ -185,16 +182,13 @@ async function openConv(elOrId) {
 
 async function loadMsgs(id) {
   if (localMsgs[id]) { renderMsgs(localMsgs[id]); return; }
-  if (demo) {
+  try {
+    var r = await fetch(API_BASE + '/messages/conversations/' + id + '/messages', { headers: authH() });
+    if (!r.ok) throw new Error();
+    localMsgs[id] = await r.json();
+  } catch (e) {
+    // Use demo messages if available, otherwise empty array (new conversation)
     localMsgs[id] = (DEMO_MSGS[id] || []).map(function (m) { return Object.assign({}, m); });
-  } else {
-    try {
-      var r = await fetch(API_BASE + '/messages/conversations/' + id + '/messages', { headers: authH() });
-      if (!r.ok) throw new Error();
-      localMsgs[id] = await r.json();
-    } catch (e) {
-      localMsgs[id] = [];
-    }
   }
   renderMsgs(localMsgs[id]);
 }
@@ -280,14 +274,7 @@ function renderMsgs(msgs, hl) {
       var parts = content.slice(7).split(' | ');
       bubbleHtml = makeFileBubble(parts[0] || 'file', parts[1] || '');
     } else {
-      // Call record message — render like WhatsApp
-    if (m.message_type === 'call_record') {
-      html += '<div class="msg-row" style="justify-content:center;margin:8px 0;">' +
-        '<div style="background:#f1f5f9;border-radius:12px;padding:6px 16px;font-size:12px;color:#64748b;display:flex;align-items:center;gap:6px;">' +
-        esc(content) + '</div></div>';
-      return;
-    }
-    var txt = esc(content);
+      var txt = esc(content);
       if (hl) txt = txt.replace(new RegExp(esc(hl).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), function (s) { return '<mark style="background:#fef08a;border-radius:3px;">' + s + '</mark>'; });
       bubbleHtml = replyHtml + (isSelf ? '<div class="bubble self">' + txt + (isEdited ? '<span class="edited-tag"> (edited)</span>' : '') + '</div>'
         : '<div class="bubble other">' + txt + (isEdited ? '<span class="edited-tag"> (edited)</span>' : '') + '</div>');
@@ -660,6 +647,393 @@ var _activeCallId    = null;
 var _outgoingCallId  = null;
 var _pendingCallKind = null;
 var _callerJoinPayload = null;
+var _aslTranslator = { stream: null, deviceId: '', mode: 'static', running: false };
+var _asllmPanel = {
+  running: false,
+  busy: false,
+  timer: null,
+  ws: null,
+  wsReconnectTimer: null,
+  canvas: null,
+  ctx: null,
+  sentence: '',
+  predHistory: [],
+  historySize: 8,
+  stableMinVotes: 6,
+  appendCooldownMs: 1000,
+  lastAppendAt: 0,
+  intervalMs: 120,
+  threshold: 0.60,
+  lmCanvas: null,
+  lmCtx: null,
+  noHandFrames: 0
+};
+var ASL_HAND_CONNECTIONS = [
+  [0, 1], [1, 2], [2, 3], [3, 4],
+  [0, 5], [5, 6], [6, 7], [7, 8],
+  [5, 9], [9, 10], [10, 11], [11, 12],
+  [9, 13], [13, 14], [14, 15], [15, 16],
+  [13, 17], [17, 18], [18, 19], [19, 20],
+  [0, 17]
+];
+
+function _asllmBaseStatus(extra) {
+  return 'ASLLM · Static model active' + (extra ? ' · ' + extra : '');
+}
+
+function _setAsllmPanelText(text) {
+  var result = document.getElementById('asl-result-text');
+  if (result) result.textContent = text;
+}
+
+function _resetAsllmPanelState() {
+  _asllmPanel.sentence = '';
+  _asllmPanel.predHistory = [];
+  _asllmPanel.lastAppendAt = 0;
+  _asllmPanel.noHandFrames = 0;
+}
+
+function _ensureAsllmLandmarkCanvas() {
+  var wrap = document.querySelector('.asl-video-wrap');
+  if (!wrap) return;
+  if (!_asllmPanel.lmCanvas) {
+    var c = document.createElement('canvas');
+    c.className = 'asl-landmark-canvas';
+    wrap.appendChild(c);
+    _asllmPanel.lmCanvas = c;
+    _asllmPanel.lmCtx = c.getContext('2d');
+  }
+  var w = wrap.clientWidth || 1;
+  var h = wrap.clientHeight || 1;
+  if (_asllmPanel.lmCanvas.width !== w || _asllmPanel.lmCanvas.height !== h) {
+    _asllmPanel.lmCanvas.width = w;
+    _asllmPanel.lmCanvas.height = h;
+  }
+}
+
+function _clearAsllmLandmarks() {
+  if (_asllmPanel.lmCtx && _asllmPanel.lmCanvas) {
+    _asllmPanel.lmCtx.clearRect(0, 0, _asllmPanel.lmCanvas.width, _asllmPanel.lmCanvas.height);
+  }
+}
+
+function _drawAsllmLandmarks(landmarks) {
+  _ensureAsllmLandmarkCanvas();
+  if (!_asllmPanel.lmCtx || !_asllmPanel.lmCanvas) return;
+  var ctx = _asllmPanel.lmCtx;
+  var w = _asllmPanel.lmCanvas.width;
+  var h = _asllmPanel.lmCanvas.height;
+  ctx.clearRect(0, 0, w, h);
+  if (!landmarks || !landmarks.length) return;
+
+  ctx.strokeStyle = 'rgba(34, 197, 94, 0.92)';
+  ctx.lineWidth = 2;
+  for (var ci = 0; ci < ASL_HAND_CONNECTIONS.length; ci++) {
+    var c = ASL_HAND_CONNECTIONS[ci];
+    var a = landmarks[c[0]], b = landmarks[c[1]];
+    if (!a || !b) continue;
+    ctx.beginPath();
+    ctx.moveTo(a[0] * w, a[1] * h);
+    ctx.lineTo(b[0] * w, b[1] * h);
+    ctx.stroke();
+  }
+
+  ctx.fillStyle = 'rgba(34, 197, 94, 0.95)';
+  for (var i = 0; i < landmarks.length; i++) {
+    var lm = landmarks[i];
+    var x = lm[0] * w;
+    var y = lm[1] * h;
+    ctx.beginPath();
+    ctx.arc(x, y, 3, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Highlight index fingertip as pointer (landmark 8).
+  if (landmarks[8]) {
+    var px = landmarks[8][0] * w;
+    var py = landmarks[8][1] * h;
+    ctx.fillStyle = 'rgba(255,255,255,0.95)';
+    ctx.beginPath();
+    ctx.arc(px, py, 5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(20,20,20,0.95)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(px, py, 7, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+}
+
+function _pushAsllmPrediction(label) {
+  _asllmPanel.predHistory.push(label);
+  if (_asllmPanel.predHistory.length > _asllmPanel.historySize) _asllmPanel.predHistory.shift();
+}
+
+function _majorityAsllmPrediction() {
+  if (!_asllmPanel.predHistory.length) return '';
+  var count = {};
+  var best = '';
+  var bestN = 0;
+  for (var i = 0; i < _asllmPanel.predHistory.length; i++) {
+    var key = _asllmPanel.predHistory[i];
+    count[key] = (count[key] || 0) + 1;
+    if (count[key] > bestN) {
+      bestN = count[key];
+      best = key;
+    }
+  }
+  return bestN >= _asllmPanel.stableMinVotes ? best : '';
+}
+
+function _stopAsllmPanelLoop() {
+  if (_asllmPanel.timer) { clearInterval(_asllmPanel.timer); _asllmPanel.timer = null; }
+  if (_asllmPanel.wsReconnectTimer) {
+    clearTimeout(_asllmPanel.wsReconnectTimer);
+    _asllmPanel.wsReconnectTimer = null;
+  }
+  if (_asllmPanel.ws) {
+    try { _asllmPanel.ws.onopen = null; _asllmPanel.ws.onmessage = null; _asllmPanel.ws.onclose = null; _asllmPanel.ws.close(); } catch (_) {}
+    _asllmPanel.ws = null;
+  }
+  _asllmPanel.running = false;
+  _asllmPanel.busy = false;
+  _clearAsllmLandmarks();
+}
+
+function _asllmWsUrl() {
+  var proto = location.protocol === 'https:' ? 'wss://' : 'ws://';
+  return proto + location.host + '/api/v1/asl/statictranslator/ws';
+}
+
+function _appendAsllmToken(token) { if (token) _asllmPanel.sentence += token; }
+
+function _toReadableError(err) {
+  if (!err) return 'unknown error';
+  if (typeof err === 'string') return err;
+  if (typeof err === 'object') {
+    if (typeof err.message === 'string' && err.message.trim()) return err.message;
+    if (typeof err.detail === 'string' && err.detail.trim()) return err.detail;
+    if (err.detail && typeof err.detail === 'object') {
+      try { return JSON.stringify(err.detail); } catch (_) {}
+    }
+    try { return JSON.stringify(err); } catch (_) {}
+  }
+  return String(err);
+}
+
+function openAslModeModal() {
+  if (_aslTranslator.running) {
+    closeAslTranslation();
+    showToast((_aslTranslator.mode === 'motion' ? 'Motion' : 'Static') + ' translator stopped');
+    return;
+  }
+  var modal = document.getElementById('modal-asl-mode');
+  if (modal) modal.classList.add('open');
+}
+
+function closeAslModeModal() {
+  var modal = document.getElementById('modal-asl-mode');
+  if (modal) modal.classList.remove('open');
+}
+
+function selectAslMode(mode) {
+  closeAslModeModal();
+  _aslTranslator.mode = mode === 'motion' ? 'motion' : 'static';
+  openAslTranslation(_aslTranslator.mode);
+}
+
+function _setAslLaunchButtonState(isRunning) {
+  var btn = document.getElementById('btn-asl-launch');
+  if (!btn) return;
+  if (!isRunning) {
+    btn.textContent = 'ASL Translation';
+    return;
+  }
+  btn.textContent = 'Stop ' + (_aslTranslator.mode === 'motion' ? 'Motion' : 'Static') + ' Translation';
+}
+
+function _consumeAsllmEvent(ev, running, lastError) {
+  if (!running) {
+    _drawAsllmLandmarks(null);
+    _setAsllmPanelText(_asllmBaseStatus(lastError || 'Static translator is not running'));
+    return;
+  }
+  if (ev.type === 'error') {
+    _drawAsllmLandmarks(null);
+    _setAsllmPanelText(_asllmBaseStatus('Error: ' + (ev.detail || 'unknown')));
+    return;
+  }
+  if (ev.type !== 'frame') {
+    _drawAsllmLandmarks(null);
+    _setAsllmPanelText(_asllmBaseStatus('Waiting for camera frame...'));
+    return;
+  }
+
+  var letter = ev.prediction || '';
+  var textFromPy = ev.text || '';
+  var landmarks = ev.landmarks || [];
+  _drawAsllmLandmarks(landmarks);
+
+  var noHand = !landmarks.length || letter === 'NO_HAND';
+  if (noHand) {
+    _asllmPanel.noHandFrames += 1;
+    if (_asllmPanel.noHandFrames > 12) _setAsllmPanelText(_asllmBaseStatus('No hand detected in Python camera'));
+    else _setAsllmPanelText(_asllmBaseStatus('No hand detected'));
+    return;
+  }
+  _asllmPanel.noHandFrames = 0;
+  var accepted = letter !== 'UNKNOWN';
+  _pushAsllmPrediction(accepted ? letter : 'UNKNOWN');
+  var stable = _majorityAsllmPrediction();
+  var now = Date.now();
+  if (stable && stable !== 'NO_HAND' && stable !== 'UNKNOWN' && (now - _asllmPanel.lastAppendAt) > _asllmPanel.appendCooldownMs) {
+    _appendAsllmToken(stable);
+    _asllmPanel.lastAppendAt = now;
+  }
+  var displayText = textFromPy || _asllmPanel.sentence;
+  if (displayText) _setAsllmPanelText(displayText);
+  else _setAsllmPanelText(_asllmBaseStatus('Waiting for sentence...'));
+}
+
+function _connectAsllmWs() {
+  if (!_asllmPanel.running) return;
+  try {
+    var ws = new WebSocket(_asllmWsUrl());
+    _asllmPanel.ws = ws;
+    ws.onopen = function() {
+      _setAsllmPanelText(_asllmBaseStatus('Connected'));
+    };
+    ws.onmessage = function(evt) {
+      var payload = {};
+      try { payload = JSON.parse(evt.data || '{}'); } catch (_) { return; }
+      _consumeAsllmEvent(payload.event || {}, !!payload.running, payload.last_error || '');
+    };
+    ws.onclose = function() {
+      _asllmPanel.ws = null;
+      if (!_asllmPanel.running) return;
+      _setAsllmPanelText(_asllmBaseStatus('Stream disconnected, reconnecting...'));
+      _asllmPanel.wsReconnectTimer = setTimeout(_connectAsllmWs, 1200);
+    };
+    ws.onerror = function() {
+      _setAsllmPanelText(_asllmBaseStatus('WebSocket error'));
+    };
+  } catch (_) {
+    _setAsllmPanelText(_asllmBaseStatus('WebSocket failed'));
+  }
+}
+
+function _startAsllmPanelLoop() {
+  if (_asllmPanel.running) return;
+  _asllmPanel.running = true;
+  _connectAsllmWs();
+}
+
+function _stopAslCameraStream() {
+  if (_aslTranslator.stream) {
+    _aslTranslator.stream.getTracks().forEach(function(t){ t.stop(); });
+    _aslTranslator.stream = null;
+  }
+}
+
+async function _refreshAslCameraOptions(activeDeviceId) {
+  var sel = document.getElementById('asl-camera-select');
+  if (!sel || !navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return;
+  try {
+    var devices = await navigator.mediaDevices.enumerateDevices();
+    var cams = devices.filter(function (d) { return d.kind === 'videoinput'; });
+    var opts = '<option value="">Default camera</option>';
+    cams.forEach(function (cam, idx) {
+      var label = cam.label || ('Camera ' + (idx + 1));
+      opts += '<option value="' + cam.deviceId + '">' + esc(label) + '</option>';
+    });
+    sel.innerHTML = opts;
+    sel.value = activeDeviceId || _aslTranslator.deviceId || '';
+  } catch (_) {}
+}
+
+async function _startAslCamera(deviceId) {
+  var video = document.getElementById('asl-translation-video');
+  if (!video) return false;
+  _stopAslCameraStream();
+  try {
+    var constraints = deviceId
+      ? { video: { deviceId: { exact: deviceId } }, audio: false }
+      : { video: { facingMode: 'user' }, audio: false };
+    var stream = await navigator.mediaDevices.getUserMedia(constraints);
+    _aslTranslator.stream = stream;
+    _aslTranslator.deviceId = deviceId || '';
+    video.srcObject = stream;
+    var track = stream.getVideoTracks()[0];
+    var settings = track && track.getSettings ? track.getSettings() : {};
+    await _refreshAslCameraOptions(settings.deviceId || _aslTranslator.deviceId);
+    return true;
+  } catch (_) {
+    if (!deviceId) {
+      try {
+        var fallback = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+        _aslTranslator.stream = fallback;
+        _aslTranslator.deviceId = '';
+        video.srcObject = fallback;
+        var fbTrack = fallback.getVideoTracks()[0];
+        var fbSettings = fbTrack && fbTrack.getSettings ? fbTrack.getSettings() : {};
+        await _refreshAslCameraOptions(fbSettings.deviceId || '');
+        return true;
+      } catch (_) {}
+    }
+    return false;
+  }
+}
+
+async function openAslTranslation(mode) {
+  var panel = document.getElementById('asl-translation-panel');
+  _aslTranslator.mode = mode || _aslTranslator.mode || 'static';
+  try {
+    var endpoint = _aslTranslator.mode === 'motion' ? '/asl/motiontranslator/start' : '/asl/statictranslator/start';
+    var r = await fetch(API_BASE + endpoint, { method: 'POST', headers: authH() });
+    var startData = null;
+    var rawText = '';
+    try { rawText = await r.text(); } catch (_) {}
+    if (rawText) {
+      try { startData = JSON.parse(rawText); } catch (_) { startData = { detail: rawText }; }
+    }
+    if (!r.ok || (startData && startData.running === false)) {
+      var msg = 'translator start failed';
+      if (startData && startData.detail) msg = _toReadableError(startData.detail);
+      else if (rawText) msg = _toReadableError(rawText);
+      throw new Error(msg);
+    }
+    if (panel) panel.style.display = 'none';
+    _aslTranslator.running = true;
+    _setAslLaunchButtonState(true);
+    showToast((_aslTranslator.mode === 'motion' ? 'Motion' : 'Static') + ' translator started in Python process');
+  } catch (e) {
+    _aslTranslator.running = false;
+    _setAslLaunchButtonState(false);
+    showToast('Unable to start ' + (_aslTranslator.mode === 'motion' ? 'motion' : 'static') + ' translator: ' + _toReadableError(e));
+  }
+}
+
+function closeAslTranslation() {
+  var panel = document.getElementById('asl-translation-panel');
+  if (panel) panel.style.display = 'none';
+  _stopAsllmPanelLoop();
+  _aslTranslator.running = false;
+  _setAslLaunchButtonState(false);
+  var stopEndpoint = _aslTranslator.mode === 'motion' ? '/asl/motiontranslator/stop' : '/asl/statictranslator/stop';
+  fetch(API_BASE + stopEndpoint, { method: 'POST', headers: authH() }).catch(function(){});
+}
+
+function setAslTranslationMode(mode) {
+  var staticBtn = document.getElementById('asl-mode-static-btn');
+  if (staticBtn) staticBtn.classList.add('active');
+  _aslTranslator.mode = 'static';
+  _resetAsllmPanelState();
+  _setAsllmPanelText(_asllmBaseStatus('Static mode (Python camera)'));
+}
+
+async function switchAslCamera(deviceId) {
+  showToast('Camera switch is controlled by Python translator (test.py style).');
+}
 
 function _getMyUserId() {
   try {
@@ -762,10 +1136,9 @@ function _injectAslSubtitle() {
     '<div id="transcript-live" style="' +
       'font-size:14px;color:#fff;line-height:1.55;min-height:40px;max-height:100px;' +
       'overflow-y:auto;text-align:center;word-break:break-word;"></div>' +
-    // ASL detail row (letter + confidence)
+    // ASL detail row (letter only)
     '<div id="asl-detail-row" style="display:none;margin-top:6px;text-align:center;">' +
       '<span id="asl-live-letter" style="font-size:36px;font-weight:700;color:#fff;line-height:1;">—</span>' +
-      '<span id="asl-live-conf" style="font-size:11px;color:#9fe1cb;margin-left:8px;"></span>' +
     '</div>' +
     // ASL controls
     '<div id="asl-controls" style="display:none;gap:6px;margin-top:8px;justify-content:center;">' +
@@ -926,9 +1299,7 @@ async function _aslDetectFrame() {
 
     // Update letter display
     var letterEl = document.getElementById('asl-live-letter');
-    var confEl   = document.getElementById('asl-live-conf');
     if (letterEl) letterEl.textContent = data.hand_detected && data.letter ? data.letter : '—';
-    if (confEl)   confEl.textContent   = data.hand_detected && data.letter ? Math.round(data.confidence * 100) + '%' : '';
 
     // Hold-to-confirm logic
     if (data.hand_detected && data.letter && data.confidence >= confThreshold) {
@@ -1778,6 +2149,10 @@ function _teardownCallMedia() {
   if (el) { el.style.display = 'none'; el.innerHTML = ''; }
 }
 
+window.addEventListener('beforeunload', function() {
+  closeAslTranslation();
+});
+
 // ── LiveKit integration ───────────────────────────────────────
 var _lkRoom = null;
 
@@ -1843,7 +2218,7 @@ async function _lkConnect(lkUrl, token, type) {
       var msg; try { msg = JSON.parse(e.data); } catch (err) { return; }
       if (msg.type === 'new_message') {
         var m = msg.message, convId = msg.conversation_id;
-        if (m.is_self === true || m.is_self === 'true') return; // backend sets is_self per-recipient
+        if (m.sender_name === ME.name) return;
         if (!localMsgs[convId]) localMsgs[convId] = [];
         localMsgs[convId].push(m);
         var conv = allConvs.find(function (c) { return c.id === convId; });
@@ -1869,14 +2244,7 @@ async function _lkConnect(lkUrl, token, type) {
         if (msg.call_id === _outgoingCallId) { _outgoingCallId = null; _dismissCallingOverlay(); showToast('Call declined'); }
         else { showToast('Call declined'); _endActiveCall(); }
       }
-      if (msg.type === 'call.ended') { 
-  showToast('Call ended'); 
-  _endActiveCall(); 
-  if (currentId) { 
-    delete localMsgs[currentId]; 
-    loadMsgs(currentId); 
-  } 
-}
+      if (msg.type === 'call.ended') { showToast('Call ended'); _endActiveCall(); }
       if (msg.type === 'call.accepted') {
         // Caller side: callee accepted — start media
         if (msg.call_id === _outgoingCallId) {

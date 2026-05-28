@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import base64
+import asyncio
 import io
 import json
 import os
@@ -16,18 +17,21 @@ from typing import Optional
 
 import numpy as np
 import joblib
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.security import OAuth2PasswordBearer
 from pydantic import BaseModel
 
 from backend.api.deps import get_current_admin_id
+from backend.services.motiontranslator_manager import motiontranslator_manager
+from backend.services.statictranslator_manager import statictranslator_manager
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 router = APIRouter(tags=["ASL"])
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
-_ARTIFACT_DIR  = Path(os.getenv("AI_ARTIFACT_DIR", "ai/training/ai_transcript/artifacts/gesture"))
-_MEDIAPIPE_DIR = Path(os.getenv("AI_MEDIAPIPE_DIR", "ai/training/ai_transcript/models"))
+_ASLLM_ROOT = Path(os.getenv("ASLLM_ROOT", "ai/models/ASLLM"))
+_ARTIFACT_DIR = Path(os.getenv("AI_ARTIFACT_DIR", str(_ASLLM_ROOT / "artifacts" / "gesture")))
+_MEDIAPIPE_DIR = Path(os.getenv("AI_MEDIAPIPE_DIR", str(_ASLLM_ROOT / "runtime")))
 
 _STATIC_MODEL_PATH  = _ARTIFACT_DIR / "static_model.joblib"
 _STATIC_LABELS_PATH = _ARTIFACT_DIR / "static_labels.json"
@@ -39,6 +43,16 @@ _MEDIAPIPE_URL      = os.getenv(
     "AI_MEDIAPIPE_HAND_MODEL_URL",
     "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",
 )
+
+# Backward-compatible fallback to legacy training path.
+_LEGACY_ARTIFACT_DIR = Path("ai/training/ai_transcript/artifacts/gesture")
+if not _STATIC_MODEL_PATH.exists() and (_LEGACY_ARTIFACT_DIR / "static_model.joblib").exists():
+    _ARTIFACT_DIR = _LEGACY_ARTIFACT_DIR
+    _STATIC_MODEL_PATH = _ARTIFACT_DIR / "static_model.joblib"
+    _STATIC_LABELS_PATH = _ARTIFACT_DIR / "static_labels.json"
+    _MOTION_MODEL_PATH = _ARTIFACT_DIR / "motion_model.pt"
+    _MOTION_LABELS_PATH = _ARTIFACT_DIR / "motion_labels.json"
+    _CALIBRATION_PATH = _ARTIFACT_DIR / "decoder_calibration.json"
 
 # ── Calibration (from decoder_calibration.json) ───────────────────────────────
 def _load_calibration() -> dict:
@@ -94,9 +108,9 @@ def _get_hand_detector():
     options = mp.tasks.vision.HandLandmarkerOptions(
         base_options=mp.tasks.BaseOptions(model_asset_path=str(_MEDIAPIPE_PATH)),
         running_mode=mp.tasks.vision.RunningMode.IMAGE,
-        num_hands=1,
-        min_hand_detection_confidence=0.6,
-        min_tracking_confidence=0.6,
+        num_hands=2,
+        min_hand_detection_confidence=0.35,
+        min_tracking_confidence=0.35,
     )
     _hand_detector = mp.tasks.vision.HandLandmarker.create_from_options(options)
     return _hand_detector
@@ -237,6 +251,8 @@ class ASLDetectResponse(BaseModel):
     current_frame_features: Optional[list[float]] = None  # (147,) for frontend to accumulate
 
 class ASLStatusResponse(BaseModel):
+    engine_name: str
+    models: list[str]
     static_model_loaded: bool
     motion_model_loaded: bool
     mediapipe_loaded: bool
@@ -244,6 +260,16 @@ class ASLStatusResponse(BaseModel):
     motion_labels: list[str]
     static_conf_threshold: float
     motion_conf_threshold: float
+
+class StaticTranslatorControlResponse(BaseModel):
+    running: bool
+    detail: str
+
+class StaticTranslatorStatusResponse(BaseModel):
+    running: bool
+    latest_event: dict
+    event_seq: int = 0
+    last_error: Optional[str] = None
 
 # ── Routes ────────────────────────────────────────────────────────────────────
 @router.get("/status", response_model=ASLStatusResponse)
@@ -253,12 +279,85 @@ def asl_status(token: str = Depends(oauth2_scheme)):
     try: _get_motion_model(); mm = True; ml = _motion_labels
     except: mm = False; ml = []
     return ASLStatusResponse(
+        engine_name="ASLLM",
+        models=["static", "motion"],
         static_model_loaded=sm, motion_model_loaded=mm,
         mediapipe_loaded=_MEDIAPIPE_PATH.exists(),
         static_labels=sl, motion_labels=ml,
         static_conf_threshold=_STATIC_CONF_THRESHOLD,
         motion_conf_threshold=_MOTION_CONF_THRESHOLD,
     )
+
+@router.post("/statictranslator/start", response_model=StaticTranslatorControlResponse)
+def statictranslator_start():
+    r = statictranslator_manager.start()
+    if r.get("started"):
+        return StaticTranslatorControlResponse(running=True, detail="Static translator started.")
+    if r.get("running"):
+        return StaticTranslatorControlResponse(running=True, detail="Static translator already running.")
+    return StaticTranslatorControlResponse(running=False, detail=str(r.get("reason") or "Failed to start static translator."))
+
+
+@router.post("/statictranslator/stop", response_model=StaticTranslatorControlResponse)
+def statictranslator_stop():
+    r = statictranslator_manager.stop()
+    if r.get("stopped"):
+        return StaticTranslatorControlResponse(running=False, detail="Static translator stopping.")
+    return StaticTranslatorControlResponse(running=False, detail="Static translator not running.")
+
+
+@router.post("/motiontranslator/start", response_model=StaticTranslatorControlResponse)
+def motiontranslator_start():
+    # Ensure static translator is not running concurrently.
+    statictranslator_manager.stop()
+    r = motiontranslator_manager.start()
+    if r.get("started"):
+        return StaticTranslatorControlResponse(running=True, detail="Motion translator started.")
+    if r.get("running"):
+        return StaticTranslatorControlResponse(running=True, detail="Motion translator already running.")
+    return StaticTranslatorControlResponse(running=False, detail=str(r.get("reason") or "Failed to start motion translator."))
+
+
+@router.post("/motiontranslator/stop", response_model=StaticTranslatorControlResponse)
+def motiontranslator_stop():
+    r = motiontranslator_manager.stop()
+    if r.get("stopped"):
+        return StaticTranslatorControlResponse(running=False, detail="Motion translator stopping.")
+    return StaticTranslatorControlResponse(running=False, detail="Motion translator not running.")
+
+
+@router.get("/statictranslator/status", response_model=StaticTranslatorStatusResponse)
+def statictranslator_status():
+    s = statictranslator_manager.status()
+    return StaticTranslatorStatusResponse(
+        running=bool(s.get("running")),
+        latest_event=s.get("latest_event") or {"type": "idle"},
+        event_seq=int(s.get("event_seq") or 0),
+        last_error=s.get("last_error"),
+    )
+
+
+@router.websocket("/statictranslator/ws")
+async def statictranslator_ws(websocket: WebSocket):
+    await websocket.accept()
+    last_seq = -1
+    try:
+        while True:
+            data = await asyncio.to_thread(statictranslator_manager.wait_for_event, last_seq, 1.0)
+            seq = int(data.get("event_seq") or 0)
+            if seq == last_seq:
+                continue
+            last_seq = seq
+            await websocket.send_json(
+                {
+                    "running": bool(data.get("running")),
+                    "last_error": data.get("last_error"),
+                    "event": data.get("latest_event") or {"type": "idle"},
+                    "event_seq": seq,
+                }
+            )
+    except WebSocketDisconnect:
+        return
 
 @router.post("/detect", response_model=ASLDetectResponse)
 async def detect_asl(body: ASLDetectRequest, token: str = Depends(oauth2_scheme)):

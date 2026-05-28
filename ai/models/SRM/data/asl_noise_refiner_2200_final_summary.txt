@@ -1,0 +1,60 @@
+Total examples: 2200
+Validation errors: 0
+
+Noise distribution:
+- repeated_char: 770 (35.0%)
+- no_space: 550 (25.0%)
+- missing_letters: 440 (20.0%)
+- mixed_noise: 220 (10.0%)
+- near_clean: 220 (10.0%)
+
+Output counts:
+- I am fine.: 160
+- Hi.: 160
+- How are you?: 150
+- I cannot talk now.: 150
+- Please message me.: 140
+- Please call me.: 140
+- Hi, how are you?: 120
+- I will call later.: 120
+- Help me.: 100
+- I am busy.: 100
+- I need water.: 100
+- I am in class.: 100
+- No.: 90
+- Yes.: 90
+- Thank you.: 90
+- Text me.: 70
+- I am at home.: 70
+- Hello.: 60
+- Hey.: 60
+- Okay.: 50
+- Sorry.: 50
+- Hi, how are you? I am fine.: 5
+- Please message me. I cannot talk now.: 5
+- Please call me. I will call later.: 5
+- I cannot talk now. I am in class.: 5
+- Help me. I need water.: 5
+- Hi. I am fine.: 5
+
+Preview:
+{"input": "nope!", "output": "No."}
+{"input": "plz lp me plss", "output": "Help me."}
+{"input": "immmmmbuuusy", "output": "I am busy."}
+{"input": "hhhhhhhlpppppppp mee", "output": "Help me."}
+{"input": "plsmsgme pls??", "output": "Please message me."}
+{"input": "ineeeedwwwwter", "output": "I need water."}
+{"input": "hi hru.", "output": "Hi, how are you?"}
+{"input": "iiii am fffinnnnnneeee", "output": "I am fine."}
+{"input": "hhhhheeeeeeelpmmmmeeeeeeee!!", "output": "Help me."}
+{"input": "iiiiibuusssssy!!", "output": "I am busy."}
+{"input": "iambuuusy", "output": "I am busy."}
+{"input": "oky", "output": "Okay."}
+{"input": "ttttttxtttttmmmmmmee", "output": "Text me."}
+{"input": "needwatr?", "output": "I need water."}
+{"input": "ho r u", "output": "How are you?"}
+{"input": "hhhhhhhow aree u", "output": "How are you?"}
+{"input": "hhhhihowryooooamfine?", "output": "Hi, how are you? I am fine."}
+{"input": "hii ok?", "output": "Hi."}
+{"input": "ppppllllllllz caaaaalll mmmmmeeeeeeee", "output": "Please call me."}
+{"input": "hiiiiii hhhhhhhruuuuu", "output": "Hi, how are you?"}

@@ -1,0 +1,676 @@
+{
+  "run_dir": "C:/Users/tonmo/.cursor/projects/Sphere-Care-Video-RaATG/ai/training/SCVAM2.1/output/source_2fps",
+  "video": "C:/Users/tonmo/.cursor/projects/Sphere-Care-Video-RaATG/ai/training/SCVAM2.1/source.webm",
+  "weights": "yolov8s.pt",
+  "target_size": 1536,
+  "legacy_target_size": 960,
+  "obj_conf": 0.12,
+  "crop_pad": 0.28,
+  "classes": [
+    "knife",
+    "scissors",
+    "fork",
+    "bottle",
+    "cup",
+    "wine glass",
+    "cell phone",
+    "baseball bat",
+    "umbrella"
+  ],
+  "enhance": true,
+  "only_candidates": true,
+  "silhouette_mode": "hand_only",
+  "silhouette_drop_threshold": 0.55,
+  "retry_low_conf": true,
+  "retry_conf": 0.04,
+  "retry_classes": [
+    "knife",
+    "scissors",
+    "fork"
+  ],
+  "frame_filters": [],
+  "tta": true,
+  "tta_settings": {
+    "variations": [
+      "baseline",
+      "shadow_lift",
+      "contrast_punch",
+      "luma_only",
+      "edge_boost"
+    ],
+    "consensus_iou": 0.5,
+    "min_supporters": 2,
+    "upscale_target": 1536,
+    "upscale_interp": "lanczos",
+    "upscale_denoise": true,
+    "sr_used": false,
+    "sr_weights": null,
+    "save_all_variations": false
+  },
+  "n_pick_rows_emitted": 30,
+  "n_picks_filtered_out": 0,
+  "n_hands_verified": 0,
+  "n_silhouette_drops": 0,
+  "agreement_counts": {
+    "match": 0,
+    "label_changed": 0,
+    "cleared_false_positive": 0,
+    "new_detection": 0,
+    "low_conf_recovered": 0,
+    "consensus": 0,
+    "single_variation_only": 0
+  },
+  "frames": [
+    {
+      "sample_frame": "frame_000001.png",
+      "source_frame_index": 12,
+      "source_ts_sec": 0.404,
+      "hands": [
+        {
+          "side": "Left",
+          "held_verify": {
+            "skipped": true,
+            "reason": "gated_like_2b"
+          }
+        },
+        {
+          "side": "Right",
+          "held_verify": {
+            "skipped": true,
+            "reason": "gated_like_2b"
+          }
+        }
+      ],
+      "held_categories": []
+    },
+    {
+      "sample_frame": "frame_000001.png",
+      "source_frame_index": 11,
+      "source_ts_sec": 0.37,
+      "hands": [
+        {
+          "side": "Left",
+          "held_verify": {
+            "skipped": true,
+            "reason": "gated_like_2b"
+          }
+        },
+        {
+          "side": "Right",
+          "held_verify": {
+            "skipped": true,
+            "reason": "gated_like_2b"
+          }
+        }
+      ],
+      "held_categories": []
+    },
+    {
+      "sample_frame": "frame_000001.png",
+      "source_frame_index": 10,
+      "source_ts_sec": 0.337,
+      "hands": [
+        {
+          "side": "Left",
+          "held_verify": {
+            "skipped": true,
+            "reason": "gated_like_2b"
+          }
+        }
+      ],
+      "held_categories": []
+    },
+    {
+      "sample_frame": "frame_000010.png",
+      "source_frame_index": 146,
+      "source_ts_sec": 4.913,
+      "hands": [
+        {
+          "side": "Left",
+          "held_verify": {
+            "skipped": true,
+            "reason": "gated_like_2b"
+          }
+        },
+        {
+          "side": "Right",
+          "held_verify": {
+            "skipped": true,
+            "reason": "not_a_candidate"
+          }
+        }
+      ],
+      "held_categories": []
+    },
+    {
+      "sample_frame": "frame_000010.png",
+      "source_frame_index": 145,
+      "source_ts_sec": 4.879,
+      "hands": [
+        {
+          "side": "Left",
+          "held_verify": {
+            "skipped": true,
+            "reason": "gated_like_2b"
+          }
+        },
+        {
+          "side": "Right",
+          "held_verify": {
+            "skipped": true,
+            "reason": "not_a_candidate"
+          }
+        }
+      ],
+      "held_categories": []
+    },
+    {
+      "sample_frame": "frame_000010.png",
+      "source_frame_index": 144,
+      "source_ts_sec": 4.846,
+      "hands": [
+        {
+          "side": "Left",
+          "held_verify": {
+            "skipped": true,
+            "reason": "gated_like_2b"
+          }
+        },
+        {
+          "side": "Right",
+          "held_verify": {
+            "skipped": true,
+            "reason": "not_a_candidate"
+          }
+        }
+      ],
+      "held_categories": []
+    },
+    {
+      "sample_frame": "frame_000014.png",
+      "source_frame_index": 201,
+      "source_ts_sec": 6.764,
+      "hands": [
+        {
+          "side": "Left",
+          "held_verify": {
+            "skipped": true,
+            "reason": "gated_like_2b"
+          }
+        },
+        {
+          "side": "Right",
+          "held_verify": {
+            "skipped": true,
+            "reason": "not_a_candidate"
+          }
+        }
+      ],
+      "held_categories": []
+    },
+    {
+      "sample_frame": "frame_000014.png",
+      "source_frame_index": 200,
+      "source_ts_sec": 6.73,
+      "hands": [
+        {
+          "side": "Left",
+          "held_verify": {
+            "skipped": true,
+            "reason": "gated_like_2b"
+          }
+        },
+        {
+          "side": "Right",
+          "held_verify": {
+            "skipped": true,
+            "reason": "not_a_candidate"
+          }
+        }
+      ],
+      "held_categories": []
+    },
+    {
+      "sample_frame": "frame_000014.png",
+      "source_frame_index": 199,
+      "source_ts_sec": 6.697,
+      "hands": [
+        {
+          "side": "Left",
+          "held_verify": {
+            "skipped": true,
+            "reason": "gated_like_2b"
+          }
+        },
+        {
+          "side": "Right",
+          "held_verify": {
+            "skipped": true,
+            "reason": "not_a_candidate"
+          }
+        }
+      ],
+      "held_categories": []
+    },
+    {
+      "sample_frame": "frame_000016.png",
+      "source_frame_index": 235,
+      "source_ts_sec": 7.908,
+      "hands": [
+        {
+          "side": "Left",
+          "held_verify": {
+            "skipped": true,
+            "reason": "gated_like_2b"
+          }
+        },
+        {
+          "side": "Right",
+          "held_verify": {
+            "skipped": true,
+            "reason": "not_a_candidate"
+          }
+        }
+      ],
+      "held_categories": []
+    },
+    {
+      "sample_frame": "frame_000016.png",
+      "source_frame_index": 234,
+      "source_ts_sec": 7.874,
+      "hands": [
+        {
+          "side": "Left",
+          "held_verify": {
+            "skipped": true,
+            "reason": "gated_like_2b"
+          }
+        },
+        {
+          "side": "Right",
+          "held_verify": {
+            "skipped": true,
+            "reason": "not_a_candidate"
+          }
+        }
+      ],
+      "held_categories": []
+    },
+    {
+      "sample_frame": "frame_000016.png",
+      "source_frame_index": 230,
+      "source_ts_sec": 7.74,
+      "hands": [
+        {
+          "side": "Left",
+          "held_verify": {
+            "skipped": true,
+            "reason": "gated_like_2b"
+          }
+        },
+        {
+          "side": "Right",
+          "held_verify": {
+            "skipped": true,
+            "reason": "not_a_candidate"
+          }
+        }
+      ],
+      "held_categories": []
+    },
+    {
+      "sample_frame": "frame_000018.png",
+      "source_frame_index": 257,
+      "source_ts_sec": 8.648,
+      "hands": [
+        {
+          "side": "Left",
+          "held_verify": {
+            "skipped": true,
+            "reason": "gated_like_2b"
+          }
+        },
+        {
+          "side": "Right",
+          "held_verify": {
+            "skipped": true,
+            "reason": "gated_like_2b"
+          }
+        }
+      ],
+      "held_categories": []
+    },
+    {
+      "sample_frame": "frame_000018.png",
+      "source_frame_index": 258,
+      "source_ts_sec": 8.682,
+      "hands": [
+        {
+          "side": "Left",
+          "held_verify": {
+            "skipped": true,
+            "reason": "gated_like_2b"
+          }
+        },
+        {
+          "side": "Right",
+          "held_verify": {
+            "skipped": true,
+            "reason": "gated_like_2b"
+          }
+        }
+      ],
+      "held_categories": []
+    },
+    {
+      "sample_frame": "frame_000018.png",
+      "source_frame_index": 253,
+      "source_ts_sec": 8.514,
+      "hands": [
+        {
+          "side": "Left",
+          "held_verify": {
+            "skipped": true,
+            "reason": "gated_like_2b"
+          }
+        },
+        {
+          "side": "Right",
+          "held_verify": {
+            "skipped": true,
+            "reason": "gated_like_2b"
+          }
+        }
+      ],
+      "held_categories": []
+    },
+    {
+      "sample_frame": "frame_000019.png",
+      "source_frame_index": 269,
+      "source_ts_sec": 9.052,
+      "hands": [
+        {
+          "side": "Left",
+          "held_verify": {
+            "skipped": true,
+            "reason": "gated_like_2b"
+          }
+        },
+        {
+          "side": "Right",
+          "held_verify": {
+            "skipped": true,
+            "reason": "not_a_candidate"
+          }
+        }
+      ],
+      "held_categories": []
+    },
+    {
+      "sample_frame": "frame_000019.png",
+      "source_frame_index": 274,
+      "source_ts_sec": 9.22,
+      "hands": [
+        {
+          "side": "Left",
+          "held_verify": {
+            "skipped": true,
+            "reason": "gated_like_2b"
+          }
+        },
+        {
+          "side": "Right",
+          "held_verify": {
+            "skipped": true,
+            "reason": "not_a_candidate"
+          }
+        }
+      ],
+      "held_categories": []
+    },
+    {
+      "sample_frame": "frame_000019.png",
+      "source_frame_index": 256,
+      "source_ts_sec": 8.615,
+      "hands": [
+        {
+          "side": "Left",
+          "held_verify": {
+            "skipped": true,
+            "reason": "gated_like_2b"
+          }
+        },
+        {
+          "side": "Right",
+          "held_verify": {
+            "skipped": true,
+            "reason": "gated_like_2b"
+          }
+        }
+      ],
+      "held_categories": []
+    },
+    {
+      "sample_frame": "frame_000020.png",
+      "source_frame_index": 276,
+      "source_ts_sec": 9.288,
+      "hands": [
+        {
+          "side": "Left",
+          "held_verify": {
+            "skipped": true,
+            "reason": "not_a_candidate"
+          }
+        },
+        {
+          "side": "Right",
+          "held_verify": {
+            "skipped": true,
+            "reason": "not_a_candidate"
+          }
+        }
+      ],
+      "held_categories": []
+    },
+    {
+      "sample_frame": "frame_000020.png",
+      "source_frame_index": 273,
+      "source_ts_sec": 9.187,
+      "hands": [
+        {
+          "side": "Left",
+          "held_verify": {
+            "skipped": true,
+            "reason": "gated_like_2b"
+          }
+        },
+        {
+          "side": "Right",
+          "held_verify": {
+            "skipped": true,
+            "reason": "not_a_candidate"
+          }
+        }
+      ],
+      "held_categories": []
+    },
+    {
+      "sample_frame": "frame_000020.png",
+      "source_frame_index": 275,
+      "source_ts_sec": 9.254,
+      "hands": [
+        {
+          "side": "Left",
+          "held_verify": {
+            "skipped": true,
+            "reason": "not_a_candidate"
+          }
+        },
+        {
+          "side": "Right",
+          "held_verify": {
+            "skipped": true,
+            "reason": "not_a_candidate"
+          }
+        }
+      ],
+      "held_categories": []
+    },
+    {
+      "sample_frame": "frame_000021.png",
+      "source_frame_index": 293,
+      "source_ts_sec": 9.86,
+      "hands": [
+        {
+          "side": "Left",
+          "held_verify": {
+            "skipped": true,
+            "reason": "not_a_candidate"
+          }
+        },
+        {
+          "side": "Right",
+          "held_verify": {
+            "skipped": true,
+            "reason": "not_a_candidate"
+          }
+        }
+      ],
+      "held_categories": []
+    },
+    {
+      "sample_frame": "frame_000021.png",
+      "source_frame_index": 294,
+      "source_ts_sec": 9.893,
+      "hands": [
+        {
+          "side": "Left",
+          "held_verify": {
+            "skipped": true,
+            "reason": "not_a_candidate"
+          }
+        },
+        {
+          "side": "Right",
+          "held_verify": {
+            "skipped": true,
+            "reason": "not_a_candidate"
+          }
+        }
+      ],
+      "held_categories": []
+    },
+    {
+      "sample_frame": "frame_000021.png",
+      "source_frame_index": 292,
+      "source_ts_sec": 9.826,
+      "hands": [
+        {
+          "side": "Left",
+          "held_verify": {
+            "skipped": true,
+            "reason": "gated_like_2b"
+          }
+        },
+        {
+          "side": "Right",
+          "held_verify": {
+            "skipped": true,
+            "reason": "not_a_candidate"
+          }
+        }
+      ],
+      "held_categories": []
+    },
+    {
+      "sample_frame": "frame_000022.png",
+      "source_frame_index": 319,
+      "source_ts_sec": 10.735,
+      "hands": [
+        {
+          "side": "Left",
+          "held_verify": {
+            "skipped": true,
+            "reason": "gated_like_2b"
+          }
+        }
+      ],
+      "held_categories": []
+    },
+    {
+      "sample_frame": "frame_000022.png",
+      "source_frame_index": 320,
+      "source_ts_sec": 10.768,
+      "hands": [
+        {
+          "side": "Left",
+          "held_verify": {
+            "skipped": true,
+            "reason": "gated_like_2b"
+          }
+        }
+      ],
+      "held_categories": []
+    },
+    {
+      "sample_frame": "frame_000022.png",
+      "source_frame_index": 318,
+      "source_ts_sec": 10.701,
+      "hands": [
+        {
+          "side": "Left",
+          "held_verify": {
+            "skipped": true,
+            "reason": "gated_like_2b"
+          }
+        }
+      ],
+      "held_categories": []
+    },
+    {
+      "sample_frame": "frame_000027.png",
+      "source_frame_index": 387,
+      "source_ts_sec": 13.023,
+      "hands": [
+        {
+          "side": "Left",
+          "held_verify": {
+            "skipped": true,
+            "reason": "gated_like_2b"
+          }
+        }
+      ],
+      "held_categories": []
+    },
+    {
+      "sample_frame": "frame_000027.png",
+      "source_frame_index": 388,
+      "source_ts_sec": 13.057,
+      "hands": [
+        {
+          "side": "Left",
+          "held_verify": {
+            "skipped": true,
+            "reason": "gated_like_2b"
+          }
+        }
+      ],
+      "held_categories": []
+    },
+    {
+      "sample_frame": "frame_000027.png",
+      "source_frame_index": 389,
+      "source_ts_sec": 13.09,
+      "hands": [
+        {
+          "side": "Left",
+          "held_verify": {
+            "skipped": true,
+            "reason": "gated_like_2b"
+          }
+        }
+      ],
+      "held_categories": []
+    }
+  ]
+}

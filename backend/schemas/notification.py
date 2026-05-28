@@ -19,7 +19,6 @@ class NotificationResponse(BaseModel):
     title: str
     body: str
     is_priority: bool
-    is_read: bool = False
     related_entity_type: Optional[str] = None
     related_entity_id: Optional[int] = None
     created_at: datetime

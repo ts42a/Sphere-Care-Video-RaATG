@@ -1,0 +1,2675 @@
+{
+  "run_dir": "C:/Users/tonmo/.cursor/projects/Sphere-Care-Video-RaATG/ai/training/SCVAM2.1/output/source_2fps",
+  "video": "C:/Users/tonmo/.cursor/projects/Sphere-Care-Video-RaATG/ai/training/SCVAM2.1/source.webm",
+  "src_fps": 29.716792979656958,
+  "window_sec": 0.4,
+  "picks_per_sample": 3,
+  "person_pad": 0.25,
+  "person_conf": 0.2,
+  "kp_conf": 0.2,
+  "enhance_mode": "auto",
+  "enhance_gamma": 0.6,
+  "dark_threshold": 70.0,
+  "forearm_forward_ratio": 0.35,
+  "forearm_crop_ratio": 1.2,
+  "min_pose_crop_px": 80,
+  "forward_bias": 0.7,
+  "pose_synth_size": 70,
+  "static_clusters_excluded": [],
+  "person_samples": 10,
+  "frames_emitted": 30,
+  "frames": [
+    {
+      "sample_frame": "frame_000001.png",
+      "sample_ts_sec": 0.0,
+      "source_frame_index": 12,
+      "source_ts_sec": 0.404,
+      "sharpness": 81.0,
+      "enhance_input": false,
+      "enhance_gamma": null,
+      "person_bbox": [
+        202.7,
+        212.8,
+        519.4,
+        479.5
+      ],
+      "crop_bbox": [
+        123.52499999999999,
+        146.125,
+        598.5749999999999,
+        479.0
+      ],
+      "pose_used": true,
+      "pose_fallback_used": true,
+      "hands_found": 2,
+      "hands": [
+        {
+          "side": "Left",
+          "synthetic": true,
+          "bbox": [
+            447,
+            387,
+            558,
+            480
+          ],
+          "wrist": [
+            492.3384704589844,
+            457.6034851074219
+          ],
+          "elbow": [
+            489.631103515625,
+            461.6709289550781
+          ],
+          "anchor": [
+            502.5,
+            433.5
+          ],
+          "kp_conf": 0.4932,
+          "elbow_conf": 0.4788,
+          "object_in_hand": null,
+          "category": null,
+          "objects": [],
+          "landmarks": [],
+          "skip_reason": "frame_edge",
+          "held_verify": {
+            "skipped": true,
+            "reason": "gated_like_2b"
+          }
+        },
+        {
+          "side": "Right",
+          "synthetic": true,
+          "bbox": [
+            209,
+            394,
+            349,
+            480
+          ],
+          "wrist": [
+            279.22874450683594,
+            464.37664794921875
+          ],
+          "elbow": null,
+          "anchor": [
+            279.22874450683594,
+            464.37664794921875
+          ],
+          "kp_conf": 0.2386,
+          "elbow_conf": 0.0,
+          "object_in_hand": null,
+          "category": null,
+          "objects": [],
+          "landmarks": [],
+          "skip_reason": "frame_edge",
+          "held_verify": {
+            "skipped": true,
+            "reason": "gated_like_2b"
+          }
+        }
+      ],
+      "held_objects_full_frame": [],
+      "held_objects_from_person_zoom": [],
+      "held_objects_from_hand_zoom": [],
+      "held_categories": [],
+      "output": "frame_000001_pick1_src000012.png"
+    },
+    {
+      "sample_frame": "frame_000001.png",
+      "sample_ts_sec": 0.0,
+      "source_frame_index": 11,
+      "source_ts_sec": 0.37,
+      "sharpness": 80.8,
+      "enhance_input": false,
+      "enhance_gamma": null,
+      "person_bbox": [
+        202.7,
+        212.8,
+        519.4,
+        479.5
+      ],
+      "crop_bbox": [
+        123.52499999999999,
+        146.125,
+        598.5749999999999,
+        479.0
+      ],
+      "pose_used": true,
+      "pose_fallback_used": true,
+      "hands_found": 2,
+      "hands": [
+        {
+          "side": "Left",
+          "synthetic": true,
+          "bbox": [
+            462,
+            423,
+            574,
+            480
+          ],
+          "wrist": [
+            500.42352294921875,
+            465.5196228027344
+          ],
+          "elbow": [
+            486.99517822265625,
+            455.30633544921875
+          ],
+          "anchor": [
+            518.0,
+            451.5
+          ],
+          "kp_conf": 0.4958,
+          "elbow_conf": 0.517,
+          "object_in_hand": null,
+          "category": null,
+          "objects": [],
+          "landmarks": [],
+          "skip_reason": "frame_edge",
+          "held_verify": {
+            "skipped": true,
+            "reason": "gated_like_2b"
+          }
+        },
+        {
+          "side": "Right",
+          "synthetic": true,
+          "bbox": [
+            226,
+            404,
+            366,
+            480
+          ],
+          "wrist": [
+            296.43443298339844,
+            474.05291748046875
+          ],
+          "elbow": null,
+          "anchor": [
+            296.43443298339844,
+            474.05291748046875
+          ],
+          "kp_conf": 0.2191,
+          "elbow_conf": 0.0,
+          "object_in_hand": null,
+          "category": null,
+          "objects": [],
+          "landmarks": [],
+          "skip_reason": "frame_edge",
+          "held_verify": {
+            "skipped": true,
+            "reason": "gated_like_2b"
+          }
+        }
+      ],
+      "held_objects_full_frame": [],
+      "held_objects_from_person_zoom": [],
+      "held_objects_from_hand_zoom": [],
+      "held_categories": [],
+      "output": "frame_000001_pick2_src000011.png"
+    },
+    {
+      "sample_frame": "frame_000001.png",
+      "sample_ts_sec": 0.0,
+      "source_frame_index": 10,
+      "source_ts_sec": 0.337,
+      "sharpness": 80.3,
+      "enhance_input": false,
+      "enhance_gamma": null,
+      "person_bbox": [
+        202.7,
+        212.8,
+        519.4,
+        479.5
+      ],
+      "crop_bbox": [
+        123.52499999999999,
+        146.125,
+        598.5749999999999,
+        479.0
+      ],
+      "pose_used": true,
+      "pose_fallback_used": true,
+      "hands_found": 1,
+      "hands": [
+        {
+          "side": "Left",
+          "synthetic": true,
+          "bbox": [
+            467,
+            419,
+            570,
+            480
+          ],
+          "wrist": [
+            499.157470703125,
+            463.0429382324219
+          ],
+          "elbow": [
+            487.09588623046875,
+            458.3842468261719
+          ],
+          "anchor": [
+            518.5,
+            449.5
+          ],
+          "kp_conf": 0.4495,
+          "elbow_conf": 0.4664,
+          "object_in_hand": null,
+          "category": null,
+          "objects": [],
+          "landmarks": [],
+          "skip_reason": "frame_edge",
+          "held_verify": {
+            "skipped": true,
+            "reason": "gated_like_2b"
+          }
+        }
+      ],
+      "held_objects_full_frame": [],
+      "held_objects_from_person_zoom": [],
+      "held_objects_from_hand_zoom": [],
+      "held_categories": [],
+      "output": "frame_000001_pick3_src000010.png"
+    },
+    {
+      "sample_frame": "frame_000010.png",
+      "sample_ts_sec": 4.506,
+      "source_frame_index": 146,
+      "source_ts_sec": 4.913,
+      "sharpness": 90.9,
+      "enhance_input": false,
+      "enhance_gamma": null,
+      "person_bbox": [
+        11.2,
+        181.2,
+        603.1,
+        479.4
+      ],
+      "crop_bbox": [
+        0.0,
+        106.64999999999999,
+        639.0,
+        479.0
+      ],
+      "pose_used": true,
+      "pose_fallback_used": true,
+      "hands_found": 2,
+      "hands": [
+        {
+          "side": "Left",
+          "synthetic": true,
+          "bbox": [
+            485,
+            426,
+            598,
+            480
+          ],
+          "wrist": [
+            527.119384765625,
+            467.41864013671875
+          ],
+          "elbow": [
+            517.6234741210938,
+            457.4764709472656
+          ],
+          "anchor": [
+            541.5,
+            453.0
+          ],
+          "kp_conf": 0.7078,
+          "elbow_conf": 0.5435,
+          "object_in_hand": null,
+          "category": null,
+          "objects": [],
+          "landmarks": [],
+          "skip_reason": "frame_edge",
+          "held_verify": {
+            "skipped": true,
+            "reason": "gated_like_2b"
+          }
+        },
+        {
+          "side": "Right",
+          "synthetic": true,
+          "bbox": [
+            198,
+            124,
+            461,
+            387
+          ],
+          "wrist": [
+            277.13165283203125,
+            333.0704650878906
+          ],
+          "elbow": [
+            188.61251831054688,
+            464.2290954589844
+          ],
+          "anchor": [
+            329.5,
+            255.5
+          ],
+          "kp_conf": 0.8803,
+          "elbow_conf": 0.6438,
+          "object_in_hand": null,
+          "category": null,
+          "objects": [],
+          "landmarks": [],
+          "held_verify": {
+            "skipped": true,
+            "reason": "not_a_candidate"
+          }
+        }
+      ],
+      "held_objects_full_frame": [],
+      "held_objects_from_person_zoom": [],
+      "held_objects_from_hand_zoom": [],
+      "held_categories": [],
+      "output": "frame_000010_pick1_src000146.png"
+    },
+    {
+      "sample_frame": "frame_000010.png",
+      "sample_ts_sec": 4.506,
+      "source_frame_index": 145,
+      "source_ts_sec": 4.879,
+      "sharpness": 90.7,
+      "enhance_input": false,
+      "enhance_gamma": null,
+      "person_bbox": [
+        11.2,
+        181.2,
+        603.1,
+        479.4
+      ],
+      "crop_bbox": [
+        0.0,
+        106.64999999999999,
+        639.0,
+        479.0
+      ],
+      "pose_used": true,
+      "pose_fallback_used": true,
+      "hands_found": 2,
+      "hands": [
+        {
+          "side": "Left",
+          "synthetic": true,
+          "bbox": [
+            469,
+            417,
+            581,
+            480
+          ],
+          "wrist": [
+            511.07733154296875,
+            461.58795166015625
+          ],
+          "elbow": [
+            506.6650390625,
+            457.9484558105469
+          ],
+          "anchor": [
+            525.0,
+            448.5
+          ],
+          "kp_conf": 0.6326,
+          "elbow_conf": 0.4748,
+          "object_in_hand": null,
+          "category": null,
+          "objects": [],
+          "landmarks": [],
+          "skip_reason": "frame_edge",
+          "held_verify": {
+            "skipped": true,
+            "reason": "gated_like_2b"
+          }
+        },
+        {
+          "side": "Right",
+          "synthetic": true,
+          "bbox": [
+            196,
+            116,
+            469,
+            389
+          ],
+          "wrist": [
+            277.70440673828125,
+            332.0475311279297
+          ],
+          "elbow": [
+            184.97158813476562,
+            467.1211242675781
+          ],
+          "anchor": [
+            332.5,
+            252.5
+          ],
+          "kp_conf": 0.8607,
+          "elbow_conf": 0.6228,
+          "object_in_hand": null,
+          "category": null,
+          "objects": [],
+          "landmarks": [],
+          "held_verify": {
+            "skipped": true,
+            "reason": "not_a_candidate"
+          }
+        }
+      ],
+      "held_objects_full_frame": [],
+      "held_objects_from_person_zoom": [],
+      "held_objects_from_hand_zoom": [],
+      "held_categories": [],
+      "output": "frame_000010_pick2_src000145.png"
+    },
+    {
+      "sample_frame": "frame_000010.png",
+      "sample_ts_sec": 4.506,
+      "source_frame_index": 144,
+      "source_ts_sec": 4.846,
+      "sharpness": 90.3,
+      "enhance_input": false,
+      "enhance_gamma": null,
+      "person_bbox": [
+        11.2,
+        181.2,
+        603.1,
+        479.4
+      ],
+      "crop_bbox": [
+        0.0,
+        106.64999999999999,
+        639.0,
+        479.0
+      ],
+      "pose_used": true,
+      "pose_fallback_used": true,
+      "hands_found": 2,
+      "hands": [
+        {
+          "side": "Left",
+          "synthetic": true,
+          "bbox": [
+            485,
+            416,
+            576,
+            480
+          ],
+          "wrist": [
+            512.3678588867188,
+            458.1494140625
+          ],
+          "elbow": [
+            505.7877197265625,
+            457.24212646484375
+          ],
+          "anchor": [
+            530.5,
+            448.0
+          ],
+          "kp_conf": 0.6147,
+          "elbow_conf": 0.4641,
+          "object_in_hand": null,
+          "category": null,
+          "objects": [],
+          "landmarks": [],
+          "skip_reason": "frame_edge",
+          "held_verify": {
+            "skipped": true,
+            "reason": "gated_like_2b"
+          }
+        },
+        {
+          "side": "Right",
+          "synthetic": true,
+          "bbox": [
+            197,
+            121,
+            463,
+            387
+          ],
+          "wrist": [
+            278.1673583984375,
+            332.91448974609375
+          ],
+          "elbow": [
+            190.0771942138672,
+            466.70880126953125
+          ],
+          "anchor": [
+            330.0,
+            254.0
+          ],
+          "kp_conf": 0.8563,
+          "elbow_conf": 0.638,
+          "object_in_hand": null,
+          "category": null,
+          "objects": [],
+          "landmarks": [],
+          "held_verify": {
+            "skipped": true,
+            "reason": "not_a_candidate"
+          }
+        }
+      ],
+      "held_objects_full_frame": [],
+      "held_objects_from_person_zoom": [],
+      "held_objects_from_hand_zoom": [],
+      "held_categories": [],
+      "output": "frame_000010_pick3_src000144.png"
+    },
+    {
+      "sample_frame": "frame_000014.png",
+      "sample_ts_sec": 6.524,
+      "source_frame_index": 201,
+      "source_ts_sec": 6.764,
+      "sharpness": 97.1,
+      "enhance_input": false,
+      "enhance_gamma": null,
+      "person_bbox": [
+        71.7,
+        188.9,
+        564.4,
+        479.8
+      ],
+      "crop_bbox": [
+        0.0,
+        116.17500000000001,
+        639.0,
+        479.0
+      ],
+      "pose_used": true,
+      "pose_fallback_used": true,
+      "hands_found": 2,
+      "hands": [
+        {
+          "side": "Left",
+          "synthetic": true,
+          "bbox": [
+            502,
+            424,
+            597,
+            480
+          ],
+          "wrist": [
+            528.5399780273438,
+            467.48065185546875
+          ],
+          "elbow": [
+            514.6093139648438,
+            464.5218200683594
+          ],
+          "anchor": [
+            549.5,
+            452.0
+          ],
+          "kp_conf": 0.6796,
+          "elbow_conf": 0.6044,
+          "object_in_hand": null,
+          "category": null,
+          "objects": [],
+          "landmarks": [],
+          "skip_reason": "frame_edge",
+          "held_verify": {
+            "skipped": true,
+            "reason": "gated_like_2b"
+          }
+        },
+        {
+          "side": "Right",
+          "synthetic": true,
+          "bbox": [
+            211,
+            348,
+            324,
+            461
+          ],
+          "wrist": [
+            240.09779357910156,
+            431.974853515625
+          ],
+          "elbow": [
+            193.55722045898438,
+            479.0
+          ],
+          "anchor": [
+            267.5,
+            404.5
+          ],
+          "kp_conf": 0.7803,
+          "elbow_conf": 0.5846,
+          "object_in_hand": null,
+          "category": null,
+          "objects": [],
+          "landmarks": [],
+          "held_verify": {
+            "skipped": true,
+            "reason": "not_a_candidate"
+          }
+        }
+      ],
+      "held_objects_full_frame": [],
+      "held_objects_from_person_zoom": [],
+      "held_objects_from_hand_zoom": [],
+      "held_categories": [],
+      "output": "frame_000014_pick1_src000201.png"
+    },
+    {
+      "sample_frame": "frame_000014.png",
+      "sample_ts_sec": 6.524,
+      "source_frame_index": 200,
+      "source_ts_sec": 6.73,
+      "sharpness": 96.7,
+      "enhance_input": false,
+      "enhance_gamma": null,
+      "person_bbox": [
+        71.7,
+        188.9,
+        564.4,
+        479.8
+      ],
+      "crop_bbox": [
+        0.0,
+        116.17500000000001,
+        639.0,
+        479.0
+      ],
+      "pose_used": true,
+      "pose_fallback_used": true,
+      "hands_found": 2,
+      "hands": [
+        {
+          "side": "Left",
+          "synthetic": true,
+          "bbox": [
+            507,
+            425,
+            602,
+            480
+          ],
+          "wrist": [
+            531.8297119140625,
+            467.80450439453125
+          ],
+          "elbow": [
+            512.0215454101562,
+            463.32281494140625
+          ],
+          "anchor": [
+            554.5,
+            452.5
+          ],
+          "kp_conf": 0.6504,
+          "elbow_conf": 0.5832,
+          "object_in_hand": null,
+          "category": null,
+          "objects": [],
+          "landmarks": [],
+          "skip_reason": "frame_edge",
+          "held_verify": {
+            "skipped": true,
+            "reason": "gated_like_2b"
+          }
+        },
+        {
+          "side": "Right",
+          "synthetic": true,
+          "bbox": [
+            207,
+            347,
+            321,
+            461
+          ],
+          "wrist": [
+            235.78111267089844,
+            432.06097412109375
+          ],
+          "elbow": [
+            187.64031982421875,
+            479.0
+          ],
+          "anchor": [
+            264.0,
+            404.0
+          ],
+          "kp_conf": 0.7738,
+          "elbow_conf": 0.5807,
+          "object_in_hand": null,
+          "category": null,
+          "objects": [],
+          "landmarks": [],
+          "held_verify": {
+            "skipped": true,
+            "reason": "not_a_candidate"
+          }
+        }
+      ],
+      "held_objects_full_frame": [],
+      "held_objects_from_person_zoom": [],
+      "held_objects_from_hand_zoom": [],
+      "held_categories": [],
+      "output": "frame_000014_pick2_src000200.png"
+    },
+    {
+      "sample_frame": "frame_000014.png",
+      "sample_ts_sec": 6.524,
+      "source_frame_index": 199,
+      "source_ts_sec": 6.697,
+      "sharpness": 95.9,
+      "enhance_input": false,
+      "enhance_gamma": null,
+      "person_bbox": [
+        71.7,
+        188.9,
+        564.4,
+        479.8
+      ],
+      "crop_bbox": [
+        0.0,
+        116.17500000000001,
+        639.0,
+        479.0
+      ],
+      "pose_used": true,
+      "pose_fallback_used": true,
+      "hands_found": 2,
+      "hands": [
+        {
+          "side": "Left",
+          "synthetic": true,
+          "bbox": [
+            505,
+            425,
+            602,
+            480
+          ],
+          "wrist": [
+            532.0208129882812,
+            468.59771728515625
+          ],
+          "elbow": [
+            515.0722045898438,
+            464.17767333984375
+          ],
+          "anchor": [
+            553.5,
+            452.5
+          ],
+          "kp_conf": 0.6436,
+          "elbow_conf": 0.5703,
+          "object_in_hand": null,
+          "category": null,
+          "objects": [],
+          "landmarks": [],
+          "skip_reason": "frame_edge",
+          "held_verify": {
+            "skipped": true,
+            "reason": "gated_like_2b"
+          }
+        },
+        {
+          "side": "Right",
+          "synthetic": true,
+          "bbox": [
+            196,
+            345,
+            307,
+            456
+          ],
+          "wrist": [
+            229.78794860839844,
+            430.5035095214844
+          ],
+          "elbow": [
+            194.7603759765625,
+            479.0
+          ],
+          "anchor": [
+            251.5,
+            400.5
+          ],
+          "kp_conf": 0.7644,
+          "elbow_conf": 0.5681,
+          "object_in_hand": null,
+          "category": null,
+          "objects": [],
+          "landmarks": [],
+          "held_verify": {
+            "skipped": true,
+            "reason": "not_a_candidate"
+          }
+        }
+      ],
+      "held_objects_full_frame": [],
+      "held_objects_from_person_zoom": [],
+      "held_objects_from_hand_zoom": [],
+      "held_categories": [],
+      "output": "frame_000014_pick3_src000199.png"
+    },
+    {
+      "sample_frame": "frame_000016.png",
+      "sample_ts_sec": 7.509,
+      "source_frame_index": 235,
+      "source_ts_sec": 7.908,
+      "sharpness": 105.7,
+      "enhance_input": false,
+      "enhance_gamma": null,
+      "person_bbox": [
+        168.5,
+        215.4,
+        550.5,
+        479.6
+      ],
+      "crop_bbox": [
+        73.0,
+        149.35,
+        639.0,
+        479.0
+      ],
+      "pose_used": true,
+      "pose_fallback_used": true,
+      "hands_found": 2,
+      "hands": [
+        {
+          "side": "Left",
+          "synthetic": true,
+          "bbox": [
+            440,
+            415,
+            542,
+            480
+          ],
+          "wrist": [
+            509.0570983886719,
+            460.0455017089844
+          ],
+          "elbow": [
+            517.6405334472656,
+            457.15185546875
+          ],
+          "anchor": [
+            491.0,
+            447.5
+          ],
+          "kp_conf": 0.5874,
+          "elbow_conf": 0.3517,
+          "object_in_hand": null,
+          "category": null,
+          "objects": [],
+          "landmarks": [],
+          "skip_reason": "frame_edge",
+          "held_verify": {
+            "skipped": true,
+            "reason": "gated_like_2b"
+          }
+        },
+        {
+          "side": "Right",
+          "synthetic": true,
+          "bbox": [
+            248,
+            229,
+            458,
+            439
+          ],
+          "wrist": [
+            300.8673858642578,
+            385.1160583496094
+          ],
+          "elbow": [
+            212.1067657470703,
+            471.45263671875
+          ],
+          "anchor": [
+            353.0,
+            334.0
+          ],
+          "kp_conf": 0.8311,
+          "elbow_conf": 0.5303,
+          "object_in_hand": null,
+          "category": null,
+          "objects": [],
+          "landmarks": [],
+          "held_verify": {
+            "skipped": true,
+            "reason": "not_a_candidate"
+          }
+        }
+      ],
+      "held_objects_full_frame": [],
+      "held_objects_from_person_zoom": [],
+      "held_objects_from_hand_zoom": [],
+      "held_categories": [],
+      "output": "frame_000016_pick1_src000235.png"
+    },
+    {
+      "sample_frame": "frame_000016.png",
+      "sample_ts_sec": 7.509,
+      "source_frame_index": 234,
+      "source_ts_sec": 7.874,
+      "sharpness": 101.1,
+      "enhance_input": false,
+      "enhance_gamma": null,
+      "person_bbox": [
+        168.5,
+        215.4,
+        550.5,
+        479.6
+      ],
+      "crop_bbox": [
+        73.0,
+        149.35,
+        639.0,
+        479.0
+      ],
+      "pose_used": true,
+      "pose_fallback_used": true,
+      "hands_found": 2,
+      "hands": [
+        {
+          "side": "Left",
+          "synthetic": true,
+          "bbox": [
+            450,
+            427,
+            556,
+            480
+          ],
+          "wrist": [
+            510.75653076171875,
+            462.8923034667969
+          ],
+          "elbow": [
+            513.894775390625,
+            456.21160888671875
+          ],
+          "anchor": [
+            503.0,
+            453.5
+          ],
+          "kp_conf": 0.5839,
+          "elbow_conf": 0.3654,
+          "object_in_hand": null,
+          "category": null,
+          "objects": [],
+          "landmarks": [],
+          "skip_reason": "frame_edge",
+          "held_verify": {
+            "skipped": true,
+            "reason": "gated_like_2b"
+          }
+        },
+        {
+          "side": "Right",
+          "synthetic": true,
+          "bbox": [
+            249,
+            233,
+            454,
+            439
+          ],
+          "wrist": [
+            300.40196228027344,
+            385.92767333984375
+          ],
+          "elbow": [
+            214.09091186523438,
+            470.7152404785156
+          ],
+          "anchor": [
+            351.5,
+            336.0
+          ],
+          "kp_conf": 0.832,
+          "elbow_conf": 0.5514,
+          "object_in_hand": null,
+          "category": null,
+          "objects": [],
+          "landmarks": [],
+          "held_verify": {
+            "skipped": true,
+            "reason": "not_a_candidate"
+          }
+        }
+      ],
+      "held_objects_full_frame": [],
+      "held_objects_from_person_zoom": [],
+      "held_objects_from_hand_zoom": [],
+      "held_categories": [],
+      "output": "frame_000016_pick2_src000234.png"
+    },
+    {
+      "sample_frame": "frame_000016.png",
+      "sample_ts_sec": 7.509,
+      "source_frame_index": 230,
+      "source_ts_sec": 7.74,
+      "sharpness": 101.0,
+      "enhance_input": false,
+      "enhance_gamma": null,
+      "person_bbox": [
+        168.5,
+        215.4,
+        550.5,
+        479.6
+      ],
+      "crop_bbox": [
+        73.0,
+        149.35,
+        639.0,
+        479.0
+      ],
+      "pose_used": true,
+      "pose_fallback_used": true,
+      "hands_found": 2,
+      "hands": [
+        {
+          "side": "Left",
+          "synthetic": true,
+          "bbox": [
+            467,
+            440,
+            555,
+            480
+          ],
+          "wrist": [
+            509.1139221191406,
+            463.180419921875
+          ],
+          "elbow": [
+            507.6061096191406,
+            449.1978759765625
+          ],
+          "anchor": [
+            511.0,
+            460.0
+          ],
+          "kp_conf": 0.6112,
+          "elbow_conf": 0.4403,
+          "object_in_hand": null,
+          "category": null,
+          "objects": [],
+          "landmarks": [],
+          "skip_reason": "frame_edge",
+          "held_verify": {
+            "skipped": true,
+            "reason": "gated_like_2b"
+          }
+        },
+        {
+          "side": "Right",
+          "synthetic": true,
+          "bbox": [
+            248,
+            237,
+            451,
+            440
+          ],
+          "wrist": [
+            300.1449737548828,
+            388.46961975097656
+          ],
+          "elbow": [
+            216.06646728515625,
+            473.7137145996094
+          ],
+          "anchor": [
+            349.5,
+            338.5
+          ],
+          "kp_conf": 0.8366,
+          "elbow_conf": 0.5852,
+          "object_in_hand": null,
+          "category": null,
+          "objects": [],
+          "landmarks": [],
+          "held_verify": {
+            "skipped": true,
+            "reason": "not_a_candidate"
+          }
+        }
+      ],
+      "held_objects_full_frame": [],
+      "held_objects_from_person_zoom": [],
+      "held_objects_from_hand_zoom": [],
+      "held_categories": [],
+      "output": "frame_000016_pick3_src000230.png"
+    },
+    {
+      "sample_frame": "frame_000018.png",
+      "sample_ts_sec": 8.522,
+      "source_frame_index": 257,
+      "source_ts_sec": 8.648,
+      "sharpness": 98.0,
+      "enhance_input": false,
+      "enhance_gamma": null,
+      "person_bbox": [
+        103.2,
+        214.6,
+        558.4,
+        479.8
+      ],
+      "crop_bbox": [
+        0.0,
+        148.29999999999998,
+        639.0,
+        479.0
+      ],
+      "pose_used": true,
+      "pose_fallback_used": true,
+      "hands_found": 2,
+      "hands": [
+        {
+          "side": "Left",
+          "synthetic": true,
+          "bbox": [
+            499,
+            422,
+            587,
+            480
+          ],
+          "wrist": [
+            523.8201904296875,
+            463.82916259765625
+          ],
+          "elbow": [
+            515.0526733398438,
+            462.8999328613281
+          ],
+          "anchor": [
+            543.0,
+            451.0
+          ],
+          "kp_conf": 0.7117,
+          "elbow_conf": 0.6044,
+          "object_in_hand": null,
+          "category": null,
+          "objects": [],
+          "landmarks": [],
+          "skip_reason": "frame_edge",
+          "held_verify": {
+            "skipped": true,
+            "reason": "gated_like_2b"
+          }
+        },
+        {
+          "side": "Right",
+          "synthetic": true,
+          "bbox": [
+            255,
+            315,
+            442,
+            480
+          ],
+          "wrist": [
+            282.56982421875,
+            434.43316650390625
+          ],
+          "elbow": [
+            171.20352172851562,
+            479.0
+          ],
+          "anchor": [
+            348.5,
+            397.5
+          ],
+          "kp_conf": 0.8128,
+          "elbow_conf": 0.5297,
+          "object_in_hand": null,
+          "category": null,
+          "objects": [],
+          "landmarks": [],
+          "skip_reason": "frame_edge",
+          "held_verify": {
+            "skipped": true,
+            "reason": "gated_like_2b"
+          }
+        }
+      ],
+      "held_objects_full_frame": [],
+      "held_objects_from_person_zoom": [],
+      "held_objects_from_hand_zoom": [],
+      "held_categories": [],
+      "output": "frame_000018_pick1_src000257.png"
+    },
+    {
+      "sample_frame": "frame_000018.png",
+      "sample_ts_sec": 8.522,
+      "source_frame_index": 258,
+      "source_ts_sec": 8.682,
+      "sharpness": 97.4,
+      "enhance_input": false,
+      "enhance_gamma": null,
+      "person_bbox": [
+        103.2,
+        214.6,
+        558.4,
+        479.8
+      ],
+      "crop_bbox": [
+        0.0,
+        148.29999999999998,
+        639.0,
+        479.0
+      ],
+      "pose_used": true,
+      "pose_fallback_used": true,
+      "hands_found": 2,
+      "hands": [
+        {
+          "side": "Left",
+          "synthetic": true,
+          "bbox": [
+            481,
+            419,
+            588,
+            480
+          ],
+          "wrist": [
+            518.3164672851562,
+            465.06719970703125
+          ],
+          "elbow": [
+            513.4767456054688,
+            462.6431579589844
+          ],
+          "anchor": [
+            534.5,
+            449.5
+          ],
+          "kp_conf": 0.7131,
+          "elbow_conf": 0.6534,
+          "object_in_hand": null,
+          "category": null,
+          "objects": [],
+          "landmarks": [],
+          "skip_reason": "frame_edge",
+          "held_verify": {
+            "skipped": true,
+            "reason": "gated_like_2b"
+          }
+        },
+        {
+          "side": "Right",
+          "synthetic": true,
+          "bbox": [
+            251,
+            317,
+            428,
+            480
+          ],
+          "wrist": [
+            279.2990417480469,
+            433.0376892089844
+          ],
+          "elbow": [
+            177.89244079589844,
+            479.0
+          ],
+          "anchor": [
+            339.5,
+            398.5
+          ],
+          "kp_conf": 0.8125,
+          "elbow_conf": 0.5805,
+          "object_in_hand": null,
+          "category": null,
+          "objects": [],
+          "landmarks": [],
+          "skip_reason": "frame_edge",
+          "held_verify": {
+            "skipped": true,
+            "reason": "gated_like_2b"
+          }
+        }
+      ],
+      "held_objects_full_frame": [],
+      "held_objects_from_person_zoom": [],
+      "held_objects_from_hand_zoom": [],
+      "held_categories": [],
+      "output": "frame_000018_pick2_src000258.png"
+    },
+    {
+      "sample_frame": "frame_000018.png",
+      "sample_ts_sec": 8.522,
+      "source_frame_index": 253,
+      "source_ts_sec": 8.514,
+      "sharpness": 94.9,
+      "enhance_input": false,
+      "enhance_gamma": null,
+      "person_bbox": [
+        103.2,
+        214.6,
+        558.4,
+        479.8
+      ],
+      "crop_bbox": [
+        0.0,
+        148.29999999999998,
+        639.0,
+        479.0
+      ],
+      "pose_used": true,
+      "pose_fallback_used": true,
+      "hands_found": 2,
+      "hands": [
+        {
+          "side": "Left",
+          "synthetic": true,
+          "bbox": [
+            475,
+            425,
+            588,
+            480
+          ],
+          "wrist": [
+            518.5003051757812,
+            468.4493103027344
+          ],
+          "elbow": [
+            513.93310546875,
+            463.7322082519531
+          ],
+          "anchor": [
+            531.5,
+            452.5
+          ],
+          "kp_conf": 0.7681,
+          "elbow_conf": 0.6714,
+          "object_in_hand": null,
+          "category": null,
+          "objects": [],
+          "landmarks": [],
+          "skip_reason": "frame_edge",
+          "held_verify": {
+            "skipped": true,
+            "reason": "gated_like_2b"
+          }
+        },
+        {
+          "side": "Right",
+          "synthetic": true,
+          "bbox": [
+            257,
+            339,
+            426,
+            480
+          ],
+          "wrist": [
+            279.43310546875,
+            443.991943359375
+          ],
+          "elbow": [
+            174.08636474609375,
+            479.0
+          ],
+          "anchor": [
+            341.5,
+            409.5
+          ],
+          "kp_conf": 0.8042,
+          "elbow_conf": 0.5139,
+          "object_in_hand": null,
+          "category": null,
+          "objects": [],
+          "landmarks": [],
+          "skip_reason": "frame_edge",
+          "held_verify": {
+            "skipped": true,
+            "reason": "gated_like_2b"
+          }
+        }
+      ],
+      "held_objects_full_frame": [],
+      "held_objects_from_person_zoom": [],
+      "held_objects_from_hand_zoom": [],
+      "held_categories": [],
+      "output": "frame_000018_pick3_src000253.png"
+    },
+    {
+      "sample_frame": "frame_000019.png",
+      "sample_ts_sec": 9.013,
+      "source_frame_index": 269,
+      "source_ts_sec": 9.052,
+      "sharpness": 92.8,
+      "enhance_input": false,
+      "enhance_gamma": null,
+      "person_bbox": [
+        32.0,
+        216.6,
+        597.5,
+        479.6
+      ],
+      "crop_bbox": [
+        0.0,
+        150.85,
+        639.0,
+        479.0
+      ],
+      "pose_used": true,
+      "pose_fallback_used": true,
+      "hands_found": 2,
+      "hands": [
+        {
+          "side": "Left",
+          "synthetic": true,
+          "bbox": [
+            439,
+            413,
+            540,
+            480
+          ],
+          "wrist": [
+            506.5417785644531,
+            457.6161804199219
+          ],
+          "elbow": [
+            511.3724365234375,
+            456.0069274902344
+          ],
+          "anchor": [
+            489.5,
+            446.5
+          ],
+          "kp_conf": 0.5817,
+          "elbow_conf": 0.5264,
+          "object_in_hand": null,
+          "category": null,
+          "objects": [],
+          "landmarks": [],
+          "skip_reason": "frame_edge",
+          "held_verify": {
+            "skipped": true,
+            "reason": "gated_like_2b"
+          }
+        },
+        {
+          "side": "Right",
+          "synthetic": true,
+          "bbox": [
+            212,
+            192,
+            441,
+            421
+          ],
+          "wrist": [
+            277.6883239746094,
+            370.46681213378906
+          ],
+          "elbow": [
+            195.17605590820312,
+            479.0
+          ],
+          "anchor": [
+            326.5,
+            306.5
+          ],
+          "kp_conf": 0.7877,
+          "elbow_conf": 0.5904,
+          "object_in_hand": null,
+          "category": null,
+          "objects": [],
+          "landmarks": [],
+          "held_verify": {
+            "skipped": true,
+            "reason": "not_a_candidate"
+          }
+        }
+      ],
+      "held_objects_full_frame": [],
+      "held_objects_from_person_zoom": [],
+      "held_objects_from_hand_zoom": [],
+      "held_categories": [],
+      "output": "frame_000019_pick1_src000269.png"
+    },
+    {
+      "sample_frame": "frame_000019.png",
+      "sample_ts_sec": 9.013,
+      "source_frame_index": 274,
+      "source_ts_sec": 9.22,
+      "sharpness": 92.7,
+      "enhance_input": false,
+      "enhance_gamma": null,
+      "person_bbox": [
+        32.0,
+        216.6,
+        597.5,
+        479.6
+      ],
+      "crop_bbox": [
+        0.0,
+        150.85,
+        639.0,
+        479.0
+      ],
+      "pose_used": true,
+      "pose_fallback_used": true,
+      "hands_found": 2,
+      "hands": [
+        {
+          "side": "Left",
+          "synthetic": true,
+          "bbox": [
+            436,
+            367,
+            546,
+            477
+          ],
+          "wrist": [
+            503.1875,
+            442.63397216796875
+          ],
+          "elbow": [
+            514.4351806640625,
+            461.3035583496094
+          ],
+          "anchor": [
+            491.0,
+            422.0
+          ],
+          "kp_conf": 0.5982,
+          "elbow_conf": 0.4114,
+          "object_in_hand": null,
+          "category": null,
+          "objects": [],
+          "landmarks": [],
+          "skip_reason": "frame_edge",
+          "held_verify": {
+            "skipped": true,
+            "reason": "gated_like_2b"
+          }
+        },
+        {
+          "side": "Right",
+          "synthetic": true,
+          "bbox": [
+            207,
+            144,
+            482,
+            419
+          ],
+          "wrist": [
+            279.8757019042969,
+            352.5071258544922
+          ],
+          "elbow": [
+            170.52647399902344,
+            472.3836364746094
+          ],
+          "anchor": [
+            344.5,
+            281.5
+          ],
+          "kp_conf": 0.8498,
+          "elbow_conf": 0.5948,
+          "object_in_hand": null,
+          "category": null,
+          "objects": [],
+          "landmarks": [],
+          "held_verify": {
+            "skipped": true,
+            "reason": "not_a_candidate"
+          }
+        }
+      ],
+      "held_objects_full_frame": [],
+      "held_objects_from_person_zoom": [],
+      "held_objects_from_hand_zoom": [],
+      "held_categories": [],
+      "output": "frame_000019_pick2_src000274.png"
+    },
+    {
+      "sample_frame": "frame_000019.png",
+      "sample_ts_sec": 9.013,
+      "source_frame_index": 256,
+      "source_ts_sec": 8.615,
+      "sharpness": 92.6,
+      "enhance_input": false,
+      "enhance_gamma": null,
+      "person_bbox": [
+        32.0,
+        216.6,
+        597.5,
+        479.6
+      ],
+      "crop_bbox": [
+        0.0,
+        150.85,
+        639.0,
+        479.0
+      ],
+      "pose_used": true,
+      "pose_fallback_used": true,
+      "hands_found": 2,
+      "hands": [
+        {
+          "side": "Left",
+          "synthetic": true,
+          "bbox": [
+            478,
+            428,
+            591,
+            480
+          ],
+          "wrist": [
+            518.6397094726562,
+            470.8323059082031
+          ],
+          "elbow": [
+            507.75360107421875,
+            461.8094482421875
+          ],
+          "anchor": [
+            534.5,
+            454.0
+          ],
+          "kp_conf": 0.7305,
+          "elbow_conf": 0.6447,
+          "object_in_hand": null,
+          "category": null,
+          "objects": [],
+          "landmarks": [],
+          "skip_reason": "frame_edge",
+          "held_verify": {
+            "skipped": true,
+            "reason": "gated_like_2b"
+          }
+        },
+        {
+          "side": "Right",
+          "synthetic": true,
+          "bbox": [
+            252,
+            332,
+            419,
+            480
+          ],
+          "wrist": [
+            277.3695068359375,
+            439.052978515625
+          ],
+          "elbow": [
+            178.31468200683594,
+            479.0
+          ],
+          "anchor": [
+            335.5,
+            406.0
+          ],
+          "kp_conf": 0.7976,
+          "elbow_conf": 0.5213,
+          "object_in_hand": null,
+          "category": null,
+          "objects": [],
+          "landmarks": [],
+          "skip_reason": "frame_edge",
+          "held_verify": {
+            "skipped": true,
+            "reason": "gated_like_2b"
+          }
+        }
+      ],
+      "held_objects_full_frame": [],
+      "held_objects_from_person_zoom": [],
+      "held_objects_from_hand_zoom": [],
+      "held_categories": [],
+      "output": "frame_000019_pick3_src000256.png"
+    },
+    {
+      "sample_frame": "frame_000020.png",
+      "sample_ts_sec": 9.521,
+      "source_frame_index": 276,
+      "source_ts_sec": 9.288,
+      "sharpness": 92.5,
+      "enhance_input": false,
+      "enhance_gamma": null,
+      "person_bbox": [
+        69.5,
+        216.2,
+        610.8,
+        479.6
+      ],
+      "crop_bbox": [
+        0.0,
+        150.34999999999997,
+        639.0,
+        479.0
+      ],
+      "pose_used": true,
+      "pose_fallback_used": true,
+      "hands_found": 2,
+      "hands": [
+        {
+          "side": "Left",
+          "synthetic": true,
+          "bbox": [
+            441,
+            366,
+            549,
+            475
+          ],
+          "wrist": [
+            506.8321838378906,
+            442.2094421386719
+          ],
+          "elbow": [
+            518.6609497070312,
+            463.5335998535156
+          ],
+          "anchor": [
+            495.0,
+            420.5
+          ],
+          "kp_conf": 0.5715,
+          "elbow_conf": 0.4121,
+          "object_in_hand": null,
+          "category": null,
+          "objects": [],
+          "landmarks": [],
+          "held_verify": {
+            "skipped": true,
+            "reason": "not_a_candidate"
+          }
+        },
+        {
+          "side": "Right",
+          "synthetic": true,
+          "bbox": [
+            208,
+            135,
+            496,
+            423
+          ],
+          "wrist": [
+            281.565185546875,
+            349.9430694580078
+          ],
+          "elbow": [
+            162.11976623535156,
+            470.1971130371094
+          ],
+          "anchor": [
+            352.0,
+            279.0
+          ],
+          "kp_conf": 0.8108,
+          "elbow_conf": 0.5324,
+          "object_in_hand": null,
+          "category": null,
+          "objects": [],
+          "landmarks": [],
+          "held_verify": {
+            "skipped": true,
+            "reason": "not_a_candidate"
+          }
+        }
+      ],
+      "held_objects_full_frame": [],
+      "held_objects_from_person_zoom": [],
+      "held_objects_from_hand_zoom": [],
+      "held_categories": [],
+      "output": "frame_000020_pick1_src000276.png"
+    },
+    {
+      "sample_frame": "frame_000020.png",
+      "sample_ts_sec": 9.521,
+      "source_frame_index": 273,
+      "source_ts_sec": 9.187,
+      "sharpness": 92.3,
+      "enhance_input": false,
+      "enhance_gamma": null,
+      "person_bbox": [
+        69.5,
+        216.2,
+        610.8,
+        479.6
+      ],
+      "crop_bbox": [
+        0.0,
+        150.34999999999997,
+        639.0,
+        479.0
+      ],
+      "pose_used": true,
+      "pose_fallback_used": true,
+      "hands_found": 2,
+      "hands": [
+        {
+          "side": "Left",
+          "synthetic": true,
+          "bbox": [
+            429,
+            371,
+            541,
+            480
+          ],
+          "wrist": [
+            498.6979064941406,
+            444.5223083496094
+          ],
+          "elbow": [
+            509.8634033203125,
+            458.4146728515625
+          ],
+          "anchor": [
+            485.0,
+            425.5
+          ],
+          "kp_conf": 0.5843,
+          "elbow_conf": 0.4055,
+          "object_in_hand": null,
+          "category": null,
+          "objects": [],
+          "landmarks": [],
+          "skip_reason": "frame_edge",
+          "held_verify": {
+            "skipped": true,
+            "reason": "gated_like_2b"
+          }
+        },
+        {
+          "side": "Right",
+          "synthetic": true,
+          "bbox": [
+            207,
+            156,
+            465,
+            415
+          ],
+          "wrist": [
+            277.9345397949219,
+            354.5055694580078
+          ],
+          "elbow": [
+            179.56214904785156,
+            471.5630798339844
+          ],
+          "anchor": [
+            336.0,
+            285.5
+          ],
+          "kp_conf": 0.8584,
+          "elbow_conf": 0.6251,
+          "object_in_hand": null,
+          "category": null,
+          "objects": [],
+          "landmarks": [],
+          "held_verify": {
+            "skipped": true,
+            "reason": "not_a_candidate"
+          }
+        }
+      ],
+      "held_objects_full_frame": [],
+      "held_objects_from_person_zoom": [],
+      "held_objects_from_hand_zoom": [],
+      "held_categories": [],
+      "output": "frame_000020_pick2_src000273.png"
+    },
+    {
+      "sample_frame": "frame_000020.png",
+      "sample_ts_sec": 9.521,
+      "source_frame_index": 275,
+      "source_ts_sec": 9.254,
+      "sharpness": 92.3,
+      "enhance_input": false,
+      "enhance_gamma": null,
+      "person_bbox": [
+        69.5,
+        216.2,
+        610.8,
+        479.6
+      ],
+      "crop_bbox": [
+        0.0,
+        150.34999999999997,
+        639.0,
+        479.0
+      ],
+      "pose_used": true,
+      "pose_fallback_used": true,
+      "hands_found": 2,
+      "hands": [
+        {
+          "side": "Left",
+          "synthetic": true,
+          "bbox": [
+            441,
+            367,
+            549,
+            475
+          ],
+          "wrist": [
+            506.2325439453125,
+            441.85919189453125
+          ],
+          "elbow": [
+            517.0859375,
+            462.0617370605469
+          ],
+          "anchor": [
+            495.0,
+            421.0
+          ],
+          "kp_conf": 0.6067,
+          "elbow_conf": 0.4215,
+          "object_in_hand": null,
+          "category": null,
+          "objects": [],
+          "landmarks": [],
+          "held_verify": {
+            "skipped": true,
+            "reason": "not_a_candidate"
+          }
+        },
+        {
+          "side": "Right",
+          "synthetic": true,
+          "bbox": [
+            209,
+            147,
+            486,
+            424
+          ],
+          "wrist": [
+            279.9990234375,
+            354.1131896972656
+          ],
+          "elbow": [
+            165.89645385742188,
+            470.6948547363281
+          ],
+          "anchor": [
+            347.5,
+            285.5
+          ],
+          "kp_conf": 0.8456,
+          "elbow_conf": 0.5774,
+          "object_in_hand": null,
+          "category": null,
+          "objects": [],
+          "landmarks": [],
+          "held_verify": {
+            "skipped": true,
+            "reason": "not_a_candidate"
+          }
+        }
+      ],
+      "held_objects_full_frame": [],
+      "held_objects_from_person_zoom": [],
+      "held_objects_from_hand_zoom": [],
+      "held_categories": [],
+      "output": "frame_000020_pick3_src000275.png"
+    },
+    {
+      "sample_frame": "frame_000021.png",
+      "sample_ts_sec": 10.021,
+      "source_frame_index": 293,
+      "source_ts_sec": 9.86,
+      "sharpness": 91.5,
+      "enhance_input": false,
+      "enhance_gamma": null,
+      "person_bbox": [
+        55.1,
+        215.8,
+        559.4,
+        479.3
+      ],
+      "crop_bbox": [
+        0.0,
+        149.925,
+        639.0,
+        479.0
+      ],
+      "pose_used": true,
+      "pose_fallback_used": true,
+      "hands_found": 2,
+      "hands": [
+        {
+          "side": "Left",
+          "synthetic": true,
+          "bbox": [
+            395,
+            276,
+            592,
+            473
+          ],
+          "wrist": [
+            425.5522766113281,
+            404.0854797363281
+          ],
+          "elbow": [
+            310.9436340332031,
+            453.77337646484375
+          ],
+          "anchor": [
+            493.5,
+            374.5
+          ],
+          "kp_conf": 0.6398,
+          "elbow_conf": 0.4453,
+          "object_in_hand": null,
+          "category": null,
+          "objects": [],
+          "landmarks": [],
+          "held_verify": {
+            "skipped": true,
+            "reason": "not_a_candidate"
+          }
+        },
+        {
+          "side": "Right",
+          "synthetic": true,
+          "bbox": [
+            254,
+            115,
+            594,
+            455
+          ],
+          "wrist": [
+            325.90362548828125,
+            353.9945983886719
+          ],
+          "elbow": [
+            160.01693725585938,
+            471.14056396484375
+          ],
+          "anchor": [
+            424.0,
+            285.0
+          ],
+          "kp_conf": 0.7985,
+          "elbow_conf": 0.576,
+          "object_in_hand": null,
+          "category": null,
+          "objects": [],
+          "landmarks": [],
+          "held_verify": {
+            "skipped": true,
+            "reason": "not_a_candidate"
+          }
+        }
+      ],
+      "held_objects_full_frame": [],
+      "held_objects_from_person_zoom": [],
+      "held_objects_from_hand_zoom": [],
+      "held_categories": [],
+      "output": "frame_000021_pick1_src000293.png"
+    },
+    {
+      "sample_frame": "frame_000021.png",
+      "sample_ts_sec": 10.021,
+      "source_frame_index": 294,
+      "source_ts_sec": 9.893,
+      "sharpness": 91.1,
+      "enhance_input": false,
+      "enhance_gamma": null,
+      "person_bbox": [
+        55.1,
+        215.8,
+        559.4,
+        479.3
+      ],
+      "crop_bbox": [
+        0.0,
+        149.925,
+        639.0,
+        479.0
+      ],
+      "pose_used": true,
+      "pose_fallback_used": true,
+      "hands_found": 2,
+      "hands": [
+        {
+          "side": "Left",
+          "synthetic": true,
+          "bbox": [
+            278,
+            197,
+            494,
+            413
+          ],
+          "wrist": [
+            330.3408508300781,
+            355.9236602783203
+          ],
+          "elbow": [
+            236.5829620361328,
+            441.9537048339844
+          ],
+          "anchor": [
+            386.0,
+            305.0
+          ],
+          "kp_conf": 0.6868,
+          "elbow_conf": 0.5552,
+          "object_in_hand": null,
+          "category": null,
+          "objects": [],
+          "landmarks": [],
+          "held_verify": {
+            "skipped": true,
+            "reason": "not_a_candidate"
+          }
+        },
+        {
+          "side": "Right",
+          "synthetic": true,
+          "bbox": [
+            256,
+            123,
+            589,
+            456
+          ],
+          "wrist": [
+            324.2425842285156,
+            355.2392883300781
+          ],
+          "elbow": [
+            157.92367553710938,
+            466.875
+          ],
+          "anchor": [
+            422.5,
+            289.5
+          ],
+          "kp_conf": 0.6685,
+          "elbow_conf": 0.4403,
+          "object_in_hand": null,
+          "category": null,
+          "objects": [],
+          "landmarks": [],
+          "held_verify": {
+            "skipped": true,
+            "reason": "not_a_candidate"
+          }
+        }
+      ],
+      "held_objects_full_frame": [],
+      "held_objects_from_person_zoom": [],
+      "held_objects_from_hand_zoom": [],
+      "held_categories": [],
+      "output": "frame_000021_pick2_src000294.png"
+    },
+    {
+      "sample_frame": "frame_000021.png",
+      "sample_ts_sec": 10.021,
+      "source_frame_index": 292,
+      "source_ts_sec": 9.826,
+      "sharpness": 90.8,
+      "enhance_input": false,
+      "enhance_gamma": null,
+      "person_bbox": [
+        55.1,
+        215.8,
+        559.4,
+        479.3
+      ],
+      "crop_bbox": [
+        0.0,
+        149.925,
+        639.0,
+        479.0
+      ],
+      "pose_used": true,
+      "pose_fallback_used": true,
+      "hands_found": 2,
+      "hands": [
+        {
+          "side": "Left",
+          "synthetic": true,
+          "bbox": [
+            377,
+            247,
+            617,
+            480
+          ],
+          "wrist": [
+            410.59979248046875,
+            398.15309143066406
+          ],
+          "elbow": [
+            263.67999267578125,
+            451.47869873046875
+          ],
+          "anchor": [
+            497.0,
+            363.5
+          ],
+          "kp_conf": 0.5966,
+          "elbow_conf": 0.3146,
+          "object_in_hand": null,
+          "category": null,
+          "objects": [],
+          "landmarks": [],
+          "skip_reason": "frame_edge",
+          "held_verify": {
+            "skipped": true,
+            "reason": "gated_like_2b"
+          }
+        },
+        {
+          "side": "Right",
+          "synthetic": true,
+          "bbox": [
+            253,
+            114,
+            592,
+            453
+          ],
+          "wrist": [
+            325.11004638671875,
+            352.6981658935547
+          ],
+          "elbow": [
+            160.44239807128906,
+            470.2154235839844
+          ],
+          "anchor": [
+            422.5,
+            283.5
+          ],
+          "kp_conf": 0.7648,
+          "elbow_conf": 0.5162,
+          "object_in_hand": null,
+          "category": null,
+          "objects": [],
+          "landmarks": [],
+          "held_verify": {
+            "skipped": true,
+            "reason": "not_a_candidate"
+          }
+        }
+      ],
+      "held_objects_full_frame": [],
+      "held_objects_from_person_zoom": [],
+      "held_objects_from_hand_zoom": [],
+      "held_categories": [],
+      "output": "frame_000021_pick3_src000292.png"
+    },
+    {
+      "sample_frame": "frame_000022.png",
+      "sample_ts_sec": 10.537,
+      "source_frame_index": 319,
+      "source_ts_sec": 10.735,
+      "sharpness": 84.6,
+      "enhance_input": false,
+      "enhance_gamma": null,
+      "person_bbox": [
+        170.0,
+        215.4,
+        547.1,
+        479.9
+      ],
+      "crop_bbox": [
+        75.725,
+        149.275,
+        639.0,
+        479.0
+      ],
+      "pose_used": true,
+      "pose_fallback_used": true,
+      "hands_found": 1,
+      "hands": [
+        {
+          "side": "Left",
+          "synthetic": true,
+          "bbox": [
+            442,
+            434,
+            540,
+            480
+          ],
+          "wrist": [
+            496.7478942871094,
+            460.5606994628906
+          ],
+          "elbow": [
+            501.6819152832031,
+            441.09832763671875
+          ],
+          "anchor": [
+            491.0,
+            457.0
+          ],
+          "kp_conf": 0.4012,
+          "elbow_conf": 0.4939,
+          "object_in_hand": null,
+          "category": null,
+          "objects": [],
+          "landmarks": [],
+          "skip_reason": "frame_edge",
+          "held_verify": {
+            "skipped": true,
+            "reason": "gated_like_2b"
+          }
+        }
+      ],
+      "held_objects_full_frame": [],
+      "held_objects_from_person_zoom": [],
+      "held_objects_from_hand_zoom": [],
+      "held_categories": [],
+      "output": "frame_000022_pick1_src000319.png"
+    },
+    {
+      "sample_frame": "frame_000022.png",
+      "sample_ts_sec": 10.537,
+      "source_frame_index": 320,
+      "source_ts_sec": 10.768,
+      "sharpness": 84.3,
+      "enhance_input": false,
+      "enhance_gamma": null,
+      "person_bbox": [
+        170.0,
+        215.4,
+        547.1,
+        479.9
+      ],
+      "crop_bbox": [
+        75.725,
+        149.275,
+        639.0,
+        479.0
+      ],
+      "pose_used": true,
+      "pose_fallback_used": true,
+      "hands_found": 1,
+      "hands": [
+        {
+          "side": "Left",
+          "synthetic": true,
+          "bbox": [
+            468,
+            434,
+            572,
+            480
+          ],
+          "wrist": [
+            510.468017578125,
+            463.366943359375
+          ],
+          "elbow": [
+            500.8662109375,
+            439.8993225097656
+          ],
+          "anchor": [
+            520.0,
+            457.0
+          ],
+          "kp_conf": 0.4026,
+          "elbow_conf": 0.5412,
+          "object_in_hand": null,
+          "category": null,
+          "objects": [],
+          "landmarks": [],
+          "skip_reason": "frame_edge",
+          "held_verify": {
+            "skipped": true,
+            "reason": "gated_like_2b"
+          }
+        }
+      ],
+      "held_objects_full_frame": [],
+      "held_objects_from_person_zoom": [],
+      "held_objects_from_hand_zoom": [],
+      "held_categories": [],
+      "output": "frame_000022_pick2_src000320.png"
+    },
+    {
+      "sample_frame": "frame_000022.png",
+      "sample_ts_sec": 10.537,
+      "source_frame_index": 318,
+      "source_ts_sec": 10.701,
+      "sharpness": 84.2,
+      "enhance_input": false,
+      "enhance_gamma": null,
+      "person_bbox": [
+        170.0,
+        215.4,
+        547.1,
+        479.9
+      ],
+      "crop_bbox": [
+        75.725,
+        149.275,
+        639.0,
+        479.0
+      ],
+      "pose_used": true,
+      "pose_fallback_used": true,
+      "hands_found": 1,
+      "hands": [
+        {
+          "side": "Left",
+          "synthetic": true,
+          "bbox": [
+            470,
+            435,
+            575,
+            480
+          ],
+          "wrist": [
+            512.4517822265625,
+            464.3561096191406
+          ],
+          "elbow": [
+            502.22052001953125,
+            440.2046813964844
+          ],
+          "anchor": [
+            522.5,
+            457.5
+          ],
+          "kp_conf": 0.3989,
+          "elbow_conf": 0.5401,
+          "object_in_hand": null,
+          "category": null,
+          "objects": [],
+          "landmarks": [],
+          "skip_reason": "frame_edge",
+          "held_verify": {
+            "skipped": true,
+            "reason": "gated_like_2b"
+          }
+        }
+      ],
+      "held_objects_full_frame": [],
+      "held_objects_from_person_zoom": [],
+      "held_objects_from_hand_zoom": [],
+      "held_categories": [],
+      "output": "frame_000022_pick3_src000318.png"
+    },
+    {
+      "sample_frame": "frame_000027.png",
+      "sample_ts_sec": 13.018,
+      "source_frame_index": 387,
+      "source_ts_sec": 13.023,
+      "sharpness": 82.9,
+      "enhance_input": false,
+      "enhance_gamma": null,
+      "person_bbox": [
+        181.0,
+        215.9,
+        546.1,
+        479.9
+      ],
+      "crop_bbox": [
+        89.725,
+        149.9,
+        637.375,
+        479.0
+      ],
+      "pose_used": true,
+      "pose_fallback_used": true,
+      "hands_found": 1,
+      "hands": [
+        {
+          "side": "Left",
+          "synthetic": true,
+          "bbox": [
+            473,
+            426,
+            586,
+            480
+          ],
+          "wrist": [
+            514.9518432617188,
+            466.32220458984375
+          ],
+          "elbow": [
+            503.3272705078125,
+            453.5641174316406
+          ],
+          "anchor": [
+            529.5,
+            453.0
+          ],
+          "kp_conf": 0.3679,
+          "elbow_conf": 0.4666,
+          "object_in_hand": null,
+          "category": null,
+          "objects": [],
+          "landmarks": [],
+          "skip_reason": "frame_edge",
+          "held_verify": {
+            "skipped": true,
+            "reason": "gated_like_2b"
+          }
+        }
+      ],
+      "held_objects_full_frame": [],
+      "held_objects_from_person_zoom": [],
+      "held_objects_from_hand_zoom": [],
+      "held_categories": [],
+      "output": "frame_000027_pick1_src000387.png"
+    },
+    {
+      "sample_frame": "frame_000027.png",
+      "sample_ts_sec": 13.018,
+      "source_frame_index": 388,
+      "source_ts_sec": 13.057,
+      "sharpness": 82.9,
+      "enhance_input": false,
+      "enhance_gamma": null,
+      "person_bbox": [
+        181.0,
+        215.9,
+        546.1,
+        479.9
+      ],
+      "crop_bbox": [
+        89.725,
+        149.9,
+        637.375,
+        479.0
+      ],
+      "pose_used": true,
+      "pose_fallback_used": true,
+      "hands_found": 1,
+      "hands": [
+        {
+          "side": "Left",
+          "synthetic": true,
+          "bbox": [
+            475,
+            432,
+            586,
+            480
+          ],
+          "wrist": [
+            516.3113098144531,
+            468.7036437988281
+          ],
+          "elbow": [
+            502.78802490234375,
+            450.2359619140625
+          ],
+          "anchor": [
+            530.5,
+            456.0
+          ],
+          "kp_conf": 0.405,
+          "elbow_conf": 0.4924,
+          "object_in_hand": null,
+          "category": null,
+          "objects": [],
+          "landmarks": [],
+          "skip_reason": "frame_edge",
+          "held_verify": {
+            "skipped": true,
+            "reason": "gated_like_2b"
+          }
+        }
+      ],
+      "held_objects_full_frame": [],
+      "held_objects_from_person_zoom": [],
+      "held_objects_from_hand_zoom": [],
+      "held_categories": [],
+      "output": "frame_000027_pick2_src000388.png"
+    },
+    {
+      "sample_frame": "frame_000027.png",
+      "sample_ts_sec": 13.018,
+      "source_frame_index": 389,
+      "source_ts_sec": 13.09,
+      "sharpness": 82.7,
+      "enhance_input": false,
+      "enhance_gamma": null,
+      "person_bbox": [
+        181.0,
+        215.9,
+        546.1,
+        479.9
+      ],
+      "crop_bbox": [
+        89.725,
+        149.9,
+        637.375,
+        479.0
+      ],
+      "pose_used": true,
+      "pose_fallback_used": true,
+      "hands_found": 1,
+      "hands": [
+        {
+          "side": "Left",
+          "synthetic": true,
+          "bbox": [
+            477,
+            431,
+            590,
+            480
+          ],
+          "wrist": [
+            517.3612060546875,
+            468.84588623046875
+          ],
+          "elbow": [
+            501.27593994140625,
+            450.11993408203125
+          ],
+          "anchor": [
+            533.5,
+            455.5
+          ],
+          "kp_conf": 0.3825,
+          "elbow_conf": 0.4887,
+          "object_in_hand": null,
+          "category": null,
+          "objects": [],
+          "landmarks": [],
+          "skip_reason": "frame_edge",
+          "held_verify": {
+            "skipped": true,
+            "reason": "gated_like_2b"
+          }
+        }
+      ],
+      "held_objects_full_frame": [],
+      "held_objects_from_person_zoom": [],
+      "held_objects_from_hand_zoom": [],
+      "held_categories": [],
+      "output": "frame_000027_pick3_src000389.png"
+    }
+  ]
+}

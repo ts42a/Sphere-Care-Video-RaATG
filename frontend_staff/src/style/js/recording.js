@@ -10,21 +10,217 @@ let isPlaying = false;
 let progressInterval = null;
 let activeHls = null;
 let modalPlaybackIndex = -1;
+const MODAL_SKIP_SECONDS = 10;
+let activeInlinePlaybackId = null;
+let inlinePlaybackRequestToken = 0;
+let pendingPlaybackFromUrl = null;
 
 const localCamStreams = new Map();
 const LOCAL_RECORDING_INDEX_KEY = "spherecare_local_recordings_index_v1";
 const _activeRecorders = new Map();
+/** Minimum clip length to send for SCVAM when AI is on (seconds). */
+const SCVA_MIN_AI_SECONDS = 1;
+const DELETE_CONFIRM_WORD = "Confirm";
+let _playbackDeleteTargetId = null;
+let _scvamPollTimer = null;
+let _scvamPollRecordId = null;
+const SCVA_ANALYSIS_CHUNK_SECONDS = 300;
+const CAMERA_AI_STORAGE_KEY = "spherecare_camera_ai_v1";
+const cameraAiState = new Map();
 
 // AUTH
+function getAccessToken() {
+  return (
+    sessionStorage.getItem("access_token") ||
+    sessionStorage.getItem("spherecare_token") ||
+    ""
+  );
+}
+
 function authHeaders() {
   const h = { "Content-Type": "application/json" };
-  const t = sessionStorage.getItem("access_token");
-
-  if (t) {
-    h["Authorization"] = `Bearer ${t}`;
-  }
-
+  const t = getAccessToken();
+  if (t) h["Authorization"] = `Bearer ${t}`;
   return h;
+}
+
+function redirectToLogin(reason) {
+  sessionStorage.removeItem("access_token");
+  sessionStorage.removeItem("spherecare_token");
+  sessionStorage.removeItem("spherecare_logged_in");
+  const returnTo = encodeURIComponent(
+    window.location.pathname + window.location.search
+  );
+  const q = reason ? `&msg=${encodeURIComponent(reason)}` : "";
+  window.location.href = `/pages/register-login.html?return=${returnTo}${q}`;
+}
+
+/** Returns true if response was 401 (redirect triggered). */
+function handleUnauthorizedResponse(res) {
+  if (res && res.status === 401) {
+    redirectToLogin("Session expired. Please log in again.");
+    return true;
+  }
+  return false;
+}
+
+function localVaultIdFromFileUrl(fileUrl) {
+  const u = String(fileUrl || "");
+  if (!u.startsWith("localvault://")) return null;
+  return u.slice("localvault://".length) || null;
+}
+
+/** Map local vault id (rec_…) → server record row for SCVAM script / status. */
+function localVaultIdFromRec(rec) {
+  const url = String(rec?.file_url || rec?.fileUrl || "");
+  if (url.startsWith("localvault://")) return url.slice("localvault://".length);
+  if (String(rec?.id || "").startsWith("rec_")) return String(rec.id);
+  return null;
+}
+
+function resolveServerIdForRecording(rec) {
+  if (!rec) return null;
+  if (/^\d+$/.test(String(rec.id))) return String(rec.id);
+  const localId = localVaultIdFromRec(rec);
+  if (!localId) return null;
+  const match = recordings.find(
+    (x) => /^\d+$/.test(String(x.id)) && localVaultIdFromRec(x) === localId
+  );
+  return match ? String(match.id) : null;
+}
+
+async function removeLocalVaultById(localId) {
+  if (!localId) return;
+  if (window.recordingVault?.vaultDeleteRecording) {
+    try {
+      await window.recordingVault.vaultDeleteRecording(String(localId));
+    } catch (_) {}
+  }
+  try {
+    const raw = localStorage.getItem(LOCAL_RECORDING_INDEX_KEY);
+    const index = raw ? JSON.parse(raw) : [];
+    if (Array.isArray(index)) {
+      localStorage.setItem(
+        LOCAL_RECORDING_INDEX_KEY,
+        JSON.stringify(index.filter((row) => String(row?.id) !== String(localId)))
+      );
+    }
+  } catch (_) {}
+}
+
+async function deleteServerRecordById(serverId) {
+  const res = await fetch(`${API_BASE}/records/${encodeURIComponent(serverId)}`, {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
+  if (handleUnauthorizedResponse(res)) return false;
+  if (!res.ok && res.status !== 204) {
+    const text = await res.text().catch(() => "");
+    throw new Error(text || `Delete failed (HTTP ${res.status})`);
+  }
+  return true;
+}
+
+function dropRecordingsFromState({ localId, serverId, primaryId }) {
+  recordings = recordings.filter((x) => {
+    const xLocal = localVaultIdFromRec(x);
+    if (localId && xLocal === localId) return false;
+    if (serverId && String(x.id) === String(serverId)) return false;
+    if (primaryId && String(x.id) === String(primaryId)) return false;
+    return true;
+  });
+}
+
+function resolveServerRecording(localOrServerId) {
+  const id = String(localOrServerId);
+  const direct = recordings.find((r) => String(r.id) === id);
+  if (direct && /^\d+$/.test(String(direct.id))) return direct;
+  return (
+    recordings.find(
+      (r) =>
+        /^\d+$/.test(String(r.id)) &&
+        (r.vaultLocalId === id || localVaultIdFromFileUrl(r.fileUrl) === id)
+    ) || direct
+  );
+}
+
+// PER-CAMERA AI TOGGLE (Recording Console card actions)
+function loadCameraAiState() {
+  try {
+    const raw = localStorage.getItem(CAMERA_AI_STORAGE_KEY);
+    if (!raw) return;
+    const obj = JSON.parse(raw);
+    if (!obj || typeof obj !== "object") return;
+    Object.entries(obj).forEach(([key, enabled]) => {
+      cameraAiState.set(String(key), !!enabled);
+    });
+  } catch (e) {
+    console.warn("Could not load camera AI preferences:", e);
+  }
+}
+
+function saveCameraAiState() {
+  const obj = {};
+  cameraAiState.forEach((enabled, key) => {
+    obj[key] = enabled;
+  });
+  localStorage.setItem(CAMERA_AI_STORAGE_KEY, JSON.stringify(obj));
+}
+
+function getCameraAiKey(cam) {
+  return String(cam?.id ?? cam?.deviceId ?? "");
+}
+
+function isCameraAiEnabled(camKey) {
+  return cameraAiState.get(String(camKey)) === true;
+}
+
+function setCameraAiEnabled(camKey, enabled) {
+  cameraAiState.set(String(camKey), !!enabled);
+  saveCameraAiState();
+  updateCamAiButton(camKey);
+}
+
+function buildCamAiButton(camKey) {
+  const key = String(camKey);
+  const on = isCameraAiEnabled(key);
+  const stateClass = on ? "is-on" : "is-off";
+  const title = on
+    ? "AI monitoring on — click to turn off"
+    : "AI monitoring off — click to turn on";
+
+  return `
+    <button
+      type="button"
+      class="cam-btn cam-btn-ai js-cam-action ${stateClass}"
+      title="${title}"
+      data-action="ai-toggle"
+      data-cam-key="${escapeHtml(key)}"
+      id="ai-btn-${escapeHtml(encodeURIComponent(key))}"
+      aria-pressed="${on ? "true" : "false"}"
+    >
+      <span class="cam-ai-label">AI</span>
+    </button>
+  `;
+}
+
+function updateCamAiButton(camKey) {
+  const btn = document.getElementById("ai-btn-" + encodeURIComponent(String(camKey)));
+  if (!btn) return;
+
+  const on = isCameraAiEnabled(camKey);
+  btn.classList.toggle("is-on", on);
+  btn.classList.toggle("is-off", !on);
+  btn.setAttribute("aria-pressed", on ? "true" : "false");
+  btn.title = on
+    ? "AI monitoring on — click to turn off"
+    : "AI monitoring off — click to turn on";
+}
+
+function toggleCameraAi(camKey) {
+  const next = !isCameraAiEnabled(camKey);
+  setCameraAiEnabled(camKey, next);
+  _showToast(next ? "AI monitoring enabled for this camera" : "AI monitoring disabled for this camera");
 }
 
 // CLEAN CAMERA LABEL
@@ -259,30 +455,100 @@ async function loadStats() {
 
 // API — PLAYBACK
 async function loadPlayback() {
+  const mergedPlayback = [];
+  const seenIds = new Set();
+  const serverByVaultId = new Map();
+
   try {
     const res = await fetch(`${API_BASE}/records/?record_type=video&limit=20`, {
       headers: authHeaders(),
     });
 
-    if (!res.ok) throw new Error(res.status);
+    if (handleUnauthorizedResponse(res)) return;
 
-    const data = await res.json();
-
-    recordings = data.map((r) => ({
-      id: r.id,
-      title: r.category || "Video Recording",
-      resident: r.resident_name || "—",
-      date: r.recorded_at || (r.created_at ? r.created_at.slice(0, 10) : "—"),
-      duration: r.duration || "—",
-      flag: "none",
-      type: r.category || "Recording",
-      fileUrl: r.file_url || null,
-    }));
+    if (res.ok) {
+      const data = await res.json();
+      data.forEach((r) => {
+        const id = String(r.id);
+        if (seenIds.has(id)) return;
+        seenIds.add(id);
+        const vaultLocalId = localVaultIdFromFileUrl(r.file_url);
+        if (vaultLocalId) serverByVaultId.set(vaultLocalId, r);
+        mergedPlayback.push({
+          id: r.id,
+          title: r.category || "Video Recording",
+          resident: r.resident_name || "—",
+          date: r.recorded_at || (r.created_at ? r.created_at.slice(0, 10) : "—"),
+          duration: r.duration || "—",
+          flag: "none",
+          type: r.category || "Recording",
+          fileUrl: r.file_url || null,
+          vaultLocalId,
+          scvamStatus: r.scvam_status || "none",
+          aiSummary: r.ai_summary || "",
+        });
+      });
+    }
   } catch (e) {
-    recordings = [];
+    console.warn("Records API unavailable:", e);
   }
 
+  if (window.recordingVault?.vaultListRecordings) {
+    try {
+      const vaultRows = await window.recordingVault.vaultListRecordings();
+      vaultRows.forEach((row) => {
+        const id = String(row.id || "");
+        if (!id || seenIds.has(id) || serverByVaultId.has(id)) return;
+        seenIds.add(id);
+        mergedPlayback.push({
+          id,
+          title: row.cameraLabel || "Local camera recording",
+          resident: "This device",
+          date: row.startedAt || row.createdAt || "—",
+          duration: row.durationMs
+            ? `${Math.max(1, Math.round(Number(row.durationMs) / 1000))}s`
+            : "—",
+          flag: "none",
+          type: "Local Vault",
+          fileUrl: `localvault://${id}`,
+          vaultLocalId: id,
+          scvamStatus: "none",
+          aiSummary: "",
+        });
+      });
+    } catch (_) {}
+  }
+
+  recordings = mergedPlayback.sort((a, b) => {
+    const aTs = Date.parse(a.date || 0) || 0;
+    const bTs = Date.parse(b.date || 0) || 0;
+    return bTs - aTs;
+  });
+
   renderPlayback();
+
+  if (pendingPlaybackFromUrl) {
+    const target = recordings.find((r) => String(r.id) === pendingPlaybackFromUrl.id);
+    if (target) {
+      openPlayback(target.id);
+      pendingPlaybackFromUrl = null;
+    } else if (pendingPlaybackFromUrl.fileUrl) {
+      const syntheticId = `route:${Date.now()}`;
+      recordings.unshift({
+        id: syntheticId,
+        title: "Routed Playback",
+        resident: "—",
+        date: new Date().toISOString().slice(0, 10),
+        duration: "—",
+        flag: "none",
+        type: "Recording",
+        fileUrl: pendingPlaybackFromUrl.fileUrl,
+      });
+      renderPlayback();
+      openPlayback(syntheticId);
+      pendingPlaybackFromUrl = null;
+    }
+  }
 }
 
 // API — ALERTS
@@ -409,6 +675,19 @@ function renderCameras() {
               <div class="cam-actions">
                 <button 
                   type="button"
+                  class="cam-btn js-cam-action" 
+                  title="Edit Camera"
+                  data-action="edit"
+                  data-cam-id="${escapeHtml(String(c.id))}"
+                >
+                  <svg viewBox="0 0 24 24">
+                    <path d="M12 20h9"/>
+                    <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/>
+                  </svg>
+                </button>
+
+                <button 
+                  type="button"
                   class="cam-btn cam-btn-record js-cam-action" 
                   id="rec-btn-${encodedDeviceId}" 
                   title="Record / Stop Recording"
@@ -420,6 +699,8 @@ function renderCameras() {
                     <circle cx="12" cy="12" r="6" fill="currentColor"/>
                   </svg>
                 </button>
+
+                ${buildCamAiButton(getCameraAiKey(c))}
 
                 <button 
                   type="button"
@@ -513,6 +794,21 @@ function renderCameras() {
               <button 
                 type="button"
                 class="cam-btn js-cam-action" 
+                title="Edit Camera"
+                data-action="edit"
+                data-cam-id="${escapeHtml(String(c.id))}"
+              >
+                <svg viewBox="0 0 24 24">
+                  <path d="M12 20h9"/>
+                  <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/>
+                </svg>
+              </button>
+
+              ${buildCamAiButton(getCameraAiKey(c))}
+
+              <button 
+                type="button"
+                class="cam-btn js-cam-action" 
                 title="Fullscreen"
                 data-action="fullscreen"
                 data-cam-id="${escapeHtml(String(c.id))}"
@@ -581,6 +877,11 @@ function bindCameraActionButtons() {
         return;
       }
 
+      if (action === "ai-toggle") {
+        toggleCameraAi(this.dataset.camKey);
+        return;
+      }
+
       if (action === "fullscreen") {
         openCameraFullscreen(camId);
         return;
@@ -593,136 +894,461 @@ function bindCameraActionButtons() {
 
       if (action === "snapshot") {
         _showToast("📸 Snapshot feature not connected yet");
+        return;
+      }
+
+      if (action === "edit") {
+        openEditCameraFromCard(camId);
       }
     });
   });
 }
 
-// PLAYBACK
-function renderPlayback() {
-  const grid = document.getElementById("playback-grid");
+function openEditCameraFromCard(camId) {
+  const cam = cameras.find((c) => String(c.id) === String(camId));
 
-  if (!grid) return;
-
-  if (!recordings.length) {
-    grid.innerHTML = `
-      <div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text3);font-weight:600;">
-        No video recordings found.
-      </div>
-    `;
+  if (!cam) {
+    _showToast("⚠ Camera not found.");
     return;
   }
 
-  grid.innerHTML = recordings.map((r) => `
-    <div class="pb-card" onclick="openPlayback(${JSON.stringify(r.id)})">
-      <div class="pb-thumb">
-        <div class="pb-play">
-          <svg viewBox="0 0 24 24">
-            <polygon points="5 3 19 12 5 21 5 3"/>
-          </svg>
-        </div>
+  if (cam.source !== "facility") {
+    _showToast("⚠ Local camera details cannot be edited here.");
+    return;
+  }
 
-        <div class="pb-duration">${escapeHtml(r.duration)}</div>
-
-        ${
-          r.flag === "critical"
-            ? '<div class="pb-flagged">FLAGGED</div>'
-            : r.flag === "warning"
-            ? '<div class="pb-review">REVIEW</div>'
-            : ""
-        }
-      </div>
-
-      <div class="pb-info">
-        <div class="pb-title">${escapeHtml(r.title)}</div>
-        <div class="pb-meta">👤 ${escapeHtml(r.resident)} · 🕐 ${escapeHtml(r.date)}</div>
-
-        <div class="pb-footer">
-          <span style="font-size:11.5px;background:#f0fdf4;color:#15803d;padding:3px 10px;border-radius:20px;font-weight:700;">
-            ${escapeHtml(r.type)}
-          </span>
-
-          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-            <button 
-              type="button"
-              class="play-btn" 
-              onclick="event.preventDefault(); event.stopPropagation(); openPlayback(${JSON.stringify(r.id)});"
-            >
-              <svg viewBox="0 0 24 24">
-                <polygon points="23 7 16 12 23 17 23 7"/>
-                <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
-              </svg>
-              Play
-            </button>
-
-            <button 
-              type="button"
-              class="play-btn"
-              style="background:#fee2e2;color:#b91c1c;border:1px solid #fecaca;"
-              onclick="event.preventDefault(); event.stopPropagation(); deleteSinglePlayback(${JSON.stringify(r.id)});"
-            >
-              <svg viewBox="0 0 24 24">
-                <polyline points="3 6 5 6 21 6"/>
-                <path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/>
-                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
-              </svg>
-              Delete
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  `).join("");
+  openCameraSettingsModal();
+  editCameraInSettings(Number(cam.id));
 }
 
-// DELETE SINGLE PLAYBACK VIDEO
-async function deleteSinglePlayback(id) {
-  const rec = recordings.find((r) => String(r.id) === String(id));
+function scvamStatusBadge(status) {
+  const s = String(status || "none").toLowerCase();
+  if (s === "ready") {
+    return '<span class="pb-scvam pb-scvam-ready">AI ready</span>';
+  }
+  if (s === "processing" || s === "pending" || s === "running") {
+    return '<span class="pb-scvam pb-scvam-pending">AI processing</span>';
+  }
+  if (s === "failed") {
+    return '<span class="pb-scvam pb-scvam-failed">AI failed</span>';
+  }
+  if (s === "skipped") {
+    return '<span class="pb-scvam pb-scvam-skipped">AI skipped</span>';
+  }
+  return "";
+}
 
-  if (!rec) {
-    _showToast("⚠ Recording not found.");
+// PLAYBACK — right panel: SCVAM minute-by-minute script (no video card list)
+function renderPlayback() {
+  const select = document.getElementById("playback-script-select");
+  if (!select) return;
+
+  if (!recordings.length) {
+    select.innerHTML = '<option value="">No recordings</option>';
+    renderPlaybackScriptPanel(null);
     return;
   }
 
-  const ok = confirm(`Delete this recording?\n\n${rec.title}\n${rec.date}`);
+  let options = `<option value="output:perfect_fall_of_old_women">SCVAM demo · perfect fall of old women</option>`;
+  options += recordings
+    .map((r) => {
+      const label = `${r.title || "Recording"} · ${r.duration || "—"} · ${r.scvamStatus || "no AI"}`;
+      return `<option value="${escapeHtml(String(r.id))}">${escapeHtml(label)}</option>`;
+    })
+    .join("");
+  select.innerHTML = options;
 
-  if (!ok) return;
+  if (!select.dataset.bound) {
+    select.dataset.bound = "1";
+    select.addEventListener("change", () => {
+      const id = select.value;
+      if (id) {
+        activeInlinePlaybackId = id;
+        loadPlaybackScript(id);
+      }
+    });
+  }
+
+  let activeId = activeInlinePlaybackId;
+  if (!activeId || (!String(activeId).startsWith("output:") && !recordings.find((r) => String(r.id) === String(activeId)))) {
+    const withAi = recordings.find((r) => r.scvamStatus === "ready");
+    activeId = withAi ? withAi.id : "output:perfect_fall_of_old_women";
+  }
+  select.value = String(activeId);
+  loadPlaybackScript(activeId);
+
+  const delBtn = document.getElementById("playback-delete-btn");
+  if (delBtn && !delBtn.dataset.bound) {
+    delBtn.dataset.bound = "1";
+    delBtn.addEventListener("click", async () => {
+      const id = select.value;
+      if (!id || String(id).startsWith("output:")) {
+        _showToast("Select a recording to delete (not the SCVAM demo).");
+        return;
+      }
+      if (!(await ensureVaultUnlockedForConsole())) return;
+      openPlaybackDeleteModal(id);
+    });
+  }
+}
+
+async function openPlaybackDeleteModal(id) {
+  if (!(await ensureVaultUnlockedForConsole())) return;
+  const rec = recordings.find((r) => String(r.id) === String(id));
+  if (!rec) return;
+  _playbackDeleteTargetId = String(id);
+  const sub = document.getElementById("playback-delete-sub");
+  const input = document.getElementById("playback-delete-confirm");
+  if (sub) {
+    sub.textContent = `Remove "${rec.title || "recording"}" from this device and server. Vault must be unlocked.`;
+  }
+  if (input) input.value = "";
+  setRcStatus("playback-delete-status", "", "");
+  openRcModal("playback-delete-modal");
+  setTimeout(() => input?.focus(), 80);
+}
+
+async function submitPlaybackDeleteModal() {
+  const typed = document.getElementById("playback-delete-confirm")?.value?.trim();
+  if (typed !== DELETE_CONFIRM_WORD) {
+    setRcStatus("playback-delete-status", `Type ${DELETE_CONFIRM_WORD} to confirm.`, "err");
+    return;
+  }
+  const id = _playbackDeleteTargetId;
+  const rec = recordings.find((r) => String(r.id) === String(id));
+  if (!rec) {
+    closeRcModal("playback-delete-modal");
+    return;
+  }
+  try {
+    if (!(await ensureVaultUnlockedForConsole())) {
+      setRcStatus("playback-delete-status", "Unlock the vault first, then retry.", "err");
+      return;
+    }
+    setRcStatus("playback-delete-status", "Deleting…", "ok");
+    const localId = localVaultIdFromRec(rec);
+    const serverId = resolveServerIdForRecording(rec);
+    await removeLocalVaultById(localId);
+    if (serverId) await deleteServerRecordById(serverId);
+    dropRecordingsFromState({ localId, serverId, primaryId: rec.id });
+    _playbackDeleteTargetId = null;
+    activeInlinePlaybackId = null;
+    const watch = document.getElementById("playback-watch");
+    if (watch) watch.style.display = "none";
+    closeRcModal("playback-delete-modal");
+    renderPlayback();
+    _showToast("🗑 Recording deleted");
+  } catch (e) {
+    setRcStatus("playback-delete-status", e?.message || "Delete failed", "err");
+  }
+}
+
+async function buildScvamRetryPayload(rec) {
+  const body = {};
+  const vault = window.recordingVault;
+  const localId = localVaultIdFromRec(rec);
+  if (!localId) return body;
+  if (!vault || !vault.vaultIsUnlocked()) {
+    throw new Error("Unlock the vault to retry SCVAM on this device recording.");
+  }
+  const all = await vault.vaultListRecordings();
+  const entry = all.find((v) => v.id === localId);
+  if (!entry) {
+    throw new Error("Recording not found in local vault — record again with AI on.");
+  }
+  const plain = await vault.vaultDecryptToArrayBuffer(entry.ivB64, entry.cipherB64);
+  if (vault.bufToB64) {
+    body.ai_plain_b64 = vault.bufToB64(new Uint8Array(plain));
+  } else {
+    const bytes = new Uint8Array(plain);
+    let binary = "";
+    for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+    body.ai_plain_b64 = btoa(binary);
+  }
+  return body;
+}
+
+async function apiErrorDetail(res) {
+  const text = await res.text().catch(() => "");
+  try {
+    const j = JSON.parse(text);
+    if (j.detail) return typeof j.detail === "string" ? j.detail : JSON.stringify(j.detail);
+  } catch (_) {
+    /* ignore */
+  }
+  return text || `Request failed (${res.status})`;
+}
+
+async function retryScvamRecording(recordId, rec) {
+  const body = await buildScvamRetryPayload(rec || null);
+  const res = await fetch(`${API_BASE}/records/${recordId}/scvam-retry`, {
+    method: "POST",
+    headers: authHeaders(),
+    body: JSON.stringify(body),
+  });
+  if (handleUnauthorizedResponse(res)) {
+    throw new Error("Session expired — log in again.");
+  }
+  if (!res.ok) throw new Error(await apiErrorDetail(res));
+  return res.json();
+}
+
+function renderPlaybackScriptPanel(data) {
+  const panel = document.getElementById("playback-script-panel");
+  if (!panel) return;
+
+  if (!data) {
+    panel.innerHTML =
+      '<div class="playback-script-empty">Select a recording to view the SCVAM script.</div>';
+    return;
+  }
+
+  const status = String(data.scvam_status || "none");
+  const duration = data.duration_sec != null ? `${data.duration_sec}s` : "—";
+  let html = "";
+
+  if (data.message && status !== "ready") {
+    html += `<div class="playback-script-status">${escapeHtml(data.message)}</div>`;
+  }
+  if (status === "failed" && data.record_id && /^\d+$/.test(String(data.record_id))) {
+    html += `<button type="button" class="pw-btn pw-btn-primary playback-script-retry" data-record-id="${escapeHtml(String(data.record_id))}" style="margin-top:8px;">Retry SCVAM</button>`;
+  }
+
+  if (data.heading) {
+    html += `<div class="playback-script-heading">${escapeHtml(data.heading)}</div>`;
+  }
+
+  html += `<div class="playback-script-meta">Status: ${escapeHtml(status)} · Duration: ${escapeHtml(duration)}${data.video_name ? ` · ${escapeHtml(data.video_name)}` : ""}</div>`;
+
+  const timeline = Array.isArray(data.timeline) ? data.timeline : [];
+  if (timeline.length) {
+    html += timeline
+      .map(
+        (block) => `
+      <div class="playback-script-minute">
+        <div class="playback-script-minute-label">${escapeHtml(block.label || `Minute ${block.minute}`)}</div>
+        ${(block.lines || [])
+          .map((line) => `<p class="playback-script-minute-line">${escapeHtml(line)}</p>`)
+          .join("")}
+      </div>
+    `
+      )
+      .join("");
+  } else if (data.summary_text) {
+    html += `<div class="playback-script-minute">
+      <div class="playback-script-minute-label">00:00–01:00</div>
+      <p class="playback-script-minute-line">${escapeHtml(data.summary_text)}</p>
+    </div>`;
+  } else {
+    html += `<div class="playback-script-empty">No script text for this recording yet.</div>`;
+  }
+
+  panel.innerHTML = html;
+  const retryBtn = panel.querySelector(".playback-script-retry");
+  if (retryBtn) {
+    retryBtn.addEventListener("click", async () => {
+      const rid = retryBtn.getAttribute("data-record-id");
+      if (!rid) return;
+      const rec =
+        recordings.find((r) => String(r.id) === String(rid)) ||
+        recordings.find((r) => resolveServerIdForRecording(r) === String(rid));
+      retryBtn.disabled = true;
+      retryBtn.textContent = "Retrying…";
+      try {
+        await retryScvamRecording(rid, rec);
+        _showToast("SCVAM re-queued — processing shortly");
+        await loadPlayback();
+        loadPlaybackScript(rid);
+        startScvamStatusPoll(rid);
+      } catch (e) {
+        _showToast(String(e?.message || e || "Could not retry SCVAM"));
+        retryBtn.disabled = false;
+        retryBtn.textContent = "Retry SCVAM";
+      }
+    });
+  }
+}
+
+function stopScvamStatusPoll() {
+  if (_scvamPollTimer) {
+    clearInterval(_scvamPollTimer);
+    _scvamPollTimer = null;
+  }
+  _scvamPollRecordId = null;
+}
+
+function startScvamStatusPoll(recordId) {
+  stopScvamStatusPoll();
+  if (!recordId || !/^\d+$/.test(String(recordId))) return;
+  _scvamPollRecordId = String(recordId);
+
+  const tick = async () => {
+    if (_scvamPollRecordId !== String(recordId)) return;
+    try {
+      const res = await fetch(`${API_BASE}/records/${recordId}/scvam-status`, {
+        headers: authHeaders(),
+      });
+      if (!res.ok) return;
+      const st = await res.json();
+      const status = String(st.scvam_status || "none");
+      const rec = recordings.find((r) => String(r.id) === String(recordId));
+      if (rec) rec.scvamStatus = status;
+
+      const select = document.getElementById("playback-script-select");
+      if (select && select.value === String(recordId)) {
+        const label = `${rec?.title || "Recording"} · ${rec?.duration || "—"} · ${status}`;
+        const opt = select.querySelector(`option[value="${recordId}"]`);
+        if (opt) opt.textContent = label;
+      }
+
+      if (status === "ready" || status === "failed" || status === "none" || status === "skipped") {
+        stopScvamStatusPoll();
+        loadPlaybackScript(recordId);
+        return;
+      }
+
+      loadPlaybackScript(recordId);
+    } catch (_) {}
+  };
+
+  _scvamPollTimer = setInterval(tick, 4000);
+  tick();
+}
+
+async function loadPlaybackScript(id) {
+  const panel = document.getElementById("playback-script-panel");
+  if (!panel) return;
+
+  if (String(id).startsWith("output:")) {
+    stopScvamStatusPoll();
+    const folder = String(id).slice("output:".length);
+    panel.innerHTML = '<div class="playback-script-empty">Loading SCVAM script…</div>';
+    try {
+      const res = await fetch(
+        `${API_BASE}/records/scvam-output/${encodeURIComponent(folder)}/script`,
+        { headers: authHeaders() }
+      );
+      if (handleUnauthorizedResponse(res)) return;
+      if (!res.ok) throw new Error(await res.text());
+      renderPlaybackScriptPanel(await res.json());
+    } catch (e) {
+      renderPlaybackScriptPanel({
+        scvam_status: "failed",
+        message: "Could not load SCVAM output folder.",
+        timeline: [],
+      });
+    }
+    return;
+  }
+
+  const rec = resolveServerRecording(id);
+  if (!rec) {
+    renderPlaybackScriptPanel(null);
+    return;
+  }
+
+  const scriptRecordId = /^\d+$/.test(String(rec.id)) ? rec.id : null;
+  if (!scriptRecordId) {
+    const dur = parseInt(String(rec.duration).replace(/\D/g, ""), 10) || 0;
+    const hasToken = !!getAccessToken();
+    renderPlaybackScriptPanel({
+      scvam_status: "none",
+      duration_sec: dur || null,
+      message: hasToken
+        ? "Saved on this device only — server upload did not complete. Record again with AI on while logged in, or check the terminal for upload errors."
+        : "Not signed in — log in at Staff Login, then record again with AI on so the clip uploads and SCVAM can run.",
+      summary_text: rec.aiSummary || "",
+      timeline: rec.aiSummary
+        ? [{ minute: 0, label: "00:00–01:00", lines: [rec.aiSummary] }]
+        : [],
+      video_name: rec.title,
+    });
+    return;
+  }
+
+  panel.innerHTML = '<div class="playback-script-empty">Loading SCVAM script…</div>';
 
   try {
-    // 1. If this is a local vault recording, delete from IndexedDB vault first
-    if (rec.fileUrl && String(rec.fileUrl).startsWith("localvault://")) {
-      const localVaultId = String(rec.fileUrl).replace("localvault://", "");
-
-      if (window.recordingVault?.vaultDeleteRecording) {
-        try {
-          await window.recordingVault.vaultDeleteRecording(localVaultId);
-          console.log("Deleted local vault recording:", localVaultId);
-        } catch (e) {
-          console.warn("Failed to delete local vault recording:", e);
-        }
-      }
-    }
-
-    // 2. Delete server record
-    const res = await fetch(`${API_BASE}/records/${encodeURIComponent(id)}`, {
-      method: "DELETE",
+    const res = await fetch(`${API_BASE}/records/${scriptRecordId}/scvam-script`, {
       headers: authHeaders(),
     });
-
-    if (!res.ok) {
-      const text = await res.text().catch(() => "");
-      throw new Error(text || `Delete failed with status ${res.status}`);
+    if (handleUnauthorizedResponse(res)) return;
+    if (!res.ok) throw new Error(await res.text());
+    const data = await res.json();
+    data.record_id = data.record_id || scriptRecordId;
+    renderPlaybackScriptPanel(data);
+    const st = String(data.scvam_status || "none");
+    if (st === "pending" || st === "processing" || st === "running") {
+      startScvamStatusPoll(scriptRecordId);
+    } else {
+      stopScvamStatusPoll();
     }
-
-    // 3. Remove from frontend list immediately
-    recordings = recordings.filter((r) => String(r.id) !== String(id));
-    renderPlayback();
-
-    _showToast("🗑 Recording deleted.");
-  } catch (err) {
-    console.error("Delete recording failed:", err);
-    _showToast("⚠ Failed to delete recording.");
+  } catch (e) {
+    stopScvamStatusPoll();
+    renderPlaybackScriptPanel({
+      record_id: scriptRecordId,
+      scvam_status: rec.scvamStatus || "none",
+      duration_sec: parseInt(rec.duration, 10) || null,
+      message: rec.aiSummary || "Could not load SCVAM script.",
+      summary_text: rec.aiSummary || "",
+      timeline: [],
+      title: rec.title,
+    });
   }
+}
+
+function _fmtTime(sec) {
+  const total = Math.max(0, Number(sec) || 0);
+  const mins = Math.floor(total / 60);
+  const secs = Math.floor(total % 60);
+  return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+}
+
+function syncInlinePlaybackControls() {
+  const video = document.getElementById("pw-video");
+  const playBtn = document.getElementById("pw-playpause-btn");
+  const muteBtn = document.getElementById("pw-mute-btn");
+  const currentEl = document.getElementById("pw-current");
+  const durationEl = document.getElementById("pw-duration");
+  const progress = document.getElementById("pw-progress");
+  const volume = document.getElementById("pw-volume");
+  const speed = document.getElementById("pw-speed");
+
+  if (!video) return;
+
+  if (playBtn) {
+    playBtn.textContent = video.paused ? "▶" : "⏸";
+  }
+
+  if (muteBtn) {
+    muteBtn.textContent = video.muted || video.volume === 0 ? "🔇" : "🔊";
+  }
+
+  if (currentEl) {
+    currentEl.textContent = _fmtTime(video.currentTime || 0);
+  }
+
+  if (durationEl) {
+    durationEl.textContent = _fmtTime(video.duration || 0);
+  }
+
+  if (progress) {
+    const pct = video.duration ? ((video.currentTime || 0) / video.duration) * 100 : 0;
+    progress.value = String(Math.max(0, Math.min(100, pct)));
+  }
+
+  if (volume && document.activeElement !== volume) {
+    volume.value = String(video.muted ? 0 : (video.volume ?? 1));
+  }
+
+  if (speed && document.activeElement !== speed) {
+    speed.value = String(video.playbackRate || 1);
+  }
+}
+
+// DELETE SINGLE PLAYBACK VIDEO (legacy alias)
+function deleteSinglePlayback(id) {
+  openPlaybackDeleteModal(id);
 }
 
 // ALERTS
@@ -879,6 +1505,24 @@ function switchTab(tab, el) {
   }
 }
 
+function applyPlaybackRouteFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  const tab = (params.get("tab") || "").toLowerCase();
+  const playbackId = params.get("playback_id");
+  const playbackFile = params.get("playback_file");
+
+  if (tab !== "playback" && !playbackId) return;
+
+  const playbackTabBtn = document.querySelectorAll(".page-tab")[1];
+  switchTab("playback", playbackTabBtn);
+
+  if (!playbackId) return;
+  pendingPlaybackFromUrl = {
+    id: String(playbackId),
+    fileUrl: playbackFile || null,
+  };
+}
+
 // OPEN CAMERA MODAL
 function openCamera(id) {
   const cam = cameras.find((c) => String(c.id) === String(id));
@@ -1014,6 +1658,7 @@ function openCamera(id) {
 
   document.body.style.overflow = "hidden";
   modalPlaybackIndex = -1;
+  syncPlaybackControlState();
 }
 
 // FULLSCREEN BUTTON
@@ -1100,181 +1745,146 @@ function openPlayback(id) {
 
   if (!rec) return;
 
+  activeInlinePlaybackId = rec.id;
+  renderPlayback();
+  loadPlaybackScript(rec.id);
   modalPlaybackIndex = recordings.findIndex((r) => String(r.id) === String(id));
+  const watch = document.getElementById("playback-watch");
+  const video = document.getElementById("pw-video");
+  const empty = document.getElementById("pw-empty");
+  const titleEl = document.getElementById("pw-title");
+  const subEl = document.getElementById("pw-sub");
+  const downloadBtn = document.getElementById("pw-download-btn");
 
-  if (activeHls) {
-    activeHls.destroy();
-    activeHls = null;
+  if (!watch || !video || !empty || !titleEl || !subEl || !downloadBtn) return;
+  const requestToken = ++inlinePlaybackRequestToken;
+
+  watch.style.display = "block";
+  titleEl.textContent = rec.title || "Playback";
+  const aiLine = rec.aiSummary ? ` · ${rec.aiSummary.slice(0, 120)}${rec.aiSummary.length > 120 ? "…" : ""}` : "";
+  subEl.textContent = `${rec.resident || "Unknown"} · ${rec.date || "Unknown date"} · ${rec.type || "Recording"}${aiLine}`;
+
+  if (window._inlineBlobUrl) {
+    URL.revokeObjectURL(window._inlineBlobUrl);
+    window._inlineBlobUrl = null;
   }
 
-  clearInterval(window._modalTick);
+  video.pause();
+  video.removeAttribute("src");
+  video.load();
+  video.playbackRate = 1;
+  video.volume = 1;
+  video.muted = false;
+  empty.style.display = "none";
+  downloadBtn.href = "#";
+  syncInlinePlaybackControls();
 
-  const titleEl = document.getElementById("vm-title");
-  const cameraEl = document.getElementById("vm-camera");
-  const residentEl = document.getElementById("vm-resident");
-  const dateEl = document.getElementById("vm-date");
-  const typeEl = document.getElementById("vm-type");
-  const statusEl = document.getElementById("vm-status");
-  const fillEl = document.getElementById("vm-progress-fill");
-  const timeEl = document.getElementById("vm-time");
-
-  if (titleEl) titleEl.textContent = rec.title;
-  if (cameraEl) cameraEl.textContent = rec.title;
-  if (residentEl) residentEl.textContent = rec.resident;
-  if (dateEl) dateEl.textContent = rec.date;
-  if (typeEl) typeEl.textContent = rec.type;
-  if (statusEl) statusEl.textContent = "▶ Playback";
-  if (fillEl) fillEl.style.width = "0%";
-  if (timeEl) timeEl.textContent = "00:00 / " + rec.duration;
-
-  const screenEl = document.querySelector(".vm-screen-inner");
-
-  if (!screenEl) return;
-
-  function _attachVideoSrc(src, mimeType) {
-    // Fix ERR_FILE_NOT_FOUND: do not revoke the same blob URL before the video loads.
-    if (
-      window._modalBlobUrl &&
-      String(window._modalBlobUrl).startsWith("blob:") &&
-      window._modalBlobUrl !== src
-    ) {
-      URL.revokeObjectURL(window._modalBlobUrl);
-    }
-
-    if (String(src).startsWith("blob:")) {
-      window._modalBlobUrl = src;
-    } else {
-      window._modalBlobUrl = null;
-    }
-
-    const video = document.createElement("video");
-    video.style.cssText = "width:100%;height:100%;object-fit:cover;display:block;background:#0b1220;";
-    video.controls = false;
-    video.preload = "metadata";
-    video.playsInline = true;
-    video.src = src;
-
-    if (mimeType) {
-      video.setAttribute("type", mimeType);
-    }
-
-    screenEl.innerHTML = "";
-    screenEl.appendChild(video);
-
-    video.addEventListener("loadedmetadata", () => {
-      console.log("[playback] video metadata loaded");
-    });
-
-    video.addEventListener("error", () => {
-      console.error("[playback] video error:", video.error);
-      _showNoSource("Video source could not be loaded");
-    });
-
-    video.addEventListener("timeupdate", () => {
-      if (!video.duration) return;
-
-      const pct = (video.currentTime / video.duration) * 100;
-      const fill = document.getElementById("vm-progress-fill");
-      const time = document.getElementById("vm-time");
-
-      if (fill) fill.style.width = pct + "%";
-
-      const fmt = (s) =>
-        `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
-
-      if (time) {
-        time.textContent = `${fmt(video.currentTime)} / ${fmt(video.duration)}`;
-      }
-    });
-
-    window._modalVideo = video;
-  }
-
-  function _showNoSource(msg) {
-    window._modalVideo = null;
-    screenEl.innerHTML = `
-      <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#0b1220;color:#94a3b8;">
+  const setUnavailable = (msg, withUnlockAction = false) => {
+    if (withUnlockAction) {
+      empty.innerHTML = `
         <div style="text-align:center;">
-          <div style="font-size:18px;margin-bottom:10px;">&#x1F512;</div>
-          <div style="font-size:14px;font-weight:700;margin-bottom:6px;">${msg}</div>
-          <div style="font-size:12px;color:#64748b;">Unlock the vault first, then open this recording.</div>
+          <div style="font-size:14px;font-weight:700;margin-bottom:8px;">${escapeHtml(msg)}</div>
+          <button
+            type="button"
+            id="pw-unlock-play-btn"
+            style="padding:8px 12px;border-radius:8px;border:none;background:#0ea5e9;color:#fff;font-size:12px;font-weight:700;cursor:pointer;"
+          >
+            Unlock & Play
+          </button>
         </div>
-      </div>`;
-  }
-
-  if (rec.fileUrl && rec.fileUrl !== "#") {
-    if (String(rec.fileUrl).startsWith("localvault://")) {
-      const vault = window.recordingVault;
-      const recordId = rec.fileUrl.replace("localvault://", "");
-
-      if (!vault || !vault.vaultIsUnlocked()) {
-        _showNoSource("Vault is locked");
-      } else {
-        screenEl.innerHTML = `
-          <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#0b1220;color:#94a3b8;">
-            <div style="text-align:center;font-size:13px;font-weight:600;">&#x1F513; Decrypting recording…</div>
-          </div>`;
-
-        window._modalVideo = null;
-
-        (async () => {
+      `;
+      const btn = document.getElementById("pw-unlock-play-btn");
+      if (btn) {
+        btn.addEventListener("click", async () => {
           try {
-            const all = await vault.vaultListRecordings();
-            console.log("[vault] total entries:", all.length);
-
-            const entry = all.find((v) => v.id === recordId);
-            console.log("[vault] recordId:", recordId, "entry found:", !!entry);
-
-            if (!entry) {
-              _showNoSource("Recording not found in vault");
+            const vault = window.recordingVault;
+            if (!vault?.vaultHasPassword || !vault?.vaultUnlock || !vault?.vaultSetPassword) {
+              _showToast("⚠ Vault module is not loaded.");
               return;
             }
-
-            console.log(
-              "[vault] ivB64 length:",
-              entry.ivB64 ? entry.ivB64.length : 0,
-              "cipherB64 length:",
-              entry.cipherB64 ? entry.cipherB64.length : 0
-            );
-
-            const plain = await vault.vaultDecryptToArrayBuffer(entry.ivB64, entry.cipherB64);
-            console.log("[vault] decrypted bytes:", plain.byteLength);
-
-            const mime = entry.mimeType || "video/webm";
-            const blob = new Blob([plain], { type: mime });
-            const blobUrl = URL.createObjectURL(blob);
-
-            console.log("[vault] blobUrl:", blobUrl);
-
-            _attachVideoSrc(blobUrl, mime);
-          } catch (err) {
-            console.error("[vault] decrypt failed:", err);
-            _showNoSource("Failed to decrypt recording");
+            const hasPassword = await vault.vaultHasPassword();
+            if (!hasPassword) {
+              const newPass = prompt("Set a new vault password (minimum 8 characters):");
+              if (!newPass) return;
+              if (String(newPass).length < 8) {
+                _showToast("⚠ Password must be at least 8 characters.");
+                return;
+              }
+              await vault.vaultSetPassword(newPass);
+            } else {
+              const pass = prompt("Enter vault password to unlock recording:");
+              if (!pass) return;
+              await vault.vaultUnlock(pass);
+            }
+            _showToast("🔓 Vault unlocked");
+            openPlayback(rec.id);
+          } catch (e) {
+            console.warn("Inline unlock failed:", e);
+            _showToast("⚠ Vault unlock failed.");
           }
-        })();
+        });
       }
     } else {
-      _attachVideoSrc(rec.fileUrl, null);
+      empty.textContent = msg;
     }
-  } else {
-    window._modalVideo = null;
-    screenEl.innerHTML = `
-      <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#0b1220;color:#94a3b8;">
-        <div style="text-align:center;">
-          <div style="font-size:14px;font-weight:700;margin-bottom:6px;">No playback source</div>
-          <div style="font-size:12px;">This record does not have a playable URL.</div>
-        </div>
-      </div>`;
+    empty.style.display = "flex";
+  };
+
+  const attachSrc = (src) => {
+    if (requestToken !== inlinePlaybackRequestToken) return;
+    video.src = src;
+    downloadBtn.href = src;
+    video.play().catch(() => {});
+    syncInlinePlaybackControls();
+  };
+
+  if (!rec.fileUrl || rec.fileUrl === "#") {
+    setUnavailable("No playback source for this recording.");
+    return;
   }
 
-  const modal = document.getElementById("modal-video");
+  if (String(rec.fileUrl).startsWith("localvault://")) {
+    const vault = window.recordingVault;
+    const recordId = rec.fileUrl.replace("localvault://", "");
 
-  if (modal) {
-    modal.classList.add("open");
+    if (!vault || !vault.vaultIsUnlocked()) {
+      setUnavailable("Vault is locked. Unlock vault to play this recording.", true);
+      return;
+    }
+
+    empty.textContent = "Decrypting recording...";
+    empty.style.display = "flex";
+
+    (async () => {
+      try {
+        const all = await vault.vaultListRecordings();
+        const entry = all.find((v) => v.id === recordId);
+        if (!entry) {
+          setUnavailable("Recording not found in local vault.");
+          return;
+        }
+
+        const plain = await vault.vaultDecryptToArrayBuffer(entry.ivB64, entry.cipherB64);
+        const mime = entry.mimeType || "video/webm";
+        const blob = new Blob([plain], { type: mime });
+        const blobUrl = URL.createObjectURL(blob);
+        window._inlineBlobUrl = blobUrl;
+        if (requestToken !== inlinePlaybackRequestToken) {
+          URL.revokeObjectURL(blobUrl);
+          return;
+        }
+        empty.style.display = "none";
+        attachSrc(blobUrl);
+      } catch (err) {
+        console.error("Inline vault playback failed:", err);
+        setUnavailable("Failed to decrypt this recording.");
+      }
+    })();
+
+    return;
   }
 
-  document.body.style.overflow = "hidden";
-  isPlaying = false;
+  attachSrc(rec.fileUrl);
 }
 
 // CLOSE MODAL
@@ -1305,6 +1915,44 @@ function closeModal() {
     URL.revokeObjectURL(window._modalBlobUrl);
     window._modalBlobUrl = null;
   }
+
+  syncPlaybackControlState();
+}
+
+function _setPlayIcon(playing) {
+  const icon = document.getElementById("vm-play-icon");
+  if (!icon) return;
+  icon.innerHTML = playing
+    ? '<rect x="6" y="4" width="4" height="16" fill="white"/><rect x="14" y="4" width="4" height="16" fill="white"/>'
+    : '<polygon points="5 3 19 12 5 21 5 3" fill="white" stroke="none"/>';
+}
+
+function _setMuteIcon(muted) {
+  const icon = document.getElementById("vm-mute-icon");
+  if (!icon) return;
+  icon.innerHTML = muted
+    ? '<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="16" y1="8" x2="22" y2="14"/><line x1="22" y1="8" x2="16" y2="14"/>'
+    : '<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/>';
+}
+
+function syncPlaybackControlState() {
+  const video = window._modalVideo;
+  const speedEl = document.getElementById("vm-speed");
+  const volumeEl = document.getElementById("vm-volume");
+
+  if (!video) {
+    _setPlayIcon(false);
+    _setMuteIcon(false);
+    if (speedEl) speedEl.value = "1";
+    if (volumeEl) volumeEl.value = "1";
+    return;
+  }
+
+  _setPlayIcon(!video.paused);
+  _setMuteIcon(video.muted || video.volume === 0);
+
+  if (speedEl) speedEl.value = String(video.playbackRate || 1);
+  if (volumeEl) volumeEl.value = String(video.muted ? 0 : video.volume ?? 1);
 }
 
 const modalVideoEl = document.getElementById("modal-video");
@@ -1319,8 +1967,6 @@ if (modalVideoEl) {
 
 // TOGGLE PLAY
 function togglePlay() {
-  const icon = document.getElementById("vm-play-icon");
-
   if (window._modalVideo) {
     if (window._modalVideo.paused) {
       window._modalVideo.play();
@@ -1330,11 +1976,7 @@ function togglePlay() {
       isPlaying = false;
     }
 
-    if (icon) {
-      icon.innerHTML = isPlaying
-        ? '<rect x="6" y="4" width="4" height="16" fill="white"/><rect x="14" y="4" width="4" height="16" fill="white"/>'
-        : '<polygon points="5 3 19 12 5 21 5 3" fill="white" stroke="none"/>';
-    }
+    _setPlayIcon(isPlaying);
 
     return;
   }
@@ -1342,9 +1984,7 @@ function togglePlay() {
   isPlaying = !isPlaying;
 
   if (isPlaying) {
-    if (icon) {
-      icon.innerHTML = '<rect x="6" y="4" width="4" height="16" fill="white"/><rect x="14" y="4" width="4" height="16" fill="white"/>';
-    }
+    _setPlayIcon(true);
 
     progressInterval = setInterval(() => {
       const fill = document.getElementById("vm-progress-fill");
@@ -1362,11 +2002,32 @@ function togglePlay() {
       fill.style.width = w + 0.25 + "%";
     }, 100);
   } else {
-    if (icon) {
-      icon.innerHTML = '<polygon points="5 3 19 12 5 21 5 3" fill="white" stroke="none"/>';
-    }
+    _setPlayIcon(false);
 
     clearInterval(progressInterval);
+  }
+}
+
+function seekRelative(seconds) {
+  const video = window._modalVideo;
+  if (!video || !video.duration) return;
+  const nextTime = Math.max(0, Math.min(video.duration, video.currentTime + seconds));
+  video.currentTime = nextTime;
+}
+
+function toggleMute() {
+  const video = window._modalVideo;
+  const volumeEl = document.getElementById("vm-volume");
+
+  if (!video) return;
+
+  video.muted = !video.muted;
+  _setMuteIcon(video.muted || video.volume === 0);
+
+  if (volumeEl && !video.muted) {
+    volumeEl.value = String(video.volume || 1);
+  } else if (volumeEl && video.muted) {
+    volumeEl.value = "0";
   }
 }
 
@@ -1459,6 +2120,24 @@ if (alertsTopBtn) {
 const prevBtn = document.getElementById("vm-prev-btn");
 const nextBtn = document.getElementById("vm-next-btn");
 const fullscreenBtn = document.getElementById("vm-fullscreen-btn");
+const rewindBtn = document.getElementById("vm-rewind-btn");
+const forwardBtn = document.getElementById("vm-forward-btn");
+const muteBtn = document.getElementById("vm-mute-btn");
+const pipBtn = document.getElementById("vm-pip-btn");
+const speedSel = document.getElementById("vm-speed");
+const volumeSlider = document.getElementById("vm-volume");
+const inlineCloseBtn = document.getElementById("pw-close-btn");
+const inlineVideo = document.getElementById("pw-video");
+const inlinePlayBtn = document.getElementById("pw-playpause-btn");
+const inlineRewindBtn = document.getElementById("pw-rewind-btn");
+const inlineForwardBtn = document.getElementById("pw-forward-btn");
+const inlineProgress = document.getElementById("pw-progress");
+const inlineMuteBtn = document.getElementById("pw-mute-btn");
+const inlineVolume = document.getElementById("pw-volume");
+const inlineSpeed = document.getElementById("pw-speed");
+const inlinePip = document.getElementById("pw-pip-btn");
+const inlineFs = document.getElementById("pw-fullscreen-btn");
+const inlineSnapshot = document.getElementById("pw-snapshot-btn");
 
 if (prevBtn) {
   prevBtn.addEventListener("click", () => {
@@ -1490,10 +2169,273 @@ if (fullscreenBtn) {
   });
 }
 
+if (rewindBtn) {
+  rewindBtn.addEventListener("click", () => {
+    seekRelative(-MODAL_SKIP_SECONDS);
+  });
+}
+
+if (forwardBtn) {
+  forwardBtn.addEventListener("click", () => {
+    seekRelative(MODAL_SKIP_SECONDS);
+  });
+}
+
+if (muteBtn) {
+  muteBtn.addEventListener("click", toggleMute);
+}
+
+if (speedSel) {
+  speedSel.addEventListener("change", () => {
+    const video = window._modalVideo;
+    const speed = Number(speedSel.value);
+    if (video && Number.isFinite(speed) && speed > 0) {
+      video.playbackRate = speed;
+    }
+  });
+}
+
+if (volumeSlider) {
+  volumeSlider.addEventListener("input", () => {
+    const video = window._modalVideo;
+    const vol = Number(volumeSlider.value);
+    if (!video || !Number.isFinite(vol)) return;
+    video.volume = Math.max(0, Math.min(1, vol));
+    video.muted = video.volume === 0;
+    _setMuteIcon(video.muted);
+  });
+}
+
+if (pipBtn) {
+  pipBtn.addEventListener("click", async () => {
+    const video = window._modalVideo;
+    if (!video || typeof video.requestPictureInPicture !== "function") return;
+    try {
+      if (document.pictureInPictureElement) {
+        await document.exitPictureInPicture();
+      } else {
+        await video.requestPictureInPicture();
+      }
+    } catch (e) {
+      console.warn("Picture-in-picture failed:", e);
+    }
+  });
+}
+
+if (inlineCloseBtn) {
+  inlineCloseBtn.addEventListener("click", () => {
+    const watch = document.getElementById("playback-watch");
+    const video = document.getElementById("pw-video");
+    const empty = document.getElementById("pw-empty");
+    if (video) {
+      video.pause();
+      video.removeAttribute("src");
+      video.load();
+    }
+    if (window._inlineBlobUrl) {
+      URL.revokeObjectURL(window._inlineBlobUrl);
+      window._inlineBlobUrl = null;
+    }
+    if (empty) {
+      empty.textContent = "Select a recording to start playback.";
+      empty.style.display = "flex";
+    }
+    if (watch) watch.style.display = "none";
+    activeInlinePlaybackId = null;
+    inlinePlaybackRequestToken += 1;
+    renderPlayback();
+  });
+}
+
+if (inlineVideo) {
+  inlineVideo.addEventListener("play", syncInlinePlaybackControls);
+  inlineVideo.addEventListener("pause", syncInlinePlaybackControls);
+  inlineVideo.addEventListener("timeupdate", syncInlinePlaybackControls);
+  inlineVideo.addEventListener("loadedmetadata", syncInlinePlaybackControls);
+  inlineVideo.addEventListener("volumechange", syncInlinePlaybackControls);
+  inlineVideo.addEventListener("ratechange", syncInlinePlaybackControls);
+  inlineVideo.addEventListener("ended", () => {
+    if (modalPlaybackIndex >= 0 && modalPlaybackIndex < recordings.length - 1) {
+      openPlayback(recordings[modalPlaybackIndex + 1].id);
+    }
+  });
+}
+
+if (inlinePlayBtn) {
+  inlinePlayBtn.addEventListener("click", () => {
+    if (!inlineVideo) return;
+    if (inlineVideo.paused) inlineVideo.play().catch(() => {});
+    else inlineVideo.pause();
+  });
+}
+
+if (inlineRewindBtn) {
+  inlineRewindBtn.addEventListener("click", () => {
+    if (!inlineVideo) return;
+    inlineVideo.currentTime = Math.max(0, (inlineVideo.currentTime || 0) - MODAL_SKIP_SECONDS);
+  });
+}
+
+if (inlineForwardBtn) {
+  inlineForwardBtn.addEventListener("click", () => {
+    if (!inlineVideo || !inlineVideo.duration) return;
+    inlineVideo.currentTime = Math.min(inlineVideo.duration, (inlineVideo.currentTime || 0) + MODAL_SKIP_SECONDS);
+  });
+}
+
+if (inlineProgress) {
+  inlineProgress.addEventListener("input", () => {
+    if (!inlineVideo || !inlineVideo.duration) return;
+    const pct = Number(inlineProgress.value) / 100;
+    inlineVideo.currentTime = pct * inlineVideo.duration;
+  });
+}
+
+if (inlineMuteBtn) {
+  inlineMuteBtn.addEventListener("click", () => {
+    if (!inlineVideo) return;
+    inlineVideo.muted = !inlineVideo.muted;
+    syncInlinePlaybackControls();
+  });
+}
+
+if (inlineVolume) {
+  inlineVolume.addEventListener("input", () => {
+    if (!inlineVideo) return;
+    const val = Math.max(0, Math.min(1, Number(inlineVolume.value)));
+    inlineVideo.volume = val;
+    inlineVideo.muted = val === 0;
+    syncInlinePlaybackControls();
+  });
+}
+
+if (inlineSpeed) {
+  inlineSpeed.addEventListener("change", () => {
+    if (!inlineVideo) return;
+    const val = Number(inlineSpeed.value);
+    if (Number.isFinite(val) && val > 0) {
+      inlineVideo.playbackRate = val;
+    }
+  });
+}
+
+if (inlinePip) {
+  inlinePip.addEventListener("click", async () => {
+    if (!inlineVideo || typeof inlineVideo.requestPictureInPicture !== "function") return;
+    try {
+      if (document.pictureInPictureElement) await document.exitPictureInPicture();
+      else await inlineVideo.requestPictureInPicture();
+    } catch (e) {
+      console.warn("Inline PiP failed:", e);
+    }
+  });
+}
+
+if (inlineFs) {
+  inlineFs.addEventListener("click", async () => {
+    const wrap = document.querySelector(".pw-video-wrap");
+    if (!wrap) return;
+    try {
+      if (document.fullscreenElement) await document.exitFullscreen?.();
+      else if (wrap.requestFullscreen) await wrap.requestFullscreen();
+    } catch (e) {
+      console.warn("Inline fullscreen failed:", e);
+    }
+  });
+}
+
+if (inlineSnapshot) {
+  inlineSnapshot.addEventListener("click", () => {
+    if (!inlineVideo || !inlineVideo.videoWidth || !inlineVideo.videoHeight) {
+      _showToast("⚠ Video frame not ready for snapshot.");
+      return;
+    }
+
+    try {
+      const canvas = document.createElement("canvas");
+      canvas.width = inlineVideo.videoWidth;
+      canvas.height = inlineVideo.videoHeight;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        _showToast("⚠ Snapshot failed.");
+        return;
+      }
+
+      ctx.drawImage(inlineVideo, 0, 0, canvas.width, canvas.height);
+      const a = document.createElement("a");
+      a.href = canvas.toDataURL("image/png");
+      a.download = `snapshot_${Date.now()}.png`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      _showToast("📸 Snapshot captured");
+    } catch (e) {
+      console.warn("Snapshot capture failed:", e);
+      _showToast("⚠ Snapshot blocked (cross-origin video).");
+    }
+  });
+}
+
+document.addEventListener("keydown", (event) => {
+  const modalOpen = document.getElementById("modal-video")?.classList.contains("open");
+  const inlineOpen = document.getElementById("playback-watch")?.style.display !== "none";
+  if (!modalOpen && !inlineOpen) return;
+  if (event.target && ["INPUT", "TEXTAREA", "SELECT"].includes(event.target.tagName)) return;
+
+  if (inlineOpen && !modalOpen) {
+    const video = document.getElementById("pw-video");
+    if (!video) return;
+
+    if (event.key.toLowerCase() === "k" || event.code === "Space") {
+      event.preventDefault();
+      if (video.paused) video.play().catch(() => {});
+      else video.pause();
+    } else if (event.key.toLowerCase() === "j" || event.code === "ArrowLeft") {
+      event.preventDefault();
+      video.currentTime = Math.max(0, (video.currentTime || 0) - MODAL_SKIP_SECONDS);
+    } else if (event.key.toLowerCase() === "l" || event.code === "ArrowRight") {
+      event.preventDefault();
+      if (video.duration) {
+        video.currentTime = Math.min(video.duration, (video.currentTime || 0) + MODAL_SKIP_SECONDS);
+      }
+    } else if (event.key.toLowerCase() === "m") {
+      event.preventDefault();
+      video.muted = !video.muted;
+      syncInlinePlaybackControls();
+    } else if (event.key.toLowerCase() === "f") {
+      event.preventDefault();
+      inlineFs?.click();
+    }
+    return;
+  }
+
+  if (event.code === "Space") {
+    event.preventDefault();
+    togglePlay();
+  } else if (event.code === "ArrowLeft") {
+    event.preventDefault();
+    seekRelative(-MODAL_SKIP_SECONDS);
+  } else if (event.code === "ArrowRight") {
+    event.preventDefault();
+    seekRelative(MODAL_SKIP_SECONDS);
+  } else if (event.key.toLowerCase() === "m") {
+    event.preventDefault();
+    toggleMute();
+  } else if (event.key.toLowerCase() === "f") {
+    event.preventDefault();
+    fullscreenBtn?.click();
+  }
+});
+
 // BEFORE UNLOAD
 window.addEventListener("beforeunload", () => {
   for (const stream of localCamStreams.values()) {
     stream.getTracks().forEach((t) => t.stop());
+  }
+
+  if (window._inlineBlobUrl) {
+    URL.revokeObjectURL(window._inlineBlobUrl);
+    window._inlineBlobUrl = null;
   }
 });
 
@@ -1547,6 +2489,13 @@ function setRcStatus(id, message, type) {
 }
 
 // VAULT UNLOCK
+async function ensureVaultUnlockedForConsole() {
+  if (window.recordingVault?.vaultIsUnlocked?.()) return true;
+  _showToast("Unlock the vault first.");
+  unlockVaultFromConsole();
+  return false;
+}
+
 async function unlockVaultFromConsole() {
   setRcStatus("vault-unlock-status", "", "");
 
@@ -1635,14 +2584,24 @@ async function deleteAllVaultRecordingsFromConsole() {
     return;
   }
 
+  if (!(await ensureVaultUnlockedForConsole())) {
+    setRcStatus("vault-delete-status", "Unlock the vault first, then delete.", "err");
+    return;
+  }
+
   openRcModal("vault-delete-modal");
 }
 
 async function submitDeleteVaultModal() {
   const confirmText = document.getElementById("vault-delete-confirm")?.value?.trim();
 
-  if (confirmText !== "DELETE") {
-    setRcStatus("vault-delete-status", "Type DELETE to confirm this action.", "err");
+  if (confirmText !== DELETE_CONFIRM_WORD) {
+    setRcStatus("vault-delete-status", `Type ${DELETE_CONFIRM_WORD} to confirm this action.`, "err");
+    return;
+  }
+
+  if (!(await ensureVaultUnlockedForConsole())) {
+    setRcStatus("vault-delete-status", "Vault is locked. Unlock first.", "err");
     return;
   }
 
@@ -1660,23 +2619,14 @@ async function submitDeleteVaultModal() {
     let serverDeleted = 0;
 
     try {
-      const res = await fetch(`${API_BASE}/records/?record_type=video&limit=200`, {
+      const res = await fetch(`${API_BASE}/records/bulk/all`, {
+        method: "DELETE",
         headers: authHeaders(),
       });
-
+      if (handleUnauthorizedResponse(res)) return;
       if (res.ok) {
-        const serverRows = await res.json();
-
-        for (const r of Array.isArray(serverRows) ? serverRows : []) {
-          if (!String(r?.file_url || "").startsWith("localvault://")) continue;
-
-          const d = await fetch(`${API_BASE}/records/${encodeURIComponent(r.id)}`, {
-            method: "DELETE",
-            headers: authHeaders(),
-          });
-
-          if (d.ok) serverDeleted += 1;
-        }
+        const data = await res.json();
+        serverDeleted = Number(data.deleted) || 0;
       }
     } catch (_) {}
 
@@ -1965,10 +2915,23 @@ function startRecording(deviceId, cam) {
   }
 
   const chunks = [];
+  let segmentFlushing = false;
 
   recorder.ondataavailable = (e) => {
     if (e.data.size > 0) {
       chunks.push(e.data);
+      const active = _activeRecorders.get(deviceId);
+      if (!active) return;
+      const nowMs = Date.now();
+      const segMs = nowMs - active.segmentStartMs;
+      if (!segmentFlushing && segMs >= SCVA_ANALYSIS_CHUNK_SECONDS * 1000) {
+        segmentFlushing = true;
+        _queueSegmentUpload(deviceId, cam, { isFinal: false })
+          .catch((err) => console.warn("Rolling segment upload failed:", err))
+          .finally(() => {
+            segmentFlushing = false;
+          });
+      }
     }
   };
 
@@ -1983,6 +2946,12 @@ function startRecording(deviceId, cam) {
     recorder,
     chunks,
     startTime: new Date().toISOString(),
+    startMs: Date.now(),
+    segmentStartMs: Date.now(),
+    segmentStartIso: new Date().toISOString(),
+    segmentIndex: 0,
+    uploadQueue: Promise.resolve(),
+    uploadedSegments: 0,
     camId: cam.id,
     camTitle: cam.title,
   });
@@ -2000,19 +2969,18 @@ async function stopRecording(deviceId, cam) {
 
   return new Promise((resolve) => {
     rec.recorder.onstop = async () => {
+      _showToast("⏹ Recording stopped — processing…");
+      try {
+        await _queueSegmentUpload(deviceId, cam, { isFinal: true });
+        await rec.uploadQueue;
+      } catch (err) {
+        console.warn("Final segment flush failed:", err);
+      }
+      const totalDurationSec = Math.max(1, Math.round((Date.now() - rec.startMs) / 1000));
       _activeRecorders.delete(deviceId);
       _updateRecordBtn(deviceId, false);
-
-      const blob = new Blob(rec.chunks, {
-        type: rec.recorder.mimeType || "video/webm",
-      });
-
-      const endedAt = new Date().toISOString();
-
-      _showToast("⏹ Recording stopped — processing…");
-
-      await _processPipeline(blob, rec, endedAt, cam);
-
+      await loadPlayback();
+      _showPipelineComplete(cam.title, totalDurationSec, "");
       resolve();
     };
 
@@ -2025,6 +2993,140 @@ async function stopRecording(deviceId, cam) {
       resolve();
     }
   });
+}
+
+async function _queueSegmentUpload(deviceId, cam, { isFinal = false } = {}) {
+  const rec = _activeRecorders.get(deviceId);
+  if (!rec) return;
+  const endedAtIso = new Date().toISOString();
+  const segmentChunks = rec.chunks.splice(0, rec.chunks.length);
+  if (!segmentChunks.length) return;
+
+  const blob = new Blob(segmentChunks, {
+    type: rec.recorder.mimeType || "video/webm",
+  });
+  const startedAtIso = rec.segmentStartIso || rec.startTime;
+  const durationMs = Math.max(1, new Date(endedAtIso) - new Date(startedAtIso));
+  const segmentNo = rec.segmentIndex + 1;
+  rec.segmentIndex = segmentNo;
+  rec.segmentStartMs = Date.now();
+  rec.segmentStartIso = endedAtIso;
+
+  rec.uploadQueue = rec.uploadQueue.then(async () => {
+    await _uploadRecordingSegment({
+      blob,
+      rec,
+      cam,
+      startedAt: startedAtIso,
+      endedAt: endedAtIso,
+      durationMs,
+      segmentNo,
+      isFinal,
+    });
+    rec.uploadedSegments += 1;
+  });
+  return rec.uploadQueue;
+}
+
+async function _uploadRecordingSegment({
+  blob,
+  rec,
+  cam,
+  startedAt,
+  endedAt,
+  durationMs,
+  segmentNo,
+  isFinal,
+}) {
+  const durationSec = Math.max(1, Math.round(durationMs / 1000));
+  const analyzeThisSegment =
+    isCameraAiEnabled(getCameraAiKey(cam)) && durationSec >= SCVA_MIN_AI_SECONDS;
+  const recordId = `rec_${Date.now()}_${Math.random().toString(36).slice(2, 8)}_s${segmentNo}`;
+
+  const arrBuf = await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsArrayBuffer(blob);
+  });
+
+  let ivB64 = "";
+  let cipherB64 = "";
+  try {
+    const vault = window.recordingVault;
+    if (vault && vault.vaultIsUnlocked()) {
+      const encrypted = await vault.vaultEncryptArrayBuffer(arrBuf.slice(0));
+      ivB64 = encrypted.ivB64;
+      cipherB64 = encrypted.cipherB64;
+      await vault.vaultSaveRecording({
+        id: recordId,
+        ivB64,
+        cipherB64,
+        mimeType: blob.type || "video/webm",
+        cameraLabel: `${cam.title} (segment ${segmentNo})`,
+        startedAt,
+        endedAt,
+        durationMs,
+        sizePlain: blob.size,
+      });
+    }
+  } catch (e) {
+    console.warn("Vault save failed:", e);
+  }
+
+  try {
+    let rawB64 = "";
+    if (window.recordingVault?.bufToB64) {
+      rawB64 = window.recordingVault.bufToB64(new Uint8Array(arrBuf.slice(0)));
+    }
+
+    const payload = {
+      record_id: recordId,
+      file_url: `localvault://${recordId}`,
+      resident_name: cam.resident || "This device",
+      category: `${cam.title || "Camera Recording"} (segment ${segmentNo})`,
+      record_type: "video",
+      mime_type: blob.type || "video/webm",
+      duration: durationSec,
+      started_at: startedAt,
+      ended_at: endedAt,
+      iv_b64: ivB64 || "none",
+      cipher_b64: cipherB64 || rawB64 || "",
+      ai_plain_b64: rawB64 || "",
+      ai_analyze: analyzeThisSegment,
+      room: cam.floor || "Local",
+      camera_id: String(cam.id || cam.deviceId || "local-camera"),
+      notes: `Auto-recorded from ${cam.title} (segment ${segmentNo})`,
+    };
+
+    const res = await fetch(API_BASE + "/records/vault/upload", {
+      method: "POST",
+      headers: authHeaders(),
+      body: JSON.stringify(payload),
+    });
+    if (handleUnauthorizedResponse(res)) return;
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(text || `Upload failed (${res.status})`);
+    }
+
+    const uploaded = await res.json();
+    if (uploaded?.record_id) {
+      rec.serverRecordId = uploaded.record_id;
+    }
+
+    if (analyzeThisSegment) {
+      _showToast(`💾 Segment ${segmentNo} uploaded + AI queued`);
+    } else if (isFinal) {
+      _showToast("💾 Segment saved (AI off for this clip)");
+    }
+    loadPlayback().catch(() => {});
+  } catch (e) {
+    console.warn("Record upload failed:", e);
+    if (String(e?.message || e).includes("401")) {
+      _showToast("⚠ Log in required — clip saved locally only (no SCVAM)");
+    }
+  }
 }
 
 function _updateRecordBtn(deviceId, isRecording) {
@@ -2104,7 +3206,7 @@ async function _processPipeline(blob, rec, endedAt, cam) {
   try {
     let rawB64 = "";
 
-    if (!cipherB64 && window.recordingVault?.bufToB64) {
+    if (window.recordingVault?.bufToB64) {
       rawB64 = window.recordingVault.bufToB64(new Uint8Array(arrBuf.slice(0)));
     }
 
@@ -2119,6 +3221,10 @@ async function _processPipeline(blob, rec, endedAt, cam) {
       ended_at: endedAt,
       iv_b64: ivB64 || "none",
       cipher_b64: cipherB64 || rawB64 || "",
+      ai_plain_b64: rawB64 || "",
+      ai_analyze: true,
+      room: cam.floor || "Local",
+      camera_id: String(cam.id || cam.deviceId || "local-camera"),
       notes: "Auto-recorded from " + cam.title,
     };
 
@@ -2258,125 +3364,13 @@ function _showPipelineComplete(camTitle, durationSec, transcript) {
   });
 }
 
-// UPLOAD VIDEO
-async function submitUploadVideoModal() {
-  const fileInput    = document.getElementById("upload-video-file");
-  const residentEl   = document.getElementById("upload-video-resident");
-  const titleEl      = document.getElementById("upload-video-title");
-  const notesEl      = document.getElementById("upload-video-notes");
-  const submitBtn    = document.getElementById("upload-video-submit");
-  const progressWrap = document.getElementById("upload-video-progress");
-  const progressBar  = document.getElementById("upload-video-bar");
-  const progressPct  = document.getElementById("upload-video-pct");
-
-  const file     = fileInput?.files?.[0];
-  const resident = residentEl?.value.trim() || "Unknown";
-  const title    = titleEl?.value.trim() || (file?.name ?? "Video Recording");
-
-  if (!file) {
-    setRcStatus("upload-video-status", "Please select a video file first.", "err");
-    return;
-  }
-
-  const token = sessionStorage.getItem("access_token");
-
-  submitBtn.disabled = true;
-  submitBtn.textContent = "Uploading…";
-  progressWrap.style.display = "block";
-  progressBar.style.width = "0%";
-  progressPct.textContent = "0%";
-  setRcStatus("upload-video-status", "", "");
-
-  // Step 1: upload file via XHR to track progress
-  let fileUrl;
-  try {
-    fileUrl = await new Promise((resolve, reject) => {
-      const form = new FormData();
-      form.append("file", file);
-
-      const xhr = new XMLHttpRequest();
-      xhr.open("POST", `${API_BASE}/uploads/file`);
-      if (token) xhr.setRequestHeader("Authorization", `Bearer ${token}`);
-
-      xhr.upload.onprogress = (e) => {
-        if (!e.lengthComputable) return;
-        const pct = Math.round((e.loaded / e.total) * 80);
-        progressBar.style.width = pct + "%";
-        progressPct.textContent = pct + "%";
-      };
-
-      xhr.onload = () => {
-        if (xhr.status === 201 || xhr.status === 200) {
-          try {
-            resolve(JSON.parse(xhr.responseText).url);
-          } catch {
-            reject(new Error("Invalid server response"));
-          }
-        } else {
-          reject(new Error(`Upload failed (${xhr.status}): ${xhr.responseText}`));
-        }
-      };
-
-      xhr.onerror = () => reject(new Error("Network error — upload failed."));
-      xhr.send(form);
-    });
-  } catch (err) {
-    setRcStatus("upload-video-status", `File upload failed: ${err.message}`, "err");
-    submitBtn.disabled = false;
-    submitBtn.textContent = "Upload & Save";
-    return;
-  }
-
-  progressBar.style.width = "90%";
-  progressPct.textContent = "90%";
-
-  // Step 2: create record
-  try {
-    const res = await fetch(`${API_BASE}/records/`, {
-      method: "POST",
-      headers: authHeaders(),
-      body: JSON.stringify({
-        resident_name: resident,
-        category:      title,
-        record_type:   "video",
-        file_url:      fileUrl,
-        notes:         notesEl?.value.trim() || "",
-      }),
-    });
-
-    if (!res.ok) {
-      const text = await res.text().catch(() => "");
-      throw new Error(text || `HTTP ${res.status}`);
-    }
-  } catch (err) {
-    setRcStatus("upload-video-status", `Failed to save record: ${err.message}`, "err");
-    submitBtn.disabled = false;
-    submitBtn.textContent = "Upload & Save";
-    return;
-  }
-
-  progressBar.style.width = "100%";
-  progressPct.textContent = "100%";
-  setRcStatus("upload-video-status", "Upload successful!", "ok");
-  _showToast("✅ Video uploaded and saved to Playback library");
-
-  await loadPlayback();
-
-  setTimeout(() => {
-    closeRcModal("upload-video-modal");
-    if (fileInput)  fileInput.value       = "";
-    if (residentEl) residentEl.value      = "";
-    if (titleEl)    titleEl.value         = "";
-    if (notesEl)    notesEl.value         = "";
-    progressWrap.style.display = "none";
-    submitBtn.disabled    = false;
-    submitBtn.textContent = "Upload & Save";
-    setRcStatus("upload-video-status", "", "");
-  }, 800);
-}
-
 // INIT
+window.submitPlaybackDeleteModal = submitPlaybackDeleteModal;
+window.deleteSinglePlayback = deleteSinglePlayback;
+
 async function initRecordingConsole() {
+  loadCameraAiState();
+  applyPlaybackRouteFromUrl();
   updateStatsFromFrontend();
 
   await loadLocalCameras();

@@ -12,7 +12,6 @@ from .routers import cameras
 from .routers import flags
 from .routers import uploads
 from .routers import call
-#from .routers import calls          # hazard detection: /calls/transcript + /calls/event
 from .routers import health
 from .routers import account
 from .routers import staff_invite
@@ -33,7 +32,6 @@ all_routers = [
     flags.router,
     uploads.router,
     call.router,
-    #calls.router,                   # hazard detection endpoints
     account.router,
     staff_invite.router,
     ws.router,

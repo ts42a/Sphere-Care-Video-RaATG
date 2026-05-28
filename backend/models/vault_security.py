@@ -53,3 +53,19 @@ class VaultRetentionPolicy(Base):
     updated_by_admin_id = Column(BigInteger, ForeignKey("admins.id", ondelete="SET NULL"), nullable=True)
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     updated_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())
+
+
+class VaultAiAccessPolicy(Base):
+    __tablename__ = "vault_ai_access_policies"
+
+    id = Column(BigInteger, primary_key=True, index=True)
+    organization_id = Column(BigInteger, ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False, unique=True, index=True)
+    enabled = Column(Boolean, nullable=False, default=True)
+    allowed_camera_ids = Column(Text, nullable=True)
+    allowed_resident_ids = Column(Text, nullable=True)
+    allow_summary_generation = Column(Boolean, nullable=False, default=True)
+    secret_ciphertext = Column(Text, nullable=True)
+    secret_nonce = Column(String(128), nullable=True)
+    updated_by_admin_id = Column(BigInteger, ForeignKey("admins.id", ondelete="SET NULL"), nullable=True)
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())

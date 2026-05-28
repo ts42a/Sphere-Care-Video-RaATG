@@ -1,5 +1,6 @@
 import base64
 import hashlib
+import json
 import secrets
 from datetime import datetime, timedelta, timezone
 from typing import Optional
@@ -136,6 +137,46 @@ def _get_or_create_retention_policy(db: Session, organization_id: int) -> models
     db.add(policy)
     db.flush()
     return policy
+
+
+def _get_or_create_ai_access_policy(db: Session, organization_id: int) -> models.VaultAiAccessPolicy:
+    policy = (
+        db.query(models.VaultAiAccessPolicy)
+        .filter(models.VaultAiAccessPolicy.organization_id == organization_id)
+        .first()
+    )
+    if policy:
+        return policy
+    policy = models.VaultAiAccessPolicy(
+        organization_id=organization_id,
+        enabled=True,
+        allow_summary_generation=True,
+    )
+    db.add(policy)
+    db.flush()
+    return policy
+
+
+def _normalize_int_list(values) -> list[int]:
+    out: list[int] = []
+    if not values:
+        return out
+    for v in values:
+        try:
+            n = int(v)
+        except (TypeError, ValueError):
+            continue
+        if n > 0:
+            out.append(n)
+    return sorted(set(out))
+
+
+def _enc_ai_passphrase(passphrase: str) -> tuple[str, str]:
+    key = _derive_escrow_key()
+    aesgcm = AESGCM(key)
+    nonce = secrets.token_bytes(12)
+    ciphertext = aesgcm.encrypt(nonce, passphrase.encode("utf-8"), associated_data=None)
+    return base64.b64encode(ciphertext).decode("utf-8"), base64.b64encode(nonce).decode("utf-8")
 
 
 @router.put("/envelope", response_model=schemas.VaultEnvelopeResponse)
@@ -483,6 +524,105 @@ def upsert_vault_retention_policy(
         updated_at=policy.updated_at,
         updated_by_admin_id=policy.updated_by_admin_id,
     )
+
+
+@router.get("/ai-access", response_model=schemas.VaultAiAccessPolicyOut)
+def get_ai_access_policy(
+    admin=Depends(require_admin_account),
+    db: Session = Depends(get_db),
+):
+    policy = _get_or_create_ai_access_policy(db, int(admin.organization_id))
+    db.commit()
+    db.refresh(policy)
+    return schemas.VaultAiAccessPolicyOut(
+        enabled=bool(policy.enabled),
+        allowed_camera_ids=_normalize_int_list(json.loads(policy.allowed_camera_ids) if policy.allowed_camera_ids else []),
+        allowed_resident_ids=_normalize_int_list(
+            json.loads(policy.allowed_resident_ids) if policy.allowed_resident_ids else []
+        ),
+        allow_summary_generation=bool(policy.allow_summary_generation),
+        has_secret=bool(policy.secret_ciphertext and policy.secret_nonce),
+        updated_at=policy.updated_at,
+        updated_by_admin_id=policy.updated_by_admin_id,
+    )
+
+
+@router.put("/ai-access", response_model=schemas.VaultAiAccessPolicyOut)
+def upsert_ai_access_policy(
+    payload: schemas.VaultAiAccessPolicyUpdate,
+    request: Request,
+    admin=Depends(require_admin_account),
+    db: Session = Depends(get_db),
+):
+    policy = _get_or_create_ai_access_policy(db, int(admin.organization_id))
+    cameras = _normalize_int_list(payload.allowed_camera_ids)
+    residents = _normalize_int_list(payload.allowed_resident_ids)
+    policy.enabled = bool(payload.enabled)
+    policy.allowed_camera_ids = json.dumps(cameras, ensure_ascii=True)
+    policy.allowed_resident_ids = json.dumps(residents, ensure_ascii=True)
+    policy.allow_summary_generation = bool(payload.allow_summary_generation)
+    policy.updated_by_admin_id = int(admin.id)
+
+    scope = {
+        "organization_id": int(admin.organization_id),
+        "actor_admin_id": int(admin.id),
+        "actor_user_id": None,
+        "actor_role": "admin",
+        "actor_name": admin.full_name,
+    }
+    _write_vault_audit(
+        db,
+        scope=scope,
+        action="vault_ai_access_policy_updated",
+        details={
+            "enabled": bool(payload.enabled),
+            "camera_count": len(cameras),
+            "resident_count": len(residents),
+            "allow_summary_generation": bool(payload.allow_summary_generation),
+        },
+        request=request,
+    )
+    db.commit()
+    db.refresh(policy)
+    return schemas.VaultAiAccessPolicyOut(
+        enabled=bool(policy.enabled),
+        allowed_camera_ids=cameras,
+        allowed_resident_ids=residents,
+        allow_summary_generation=bool(policy.allow_summary_generation),
+        has_secret=bool(policy.secret_ciphertext and policy.secret_nonce),
+        updated_at=policy.updated_at,
+        updated_by_admin_id=policy.updated_by_admin_id,
+    )
+
+
+@router.put("/ai-access/secret", response_model=schemas.VaultAiAccessSecretOut)
+def upsert_ai_access_secret(
+    payload: schemas.VaultAiAccessSecretUpsert,
+    request: Request,
+    admin=Depends(require_admin_account),
+    db: Session = Depends(get_db),
+):
+    policy = _get_or_create_ai_access_policy(db, int(admin.organization_id))
+    ciphertext, nonce = _enc_ai_passphrase(payload.ai_passphrase)
+    policy.secret_ciphertext = ciphertext
+    policy.secret_nonce = nonce
+    policy.updated_by_admin_id = int(admin.id)
+    scope = {
+        "organization_id": int(admin.organization_id),
+        "actor_admin_id": int(admin.id),
+        "actor_user_id": None,
+        "actor_role": "admin",
+        "actor_name": admin.full_name,
+    }
+    _write_vault_audit(
+        db,
+        scope=scope,
+        action="vault_ai_access_secret_upsert",
+        details={"has_secret": True},
+        request=request,
+    )
+    db.commit()
+    return schemas.VaultAiAccessSecretOut(ok=True, has_secret=True)
 
 
 @router.post("/audit/events")
