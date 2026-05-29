@@ -60,17 +60,13 @@ class SentenceRefinerDataset(Dataset):
 def collate_batch(batch: list[dict[str, torch.Tensor]], pad_idx: int) -> dict[str, torch.Tensor]:
     src = [item["src"] for item in batch]
     tgt = [item["tgt"] for item in batch]
-
     src_padded = pad_sequence(src, batch_first=True, padding_value=pad_idx)
     tgt_padded = pad_sequence(tgt, batch_first=True, padding_value=pad_idx)
-    src_lengths = torch.tensor([len(s) for s in src], dtype=torch.long)
-    tgt_lengths = torch.tensor([len(t) for t in tgt], dtype=torch.long)
-
     return {
         "src": src_padded,
         "tgt": tgt_padded,
-        "src_lengths": src_lengths,
-        "tgt_lengths": tgt_lengths,
+        "src_lengths": torch.tensor([len(s) for s in src], dtype=torch.long),
+        "tgt_lengths": torch.tensor([len(t) for t in tgt], dtype=torch.long),
     }
 
 

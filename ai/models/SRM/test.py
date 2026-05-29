@@ -31,8 +31,9 @@ class TextModelTester:
         "finee": "fine",
     }
 
-    def __init__(self, checkpoint: str = "", vocab: str = "") -> None:
+    def __init__(self, checkpoint: str = "", vocab: str = "", mode: str = "motion") -> None:
         self._srm_root = Path(__file__).resolve().parent
+        self._mode = mode if mode in {"motion", "static"} else "motion"
         self._srm_model = None
         self._srm_vocab = None
         self._srm_device = None
@@ -46,7 +47,9 @@ class TextModelTester:
         env = os.getenv("ASL_SRM_CHECKPOINT", "").strip()
         if env:
             return Path(env)
-        return self._srm_root / "data" / "staticAsl" / "checkpoints" / "best.pt"
+        if self._mode == "static":
+            return self._srm_root / "data" / "staticAsl" / "checkpoints" / "best.pt"
+        return self._srm_root / "data" / "Motion" / "checkpoints" / "best.pt"
 
     def _resolve_vocab(self, vocab: str) -> Path:
         if vocab:
@@ -54,7 +57,10 @@ class TextModelTester:
         env = os.getenv("ASL_SRM_VOCAB", "").strip()
         if env:
             return Path(env)
-        preferred = self._srm_root / "data" / "staticAsl" / "staticasl_vocab.json"
+        if self._mode == "static":
+            preferred = self._srm_root / "data" / "staticAsl" / "staticasl_vocab.json"
+        else:
+            preferred = self._srm_root / "data" / "Motion" / "staticasl_vocab.json"
         if preferred.exists():
             return preferred
         return self._srm_root / "data" / "srm_final_v1_vocab.json"
@@ -214,12 +220,19 @@ class TextModelTester:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="SRM terminal test script.")
+    parser.add_argument(
+        "--mode",
+        type=str,
+        choices=["motion", "static"],
+        default="motion",
+        help="Use motion or static SRM default artifacts when checkpoint/vocab are not provided.",
+    )
     parser.add_argument("--text", type=str, default="", help="Single input text for one-shot inference.")
     parser.add_argument("--checkpoint", type=str, default="", help="Optional checkpoint path.")
     parser.add_argument("--vocab", type=str, default="", help="Optional vocab JSON path.")
     args = parser.parse_args()
 
-    tester = TextModelTester(checkpoint=args.checkpoint, vocab=args.vocab)
+    tester = TextModelTester(checkpoint=args.checkpoint, vocab=args.vocab, mode=args.mode)
     if args.text:
         print(tester.predict(args.text))
         return

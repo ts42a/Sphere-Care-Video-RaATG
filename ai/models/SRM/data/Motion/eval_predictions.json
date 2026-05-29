@@ -1,0 +1,1301 @@
+{
+  "summary": {
+    "samples": 215,
+    "exact_match": 0.8418604651162791,
+    "checkpoint_path": "ai\\models\\SRM\\data\\Motion\\checkpoints\\best.pt",
+    "vocab_path": "ai\\models\\SRM\\data\\Motion\\staticasl_vocab.json",
+    "test_path": "ai\\models\\SRM\\data\\Motion\\test.jsonl"
+  },
+  "predictions": [
+    {
+      "input": "sad i",
+      "gold": "I am sad.",
+      "pred": "I am sad.",
+      "exact_match": true
+    },
+    {
+      "input": "no thankyou no thankyou",
+      "gold": "No, thank you.",
+      "pred": "No, thank you.",
+      "exact_match": true
+    },
+    {
+      "input": "you ok you ok",
+      "gold": "Are you okay?",
+      "pred": "Are you okay?",
+      "exact_match": true
+    },
+    {
+      "input": "thankyou sorry thankyou",
+      "gold": "Sorry, thank you.",
+      "pred": "Sorry, thank you.",
+      "exact_match": true
+    },
+    {
+      "input": "no help help",
+      "gold": "No.",
+      "pred": "No.",
+      "exact_match": true
+    },
+    {
+      "input": "busy fine busy fine",
+      "gold": "I am fine.",
+      "pred": "I am fine.",
+      "exact_match": true
+    },
+    {
+      "input": "i drink",
+      "gold": "I need a drink.",
+      "pred": "I need a drink.",
+      "exact_match": true
+    },
+    {
+      "input": "thankyou please",
+      "gold": "Please and thank you.",
+      "pred": "Please and thank you.",
+      "exact_match": true
+    },
+    {
+      "input": "hello drink hello drink",
+      "gold": "I need a drink.",
+      "pred": "Hello, I need a drink.",
+      "exact_match": false
+    },
+    {
+      "input": "you sad",
+      "gold": "Are you sad?",
+      "pred": "Are you sad?",
+      "exact_match": true
+    },
+    {
+      "input": "goodbye",
+      "gold": "Hello. Goodbye.",
+      "pred": "Goodbye.",
+      "exact_match": false
+    },
+    {
+      "input": "please name",
+      "gold": "Please tell me your name.",
+      "pred": "Please tell me your name.",
+      "exact_match": true
+    },
+    {
+      "input": "name what name",
+      "gold": "What is your name?",
+      "pred": "What is your name?",
+      "exact_match": true
+    },
+    {
+      "input": "sorry goodbye sorry",
+      "gold": "Sorry. Goodbye.",
+      "pred": "Sorry. Goodbye.",
+      "exact_match": true
+    },
+    {
+      "input": "help hello help",
+      "gold": "I need help.",
+      "pred": "I need help.",
+      "exact_match": true
+    },
+    {
+      "input": "busy busy drink",
+      "gold": "I need a drink.",
+      "pred": "I need a drink.",
+      "exact_match": true
+    },
+    {
+      "input": "i ok i ok",
+      "gold": "I am okay.",
+      "pred": "I am okay.",
+      "exact_match": true
+    },
+    {
+      "input": "thankyou ok thankyou",
+      "gold": "Okay, thank you.",
+      "pred": "Okay, thank you.",
+      "exact_match": true
+    },
+    {
+      "input": "you busy you",
+      "gold": "Are you busy?",
+      "pred": "Are you busy?",
+      "exact_match": true
+    },
+    {
+      "input": "great busy",
+      "gold": "I am great.",
+      "pred": "I am great.",
+      "exact_match": true
+    },
+    {
+      "input": "you ok you",
+      "gold": "Are you okay?",
+      "pred": "Are you okay?",
+      "exact_match": true
+    },
+    {
+      "input": "hello thankyou",
+      "gold": "Hello, thank you.",
+      "pred": "Hello, thank you.",
+      "exact_match": true
+    },
+    {
+      "input": "sad you",
+      "gold": "Are you sad?",
+      "pred": "Are you fine?",
+      "exact_match": false
+    },
+    {
+      "input": "busy name name",
+      "gold": "I am busy.",
+      "pred": "I am busy.",
+      "exact_match": true
+    },
+    {
+      "input": "busy no busy no",
+      "gold": "No.",
+      "pred": "No.",
+      "exact_match": true
+    },
+    {
+      "input": "you busy",
+      "gold": "Are you busy?",
+      "pred": "Are you busy?",
+      "exact_match": true
+    },
+    {
+      "input": "help water",
+      "gold": "I need help getting water.",
+      "pred": "I need help getting water.",
+      "exact_match": true
+    },
+    {
+      "input": "busy i busy",
+      "gold": "I am busy.",
+      "pred": "I am busy.",
+      "exact_match": true
+    },
+    {
+      "input": "fine",
+      "gold": "I am fine.",
+      "pred": "I am fine.",
+      "exact_match": true
+    },
+    {
+      "input": "busy howareyou busy",
+      "gold": "I am busy.",
+      "pred": "I am busy.",
+      "exact_match": true
+    },
+    {
+      "input": "you you busy",
+      "gold": "Are you busy?",
+      "pred": "Are you busy?",
+      "exact_match": true
+    },
+    {
+      "input": "busy name busy name",
+      "gold": "I am busy.",
+      "pred": "I am busy.",
+      "exact_match": true
+    },
+    {
+      "input": "seeyoulater thankyou thankyou",
+      "gold": "Thank you. See you later.",
+      "pred": "Thank you. See you later.",
+      "exact_match": true
+    },
+    {
+      "input": "i great",
+      "gold": "I am great.",
+      "pred": "I am great.",
+      "exact_match": true
+    },
+    {
+      "input": "drink busy",
+      "gold": "I need a drink.",
+      "pred": "I need a drink.",
+      "exact_match": true
+    },
+    {
+      "input": "drink hungry drink",
+      "gold": "I am hungry and need a drink.",
+      "pred": "I am hungry and need a drink.",
+      "exact_match": true
+    },
+    {
+      "input": "hello howareyou howareyou",
+      "gold": "Hello, how are you?",
+      "pred": "Hello, how are you?",
+      "exact_match": true
+    },
+    {
+      "input": "busy happy busy happy",
+      "gold": "I am happy.",
+      "pred": "I am happy.",
+      "exact_match": true
+    },
+    {
+      "input": "busy drink drink",
+      "gold": "I need a drink.",
+      "pred": "I need a drink.",
+      "exact_match": true
+    },
+    {
+      "input": "i help i help",
+      "gold": "I need help.",
+      "pred": "I need help.",
+      "exact_match": true
+    },
+    {
+      "input": "thankyou yes thankyou",
+      "gold": "Yes, thank you.",
+      "pred": "Yes, thank you.",
+      "exact_match": true
+    },
+    {
+      "input": "your name your name",
+      "gold": "What is your name?",
+      "pred": "What is your name?",
+      "exact_match": true
+    },
+    {
+      "input": "i busy i busy",
+      "gold": "I am busy.",
+      "pred": "I am busy.",
+      "exact_match": true
+    },
+    {
+      "input": "you name",
+      "gold": "What is your name?",
+      "pred": "What is your name?",
+      "exact_match": true
+    },
+    {
+      "input": "busy busy no",
+      "gold": "No.",
+      "pred": "I am busy.",
+      "exact_match": false
+    },
+    {
+      "input": "thankyou seeyoulater thankyou",
+      "gold": "Thank you. See you later.",
+      "pred": "Thank you. Goodbye.",
+      "exact_match": false
+    },
+    {
+      "input": "no nothing no nothing",
+      "gold": "No, nothing.",
+      "pred": "No, nothing.",
+      "exact_match": true
+    },
+    {
+      "input": "goodbye seeyoulater goodbye",
+      "gold": "Goodbye. See you later.",
+      "pred": "Goodbye. See you later.",
+      "exact_match": true
+    },
+    {
+      "input": "i sad i",
+      "gold": "I am sad.",
+      "pred": "I am sad.",
+      "exact_match": true
+    },
+    {
+      "input": "please thankyou please thankyou",
+      "gold": "Please and thank you.",
+      "pred": "Please and thank you.",
+      "exact_match": true
+    },
+    {
+      "input": "hello i hello",
+      "gold": "Hello, I am here.",
+      "pred": "Hello, I am here.",
+      "exact_match": true
+    },
+    {
+      "input": "ok thankyou ok",
+      "gold": "Okay, thank you.",
+      "pred": "Okay, thank you.",
+      "exact_match": true
+    },
+    {
+      "input": "please",
+      "gold": "Please help me.",
+      "pred": "Please clarify.",
+      "exact_match": false
+    },
+    {
+      "input": "deaf",
+      "gold": "I am deaf.",
+      "pred": "I am busy.",
+      "exact_match": false
+    },
+    {
+      "input": "busy",
+      "gold": "I am busy.",
+      "pred": "I am busy.",
+      "exact_match": true
+    },
+    {
+      "input": "hungry",
+      "gold": "I am hungry.",
+      "pred": "I am hungry.",
+      "exact_match": true
+    },
+    {
+      "input": "i",
+      "gold": "Hello, I am here.",
+      "pred": "I am sorry.",
+      "exact_match": false
+    },
+    {
+      "input": "hello i hello i",
+      "gold": "Hello, I am here.",
+      "pred": "Hello, I am here.",
+      "exact_match": true
+    },
+    {
+      "input": "you you name",
+      "gold": "What is your name?",
+      "pred": "What is your name?",
+      "exact_match": true
+    },
+    {
+      "input": "yes",
+      "gold": "Yes, thank you.",
+      "pred": "Yes, okay.",
+      "exact_match": false
+    },
+    {
+      "input": "hello hungry hungry",
+      "gold": "I am hungry.",
+      "pred": "I am hungry.",
+      "exact_match": true
+    },
+    {
+      "input": "name please name",
+      "gold": "Please tell me your name.",
+      "pred": "Please tell me your name.",
+      "exact_match": true
+    },
+    {
+      "input": "busy help help",
+      "gold": "I need help.",
+      "pred": "I need help.",
+      "exact_match": true
+    },
+    {
+      "input": "nothing busy nothing",
+      "gold": "Nothing.",
+      "pred": "Nothing.",
+      "exact_match": true
+    },
+    {
+      "input": "no ok no ok",
+      "gold": "No, I am not okay.",
+      "pred": "No, I am not okay.",
+      "exact_match": true
+    },
+    {
+      "input": "hello thankyou thankyou",
+      "gold": "Hello, thank you.",
+      "pred": "Hello, thank you.",
+      "exact_match": true
+    },
+    {
+      "input": "water hungry",
+      "gold": "I am hungry and need water.",
+      "pred": "I am hungry and need water.",
+      "exact_match": true
+    },
+    {
+      "input": "sorry",
+      "gold": "Hello.",
+      "pred": "Sorry, thank you.",
+      "exact_match": false
+    },
+    {
+      "input": "deaf i",
+      "gold": "I am deaf.",
+      "pred": "I am deaf.",
+      "exact_match": true
+    },
+    {
+      "input": "i hungry i",
+      "gold": "I am hungry.",
+      "pred": "I am hungry.",
+      "exact_match": true
+    },
+    {
+      "input": "i help i",
+      "gold": "I need help.",
+      "pred": "I need help.",
+      "exact_match": true
+    },
+    {
+      "input": "hungry water water",
+      "gold": "I am hungry and need water.",
+      "pred": "I am hungry and need water.",
+      "exact_match": true
+    },
+    {
+      "input": "hello i i",
+      "gold": "Hello, I am here.",
+      "pred": "I am sorry.",
+      "exact_match": false
+    },
+    {
+      "input": "hello goodbye",
+      "gold": "Hello. Goodbye.",
+      "pred": "Hello, how are you? Goodbye.",
+      "exact_match": false
+    },
+    {
+      "input": "no no nothing",
+      "gold": "No, nothing.",
+      "pred": "No, nothing.",
+      "exact_match": true
+    },
+    {
+      "input": "yes thankyou ok yes thankyou ok",
+      "gold": "Yes, thank you.",
+      "pred": "Yes, thank you.",
+      "exact_match": true
+    },
+    {
+      "input": "busy deaf goodbye busy deaf goodbye",
+      "gold": "I am busy.",
+      "pred": "I am busy.",
+      "exact_match": true
+    },
+    {
+      "input": "you ok please you ok please",
+      "gold": "Are you okay?",
+      "pred": "Are you okay?",
+      "exact_match": true
+    },
+    {
+      "input": "no ok",
+      "gold": "No, thank you.",
+      "pred": "No, I am not okay.",
+      "exact_match": false
+    },
+    {
+      "input": "hello i fine hello",
+      "gold": "I am fine.",
+      "pred": "I am fine.",
+      "exact_match": true
+    },
+    {
+      "input": "busy howareyou deaf",
+      "gold": "I am busy.",
+      "pred": "I am busy.",
+      "exact_match": true
+    },
+    {
+      "input": "no nothing thankyou thankyou",
+      "gold": "No, thank you.",
+      "pred": "No, thank you.",
+      "exact_match": true
+    },
+    {
+      "input": "no help thankyou",
+      "gold": "No, thank you.",
+      "pred": "No, thank you.",
+      "exact_match": true
+    },
+    {
+      "input": "help no thankyou",
+      "gold": "No, thank you.",
+      "pred": "No, thank you.",
+      "exact_match": true
+    },
+    {
+      "input": "water thankyou",
+      "gold": "Please give me water.",
+      "pred": "I need water.",
+      "exact_match": false
+    },
+    {
+      "input": "busy busy deaf happy",
+      "gold": "I am happy.",
+      "pred": "I am happy.",
+      "exact_match": true
+    },
+    {
+      "input": "i hello hungry",
+      "gold": "I am hungry.",
+      "pred": "I am hungry.",
+      "exact_match": true
+    },
+    {
+      "input": "busy deaf name name",
+      "gold": "I am busy.",
+      "pred": "I am busy.",
+      "exact_match": true
+    },
+    {
+      "input": "please name your",
+      "gold": "Please tell me your name.",
+      "pred": "Please tell me your name.",
+      "exact_match": true
+    },
+    {
+      "input": "hello howareyou goodbye hello",
+      "gold": "Hello, how are you? Goodbye.",
+      "pred": "Hello, how are you? Goodbye.",
+      "exact_match": true
+    },
+    {
+      "input": "i i hungry drink",
+      "gold": "I am hungry and need a drink.",
+      "pred": "I am hungry and need a drink.",
+      "exact_match": true
+    },
+    {
+      "input": "i help water water",
+      "gold": "I need help getting water.",
+      "pred": "I need help getting water.",
+      "exact_match": true
+    },
+    {
+      "input": "hello i i water",
+      "gold": "I need water.",
+      "pred": "I need water.",
+      "exact_match": true
+    },
+    {
+      "input": "busy hello",
+      "gold": "I am busy.",
+      "pred": "I am busy.",
+      "exact_match": true
+    },
+    {
+      "input": "busy busy deaf howareyou",
+      "gold": "I am busy.",
+      "pred": "I am busy.",
+      "exact_match": true
+    },
+    {
+      "input": "hello i drink drink",
+      "gold": "I need a drink.",
+      "pred": "I need a drink.",
+      "exact_match": true
+    },
+    {
+      "input": "hello howareyou goodbye",
+      "gold": "Hello, how are you? Goodbye.",
+      "pred": "Hello, how are you? Goodbye.",
+      "exact_match": true
+    },
+    {
+      "input": "please water water thankyou",
+      "gold": "Please give me water.",
+      "pred": "Please give me water.",
+      "exact_match": true
+    },
+    {
+      "input": "hello howareyou howareyou thankyou",
+      "gold": "Hello, how are you? Thank you.",
+      "pred": "Hello, how are you? Thank you.",
+      "exact_match": true
+    },
+    {
+      "input": "hello goodbye howareyou",
+      "gold": "Hello, how are you? Goodbye.",
+      "pred": "Hello, how are you? Goodbye.",
+      "exact_match": true
+    },
+    {
+      "input": "deaf busy i",
+      "gold": "I am busy.",
+      "pred": "I am busy.",
+      "exact_match": true
+    },
+    {
+      "input": "hello hello i drink",
+      "gold": "I need a drink.",
+      "pred": "I need a drink.",
+      "exact_match": true
+    },
+    {
+      "input": "water please thankyou",
+      "gold": "Please give me water.",
+      "pred": "Please give me water.",
+      "exact_match": true
+    },
+    {
+      "input": "hungry i drink",
+      "gold": "I am hungry and need a drink.",
+      "pred": "I am hungry and need a drink.",
+      "exact_match": true
+    },
+    {
+      "input": "what what you name",
+      "gold": "What is your name?",
+      "pred": "What is your name?",
+      "exact_match": true
+    },
+    {
+      "input": "please please drink thankyou",
+      "gold": "Please give me a drink.",
+      "pred": "Please give me a drink.",
+      "exact_match": true
+    },
+    {
+      "input": "i busy busy seeyoulater",
+      "gold": "I am busy.",
+      "pred": "I am busy.",
+      "exact_match": true
+    },
+    {
+      "input": "busy goodbye deaf",
+      "gold": "I am busy.",
+      "pred": "I am busy.",
+      "exact_match": true
+    },
+    {
+      "input": "hello i deaf deaf",
+      "gold": "I am deaf.",
+      "pred": "I am deaf.",
+      "exact_match": true
+    },
+    {
+      "input": "your name",
+      "gold": "What is your name?",
+      "pred": "What is your name?",
+      "exact_match": true
+    },
+    {
+      "input": "busy deaf deaf hello",
+      "gold": "I am busy.",
+      "pred": "I am busy.",
+      "exact_match": true
+    },
+    {
+      "input": "what you",
+      "gold": "What is your name?",
+      "pred": "What do you mean?",
+      "exact_match": false
+    },
+    {
+      "input": "i hello water",
+      "gold": "I need water.",
+      "pred": "I need water.",
+      "exact_match": true
+    },
+    {
+      "input": "busy deaf no no",
+      "gold": "I am busy.",
+      "pred": "I am busy.",
+      "exact_match": true
+    },
+    {
+      "input": "hello i help hello",
+      "gold": "I need help.",
+      "pred": "I need help.",
+      "exact_match": true
+    },
+    {
+      "input": "i sorry thankyou i",
+      "gold": "I am sorry.",
+      "pred": "I am sorry.",
+      "exact_match": true
+    },
+    {
+      "input": "hello hello i deaf",
+      "gold": "I am deaf.",
+      "pred": "I am deaf.",
+      "exact_match": true
+    },
+    {
+      "input": "busy happy",
+      "gold": "I am happy.",
+      "pred": "I am happy.",
+      "exact_match": true
+    },
+    {
+      "input": "hello i i hungry",
+      "gold": "I am hungry.",
+      "pred": "I am hungry.",
+      "exact_match": true
+    },
+    {
+      "input": "deaf busy help",
+      "gold": "I need help.",
+      "pred": "I need help.",
+      "exact_match": true
+    },
+    {
+      "input": "hello howareyou thankyou hello",
+      "gold": "Hello, how are you? Thank you.",
+      "pred": "Hello, how are you? Thank you.",
+      "exact_match": true
+    },
+    {
+      "input": "hello i drink",
+      "gold": "I need a drink.",
+      "pred": "I need a drink.",
+      "exact_match": true
+    },
+    {
+      "input": "i seeyoulater",
+      "gold": "I am busy.",
+      "pred": "I am busy.",
+      "exact_match": true
+    },
+    {
+      "input": "you help",
+      "gold": "Can you please help me?",
+      "pred": "Can you help me?",
+      "exact_match": false
+    },
+    {
+      "input": "deaf busy fine",
+      "gold": "I am fine.",
+      "pred": "I am fine.",
+      "exact_match": true
+    },
+    {
+      "input": "busy deaf hungry",
+      "gold": "I am hungry.",
+      "pred": "I am hungry.",
+      "exact_match": true
+    },
+    {
+      "input": "please help help water",
+      "gold": "Please help me get water.",
+      "pred": "Please help me get water.",
+      "exact_match": true
+    },
+    {
+      "input": "busy busy deaf help",
+      "gold": "I need help.",
+      "pred": "I need help.",
+      "exact_match": true
+    },
+    {
+      "input": "thankyou ok",
+      "gold": "No, thank you.",
+      "pred": "Okay, thank you.",
+      "exact_match": false
+    },
+    {
+      "input": "i sorry",
+      "gold": "I am sorry.",
+      "pred": "I am sorry.",
+      "exact_match": true
+    },
+    {
+      "input": "please please water thankyou",
+      "gold": "Please give me water.",
+      "pred": "Please give me water.",
+      "exact_match": true
+    },
+    {
+      "input": "you please",
+      "gold": "Can you please help me?",
+      "pred": "Are you fine?",
+      "exact_match": false
+    },
+    {
+      "input": "hello howareyou i hello",
+      "gold": "Hello, how are you? I am here.",
+      "pred": "Hello, how are you? I am here.",
+      "exact_match": true
+    },
+    {
+      "input": "no thankyou ok",
+      "gold": "No, thank you.",
+      "pred": "No, thank you.",
+      "exact_match": true
+    },
+    {
+      "input": "what your name what your name",
+      "gold": "What is your name?",
+      "pred": "What is your name?",
+      "exact_match": true
+    },
+    {
+      "input": "please drink drink thankyou",
+      "gold": "Please give me a drink.",
+      "pred": "Please give me a drink.",
+      "exact_match": true
+    },
+    {
+      "input": "ok please",
+      "gold": "Are you okay?",
+      "pred": "Are you okay?",
+      "exact_match": true
+    },
+    {
+      "input": "hello i fine hello i fine",
+      "gold": "I am fine.",
+      "pred": "I am fine.",
+      "exact_match": true
+    },
+    {
+      "input": "deaf busy great",
+      "gold": "I am great.",
+      "pred": "I am great.",
+      "exact_match": true
+    },
+    {
+      "input": "goodbye thankyou seeyoulater seeyoulater",
+      "gold": "Thank you. Goodbye.",
+      "pred": "Thank you. Goodbye.",
+      "exact_match": true
+    },
+    {
+      "input": "no thankyou nothing",
+      "gold": "No, thank you.",
+      "pred": "No, thank you.",
+      "exact_match": true
+    },
+    {
+      "input": "i sorry thankyou thankyou",
+      "gold": "I am sorry.",
+      "pred": "I am sorry.",
+      "exact_match": true
+    },
+    {
+      "input": "you please fine",
+      "gold": "Are you fine?",
+      "pred": "Are you fine?",
+      "exact_match": true
+    },
+    {
+      "input": "busy deaf no busy",
+      "gold": "I am busy.",
+      "pred": "I am busy.",
+      "exact_match": true
+    },
+    {
+      "input": "hello hello i help",
+      "gold": "I need help.",
+      "pred": "I need help.",
+      "exact_match": true
+    },
+    {
+      "input": "busy fine",
+      "gold": "I am fine.",
+      "pred": "I am fine.",
+      "exact_match": true
+    },
+    {
+      "input": "goodbye thankyou thankyou seeyoulater",
+      "gold": "Thank you. Goodbye.",
+      "pred": "Thank you. Goodbye.",
+      "exact_match": true
+    },
+    {
+      "input": "i help water",
+      "gold": "I need help getting water.",
+      "pred": "I need help getting water.",
+      "exact_match": true
+    },
+    {
+      "input": "hello howareyou fine hello",
+      "gold": "Hello, how are you? I am fine.",
+      "pred": "Hello, how are you? I am fine.",
+      "exact_match": true
+    },
+    {
+      "input": "you happy you",
+      "gold": "Are you happy?",
+      "pred": "Are you happy?",
+      "exact_match": true
+    },
+    {
+      "input": "what name your",
+      "gold": "What is your name?",
+      "pred": "What is your name?",
+      "exact_match": true
+    },
+    {
+      "input": "what what help",
+      "gold": "What help do you need?",
+      "pred": "What help do you need?",
+      "exact_match": true
+    },
+    {
+      "input": "nothing no",
+      "gold": "No, nothing.",
+      "pred": "No, nothing.",
+      "exact_match": true
+    },
+    {
+      "input": "please your name",
+      "gold": "What is your name?",
+      "pred": "Please tell me your name.",
+      "exact_match": false
+    },
+    {
+      "input": "what help help",
+      "gold": "What help do you need?",
+      "pred": "What help do you need?",
+      "exact_match": true
+    },
+    {
+      "input": "hello hello sorry",
+      "gold": "Hello, sorry.",
+      "pred": "Hello.",
+      "exact_match": false
+    },
+    {
+      "input": "please name please",
+      "gold": "Please tell me your name.",
+      "pred": "Please tell me your name.",
+      "exact_match": true
+    },
+    {
+      "input": "you please help you",
+      "gold": "Please help me.",
+      "pred": "Can you please help me?",
+      "exact_match": false
+    },
+    {
+      "input": "what you name name",
+      "gold": "What is your name?",
+      "pred": "What is your name?",
+      "exact_match": true
+    },
+    {
+      "input": "what name you",
+      "gold": "What is your name?",
+      "pred": "What is your name?",
+      "exact_match": true
+    },
+    {
+      "input": "sorry",
+      "gold": "Sorry.",
+      "pred": "Sorry, thank you.",
+      "exact_match": false
+    },
+    {
+      "input": "goodbye hello",
+      "gold": "Hello. Goodbye.",
+      "pred": "Hello. Goodbye.",
+      "exact_match": true
+    },
+    {
+      "input": "you fine you",
+      "gold": "Are you fine?",
+      "pred": "Are you fine?",
+      "exact_match": true
+    },
+    {
+      "input": "i i fine thankyou",
+      "gold": "I am fine, thank you.",
+      "pred": "I am fine, thank you.",
+      "exact_match": true
+    },
+    {
+      "input": "water what",
+      "gold": "Do you need water?",
+      "pred": "Do you need water?",
+      "exact_match": true
+    },
+    {
+      "input": "i fine thankyou i fine thankyou",
+      "gold": "I am fine, thank you.",
+      "pred": "I am fine, thank you.",
+      "exact_match": true
+    },
+    {
+      "input": "i fine",
+      "gold": "I am fine.",
+      "pred": "I am fine.",
+      "exact_match": true
+    },
+    {
+      "input": "i i sad",
+      "gold": "I am sad.",
+      "pred": "I am sad.",
+      "exact_match": true
+    },
+    {
+      "input": "i water i",
+      "gold": "I need water.",
+      "pred": "I need water.",
+      "exact_match": true
+    },
+    {
+      "input": "i water i water",
+      "gold": "I need water.",
+      "pred": "I need water.",
+      "exact_match": true
+    },
+    {
+      "input": "hello water hello",
+      "gold": "Hello, I need water.",
+      "pred": "I need water.",
+      "exact_match": false
+    },
+    {
+      "input": "please help",
+      "gold": "Please help me.",
+      "pred": "Please help me.",
+      "exact_match": true
+    },
+    {
+      "input": "hungry i water",
+      "gold": "I am hungry and need water.",
+      "pred": "I am hungry and need water.",
+      "exact_match": true
+    },
+    {
+      "input": "hello sorry",
+      "gold": "Hello, sorry.",
+      "pred": "Hello.",
+      "exact_match": false
+    },
+    {
+      "input": "water no",
+      "gold": "No water needed.",
+      "pred": "No water needed.",
+      "exact_match": true
+    },
+    {
+      "input": "you sad sad",
+      "gold": "Are you sad?",
+      "pred": "Are you sad?",
+      "exact_match": true
+    },
+    {
+      "input": "name what",
+      "gold": "What is your name?",
+      "pred": "What is your name?",
+      "exact_match": true
+    },
+    {
+      "input": "hello drink drink",
+      "gold": "Hello, I need a drink.",
+      "pred": "I need a drink.",
+      "exact_match": false
+    },
+    {
+      "input": "happy thankyou",
+      "gold": "I am happy.",
+      "pred": "I am happy, thank you.",
+      "exact_match": false
+    },
+    {
+      "input": "i ok thankyou thankyou",
+      "gold": "I am okay, thank you.",
+      "pred": "I am okay.",
+      "exact_match": false
+    },
+    {
+      "input": "hello water water",
+      "gold": "Hello, I need water.",
+      "pred": "I need water.",
+      "exact_match": false
+    },
+    {
+      "input": "help i water",
+      "gold": "I need help getting water.",
+      "pred": "I need help getting water.",
+      "exact_match": true
+    },
+    {
+      "input": "hello seeyoulater hello",
+      "gold": "Hello. See you later.",
+      "pred": "Hello. Goodbye.",
+      "exact_match": false
+    },
+    {
+      "input": "i drink please",
+      "gold": "Please give me a drink.",
+      "pred": "Please give me a drink.",
+      "exact_match": true
+    },
+    {
+      "input": "drink",
+      "gold": "I need a drink.",
+      "pred": "I need a drink.",
+      "exact_match": true
+    },
+    {
+      "input": "i help drink i help drink",
+      "gold": "I need help getting a drink.",
+      "pred": "I need help getting a drink.",
+      "exact_match": true
+    },
+    {
+      "input": "i thankyou great",
+      "gold": "I am great, thank you.",
+      "pred": "I am great, thank you.",
+      "exact_match": true
+    },
+    {
+      "input": "deaf you",
+      "gold": "Are you deaf?",
+      "pred": "Are you deaf?",
+      "exact_match": true
+    },
+    {
+      "input": "i deaf help i deaf help",
+      "gold": "I am deaf. I need help.",
+      "pred": "I am deaf. I need help.",
+      "exact_match": true
+    },
+    {
+      "input": "hello seeyoulater hello seeyoulater",
+      "gold": "Hello. See you later.",
+      "pred": "Hello. See you later.",
+      "exact_match": true
+    },
+    {
+      "input": "i water",
+      "gold": "I need water.",
+      "pred": "I need water.",
+      "exact_match": true
+    },
+    {
+      "input": "deaf help i",
+      "gold": "I am deaf. I need help.",
+      "pred": "I need help.",
+      "exact_match": false
+    },
+    {
+      "input": "what you name",
+      "gold": "What is your name?",
+      "pred": "What is your name?",
+      "exact_match": true
+    },
+    {
+      "input": "what you name what you name",
+      "gold": "What is your name?",
+      "pred": "What is your name?",
+      "exact_match": true
+    },
+    {
+      "input": "what drink what drink",
+      "gold": "Do you need a drink?",
+      "pred": "Do you need a drink?",
+      "exact_match": true
+    },
+    {
+      "input": "help water i",
+      "gold": "I need help getting water.",
+      "pred": "I need help getting water.",
+      "exact_match": true
+    },
+    {
+      "input": "hungry drink",
+      "gold": "I am hungry and need a drink.",
+      "pred": "I am hungry and need a drink.",
+      "exact_match": true
+    },
+    {
+      "input": "name",
+      "gold": "Name.",
+      "pred": "What is your name?",
+      "exact_match": false
+    },
+    {
+      "input": "happy i thankyou",
+      "gold": "I am happy, thank you.",
+      "pred": "I am happy, thank you.",
+      "exact_match": true
+    },
+    {
+      "input": "please drink i",
+      "gold": "Please give me a drink.",
+      "pred": "Please give me a drink.",
+      "exact_match": true
+    },
+    {
+      "input": "you fine fine",
+      "gold": "Are you fine?",
+      "pred": "Are you fine?",
+      "exact_match": true
+    },
+    {
+      "input": "hello water hello water",
+      "gold": "Hello, I need water.",
+      "pred": "I need water.",
+      "exact_match": false
+    },
+    {
+      "input": "hello hello howareyou",
+      "gold": "Hello, how are you?",
+      "pred": "Hello, how are you?",
+      "exact_match": true
+    },
+    {
+      "input": "please drink help",
+      "gold": "Please help me get a drink.",
+      "pred": "Please help me get a drink.",
+      "exact_match": true
+    },
+    {
+      "input": "no water no water",
+      "gold": "No water needed.",
+      "pred": "No water needed.",
+      "exact_match": true
+    },
+    {
+      "input": "no no water",
+      "gold": "No water needed.",
+      "pred": "No water needed.",
+      "exact_match": true
+    },
+    {
+      "input": "hello thankyou hello",
+      "gold": "Hello, thank you.",
+      "pred": "Hello, thank you.",
+      "exact_match": true
+    },
+    {
+      "input": "i great thankyou thankyou",
+      "gold": "I am great, thank you.",
+      "pred": "I am great, thank you.",
+      "exact_match": true
+    },
+    {
+      "input": "i deaf i deaf",
+      "gold": "I am deaf.",
+      "pred": "I am deaf.",
+      "exact_match": true
+    },
+    {
+      "input": "i i happy",
+      "gold": "I am happy.",
+      "pred": "I am happy.",
+      "exact_match": true
+    },
+    {
+      "input": "hello hungry",
+      "gold": "Hello, I am hungry.",
+      "pred": "I am hungry.",
+      "exact_match": false
+    },
+    {
+      "input": "yes",
+      "gold": "Yes.",
+      "pred": "Yes, okay.",
+      "exact_match": false
+    },
+    {
+      "input": "help help drink",
+      "gold": "I need help getting a drink.",
+      "pred": "I need help getting a drink.",
+      "exact_match": true
+    },
+    {
+      "input": "i please please drink",
+      "gold": "Please give me a drink.",
+      "pred": "Please give me a drink.",
+      "exact_match": true
+    },
+    {
+      "input": "you help",
+      "gold": "Can you help me?",
+      "pred": "Can you help me?",
+      "exact_match": true
+    }
+  ]
+}

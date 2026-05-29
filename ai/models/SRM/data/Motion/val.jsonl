@@ -1,0 +1,217 @@
+{"input": "hungry hello hungry", "output": "I am hungry."}
+{"input": "please help", "output": "Please help me."}
+{"input": "please water", "output": "Please give me water."}
+{"input": "sorry hello sorry", "output": "Hello."}
+{"input": "hungry drink drink", "output": "I am hungry and need a drink."}
+{"input": "busy busy goodbye", "output": "I am busy."}
+{"input": "you deaf you", "output": "Are you deaf?"}
+{"input": "yes yes thankyou", "output": "Yes, thank you."}
+{"input": "name you name", "output": "What is your name?"}
+{"input": "yes thankyou thankyou", "output": "Yes, thank you."}
+{"input": "ok", "output": "I am okay."}
+{"input": "name please", "output": "Please tell me your name."}
+{"input": "busy busy i", "output": "I am busy."}
+{"input": "hungry i hungry", "output": "I am hungry."}
+{"input": "nothing busy", "output": "Nothing."}
+{"input": "busy busy happy", "output": "I am happy."}
+{"input": "i fine", "output": "I am fine."}
+{"input": "what name what", "output": "What is your name?"}
+{"input": "no nothing no", "output": "No, nothing."}
+{"input": "you you deaf", "output": "Are you deaf?"}
+{"input": "please help help", "output": "Please help me."}
+{"input": "yes yes ok", "output": "Yes, okay."}
+{"input": "hungry water", "output": "I am hungry and need water."}
+{"input": "hungry water hungry", "output": "I am hungry and need water."}
+{"input": "seeyoulater goodbye seeyoulater", "output": "Goodbye. See you later."}
+{"input": "no no thankyou", "output": "No, thank you."}
+{"input": "i busy busy", "output": "I am busy."}
+{"input": "hello drink", "output": "I need a drink."}
+{"input": "help i", "output": "I need help."}
+{"input": "deaf you deaf", "output": "Are you deaf?"}
+{"input": "i sorry i", "output": "I am sorry."}
+{"input": "name busy name", "output": "I am busy."}
+{"input": "i deaf i", "output": "I am deaf."}
+{"input": "hello water water", "output": "I need water."}
+{"input": "you you fine", "output": "Are you fine?"}
+{"input": "goodbye thankyou thankyou", "output": "Thank you. Goodbye."}
+{"input": "busy hungry", "output": "I am hungry."}
+{"input": "please thankyou please", "output": "Please and thank you."}
+{"input": "thankyou goodbye thankyou", "output": "Thank you. Goodbye."}
+{"input": "ok busy", "output": "Okay."}
+{"input": "i i help", "output": "I need help."}
+{"input": "busy howareyou howareyou", "output": "I am busy."}
+{"input": "what", "output": "What is your name?"}
+{"input": "deaf busy deaf", "output": "I am busy."}
+{"input": "busy nothing nothing", "output": "Nothing."}
+{"input": "busy great busy great", "output": "I am great."}
+{"input": "please drink please drink", "output": "Please give me a drink."}
+{"input": "great", "output": "I am great."}
+{"input": "busy drink", "output": "I need a drink."}
+{"input": "sorry thankyou", "output": "Sorry, thank you."}
+{"input": "hello drink drink", "output": "I need a drink."}
+{"input": "nothing", "output": "No, nothing."}
+{"input": "goodbye goodbye thankyou", "output": "Thank you. Goodbye."}
+{"input": "busy hungry hungry", "output": "I am hungry."}
+{"input": "i help", "output": "I need help."}
+{"input": "no ok ok", "output": "No, I am not okay."}
+{"input": "i i busy", "output": "I am busy."}
+{"input": "you you ok", "output": "Are you okay?"}
+{"input": "you happy happy", "output": "Are you happy?"}
+{"input": "i i great", "output": "I am great."}
+{"input": "you happy", "output": "Are you happy?"}
+{"input": "no nothing", "output": "No, nothing."}
+{"input": "what what name", "output": "What is your name?"}
+{"input": "help busy", "output": "I need help."}
+{"input": "hello busy", "output": "I am busy."}
+{"input": "hello hello thankyou", "output": "Hello, thank you."}
+{"input": "name busy", "output": "I am busy."}
+{"input": "happy busy happy", "output": "I am happy."}
+{"input": "water i water", "output": "I need water."}
+{"input": "water help water", "output": "I need help getting water."}
+{"input": "i deaf deaf", "output": "I am deaf."}
+{"input": "ok yes ok", "output": "Yes, okay."}
+{"input": "help", "output": "I need help."}
+{"input": "hello hello drink", "output": "I need a drink."}
+{"input": "seeyoulater", "output": "Thank you. See you later."}
+{"input": "no nothing thankyou no", "output": "No, thank you."}
+{"input": "hello i drink hello i drink", "output": "I need a drink."}
+{"input": "busy i goodbye", "output": "I am busy."}
+{"input": "busy busy deaf great", "output": "I am great."}
+{"input": "i please help help", "output": "Please help me."}
+{"input": "hello fine", "output": "Hello, how are you? I am fine."}
+{"input": "busy fine deaf", "output": "I am fine."}
+{"input": "i i busy seeyoulater", "output": "I am busy."}
+{"input": "i ok thankyou", "output": "I am okay."}
+{"input": "you ok please you", "output": "Are you okay?"}
+{"input": "goodbye seeyoulater", "output": "Thank you. Goodbye."}
+{"input": "i hungry hungry water", "output": "I am hungry and need water."}
+{"input": "deaf busy no", "output": "I am busy."}
+{"input": "please your", "output": "Please tell me your name."}
+{"input": "hello i deaf", "output": "I am deaf."}
+{"input": "i fine thankyou i", "output": "I am fine, thank you."}
+{"input": "howareyou i", "output": "Hello, how are you? I am here."}
+{"input": "busy i", "output": "I am busy."}
+{"input": "busy busy deaf i", "output": "I am busy."}
+{"input": "busy deaf i i", "output": "I am busy."}
+{"input": "hello i howareyou", "output": "Hello, how are you? I am here."}
+{"input": "hello i help help", "output": "I need help."}
+{"input": "busy nothing", "output": "I am busy."}
+{"input": "please water thankyou please", "output": "Please give me water."}
+{"input": "you please ok", "output": "Are you okay?"}
+{"input": "please you help", "output": "Can you please help me?"}
+{"input": "please your name please", "output": "Please tell me your name."}
+{"input": "goodbye seeyoulater thankyou", "output": "Thank you. Goodbye."}
+{"input": "hello i hungry hungry", "output": "I am hungry."}
+{"input": "help i drink", "output": "I need help getting a drink."}
+{"input": "please thankyou water", "output": "Please give me water."}
+{"input": "busy i deaf", "output": "I am busy."}
+{"input": "busy drink deaf", "output": "I need a drink."}
+{"input": "deaf happy", "output": "I am happy."}
+{"input": "hello hello i fine", "output": "I am fine."}
+{"input": "yes thankyou ok yes", "output": "Yes, thank you."}
+{"input": "busy deaf hungry hungry", "output": "I am hungry."}
+{"input": "i ok thankyou i ok thankyou", "output": "I am okay."}
+{"input": "hello fine i", "output": "I am fine."}
+{"input": "drink thankyou", "output": "Please give me a drink."}
+{"input": "busy goodbye", "output": "I am busy."}
+{"input": "fine please", "output": "Are you fine?"}
+{"input": "hello howareyou thankyou", "output": "Hello, how are you? Thank you."}
+{"input": "busy deaf name", "output": "I am busy."}
+{"input": "sorry sorry thankyou goodbye", "output": "Sorry, thank you."}
+{"input": "i thankyou sorry", "output": "I am sorry."}
+{"input": "busy deaf drink", "output": "I need a drink."}
+{"input": "busy deaf deaf goodbye", "output": "I am busy."}
+{"input": "help water", "output": "I need help getting water."}
+{"input": "hello i hungry hello", "output": "I am hungry."}
+{"input": "help thankyou", "output": "No, thank you."}
+{"input": "please help water please", "output": "Please help me get water."}
+{"input": "hello howareyou goodbye goodbye", "output": "Hello, how are you? Goodbye."}
+{"input": "please drink thankyou please", "output": "Please give me a drink."}
+{"input": "nothing no thankyou", "output": "No, thank you."}
+{"input": "deaf busy howareyou", "output": "I am busy."}
+{"input": "sorry thankyou goodbye sorry thankyou goodbye", "output": "Sorry, thank you."}
+{"input": "i sorry sorry thankyou", "output": "I am sorry."}
+{"input": "i hungry drink", "output": "I am hungry and need a drink."}
+{"input": "please drink thankyou", "output": "Please give me a drink."}
+{"input": "busy deaf howareyou howareyou", "output": "I am busy."}
+{"input": "i help drink i help drink", "output": "I need help getting a drink."}
+{"input": "busy deaf goodbye goodbye", "output": "I am busy."}
+{"input": "hello i fine", "output": "I am fine."}
+{"input": "hello i i deaf", "output": "I am deaf."}
+{"input": "hello i water water", "output": "I need water."}
+{"input": "you please help you please help", "output": "Can you please help me?"}
+{"input": "goodbye thankyou", "output": "Thank you. Goodbye."}
+{"input": "no help thankyou no", "output": "No, thank you."}
+{"input": "please your your name", "output": "Please tell me your name."}
+{"input": "busy deaf hello", "output": "I am busy."}
+{"input": "i fine thankyou thankyou", "output": "I am fine, thank you."}
+{"input": "thankyou goodbye", "output": "Sorry, thank you."}
+{"input": "please i drink", "output": "Please give me a drink."}
+{"input": "hello hello seeyoulater", "output": "Hello. See you later."}
+{"input": "i thankyou ok", "output": "I am okay, thank you."}
+{"input": "i great thankyou", "output": "I am great, thank you."}
+{"input": "hello seeyoulater", "output": "Hello. See you later."}
+{"input": "i sad sad", "output": "I am sad."}
+{"input": "what what you name", "output": "What is your name?"}
+{"input": "no ok", "output": "No, I am not okay."}
+{"input": "i please drink i please drink", "output": "Please give me a drink."}
+{"input": "no nothing nothing", "output": "No, nothing."}
+{"input": "please your name please your name", "output": "What is your name?"}
+{"input": "i ok thankyou i", "output": "I am okay, thank you."}
+{"input": "you please please help", "output": "Please help me."}
+{"input": "howareyou hello", "output": "Hello, how are you?"}
+{"input": "hello help", "output": "Hello, I need help."}
+{"input": "i ok ok thankyou", "output": "I am okay, thank you."}
+{"input": "seeyoulater hello", "output": "Hello. See you later."}
+{"input": "your name your", "output": "What is your name?"}
+{"input": "i great thankyou i", "output": "I am great, thank you."}
+{"input": "your name your name", "output": "What is your name?"}
+{"input": "what", "output": "What?"}
+{"input": "hello howareyou", "output": "Hello, how are you?"}
+{"input": "your your name", "output": "What is your name?"}
+{"input": "i happy happy", "output": "I am happy."}
+{"input": "i fine i fine", "output": "I am fine."}
+{"input": "hello hungry hungry", "output": "Hello, I am hungry."}
+{"input": "i water water", "output": "I need water."}
+{"input": "what name", "output": "What is your name?"}
+{"input": "you name what", "output": "What is your name?"}
+{"input": "hello goodbye", "output": "Hello. Goodbye."}
+{"input": "you please help help", "output": "Please help me."}
+{"input": "hello goodbye hello goodbye", "output": "Hello. Goodbye."}
+{"input": "please name your", "output": "What is your name?"}
+{"input": "you ok ok", "output": "Are you okay?"}
+{"input": "what what drink", "output": "Do you need a drink?"}
+{"input": "i hungry water", "output": "I am hungry and need water."}
+{"input": "i hungry water i hungry water", "output": "I am hungry and need water."}
+{"input": "ok thankyou thankyou", "output": "Okay, thank you."}
+{"input": "i sad i sad", "output": "I am sad."}
+{"input": "yes thankyou yes thankyou", "output": "Yes, thank you."}
+{"input": "help drink drink", "output": "I need help getting a drink."}
+{"input": "help water please", "output": "Please help me get water."}
+{"input": "your", "output": "Your."}
+{"input": "i drink help", "output": "I need help getting a drink."}
+{"input": "what water what", "output": "Do you need water?"}
+{"input": "please help help drink", "output": "Please help me get a drink."}
+{"input": "howareyou", "output": "How are you?"}
+{"input": "deaf", "output": "I am deaf."}
+{"input": "no no help", "output": "No help needed."}
+{"input": "no help", "output": "No help needed."}
+{"input": "i ok thankyou i ok thankyou", "output": "I am okay, thank you."}
+{"input": "you you hungry", "output": "Are you hungry?"}
+{"input": "i help drink i", "output": "I need help getting a drink."}
+{"input": "hungry water i", "output": "I am hungry and need water."}
+{"input": "what you name what", "output": "What is your name?"}
+{"input": "you busy you", "output": "Are you busy?"}
+{"input": "great you", "output": "Are you great?"}
+{"input": "please water please water", "output": "Please give me water."}
+{"input": "i drink drink", "output": "I need a drink."}
+{"input": "i hungry hungry", "output": "I am hungry."}
+{"input": "i ok ok", "output": "I am okay."}
+{"input": "drink help", "output": "I need help getting a drink."}
+{"input": "you great you great", "output": "Are you great?"}
+{"input": "ok thankyou ok", "output": "Okay, thank you."}
+{"input": "please water please", "output": "Please give me water."}
+{"input": "what name name", "output": "What is your name?"}
+{"input": "i i water", "output": "I need water."}
+{"input": "i i hungry drink", "output": "I am hungry and need a drink."}
+{"input": "i deaf help help", "output": "I am deaf. I need help."}
