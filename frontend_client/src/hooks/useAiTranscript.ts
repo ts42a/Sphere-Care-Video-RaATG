@@ -32,20 +32,39 @@ function sortTranscript(items: LiveTranscriptItem[]) {
   });
 }
 
+const MAX_TRANSCRIPT_ITEMS = 80;
+
+function trimTranscriptItems(items: LiveTranscriptItem[]) {
+  const sorted = sortTranscript(items);
+  return sorted.length > MAX_TRANSCRIPT_ITEMS
+    ? sorted.slice(sorted.length - MAX_TRANSCRIPT_ITEMS)
+    : sorted;
+}
+
 function upsertTranscriptItem(items: LiveTranscriptItem[], next: LiveTranscriptItem) {
   const existing = next.segmentId
     ? items.find((item) => item.segmentId === next.segmentId)
     : items.find((item) => item.id === next.id);
 
   if (existing) {
-    return sortTranscript(
+    return trimTranscriptItems(
       items.map((item) =>
         item.segmentId === next.segmentId || item.id === next.id ? { ...item, ...next } : item
       )
     );
   }
 
-  return sortTranscript([...items, next]);
+  return trimTranscriptItems([...items, next]);
+}
+
+function mergeTranscriptItems(
+  current: LiveTranscriptItem[],
+  loaded: LiveTranscriptItem[]
+) {
+  return loaded.reduce(
+    (acc, item) => upsertTranscriptItem(acc, item),
+    current
+  );
 }
 
 let _rtId = -1;
@@ -82,7 +101,13 @@ export function useAiTranscript(callId?: number, enabled = true) {
       setError("");
       setLoading(true);
       const data = await callService.getTranscript(callId);
-      setItems(sortTranscript(data.map(normaliseLoadedItem)));
+      const loadedItems = sortTranscript(data.map(normaliseLoadedItem));
+
+      // Do not replace live captions with the persisted transcript response.
+      // During an active call the backend may not have saved the current
+      // call.caption segments yet, so replacing here makes the panel look like
+      // it resets every polling cycle. Merge instead.
+      setItems((prev) => mergeTranscriptItems(prev, loadedItems));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to load transcript");
     } finally {

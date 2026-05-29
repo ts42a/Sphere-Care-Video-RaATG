@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   View,
   Text,
@@ -10,7 +10,7 @@ import * as LiveKit from "@livekit/react-native";
 import { Track } from "livekit-client";
 
 import TranscriptPanel from "./TranscriptPanel";
-import AslVisionCameraCapture from "./AslVisionCameraCapture";
+import AslLiveKitFrameCapture from "./AslLiveKitFrameCapture";
 import { useAslBroadcast } from "../../hooks/useAslBroadcast";
 import { colors } from "../../theme/colors";
 import type { CallContact, CallSession, TranscriptItem } from "../../types/call";
@@ -75,6 +75,7 @@ export default function CallVideoStage({
     () => new Set()
   );
   const [manualAslSpaces, setManualAslSpaces] = useState(0);
+  const localVideoCaptureRef = useRef<View>(null);
 
   const aslCaptureActive = Boolean(
     session.callState === "active" && transcriptMode === "asl"
@@ -277,17 +278,14 @@ export default function CallVideoStage({
         )}
       </View>
 
-      {/* Local preview. ASL mode uses VisionCamera native capture instead of WebRTC view screenshots. */}
+      {/* Local preview. ASL mode now snapshots this existing LiveKit local video view. */}
       <View style={styles.topRightOverlay}>
-        <View style={styles.localPreviewShell}>
-          {aslCaptureActive ? (
-            <AslVisionCameraCapture
-              active={aslCaptureActive}
-              facing={cameraFacing}
-              onFrame={handleAslFrame}
-              onError={handleAslCameraError}
-            />
-          ) : hasLocalVideo ? (
+        <View
+          ref={localVideoCaptureRef}
+          collapsable={false}
+          style={styles.localPreviewShell}
+        >
+          {hasLocalVideo ? (
             <VideoTrackComponent
               trackRef={localPreviewTrackRef as any}
               style={styles.localVideo}
@@ -302,6 +300,14 @@ export default function CallVideoStage({
             />
           )}
         </View>
+
+        <AslLiveKitFrameCapture
+          active={aslCaptureActive && hasLocalVideo}
+          targetRef={localVideoCaptureRef}
+          onFrame={handleAslFrame}
+          onError={handleAslCameraError}
+        />
+
         {/* ASL live indicator on local preview */}
         {aslCaptureActive && lastSegment?.letter && (
           <View style={styles.aslLocalBadge}>
@@ -631,9 +637,10 @@ const styles = StyleSheet.create({
     left: 14,
     right: 14,
     bottom: 118,
-    maxHeight: 280,
+    height: "50%",
   },
   transcriptExpandedPanel: {
+    flex: 1,
     backgroundColor: "rgba(10, 24, 48, 0.97)",
     borderColor: "rgba(255,255,255,0.10)",
     borderRadius: 20,

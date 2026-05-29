@@ -262,7 +262,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
   homeScreen: {
-    paddingTop: 20,
+    paddingTop: 60,
     paddingHorizontal: spacing.xxl,
     paddingBottom: spacing.xxl,
   },
