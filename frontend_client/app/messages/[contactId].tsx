@@ -174,6 +174,10 @@ export default function MessageChatScreen() {
 
     try {
       const contact = await callService.getContactById(conversationId);
+      if (!contact) {
+        throw new Error("Unable to find this call contact.");
+      }
+
       const session = await callService.startCall({ mode, contact });
       miniCallService.setState({
         active: true,
