@@ -92,25 +92,29 @@ export async function downloadCallSummaryDocument(payload: CallSummaryMessagePay
   const fileName = `${baseName || "SphereCare_Call_Summary"}.txt`;
 
   try {
-    if (Platform.OS === "android" && FileSystem.StorageAccessFramework) {
-      const permission = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
+    const expoFileSystem = FileSystem as any;
+    const storageAccessFramework = expoFileSystem.StorageAccessFramework;
+    const utf8Encoding = expoFileSystem.EncodingType?.UTF8 ?? "utf8";
+
+    if (Platform.OS === "android" && storageAccessFramework) {
+      const permission = await storageAccessFramework.requestDirectoryPermissionsAsync();
       if (permission.granted) {
-        const uri = await FileSystem.StorageAccessFramework.createFileAsync(
+        const uri = await storageAccessFramework.createFileAsync(
           permission.directoryUri,
           fileName,
           "text/plain"
         );
-        await FileSystem.writeAsStringAsync(uri, documentText, {
-          encoding: FileSystem.EncodingType.UTF8,
+        await expoFileSystem.writeAsStringAsync(uri, documentText, {
+          encoding: utf8Encoding,
         });
         Alert.alert("Summary downloaded", `Saved as ${fileName}.`);
         return;
       }
     }
 
-    const cacheUri = `${FileSystem.cacheDirectory}${fileName}`;
-    await FileSystem.writeAsStringAsync(cacheUri, documentText, {
-      encoding: FileSystem.EncodingType.UTF8,
+    const cacheUri = `${expoFileSystem.cacheDirectory ?? ""}${fileName}`;
+    await expoFileSystem.writeAsStringAsync(cacheUri, documentText, {
+      encoding: utf8Encoding,
     });
 
     await Share.share({
