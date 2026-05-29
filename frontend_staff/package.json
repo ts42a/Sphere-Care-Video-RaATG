@@ -3,6 +3,26 @@
   "version": "1.0.0",
   "description": "Sphere Care - AI-Powered Aged Care Platform",
   "scripts": {
-    "start": "echo 'Please run the backend from repo root: .venv\\\\Scripts\\\\activate && python -m uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000'"
-  }
+    "start": "echo 'Please run the backend from repo root: .venv\\\\Scripts\\\\activate && python -m uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000'",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "testMatch": [
+      "**/tests/**/*.test.js"
+    ]
+  },
+  "main": "index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs"
 }
