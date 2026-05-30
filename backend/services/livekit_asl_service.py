@@ -60,7 +60,7 @@ ASL_FRAME_INTERVAL = float(os.getenv("ASL_FRAME_INTERVAL", "0.15"))
 ASL_MOTION_THRESHOLD = float(os.getenv("ASL_MOTION_THRESHOLD", "4.0"))
 
 # Minimum detection confidence to emit a caption.
-ASL_MIN_CONFIDENCE = float(os.getenv("ASL_MIN_CONFIDENCE", "0.55"))
+ASL_MIN_CONFIDENCE = float(os.getenv("ASL_MIN_CONFIDENCE", "0.40"))
 
 
 # ---------------------------------------------------------------------------
@@ -225,14 +225,33 @@ class LiveKitAslManager:
 
             @room.on("track_subscribed")
             def _on_track_subscribed(track, publication, participant) -> None:
+                print(
+                    f"[livekit-asl] track_subscribed event call={call_key} "
+                    f"participant={getattr(participant, 'identity', 'unknown')} "
+                    f"track_kind={getattr(track, 'kind', None)} "
+                    f"publication_sid={getattr(publication, 'sid', None)}",
+                    flush=True,
+                )
+
                 try:
                     if track.kind != rtc.TrackKind.KIND_VIDEO:
+                        print(
+                            f"[livekit-asl] ignore non-video track call={call_key} "
+                            f"kind={getattr(track, 'kind', None)}",
+                            flush=True,
+                        )
                         return  # only interested in video tracks
-                except Exception:
+                except Exception as exc:
+                    print(f"[livekit-asl] cannot read track kind call={call_key}: {exc}", flush=True)
                     return
 
                 # Skip our own agent tracks
                 if str(getattr(participant, "identity", "")).startswith("asl_agent_"):
+                    print(
+                        f"[livekit-asl] skip own worker track call={call_key} "
+                        f"participant={getattr(participant, 'identity', '')}",
+                        flush=True,
+                    )
                     return
 
                 track_sid = str(getattr(publication, "sid", id(track)))
@@ -268,19 +287,87 @@ class LiveKitAslManager:
                     track_sid,
                     getattr(participant, "identity", "unknown"),
                 )
+                print(
+                    f"[livekit-asl] subscribed call={call_key} "
+                    f"track={track_sid} "
+                    f"participant={getattr(participant, 'identity', 'unknown')}",
+                    flush=True,
+                )
 
             @room.on("track_unsubscribed")
             def _on_track_unsubscribed(track, publication, participant) -> None:
                 track_sid = str(getattr(publication, "sid", id(track)))
+                print(
+                    f"[livekit-asl] track_unsubscribed call={call_key} "
+                    f"track={track_sid} participant={getattr(participant, 'identity', 'unknown')}",
+                    flush=True,
+                )
                 state = worker.track_tasks.pop(track_sid, None)
                 if state:
                     state.task.cancel()
+
+            @room.on("participant_connected")
+            def _on_participant_connected(participant) -> None:
+                print(
+                    f"[livekit-asl] participant_connected call={call_key} "
+                    f"participant={getattr(participant, 'identity', 'unknown')}",
+                    flush=True,
+                )
+
+            @room.on("track_published")
+            def _on_track_published(publication, participant) -> None:
+                print(
+                    f"[livekit-asl] track_published call={call_key} "
+                    f"participant={getattr(participant, 'identity', 'unknown')} "
+                    f"kind={getattr(publication, 'kind', None)} "
+                    f"sid={getattr(publication, 'sid', None)}",
+                    flush=True,
+                )
 
             # ------------------------------------------------------------------
 
             try:
                 await room.connect(livekit_url, token)
+                print(f"[livekit-asl] connected call={call_key} room={room_id}", flush=True)
+
+                # Dump current room state right after connection. This helps check
+                # whether participants or tracks already existed before the worker joined.
+                try:
+                    participants = getattr(room, "remote_participants", {}) or {}
+                    if hasattr(participants, "items"):
+                        iterable = participants.items()
+                    else:
+                        iterable = enumerate(participants)
+                    count = 0
+                    for _, participant in iterable:
+                        count += 1
+                        identity = getattr(participant, "identity", "unknown")
+                        print(f"[livekit-asl] existing participant call={call_key} participant={identity}", flush=True)
+                        pubs = (
+                            getattr(participant, "track_publications", None)
+                            or getattr(participant, "tracks", None)
+                            or {}
+                        )
+                        if hasattr(pubs, "items"):
+                            pub_iter = pubs.items()
+                        else:
+                            pub_iter = enumerate(pubs)
+                        for _, pub in pub_iter:
+                            print(
+                                f"[livekit-asl] existing publication call={call_key} "
+                                f"participant={identity} "
+                                f"kind={getattr(pub, 'kind', None)} "
+                                f"sid={getattr(pub, 'sid', None)} "
+                                f"subscribed={getattr(pub, 'subscribed', None)} "
+                                f"track={getattr(pub, 'track', None)}",
+                                flush=True,
+                            )
+                    print(f"[livekit-asl] existing participant count call={call_key}: {count}", flush=True)
+                except Exception as exc:
+                    print(f"[livekit-asl] room state dump failed call={call_key}: {exc}", flush=True)
+
             except Exception as exc:
+                print(f"[livekit-asl] failed to connect call={call_key}: {exc}", flush=True)
                 logger.exception(
                     "[livekit-asl] failed to connect call %s: %s", call_key, exc
                 )
@@ -290,6 +377,7 @@ class LiveKitAslManager:
             logger.info(
                 "[livekit-asl] worker started for call=%s room=%s", call_key, room_id
             )
+            print(f"[livekit-asl] worker started for call={call_key} room={room_id}", flush=True)
             return True
 
     async def stop_call(self, call_id: "str | int") -> None:
@@ -344,11 +432,28 @@ class LiveKitAslManager:
             from livekit import rtc
             from backend.services.transcript_service import broadcast_asl_result
 
+            print(
+                f"[livekit-asl] consumer started call={call_id} "
+                f"participant={participant_identity}",
+                flush=True,
+            )
+
             video_stream = rtc.VideoStream(track)
             last_inference_at: float = 0.0
             prev_bgr = None
+            frame_count = 0
+            inference_count = 0
+            low_conf_count = 0
 
             async for frame_event in video_stream:
+                frame_count += 1
+                if frame_count == 1 or frame_count % 60 == 0:
+                    print(
+                        f"[livekit-asl] frame received call={call_id} "
+                        f"participant={participant_identity} frames={frame_count}",
+                        flush=True,
+                    )
+
                 now = time.monotonic()
 
                 # ---- time gate -----------------------------------------------
@@ -369,12 +474,30 @@ class LiveKitAslManager:
                 last_inference_at = now
 
                 # ---- ASL detection ------------------------------------------
+                inference_count += 1
                 result = await _run_detection(curr_bgr)
 
                 text = (result.get("text") or "").strip()
                 confidence = float(result.get("confidence", 0.0))
 
+                if inference_count == 1 or inference_count % 20 == 0:
+                    print(
+                        f"[livekit-asl] inference call={call_id} "
+                        f"participant={participant_identity} count={inference_count} "
+                        f"text={text!r} confidence={confidence:.2f}",
+                        flush=True,
+                    )
+
                 if not text or confidence < ASL_MIN_CONFIDENCE:
+                    low_conf_count += 1
+                    if low_conf_count == 1 or low_conf_count % 20 == 0:
+                        print(
+                            f"[livekit-asl] no emitted result call={call_id} "
+                            f"participant={participant_identity} "
+                            f"text={text!r} confidence={confidence:.2f} "
+                            f"threshold={ASL_MIN_CONFIDENCE}",
+                            flush=True,
+                        )
                     continue
 
                 logger.debug(
@@ -383,6 +506,12 @@ class LiveKitAslManager:
                     participant_identity,
                     text,
                     confidence,
+                )
+                print(
+                    f"[livekit-asl] result call={call_id} "
+                    f"participant={participant_identity} "
+                    f"text={text!r} confidence={confidence:.2f}",
+                    flush=True,
                 )
 
                 # ---- broadcast ASL result ------------------------------------
@@ -395,8 +524,18 @@ class LiveKitAslManager:
                 )
 
         except asyncio.CancelledError:
+            print(
+                f"[livekit-asl] consumer cancelled call={call_id} "
+                f"participant={participant_identity}",
+                flush=True,
+            )
             raise
         except Exception as exc:
+            print(
+                f"[livekit-asl] consumer failed call={call_id} "
+                f"participant={participant_identity}: {exc}",
+                flush=True,
+            )
             logger.exception(
                 "[livekit-asl] video consumer failed call=%s participant=%s: %s",
                 call_id,

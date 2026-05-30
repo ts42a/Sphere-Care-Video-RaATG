@@ -52,8 +52,6 @@ def _pcm16_to_wav_bytes(pcm_bytes: bytes) -> bytes:
 
 
 def _mint_worker_token(room_id: str, identity: str) -> Optional[str]:
-    import os
-
     lk_key = os.getenv("LIVEKIT_API_KEY")
     lk_secret = os.getenv("LIVEKIT_API_SECRET")
 
@@ -77,6 +75,7 @@ def _mint_worker_token(room_id: str, identity: str) -> Optional[str]:
                     can_publish_data=True,
                 )
             )
+            .with_ttl(timedelta(minutes=30))
             .to_jwt()
         )
     except Exception as exc:

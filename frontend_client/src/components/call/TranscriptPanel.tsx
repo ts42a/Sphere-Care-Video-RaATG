@@ -1,11 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import {
   View,
   Text,
   StyleSheet,
   Pressable,
   ScrollView,
-  Animated,
   type StyleProp,
   type ViewStyle,
 } from "react-native";
@@ -55,41 +54,22 @@ export default function TranscriptPanel({
 }: TranscriptPanelProps) {
   const isAslMode = mode === "asl";
   const scrollRef = useRef<ScrollView>(null);
-  const [isAtBottom, setIsAtBottom] = useState(true);
-  const jumpBtnOpacity = useRef(new Animated.Value(0)).current;
-  const prevItemCount = useRef(items.length);
 
-  // Auto-scroll when new items arrive, but only if already at bottom
-  useEffect(() => {
-    if (items.length === prevItemCount.current) return;
-    prevItemCount.current = items.length;
-    if (isAtBottom) {
-      setTimeout(() => {
-        scrollRef.current?.scrollToEnd({ animated: true });
-      }, 80);
-    }
-  }, [items.length, isAtBottom]);
-
-  // Animate jump button in/out
-  useEffect(() => {
-    Animated.timing(jumpBtnOpacity, {
-      toValue: isAtBottom ? 0 : 1,
-      duration: 180,
-      useNativeDriver: true,
-    }).start();
-  }, [isAtBottom, jumpBtnOpacity]);
-
-  const handleScroll = useCallback((e: any) => {
-    const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
-    const distFromBottom =
-      contentSize.height - layoutMeasurement.height - contentOffset.y;
-    setIsAtBottom(distFromBottom < 28);
+  const scrollToBottom = useCallback((animated = true) => {
+    requestAnimationFrame(() => {
+      scrollRef.current?.scrollToEnd({ animated });
+    });
   }, []);
 
-  const scrollToBottom = useCallback(() => {
-    scrollRef.current?.scrollToEnd({ animated: true });
-    setIsAtBottom(true);
-  }, []);
+  // Always follow the newest transcript output.
+  // The Latest button is removed, so new Speech / ASL messages keep the panel at the bottom.
+  useEffect(() => {
+    scrollToBottom(true);
+  }, [items.length, items[items.length - 1]?.content, mode, expanded, scrollToBottom]);
+
+  const handleContentSizeChange = useCallback(() => {
+    scrollToBottom(true);
+  }, [scrollToBottom]);
 
   return (
     <View style={[styles.panel, containerStyle]}>
@@ -159,8 +139,7 @@ export default function TranscriptPanel({
           style={styles.body}
           contentContainerStyle={styles.content}
           showsVerticalScrollIndicator={false}
-          onScroll={handleScroll}
-          scrollEventThrottle={60}
+          onContentSizeChange={handleContentSizeChange}
         >
           {!transcribing ? (
             <View style={styles.emptyWrap}>
@@ -212,16 +191,6 @@ export default function TranscriptPanel({
           )}
         </ScrollView>
 
-        {/* Jump to latest */}
-        <Animated.View
-          style={[styles.jumpBtn, { opacity: jumpBtnOpacity }]}
-          pointerEvents={isAtBottom ? "none" : "auto"}
-        >
-          <Pressable style={styles.jumpBtnInner} onPress={scrollToBottom}>
-            <Feather name="chevron-down" size={13} color={colors.surface} />
-            <Text style={styles.jumpBtnText}>Latest</Text>
-          </Pressable>
-        </Animated.View>
       </View>
 
       {/* ASL footer */}
@@ -400,34 +369,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.textSecondary,
     lineHeight: 19,
-  },
-  // Jump to latest button
-  jumpBtn: {
-    position: "absolute",
-    bottom: 12,
-    left: 0,
-    right: 0,
-    alignItems: "center",
-    zIndex: 10,
-  },
-  jumpBtnInner: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    backgroundColor: colors.primary,
-    borderRadius: 999,
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.18,
-    shadowRadius: 4,
-    elevation: 6,
-  },
-  jumpBtnText: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: colors.surface,
   },
   // ASL footer
   aslFooter: {

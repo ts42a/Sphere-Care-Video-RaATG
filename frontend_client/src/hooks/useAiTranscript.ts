@@ -152,13 +152,16 @@ export function useAiTranscript(callId?: number, enabled = true) {
       const p = msg?.payload ?? msg;
       if (!p || String(p.call_id) !== String(callId) || !p.text) return;
 
+      const isAsl = String(p.modality ?? "speech").toLowerCase() === "asl";
+      const text = String(p.text ?? "").trim();
+
       const item: LiveTranscriptItem = {
         id: nextRtId(),
         segmentId: p.segment_id,
-        source: "asr",
-        speaker: p.speaker_name ?? p.speaker ?? "Unknown speaker",
-        role: roleFromPayload(p.participant_role),
-        content: p.text,
+        source: isAsl ? "asl" : "asr",
+        speaker: p.speaker_name ?? p.speaker ?? (isAsl ? "ASL" : "Unknown speaker"),
+        role: isAsl ? "ai" : roleFromPayload(p.participant_role),
+        content: isAsl ? `[ASL] ${text}` : text,
         created_at: toIso(p.ts),
         isFinal: p.is_final ?? true,
         confidence: p.confidence,
@@ -178,19 +181,23 @@ export function useAiTranscript(callId?: number, enabled = true) {
       const p = msg?.payload ?? msg;
       if (!p || String(p.call_id) !== String(callId) || !p.letter) return;
 
+      const value = String(p.word || p.letter || "").trim();
+      if (!value) return;
+
       const item: LiveTranscriptItem = {
         id: nextRtId(),
         segmentId: p.segment_id,
         source: "asl",
-        speaker: p.speaker ?? "ASL",
+        speaker: p.speaker_name ?? p.speaker ?? "ASL",
         role: "ai",
-        content: p.word ? `[ASL] ${p.word}` : `[ASL] ${p.letter}`,
+        content: `[ASL] ${value}`,
         created_at: toIso(p.ts),
         isFinal: true,
         confidence: p.confidence,
       };
 
       setItems((prev) => upsertTranscriptItem(prev, item));
+      console.log("[mobile transcript] call.asl.result received", msg);
     });
 
     return unsubscribe;
