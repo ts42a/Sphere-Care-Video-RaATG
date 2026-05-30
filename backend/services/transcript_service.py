@@ -57,8 +57,14 @@ async def broadcast_caption(
     speaker_id: Optional[str] = None,
     speaker_name: Optional[str] = None,
     participant_role: Optional[str] = None,
+    modality: str = "speech",
 ) -> None:
-    """Broadcast one ASR transcript segment to all participants in the call."""
+    """Broadcast one ASR/ASL transcript segment to all participants in the call.
+
+    ``modality`` distinguishes the caption source on the frontend:
+      - ``"speech"``  — Whisper ASR (default, backwards-compatible)
+      - ``"asl"``     — ASL detection via livekit_asl_service
+    """
     if not text:
         return
 
@@ -76,6 +82,7 @@ async def broadcast_caption(
             "confidence": round(confidence, 3),
             "ts": ts or time.time(),
             "is_final": is_final,
+            "modality": modality,
         },
     }
 
