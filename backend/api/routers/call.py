@@ -203,6 +203,7 @@ class CallResponse(BaseModel):
     ended_at: Optional[str] = None
     livekit_url: Optional[str] = None
     join_payload: Optional[JoinPayload] = None
+    ai_summary: Optional[str] = None
 
 class CallSummaryResponse(BaseModel):
     today_calls: int
@@ -242,6 +243,7 @@ def _fmt_call(call: models.Call, join_payload: Optional[JoinPayload] = None) -> 
         ended_at=call.ended_at.isoformat() if call.ended_at else None,
         livekit_url=call.livekit_url,
         join_payload=join_payload,
+        ai_summary=call.ai_summary,
     )
 
 def _format_duration_label(total_minutes: int) -> str:
@@ -846,7 +848,39 @@ async def end_call(
 
     await _ws_broadcast_call_event(call, ws_event, extra_payload)
     asyncio.create_task(livekit_asl_manager.stop_call(call.id))
+    asyncio.create_task(_generate_call_summary(call.id, db))
     return _fmt_call(call)
+
+
+async def _generate_call_summary(call_id: int, db) -> None:
+    """Background task: build transcript from accumulated captions and summarise with LLM."""
+    import asyncio as _asyncio
+    from backend.services import transcript_service
+    from backend.services.ai.llm_client import summarize_call_transcript
+
+    transcript = transcript_service.get_and_clear_transcript(call_id)
+    if not transcript:
+        return
+
+    call = db.query(models.Call).filter(models.Call.id == call_id).first()
+    if not call:
+        return
+
+    duration = 0
+    if call.started_at and call.ended_at:
+        duration = int((call.ended_at - call.started_at).total_seconds())
+
+    summary = await _asyncio.get_event_loop().run_in_executor(
+        None, summarize_call_transcript, transcript, duration
+    )
+    if not summary:
+        return
+
+    call.transcript = transcript
+    call.ai_summary = summary
+    db.commit()
+
+    await _ws_broadcast_call_event(call, "call.summary_ready", {"ai_summary": summary})
 
 
 @router.get("/{call_id}/events")

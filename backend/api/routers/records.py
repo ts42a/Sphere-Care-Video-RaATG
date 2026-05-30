@@ -576,3 +576,41 @@ def get_encrypted_record_meta(
         "file_name": record.file_name,
         "meta": payload,
     }
+
+
+# ── AI Summary ────────────────────────────────────────────────────────────────
+
+@router.post("/{record_id}/ai-summary")
+async def generate_record_ai_summary(
+    record_id: int,
+    db: Session = Depends(get_db),
+    auth=Depends(resolve_staff_admin_scope_id),
+):
+    """Generate an AI summary for a recording using its transcript or notes."""
+    import asyncio
+    from backend.services.ai.llm_client import summarize_recording_transcript
+
+    record = db.query(models.Record).filter(
+        models.Record.id == record_id,
+        models.Record.is_deleted == False,  # noqa: E712
+    ).first()
+    if not record:
+        raise HTTPException(status_code=404, detail="Record not found")
+
+    source_text = record.transcript_text or record.notes or ""
+    if not source_text.strip():
+        raise HTTPException(status_code=422, detail="No transcript or notes available to summarise")
+
+    summary = await asyncio.get_event_loop().run_in_executor(
+        None,
+        summarize_recording_transcript,
+        source_text,
+        record.resident_name or "",
+    )
+    if not summary:
+        raise HTTPException(status_code=503, detail="AI provider not configured or unavailable")
+
+    record.ai_summary = summary
+    db.commit()
+
+    return {"record_id": record_id, "ai_summary": summary}
