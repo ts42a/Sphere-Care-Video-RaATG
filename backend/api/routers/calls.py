@@ -25,6 +25,8 @@ from sqlalchemy.orm import Session
 from backend.api.deps import get_current_auth_context, get_db
 from backend.services.hazard_detection import check_and_flag_hazard
 from backend.ws.ws_manager import ws_manager
+from backend.services.livekit_asl_service import livekit_asl_manager
+from backend.core.config import LIVEKIT_URL
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["Calls"])
@@ -100,6 +102,8 @@ async def cancel_call(call_id: str, auth=Depends(get_current_auth_context)):
         "type": "call_cancelled",
         "call_id": call_id,
     })
+    # Stop ASL worker if it was running
+    await livekit_asl_manager.stop_call(call_id)
 
 
 @router.post("/calls/{call_id}/end", status_code=status.HTTP_204_NO_CONTENT)
@@ -115,6 +119,8 @@ async def end_call(call_id: str, auth=Depends(get_current_auth_context)):
             "type": "call_ended",
             "call_id": call_id,
         })
+    # Stop ASL worker
+    await livekit_asl_manager.stop_call(call_id)
 
 
 @router.post("/calls/{call_id}/accept", status_code=status.HTTP_204_NO_CONTENT)
@@ -130,6 +136,13 @@ async def accept_call(call_id: str, auth=Depends(get_current_auth_context)):
         "call_id": call_id,
         "state": "active",
     })
+    # Start ASL worker for video calls
+    if call.get("kind") == "video":
+        await livekit_asl_manager.start_call(
+            call_id=call_id,
+            room_id=call_id,
+            livekit_url=LIVEKIT_URL,
+        )
 
 
 @router.post("/calls/{call_id}/decline", status_code=status.HTTP_204_NO_CONTENT)
