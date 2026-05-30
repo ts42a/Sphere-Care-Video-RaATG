@@ -412,3 +412,192 @@ document.addEventListener('keydown', e => {
     }
   }
 });
+
+// ── Global incoming-call + active-call system (active on every page) ─────
+(function () {
+  if (window.location.pathname.includes('register-login')) return;
+
+  var _proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  var _callWs, _pendingCallId, _pendingCallerName;
+
+  // ── Active call state ─────────────────────────────────────────────────
+  var _gsc = { callId: null, muted: false, timerInt: null, seconds: 0, lkRoom: null };
+
+  function _callAuthH() {
+    var t = sessionStorage.getItem('access_token') || '';
+    return { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + t };
+  }
+
+  // ── WebSocket ─────────────────────────────────────────────────────────
+  function _connectCallWs() {
+    var t = sessionStorage.getItem('access_token') || '';
+    if (!t) { console.warn('[call-ws] no token, skipping WS'); return; }
+    _callWs = new WebSocket(_proto + '://' + location.host + '/ws?token=' + encodeURIComponent(t));
+    _callWs.onopen  = function () { console.log('[call-ws] connected'); };
+    _callWs.onclose = function () { console.log('[call-ws] closed, reconnecting…'); setTimeout(_connectCallWs, 3000); };
+    _callWs.onerror = function (e) { console.error('[call-ws] error', e); };
+    _callWs.onmessage = function (e) {
+      var msg; try { msg = JSON.parse(e.data); } catch (_) { return; }
+      console.log('[call-ws] message', msg.type);
+      if (msg.type === 'call.invite')  _gShowCall(msg);
+      if (msg.type === 'call.canceled' || msg.type === 'call.timeout') _gDismissCall(msg.call_id);
+      if (msg.type === 'call.ended'   || msg.type === 'call.declined') {
+        if (_gsc.callId && String(msg.call_id) === String(_gsc.callId)) _gscEndCall(false);
+      }
+    };
+  }
+
+  // ── Incoming call overlay ─────────────────────────────────────────────
+  function _gShowCall(msg) {
+    _pendingCallId    = msg.call_id;
+    _pendingCallerName = msg.caller_name || ('User #' + msg.caller_user_id);
+    var old = document.getElementById('_g_call_overlay');
+    if (old) old.remove();
+
+    var ov = document.createElement('div');
+    ov.id = '_g_call_overlay';
+    ov.style.cssText = 'position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.6);';
+
+    var icon = msg.kind === 'video' ? '📹' : '📞';
+    ov.innerHTML =
+      '<div style="background:#1e2025;border-radius:20px;padding:32px 28px;min-width:300px;text-align:center;color:#fff;">' +
+        '<div style="font-size:48px;margin-bottom:16px;">' + icon + '</div>' +
+        '<div style="font-size:18px;font-weight:800;margin-bottom:6px;">Incoming ' + (msg.kind || 'Audio') + ' Call</div>' +
+        '<div style="font-size:13px;color:rgba(255,255,255,0.6);margin-bottom:28px;">from ' + _pendingCallerName + '</div>' +
+        '<div style="display:flex;gap:16px;justify-content:center;">' +
+          '<button id="_g_decline_btn" style="width:56px;height:56px;border-radius:50%;background:#ef4444;border:none;cursor:pointer;font-size:24px;" title="Decline">📵</button>' +
+          '<button id="_g_accept_btn"  style="width:56px;height:56px;border-radius:50%;background:#22c55e;border:none;cursor:pointer;font-size:24px;" title="Accept">📞</button>' +
+        '</div>' +
+      '</div>';
+
+    document.body.appendChild(ov);
+    document.getElementById('_g_accept_btn').onclick  = function () { _gAcceptCall(msg.call_id, msg.kind); };
+    document.getElementById('_g_decline_btn').onclick = function () { _gDeclineCall(msg.call_id); };
+    setTimeout(function () { _gDismissCall(msg.call_id); }, 62000);
+  }
+
+  function _gDismissCall(callId) {
+    if (callId && _pendingCallId && String(_pendingCallId) !== String(callId)) return;
+    var el = document.getElementById('_g_call_overlay');
+    if (el) el.remove();
+    _pendingCallId = null;
+  }
+
+  // ── Accept / decline ──────────────────────────────────────────────────
+  async function _gAcceptCall(callId, kind) {
+    _gDismissCall(callId);
+    try {
+      var r = await fetch(API_BASE + '/calls/' + callId + '/accept', {
+        method: 'POST', headers: _callAuthH()
+      });
+      if (!r.ok) { console.error('[call-ws] accept failed', r.status); return; }
+      var data = await r.json();
+      _gscShowActive(_pendingCallerName || 'Caller', callId);
+      if (data.join_payload && data.join_payload.access_token) {
+        _gscLkConnect(data.join_payload.livekit_url, data.join_payload.access_token);
+      }
+    } catch (e) { console.error('[call-ws] accept error', e); }
+  }
+
+  async function _gDeclineCall(callId) {
+    _gDismissCall(callId);
+    try {
+      await fetch(API_BASE + '/calls/' + callId + '/decline', {
+        method: 'POST', headers: _callAuthH()
+      });
+    } catch (_) {}
+  }
+
+  // ── Active call overlay ───────────────────────────────────────────────
+  function _gscShowActive(name, callId) {
+    _gsc.callId  = callId;
+    _gsc.seconds = 0;
+    _gsc.muted   = false;
+
+    if (!document.getElementById('_g_active_call_style')) {
+      var st = document.createElement('style');
+      st.id = '_g_active_call_style';
+      st.textContent = '@keyframes _gsc_ring{0%{transform:scale(1);opacity:1;}100%{transform:scale(1.5);opacity:0;}}';
+      document.head.appendChild(st);
+    }
+
+    var old = document.getElementById('_g_active_call_overlay');
+    if (old) old.remove();
+
+    var ini = (name || '?').split(' ').map(function (w) { return w[0] || ''; }).join('').toUpperCase().slice(0, 2);
+    var ov = document.createElement('div');
+    ov.id = '_g_active_call_overlay';
+    ov.style.cssText = 'position:fixed;inset:0;z-index:2147483646;display:flex;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 40%,#38bdf833 0%,#0f172a 70%);';
+    ov.innerHTML =
+      '<div style="position:relative;width:120px;height:120px;margin-bottom:20px;">' +
+        '<div style="position:absolute;inset:-24px;border-radius:50%;border:2px solid rgba(56,189,248,0.15);animation:_gsc_ring 2s ease-out infinite;"></div>' +
+        '<div style="position:absolute;inset:-12px;border-radius:50%;border:2px solid rgba(56,189,248,0.25);animation:_gsc_ring 2s ease-out .4s infinite;"></div>' +
+        '<div style="width:120px;height:120px;border-radius:50%;background:linear-gradient(135deg,#38BDF8,#6366F1);display:flex;align-items:center;justify-content:center;font-size:40px;font-weight:800;color:#fff;">' + ini + '</div>' +
+      '</div>' +
+      '<div style="font-size:20px;font-weight:800;color:#fff;margin-bottom:6px;">' + (name || '') + '</div>' +
+      '<div style="font-size:13px;color:rgba(255,255,255,0.5);margin-bottom:4px;">Connected</div>' +
+      '<div id="_gsc_timer" style="font-size:28px;font-weight:700;color:#38BDF8;letter-spacing:2px;margin-bottom:32px;font-variant-numeric:tabular-nums;">0:00</div>' +
+      '<div style="display:flex;align-items:center;gap:20px;">' +
+        '<button id="_gsc_mute_btn" onclick="_gscToggleMute()" style="width:56px;height:56px;border-radius:50%;background:rgba(255,255,255,0.12);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;">' +
+          '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>' +
+        '</button>' +
+        '<button onclick="_gscEndCall(true)" style="width:68px;height:68px;border-radius:50%;background:#ef4444;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;">' +
+          '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="transform:rotate(135deg)"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 1.18h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.77a16 16 0 0 0 6 6l.93-.93a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7a2 2 0 0 1 1.72 2.03z"/></svg>' +
+        '</button>' +
+      '</div>';
+
+    document.body.appendChild(ov);
+
+    clearInterval(_gsc.timerInt);
+    _gsc.timerInt = setInterval(function () {
+      _gsc.seconds++;
+      var m = Math.floor(_gsc.seconds / 60), s = _gsc.seconds % 60;
+      var el = document.getElementById('_gsc_timer');
+      if (el) el.textContent = m + ':' + (s < 10 ? '0' : '') + s;
+    }, 1000);
+  }
+
+  window._gscToggleMute = function () {
+    _gsc.muted = !_gsc.muted;
+    if (_gsc.lkRoom) try { _gsc.lkRoom.localParticipant.setMicrophoneEnabled(!_gsc.muted); } catch (_) {}
+    var btn = document.getElementById('_gsc_mute_btn');
+    if (btn) btn.style.background = _gsc.muted ? '#f59e0b' : 'rgba(255,255,255,0.12)';
+  };
+
+  window._gscEndCall = async function (sendApi) {
+    clearInterval(_gsc.timerInt);
+    var cid = _gsc.callId;
+    _gsc.callId = null; _gsc.muted = false; _gsc.seconds = 0;
+    var ov = document.getElementById('_g_active_call_overlay');
+    if (ov) ov.remove();
+    var ae = document.getElementById('_gsc_lk_audio');
+    if (ae) ae.remove();
+    if (_gsc.lkRoom) { try { _gsc.lkRoom.disconnect(); } catch (_) {} _gsc.lkRoom = null; }
+    if (sendApi && cid) {
+      try { await fetch(API_BASE + '/calls/' + cid + '/end', { method: 'POST', headers: _callAuthH() }); } catch (_) {}
+    }
+  };
+
+  async function _gscLkConnect(lkUrl, lkToken) {
+    if (!lkUrl || !lkToken) return;
+    if (typeof LivekitClient === 'undefined') return;
+    try {
+      var room = new LivekitClient.Room({ adaptiveStream: true, dynacast: true });
+      _gsc.lkRoom = room;
+      room.on(LivekitClient.RoomEvent.TrackSubscribed, function (track) {
+        if (track.kind === LivekitClient.Track.Kind.Audio) {
+          var el = track.attach();
+          el.id = '_gsc_lk_audio';
+          document.body.appendChild(el);
+        }
+      });
+      room.on(LivekitClient.RoomEvent.ParticipantDisconnected, function () {
+        if (_gsc.callId) { _gscEndCall(false); }
+      });
+      await room.connect(lkUrl, lkToken);
+      await room.localParticipant.setMicrophoneEnabled(true);
+    } catch (e) { console.warn('[call-ws] LiveKit connect failed:', e); }
+  }
+
+  _connectCallWs();
+}());

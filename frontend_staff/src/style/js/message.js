@@ -1412,16 +1412,16 @@ async function _initiateCall(type) {
         }
       }
     }
-    // Team/staff conversation — try members endpoint
+    // Team/staff conversation — resolve callee from conversation participants
     if (!calleeUserId) {
       var myId = _getMyUserId();
-      var mr = await fetch(API_BASE + '/messages/conversations/' + currentId + '/members', { headers: authH() });
+      var mr = await fetch(API_BASE + '/messages/conversations/' + currentId + '/participants', { headers: authH() });
       if (mr.ok) {
         var members = await mr.json();
         var other = members.find(function(m) {
-          return String(m.user_id || m.id) !== String(myId);
+          return m.user_id && String(m.user_id) !== String(myId);
         });
-        if (other) calleeUserId = other.user_id || other.id;
+        if (other) calleeUserId = other.user_id;
       }
     }
   } catch(e) {}
@@ -2214,6 +2214,7 @@ async function _lkConnect(lkUrl, token, type) {
   }
 }
 
+
 // ── WebSocket real-time layer ──────────────────────────────────────────────
 (function () {
   var proto = location.protocol === 'https:' ? 'wss' : 'ws';
@@ -2240,8 +2241,7 @@ async function _lkConnect(lkUrl, token, type) {
         var conv = allConvs.find(function (c) { return c.id === msg.conversation_id; });
         if (conv) { conv.online = msg.online; renderConvList(); }
       }
-      // ── Call events ──
-      if (msg.type === 'call.invite') { _showIncomingCall(msg); }
+      // ── Call events (call.invite handled globally by script.js) ──
       if (msg.type === 'call.canceled') {
         _dismissIncomingCall(msg.call_id, 'Call canceled');
         if (msg.call_id === _outgoingCallId) { _outgoingCallId = null; _dismissCallingOverlay(); }
