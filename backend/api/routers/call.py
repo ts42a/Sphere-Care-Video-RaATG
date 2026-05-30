@@ -2,6 +2,7 @@
 /api/v1/calls — Full call state machine.
 LiveKit token minting is stubbed — fill in when LIVEKIT_* env vars are set.
 """
+import asyncio
 import json
 import uuid
 from datetime import datetime, timezone, timedelta
@@ -17,6 +18,7 @@ from backend.api.deps import get_db
 from backend.api.routers.auth import _get_current_user
 from backend import models
 from backend.ws.ws_manager import ws_manager
+from backend.services.livekit_asl_service import livekit_asl_manager
 
 router = APIRouter(prefix="/calls", tags=["Calls"])
 
@@ -675,6 +677,13 @@ async def accept_call(
         "kind": call.kind,
     })
 
+    if call.kind == "video":
+        asyncio.create_task(livekit_asl_manager.start_call(
+            call_id=call.id,
+            room_id=call.room_id,
+            livekit_url=call.livekit_url,
+        ))
+
     join = JoinPayload(
         call_id=call.id,
         room_id=call.room_id,
@@ -836,6 +845,7 @@ async def end_call(
     db.refresh(call)
 
     await _ws_broadcast_call_event(call, ws_event, extra_payload)
+    asyncio.create_task(livekit_asl_manager.stop_call(call.id))
     return _fmt_call(call)
 
 
