@@ -54,3 +54,8 @@ SCVAM_WORKER_AUTOSTART = os.getenv("SCVAM_WORKER_AUTOSTART", "false").lower() in
     "yes",
     "on",
 }
+
+# LiveKit
+LIVEKIT_URL        = os.getenv("LIVEKIT_URL", "")
+LIVEKIT_API_KEY    = os.getenv("LIVEKIT_API_KEY", "")
+LIVEKIT_API_SECRET = os.getenv("LIVEKIT_API_SECRET", "")
