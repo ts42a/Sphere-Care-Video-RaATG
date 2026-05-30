@@ -1764,6 +1764,37 @@ function openPlayback(id) {
   const aiLine = rec.aiSummary ? ` · ${rec.aiSummary.slice(0, 120)}${rec.aiSummary.length > 120 ? "…" : ""}` : "";
   subEl.textContent = `${rec.resident || "Unknown"} · ${rec.date || "Unknown date"} · ${rec.type || "Recording"}${aiLine}`;
 
+  // AI Summary button
+  var existingAiBtn = document.getElementById("pw-ai-summary-btn");
+  if (existingAiBtn) existingAiBtn.remove();
+  if (rec.id && !rec.vaultLocalId) {
+    var aiBtn = document.createElement("button");
+    aiBtn.id = "pw-ai-summary-btn";
+    aiBtn.textContent = rec.aiSummary ? "✨ Regenerate AI Summary" : "✨ Generate AI Summary";
+    aiBtn.style.cssText = "margin-top:8px;font-size:12px;padding:5px 12px;border-radius:8px;border:1px solid #6366f1;background:transparent;color:#6366f1;cursor:pointer;font-weight:600;display:block;";
+    aiBtn.onclick = async function() {
+      aiBtn.disabled = true; aiBtn.textContent = "Generating…";
+      try {
+        const t = sessionStorage.getItem("access_token") || "";
+        const res = await fetch(API_BASE + "/records/" + rec.id + "/ai-summary", {
+          method: "POST",
+          headers: { "Authorization": "Bearer " + t, "Content-Type": "application/json" },
+        });
+        const data = await res.json();
+        if (res.ok && data.ai_summary) {
+          rec.aiSummary = data.ai_summary;
+          const aiLine2 = ` · ${data.ai_summary.slice(0, 120)}${data.ai_summary.length > 120 ? "…" : ""}`;
+          subEl.textContent = `${rec.resident || "Unknown"} · ${rec.date || "Unknown date"} · ${rec.type || "Recording"}${aiLine2}`;
+          aiBtn.textContent = "✨ Regenerate AI Summary";
+        } else {
+          aiBtn.textContent = data.detail || "Unavailable";
+        }
+      } catch(e) { aiBtn.textContent = "Failed"; }
+      aiBtn.disabled = false;
+    };
+    subEl.parentNode.insertBefore(aiBtn, subEl.nextSibling);
+  }
+
   if (window._inlineBlobUrl) {
     URL.revokeObjectURL(window._inlineBlobUrl);
     window._inlineBlobUrl = null;
