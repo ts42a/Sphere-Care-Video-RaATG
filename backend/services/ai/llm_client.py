@@ -172,3 +172,100 @@ def summarize_timeline_text(lines: List[str]) -> str:
         return text.strip() or blob
     except (httpx.HTTPError, KeyError, TypeError, json.JSONDecodeError):
         return blob
+
+
+def _call_llm(sys_msg: str, user_msg: str) -> Optional[str]:
+    """Low-level helper: send a single system+user turn, return raw text."""
+    provider = app_config.AI_LLM_PROVIDER
+    if provider in ("", "none", "off"):
+        return None
+    try:
+        if provider == "ollama":
+            url = f"{app_config.AI_OLLAMA_BASE_URL.rstrip('/')}/api/chat"
+            payload = {
+                "model": app_config.AI_OLLAMA_MODEL,
+                "stream": False,
+                "messages": [
+                    {"role": "system", "content": sys_msg},
+                    {"role": "user", "content": user_msg},
+                ],
+            }
+            with httpx.Client(timeout=120.0) as client:
+                r = client.post(url, json=payload)
+                r.raise_for_status()
+                return (r.json().get("message") or {}).get("content") or ""
+        if provider in ("openai", "openai_compatible") and app_config.AI_OPENAI_API_KEY:
+            url = f"{app_config.AI_OPENAI_BASE_URL.rstrip('/')}/chat/completions"
+            headers = {
+                "Authorization": f"Bearer {app_config.AI_OPENAI_API_KEY}",
+                "Content-Type": "application/json",
+            }
+            payload = {
+                "model": app_config.AI_OPENAI_MODEL,
+                "messages": [
+                    {"role": "system", "content": sys_msg},
+                    {"role": "user", "content": user_msg},
+                ],
+                "temperature": 0.3,
+            }
+            with httpx.Client(timeout=120.0) as client:
+                r = client.post(url, json=payload, headers=headers)
+                r.raise_for_status()
+                return r.json()["choices"][0]["message"]["content"]
+    except (httpx.HTTPError, KeyError, TypeError, json.JSONDecodeError):
+        pass
+    return None
+
+
+def summarize_call_transcript(transcript: str, duration_seconds: int = 0) -> Optional[str]:
+    """Generate a concise clinical summary from a call transcript."""
+    if not transcript or not transcript.strip():
+        return None
+    sys_msg = (
+        "You are a clinical documentation assistant for aged care. "
+        "Summarise this staff-client call transcript in 3-5 sentences for the care record. "
+        "Include: main topics discussed, any care concerns raised, follow-up actions mentioned. "
+        "Plain prose, no bullet points. Do not invent facts."
+    )
+    dur = f" (duration: {duration_seconds // 60}m {duration_seconds % 60}s)" if duration_seconds else ""
+    user_msg = f"Call transcript{dur}:\n\n{transcript[:10000]}"
+    return _call_llm(sys_msg, user_msg)
+
+
+def summarize_resident_context(
+    resident_name: str,
+    profile: Dict[str, Any],
+    records: List[Dict[str, Any]],
+    alerts: List[Dict[str, Any]],
+) -> Optional[str]:
+    """Generate a holistic resident care summary for the last 72 h."""
+    sys_msg = (
+        "You are a clinical operations assistant for aged care. "
+        "Write a concise resident status summary (4-6 sentences) based on the provided data. "
+        "Cover: current care status, recent activity or concerns, alert history. "
+        "Staff-facing, plain prose. Do not invent facts not present in the input."
+    )
+    import json as _json
+    context = {
+        "resident": resident_name,
+        "profile": profile,
+        "recent_records": records[:10],
+        "recent_alerts": alerts[:10],
+    }
+    user_msg = _json.dumps(context, ensure_ascii=False, default=str)[:12000]
+    return _call_llm(sys_msg, user_msg)
+
+
+def summarize_recording_transcript(transcript: str, resident_name: str = "") -> Optional[str]:
+    """Generate a clinical summary from a recording's ASR transcript."""
+    if not transcript or not transcript.strip():
+        return None
+    sys_msg = (
+        "You are a clinical documentation assistant for aged care. "
+        "Summarise this recording transcript in 3-5 sentences. "
+        "Note any care concerns, behavioural observations, or follow-up actions. "
+        "Plain prose. Do not invent facts."
+    )
+    who = f" (resident: {resident_name})" if resident_name else ""
+    user_msg = f"Recording transcript{who}:\n\n{transcript[:10000]}"
+    return _call_llm(sys_msg, user_msg)
