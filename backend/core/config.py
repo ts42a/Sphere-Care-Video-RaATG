@@ -59,3 +59,11 @@ SCVAM_WORKER_AUTOSTART = os.getenv("SCVAM_WORKER_AUTOSTART", "false").lower() in
 LIVEKIT_URL        = os.getenv("LIVEKIT_URL", "")
 LIVEKIT_API_KEY    = os.getenv("LIVEKIT_API_KEY", "")
 LIVEKIT_API_SECRET = os.getenv("LIVEKIT_API_SECRET", "")
+
+# LLM for AI summaries (ollama | openai | openai_compatible | none)
+AI_LLM_PROVIDER    = os.getenv("AI_LLM_PROVIDER", "none")
+AI_OLLAMA_BASE_URL = os.getenv("AI_OLLAMA_BASE_URL", "http://localhost:11434")
+AI_OLLAMA_MODEL    = os.getenv("AI_OLLAMA_MODEL", "llama3")
+AI_OPENAI_BASE_URL = os.getenv("AI_OPENAI_BASE_URL", "https://api.openai.com/v1")
+AI_OPENAI_API_KEY  = os.getenv("AI_OPENAI_API_KEY", "")
+AI_OPENAI_MODEL    = os.getenv("AI_OPENAI_MODEL", "gpt-4o-mini")
