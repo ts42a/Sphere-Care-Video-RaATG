@@ -86,13 +86,17 @@ function renderNotifs() {
   if(activeTab!=='all') filtered=filtered.filter(n=>n.type===activeTab);
   if(searchQ){const q=searchQ.toLowerCase();filtered=filtered.filter(n=>n.title.toLowerCase().includes(q)||n.desc.toLowerCase().includes(q));}
   if(!filtered.length){list.innerHTML='<div class="empty-state">No notifications this week.</div>';return;}
-  list.innerHTML=filtered.map((n,i)=>`<div class="notif-card ${n.unread?'unread':''}" style="animation-delay:${i*40}ms" id="notif-${n.id}"><div class="notif-icon ${n.iconType}">${iconSvg(n.iconType)}</div><div class="notif-body"><div class="notif-top"><div class="notif-title">${n.title}</div><div class="notif-time">${n.time}</div></div><div class="notif-desc">${n.desc}</div><div class="notif-actions"><button class="btn-view" onclick="viewBooking(${n.id})">View Details</button><button class="btn-read" onclick="markRead(${n.id})">Mark as read</button></div></div></div>`).join('');
+  list.innerHTML=filtered.map((n,i)=>`<div class="notif-card ${n.unread?'unread':''}" style="animation-delay:${i*40}ms" id="notif-${n.id}"><div class="notif-icon ${n.iconType}">${iconSvg(n.iconType)}</div><div class="notif-body"><div class="notif-top"><div class="notif-title">${n.title}</div><div class="notif-time">${n.time}</div></div><div class="notif-desc">${n.desc}</div><div class="notif-actions"><button class="btn-view" onclick="viewNotification('${n.type}',${n.id})">View Details</button><button class="btn-read" onclick="markRead(${n.id})">Mark as read</button></div></div></div>`).join('');
 }
 
 function setTab(tab,el){activeTab=tab;document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));el.classList.add('active');renderNotifs();}
 function filterNotifs(){searchQ=document.getElementById('search-input').value.trim();renderNotifs();}
 function markRead(id){const n=allNotifs.find(x=>x.id===id);if(n){n.unread=false;renderNotifs();}}
 function viewBooking(id){window.location.href='bookings.html';}
+function viewNotification(type,id){
+  if(type === 'ai') { window.location.href='flags.html'; return; }
+  viewBooking(id);
+}
 
 document.addEventListener('DOMContentLoaded', loadData);
 

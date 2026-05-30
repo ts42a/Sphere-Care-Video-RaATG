@@ -28,6 +28,7 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from backend import models
+from backend.services.ai_flag_realtime import broadcast_ai_flag_created
 
 logger = logging.getLogger(__name__)
 
@@ -145,6 +146,7 @@ async def check_and_flag_hazard(
         return []
 
     created: list[dict] = []
+    created_flags: list[models.Flag] = []
     now = datetime.now(timezone.utc)
 
     # Build context snippet for descriptions (truncated to 200 chars)
@@ -214,8 +216,11 @@ async def check_and_flag_hazard(
             created_at=now,
         )
         db.add(flag)
+        db.flush()
+        created_flags.append(flag)
 
         created.append({
+            "flag_id": int(flag.id),
             "event_type": hit["event_type"],
             "severity": hit["severity"],
             "matched_keywords": hit["matched_keywords"],
@@ -241,5 +246,14 @@ async def check_and_flag_hazard(
         db.rollback()
         logger.error("hazard_detection_db_error", extra={"error": str(exc)})
         return []
+
+    for flag in created_flags:
+        try:
+            await broadcast_ai_flag_created(flag, db)
+        except Exception as exc:
+            logger.warning(
+                "hazard_flag_broadcast_failed",
+                extra={"flag_id": getattr(flag, "id", None), "error": str(exc)},
+            )
 
     return created

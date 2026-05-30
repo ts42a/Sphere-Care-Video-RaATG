@@ -182,6 +182,10 @@ function buildStableNotificationId(params: {
     return `task-${relatedEntityId}-${sourceEvent || "task"}`;
   }
 
+  if (relatedEntityType === "flag" && relatedEntityId) {
+    return `flag-${relatedEntityId}-${sourceEvent || "ai_alert"}`;
+  }
+
   if (params.type === "task" && relatedEntityId) {
     return `task-${relatedEntityId}-${sourceEvent || "task"}`;
   }
@@ -208,6 +212,10 @@ function getDedupeKey(item: NotificationItem) {
 
   if (relatedEntityType === "task" && relatedEntityId) {
     return `task:${relatedEntityId}:${sourceEvent || "task"}`;
+  }
+
+  if (relatedEntityType === "flag" && relatedEntityId) {
+    return `flag:${relatedEntityId}:${sourceEvent || "ai_alert"}`;
   }
 
   return [
@@ -293,7 +301,9 @@ function mapBackendNotification(notification: BackendNotification): Notification
       ? inferBookingEventFromTitle(notification.title)
       : notification.related_entity_type === "task"
         ? "task"
-        : undefined;
+        : notification.related_entity_type === "flag"
+          ? "ai_alert"
+          : undefined;
 
   const id = buildStableNotificationId({
     type,
@@ -511,13 +521,20 @@ function buildTaskNotification(payload: TaskRealtimePayload | any): Notification
 }
 
 function buildAlertNotification(payload: AlertRealtimePayload): NotificationItem {
+  const flagId = Number(
+    payload.alert.flag_id ||
+      payload.alert.related_entity_id ||
+      payload.flag?.id ||
+      payload.alert.id
+  );
+
   return withReadState({
-    id: `alert-${payload.alert.id}`,
+    id: `flag-${flagId}-ai_alert`,
     type: "alert",
-    title: cleanText(payload.alert.title, "AI Alert"),
+    title: cleanText(payload.alert.title, "AI Flag"),
     message: cleanText(
-      payload.alert.description,
-      "A new alert needs attention."
+      payload.alert.description || payload.flag?.description,
+      "A new AI flag needs attention."
     ),
     timeAgo: "Just now",
     action: {
@@ -525,10 +542,10 @@ function buildAlertNotification(payload: AlertRealtimePayload): NotificationItem
       variant: payload.alert.alert_type === "critical" ? "red" : "blue",
       actionType: "view_details",
     },
-    sourceId: payload.alert.id,
+    sourceId: flagId,
     sourceEvent: payload.type,
-    relatedEntityType: "alert",
-    relatedEntityId: payload.alert.id,
+    relatedEntityType: "flag",
+    relatedEntityId: flagId,
     createdAt: new Date().toISOString(),
   });
 }

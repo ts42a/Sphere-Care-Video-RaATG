@@ -9,6 +9,7 @@ from pathlib import Path
 from sqlalchemy.orm import Session
 
 from backend import models
+from backend.services.ai_flag_realtime import broadcast_ai_flag_created_sync
 from backend.services.scvam import crypto as scvam_crypto
 from backend.services.scvam import paths as scvam_paths
 from backend.services.scvam.output_writer import write_scvam_output_folder
@@ -84,6 +85,7 @@ def apply_scvam_results(
     now = datetime.now(timezone.utc)
     flag_candidates = build_flag_candidates(parsed, summary_text=summary)
     created_flag_ids: list[int] = []
+    created_flags: list[models.Flag] = []
     for p in flag_candidates:
         f = models.Flag(
             admin_id=int(job.admin_id),
@@ -104,6 +106,7 @@ def apply_scvam_results(
         db.add(f)
         db.flush()
         created_flag_ids.append(int(f.id))
+        created_flags.append(f)
 
     priority = "high" if flag_candidates and any(c.severity == "High" for c in flag_candidates) else "mid"
     db.add(
@@ -157,6 +160,12 @@ def apply_scvam_results(
     job.finished_at = datetime.now(timezone.utc)
     job.error_message = None
     db.commit()
+
+    for f in created_flags:
+        try:
+            broadcast_ai_flag_created_sync(f, db)
+        except Exception:
+            pass
 
 
 def mark_job_failed(

@@ -356,3 +356,44 @@ function showApiStatus(connected){
   el.style.opacity='1';
   setTimeout(()=>el.style.opacity='0',3000);
 }
+// ── AI flag real-time updates ────────────────────────────────────────────────
+(function setupAiFlagRealtime(){
+  var ws = null;
+  var retryTimer = null;
+
+  function connect(){
+    var token = sessionStorage.getItem('access_token') || '';
+    if(!token) return;
+    if(ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) return;
+
+    var proto = location.protocol === 'https:' ? 'wss' : 'ws';
+    ws = new WebSocket(proto + '://' + location.host + '/ws?token=' + encodeURIComponent(token));
+
+    ws.onmessage = function(e){
+      var msg;
+      try { msg = JSON.parse(e.data); } catch(err) { return; }
+
+      if(msg.type !== 'ai_alert') return;
+
+      if(msg.flag){
+        var incoming = normaliseFlag(msg.flag);
+        allFlags = [incoming].concat(allFlags.filter(function(f){ return String(f.id) !== String(incoming.id); }));
+        filterFlags();
+      } else {
+        loadFlags();
+      }
+
+      loadStats();
+      showApiStatus(true);
+    };
+
+    ws.onclose = function(){
+      clearTimeout(retryTimer);
+      retryTimer = setTimeout(connect, 3000);
+    };
+
+    ws.onerror = function(){};
+  }
+
+  document.addEventListener('DOMContentLoaded', connect);
+})();
