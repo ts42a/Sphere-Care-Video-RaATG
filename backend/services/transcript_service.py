@@ -39,6 +39,10 @@ from backend.ws.ws_manager import ws_manager
 
 logger = logging.getLogger(__name__)
 
+# In-memory caption accumulator keyed by call_id (str).
+# Populated by broadcast_caption; consumed once by get_and_clear_transcript.
+_call_captions: dict[str, list[str]] = {}
+
 
 def _sid() -> str:
     return str(uuid.uuid4())
@@ -67,6 +71,13 @@ async def broadcast_caption(
     """
     if not text:
         return
+
+    # Accumulate for post-call AI summary
+    key = str(call_id)
+    if key not in _call_captions:
+        _call_captions[key] = []
+    label = f"[{speaker_name or speaker}]" if (speaker_name or speaker) else ""
+    _call_captions[key].append(f"{label} {text}".strip())
 
     payload = {
         "type": "call.caption",
@@ -125,3 +136,8 @@ async def broadcast_asl_result(
 
     await ws_manager.broadcast_call(str(call_id), payload)
     logger.debug("[transcript] call.asl.result → %s: %s", call_id, letter)
+
+
+def get_and_clear_transcript(call_id: "str | int") -> str:
+    """Return accumulated caption text for a call and remove it from memory."""
+    return "\n".join(_call_captions.pop(str(call_id), []))
