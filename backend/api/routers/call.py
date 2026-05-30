@@ -18,6 +18,7 @@ from backend.api.deps import get_db
 from backend.api.routers.auth import _get_current_user
 from backend import models
 from backend.ws.ws_manager import ws_manager
+from backend.services.livekit_asr_service import livekit_asr_manager
 from backend.services.livekit_asl_service import livekit_asl_manager
 
 router = APIRouter(prefix="/calls", tags=["Calls"])
@@ -172,6 +173,67 @@ async def _ws_send_to_call_participant(stored_user_id: int | None, payload: dict
     _, real_id = _from_call_storage_id(stored_user_id, role_hint)
     await ws_manager.broadcast_actor(f"user:{real_id}", payload)
     await ws_manager.broadcast_actor(f"admin:{real_id}", payload)
+
+
+
+
+def _schedule_asr_start(call: models.Call) -> None:
+    """Start the backend LiveKit ASR worker without blocking the call API."""
+    try:
+        asyncio.create_task(
+            livekit_asr_manager.start_call(
+                call_id=call.id,
+                room_id=call.room_id,
+                livekit_url=call.livekit_url,
+            )
+        )
+        print("DEBUG livekit-asr start scheduled", {
+            "call_id": call.id,
+            "room_id": call.room_id,
+            "livekit_url": call.livekit_url,
+        })
+    except Exception as exc:
+        print(f"[livekit-asr] failed to schedule worker for call={call.id}: {exc}")
+
+
+def _schedule_asr_stop(call_id: int | str) -> None:
+    """Stop the backend LiveKit ASR worker without blocking the call API."""
+    try:
+        asyncio.create_task(livekit_asr_manager.stop_call(call_id))
+        print("DEBUG livekit-asr stop scheduled", {"call_id": call_id})
+    except Exception as exc:
+        print(f"[livekit-asr] failed to schedule stop for call={call_id}: {exc}")
+
+
+def _schedule_asl_start(call: models.Call) -> None:
+    """Start the backend LiveKit ASL worker for video calls without blocking the call API."""
+    if getattr(call, "kind", None) != "video":
+        return
+
+    try:
+        asyncio.create_task(
+            livekit_asl_manager.start_call(
+                call_id=call.id,
+                room_id=call.room_id,
+                livekit_url=call.livekit_url,
+            )
+        )
+        print("DEBUG livekit-asl start scheduled", {
+            "call_id": call.id,
+            "room_id": call.room_id,
+            "livekit_url": call.livekit_url,
+        })
+    except Exception as exc:
+        print(f"[livekit-asl] failed to schedule worker for call={call.id}: {exc}")
+
+
+def _schedule_asl_stop(call_id: int | str) -> None:
+    """Stop the backend LiveKit ASL worker without blocking the call API."""
+    try:
+        asyncio.create_task(livekit_asl_manager.stop_call(call_id))
+        print("DEBUG livekit-asl stop scheduled", {"call_id": call_id})
+    except Exception as exc:
+        print(f"[livekit-asl] failed to schedule stop for call={call_id}: {exc}")
 
 
 # ── Schemas ───────────────────────────────────────────────────────────────────
@@ -629,6 +691,8 @@ async def accept_call(
             state=call.state,
         )
 
+        _schedule_asr_start(call)
+        _schedule_asl_start(call)
         print("DEBUG callee existing join", join.model_dump())
         return _fmt_call(call, join)
 
@@ -679,12 +743,8 @@ async def accept_call(
         "kind": call.kind,
     })
 
-    if call.kind == "video":
-        asyncio.create_task(livekit_asl_manager.start_call(
-            call_id=call.id,
-            room_id=call.room_id,
-            livekit_url=call.livekit_url,
-        ))
+    _schedule_asr_start(call)
+    _schedule_asl_start(call)
 
     join = JoinPayload(
         call_id=call.id,
@@ -791,6 +851,12 @@ async def update_call_mode(
         "changed_by": user_id,
         "started_at": call.started_at.isoformat() if call.started_at else None,
     })
+
+    if requested_kind == "video":
+        _schedule_asl_start(call)
+    else:
+        _schedule_asl_stop(call.id)
+
     return _fmt_call(call)
 
 
@@ -847,7 +913,8 @@ async def end_call(
     db.refresh(call)
 
     await _ws_broadcast_call_event(call, ws_event, extra_payload)
-    asyncio.create_task(livekit_asl_manager.stop_call(call.id))
+    _schedule_asr_stop(call.id)
+    _schedule_asl_stop(call.id)
     asyncio.create_task(_generate_call_summary(call.id, db))
     return _fmt_call(call)
 
@@ -912,6 +979,8 @@ async def expire_timed_out_calls(db: Session):
         call.end_reason = "timeout"
         _add_event(db, call.id, "timeout")
         await _ws_broadcast_call_event(call, "call.timeout")
+        _schedule_asr_stop(call.id)
+        _schedule_asl_stop(call.id)
     if expired:
         db.commit()
     return len(expired)
