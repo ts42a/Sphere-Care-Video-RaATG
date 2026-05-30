@@ -23,6 +23,9 @@ class Call(Base):
     # LiveKit (filled in when LiveKit is configured)
     livekit_url = Column(String(255), nullable=True)
     caller_token = Column(Text, nullable=True)
+    # AI summary generated after the call ends
+    transcript = Column(Text, nullable=True)
+    ai_summary = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     updated_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())
 
