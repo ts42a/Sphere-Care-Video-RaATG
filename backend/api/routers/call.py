@@ -2,7 +2,6 @@
 /api/v1/calls — Full call state machine.
 LiveKit token minting is stubbed — fill in when LIVEKIT_* env vars are set.
 """
-import asyncio
 import json
 import uuid
 from datetime import datetime, timezone, timedelta
@@ -18,7 +17,6 @@ from backend.api.deps import get_db
 from backend.api.routers.auth import _get_current_user
 from backend import models
 from backend.ws.ws_manager import ws_manager
-from backend.services.livekit_asr_service import livekit_asr_manager
 
 router = APIRouter(prefix="/calls", tags=["Calls"])
 
@@ -172,33 +170,6 @@ async def _ws_send_to_call_participant(stored_user_id: int | None, payload: dict
     _, real_id = _from_call_storage_id(stored_user_id, role_hint)
     await ws_manager.broadcast_actor(f"user:{real_id}", payload)
     await ws_manager.broadcast_actor(f"admin:{real_id}", payload)
-
-
-def _schedule_asr_worker_start(call: models.Call) -> None:
-    """Start the LiveKit ASR worker in the background for an active call."""
-    try:
-        asyncio.create_task(
-            livekit_asr_manager.start_call(
-                call_id=call.id,
-                room_id=call.room_id,
-                livekit_url=call.livekit_url or _livekit_url(),
-            )
-        )
-        print("DEBUG livekit-asr start scheduled", {
-            "call_id": call.id,
-            "room_id": call.room_id,
-            "livekit_url": call.livekit_url or _livekit_url(),
-        })
-    except Exception as exc:
-        print(f"[livekit-asr] failed to schedule worker for call={getattr(call, 'id', None)}: {exc}")
-
-
-async def _stop_asr_worker(call_id: int | str) -> None:
-    """Stop the LiveKit ASR worker when a call reaches a terminal state."""
-    try:
-        await livekit_asr_manager.stop_call(call_id)
-    except Exception as exc:
-        print(f"[livekit-asr] failed to stop worker for call={call_id}: {exc}")
 
 
 # ── Schemas ───────────────────────────────────────────────────────────────────
@@ -654,7 +625,6 @@ async def accept_call(
             state=call.state,
         )
 
-        _schedule_asr_worker_start(call)
         print("DEBUG callee existing join", join.model_dump())
         return _fmt_call(call, join)
 
@@ -704,8 +674,6 @@ async def accept_call(
         "started_at": call.started_at.isoformat() if call.started_at else None,
         "kind": call.kind,
     })
-
-    _schedule_asr_worker_start(call)
 
     join = JoinPayload(
         call_id=call.id,
@@ -868,10 +836,6 @@ async def end_call(
     db.refresh(call)
 
     await _ws_broadcast_call_event(call, ws_event, extra_payload)
-
-    if call.state in TERMINAL_CALL_STATES:
-        await _stop_asr_worker(call.id)
-
     return _fmt_call(call)
 
 
@@ -904,7 +868,6 @@ async def expire_timed_out_calls(db: Session):
         call.end_reason = "timeout"
         _add_event(db, call.id, "timeout")
         await _ws_broadcast_call_event(call, "call.timeout")
-        await _stop_asr_worker(call.id)
     if expired:
         db.commit()
     return len(expired)
