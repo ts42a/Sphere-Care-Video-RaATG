@@ -25,6 +25,7 @@ import logging
 import os
 import wave
 import audioop
+import re
 from dataclasses import dataclass, field
 from datetime import timedelta
 from typing import Dict, Optional
@@ -35,10 +36,17 @@ logger = logging.getLogger(__name__)
 
 SAMPLE_RATE = int(os.getenv("ASR_SAMPLE_RATE", "16000"))
 NUM_CHANNELS = int(os.getenv("ASR_NUM_CHANNELS", "1"))
-CHUNK_SECONDS = float(os.getenv("ASR_CHUNK_SECONDS", "1.5"))
+CHUNK_SECONDS = float(os.getenv("ASR_CHUNK_SECONDS", "4.0"))
+OVERLAP_SECONDS = float(os.getenv("ASR_OVERLAP_SECONDS", "0.5"))
 MIN_CHUNK_BYTES = int(SAMPLE_RATE * NUM_CHANNELS * 2 * CHUNK_SECONDS)
-MIN_RMS = int(os.getenv("ASR_MIN_RMS", "350"))
+OVERLAP_BYTES = max(0, int(SAMPLE_RATE * NUM_CHANNELS * 2 * OVERLAP_SECONDS))
+MIN_RMS = int(os.getenv("ASR_MIN_RMS", "450"))
 MIN_VOICE_BYTES = int(SAMPLE_RATE * NUM_CHANNELS * 2 * 1.0)
+
+_COMMON_ASR_NOISE = {
+    "", ".", "...", "you", "uh", "um", "hmm", "mm", "mmm",
+    "[music]", "music", "subtitle by", "subtitles by", "thanks for watching",
+}
 
 
 def _pcm16_to_wav_bytes(pcm_bytes: bytes) -> bytes:
@@ -49,6 +57,30 @@ def _pcm16_to_wav_bytes(pcm_bytes: bytes) -> bytes:
         wav_file.setframerate(SAMPLE_RATE)
         wav_file.writeframes(pcm_bytes)
     return buf.getvalue()
+
+
+def _clean_asr_text(text: str) -> str:
+    """Clean obvious Whisper artefacts before broadcasting a caption."""
+    text = " ".join(str(text or "").replace("\n", " ").split())
+    # Remove bracketed numeric speaker fragments if Whisper accidentally heard them.
+    text = re.sub(r"\[\s*\d+\s*\]", "", text).strip()
+    # Collapse repeated punctuation created by short chunks.
+    text = re.sub(r"([.!?]){2,}", r"\1", text)
+    return text.strip()
+
+
+def _is_obvious_asr_noise(text: str) -> bool:
+    normalized = re.sub(r"[^a-z0-9\s]", "", (text or "").lower()).strip()
+    if not normalized:
+        return True
+    if len(normalized) <= 2:
+        return True
+    if normalized in _COMMON_ASR_NOISE:
+        return True
+    # Whisper sometimes hallucinates very common video captions during silence.
+    if "thanks for watching" in normalized or "subtitles by" in normalized:
+        return True
+    return False
 
 
 def _mint_worker_token(room_id: str, identity: str) -> Optional[str]:
@@ -237,7 +269,12 @@ class LiveKitAsrManager:
                     continue
 
                 pcm_chunk = bytes(pcm)
-                pcm.clear()
+                if OVERLAP_BYTES > 0 and len(pcm) > OVERLAP_BYTES:
+                    # Keep a small tail so Whisper does not lose words that land exactly
+                    # on the chunk boundary. transcript_service deduplicates overlap.
+                    pcm = bytearray(pcm[-OVERLAP_BYTES:])
+                else:
+                    pcm.clear()
 
                 if _is_silence_or_too_short(pcm_chunk):
                     continue
@@ -250,8 +287,8 @@ class LiveKitAsrManager:
                     language=_lang,
                     file_suffix=".wav",
                 )
-                text = result.get("text", "").strip()
-                if not text:
+                text = _clean_asr_text(result.get("text", ""))
+                if not text or _is_obvious_asr_noise(text):
                     continue
 
                 await transcript_service.broadcast_caption(

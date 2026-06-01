@@ -1005,6 +1005,9 @@ async function _saveDoctorBooking() {
         _removeActiveCallOverlay();
         if (_sc.lkRoom) { try { _sc.lkRoom.disconnect(); } catch(_) {} _sc.lkRoom = null; }
       }
+      if (msg.type === 'call.summary_ready') {
+        _scShowToast('AI summary sent to chat');
+      }
     }
   }
 

@@ -326,9 +326,9 @@ export default function VideoCallScreen() {
               onEnd={async () => {
                 setFinalTranscriptItems([...transcriptItems]);
                 setFinalDuration(formattedDuration);
-                await endCurrentCall();
                 callSummaryState.setSummaryVisible(true);
                 setShowSummary(true);
+                await endCurrentCall();
               }}
             />
           </LiveKitRoomComponent>

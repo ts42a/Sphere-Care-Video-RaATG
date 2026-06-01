@@ -22,8 +22,13 @@ from typing import Optional
 
 logger = logging.getLogger(__name__)
 
-WHISPER_MODEL_SIZE = os.getenv("WHISPER_MODEL_SIZE", "base")
-WHISPER_LANGUAGE = os.getenv("WHISPER_LANGUAGE", None)
+WHISPER_MODEL_SIZE = os.getenv("WHISPER_MODEL_SIZE", "small")
+WHISPER_LANGUAGE = os.getenv("WHISPER_LANGUAGE", "en")
+WHISPER_INITIAL_PROMPT = os.getenv(
+    "WHISPER_INITIAL_PROMPT",
+    "English aged-care telehealth call about sleep, meals, medication, dizziness, pain, blood pressure, appointments, care tasks, and follow-up instructions.",
+)
+WHISPER_BEAM_SIZE = int(os.getenv("WHISPER_BEAM_SIZE", "5"))
 # Ensure ffmpeg is in PATH
 _FFMPEG_PATH = r'C:\Users\25371\AppData\Local\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-8.1.1-full_build\bin'
 if _FFMPEG_PATH not in os.environ.get('PATH', ''):
@@ -81,7 +86,10 @@ def _transcribe_sync(
             "temperature": 0,
             "no_speech_threshold": 0.6,
             "logprob_threshold": -1.0,
+            "beam_size": WHISPER_BEAM_SIZE,
         }
+        if WHISPER_INITIAL_PROMPT:
+            kwargs["initial_prompt"] = WHISPER_INITIAL_PROMPT
         if language:
             kwargs["language"] = language
 

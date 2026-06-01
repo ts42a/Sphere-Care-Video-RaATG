@@ -140,4 +140,5 @@ export type BackendCallResponse = {
   ended_at?: string | null;
   livekit_url?: string | null;
   join_payload?: BackendCallJoinPayload | null;
+  ai_summary?: string | null;
 };

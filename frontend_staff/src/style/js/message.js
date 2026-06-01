@@ -274,7 +274,7 @@ function renderMsgs(msgs, hl) {
       var parts = content.slice(7).split(' | ');
       bubbleHtml = makeFileBubble(parts[0] || 'file', parts[1] || '');
     } else {
-      var txt = esc(content);
+      var txt = esc(content).replace(/\n/g, '<br>');
       if (hl) txt = txt.replace(new RegExp(esc(hl).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), function (s) { return '<mark style="background:#fef08a;border-radius:3px;">' + s + '</mark>'; });
       bubbleHtml = replyHtml + (isSelf ? '<div class="bubble self">' + txt + (isEdited ? '<span class="edited-tag"> (edited)</span>' : '') + '</div>'
         : '<div class="bubble other">' + txt + (isEdited ? '<span class="edited-tag"> (edited)</span>' : '') + '</div>');
@@ -2255,6 +2255,10 @@ async function _lkConnect(lkUrl, token, type) {
         else { showToast('Call declined'); _endActiveCall(); }
       }
       if (msg.type === 'call.ended') { showToast('Call ended'); _endActiveCall(); }
+      if (msg.type === 'call.summary_ready') {
+        showToast('AI summary sent to chat');
+        if (!demo) loadConvs();
+      }
       if (msg.type === 'call.accepted') {
         // Caller side: callee accepted — start media
         if (msg.call_id === _outgoingCallId) {

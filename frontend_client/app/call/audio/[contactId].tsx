@@ -279,10 +279,10 @@ export default function AudioCallScreen() {
       onPress: async () => {
         setFinalTranscriptItems([...transcriptItems]);
         setFinalDuration(formattedDuration);
-        await endCurrentCall();
-        await rtc.leaveCall();
         callSummaryState.setSummaryVisible(true);
         setShowSummary(true);
+        await endCurrentCall();
+        await rtc.leaveCall();
       },
     },
     {
