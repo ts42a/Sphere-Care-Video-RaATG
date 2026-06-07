@@ -694,6 +694,10 @@ async def send_message(
 ):
     conversation, participant, actor_type, actor_id = _ensure_conversation_access(db, conversation_id, auth)
 
+    from backend.services.message_reliability import check_message_send_rate_limit
+
+    check_message_send_rate_limit(_actor_key(actor_type, actor_id))
+
     if msg_in.conversation_id != conversation_id:
         raise HTTPException(status_code=400, detail="conversation_id mismatch.")
 
@@ -726,7 +730,9 @@ async def send_message(
     db.refresh(conversation)
 
     deliveries = _delivery_payload_for_message(message, conversation)
-    await notification_service.notify_new_message(message, conversation.admin_id, deliveries=deliveries)
+    await notification_service.notify_new_message(
+        message, conversation.admin_id, deliveries=deliveries, db=db
+    )
     if deliveries:
         await notification_service.notify_conversation_changed(conversation.admin_id, deliveries=deliveries)
 

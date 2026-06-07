@@ -82,25 +82,56 @@ def _process_one_job() -> bool:
             record.scvam_status = "processing"
         db.commit()
 
+        from pathlib import Path
+
         from backend.services.scvam.inbox import resolve_staging_input
 
         staging_dir = scvam_paths.vault_root() / (job.staging_path or "")
-        input_video = resolve_staging_input(staging_dir)
         work_root = staging_dir / "work"
 
         try:
+            record = db.query(models.Record).filter(models.Record.id == job.db_record_id).first()
+            video_name = Path(record.file_name).name if record and record.file_name else None
+            try:
+                input_video = resolve_staging_input(staging_dir, video_name=video_name)
+            except FileNotFoundError:
+                record = db.query(models.Record).filter(models.Record.id == job.db_record_id).first()
+                admin = db.query(models.Admin).filter(models.Admin.id == job.admin_id).first()
+                if not record or not admin:
+                    raise
+                from backend.services.scvam.staging import ensure_staging_for_retry
+
+                staging_dir, staging_rel = ensure_staging_for_retry(
+                    record=record,
+                    admin=admin,
+                    job=job,
+                )
+                job.staging_path = staging_rel
+                db.commit()
+                video_name = Path(record.file_name).name if record.file_name else None
+                input_video = resolve_staging_input(staging_dir, video_name=video_name)
+
             run_result = run_scvam_pipeline(input_video=input_video, work_root=work_root)
             parsed = parse_scvam_outputs(run_result.llm_summary_path, run_result.events_path)
             apply_scvam_results(
                 db, job=job, run_result=run_result, parsed=parsed, source_video=input_video
             )
-            cleanup_staging(job.staging_path)
+            # Keep manual drop folders (e.g. jobs/testing); only remove vault upload staging.
+            if str(job.vault_record_id or "").startswith("rec_"):
+                cleanup_staging(job.staging_path)
+            else:
+                print(f"[scvam_worker] kept manual staging folder {job.staging_path}")
             print(f"[scvam_worker] job {job.id} done (record {job.db_record_id})")
         except Exception as exc:
             db.rollback()
             db.refresh(job)
+            err = str(exc)
             requeue = int(job.attempts) < int(job.max_attempts)
-            mark_job_failed(db, job=job, error_message=str(exc), requeue=requeue)
+            # Windows STATUS_CONTROL_C_EXIT when uvicorn --reload kills the pipeline child.
+            if "3221225786" in err or "C000013A" in err.upper():
+                requeue = True
+                job.attempts = max(0, int(job.attempts) - 1)
+            mark_job_failed(db, job=job, error_message=err, requeue=requeue)
             print(f"[scvam_worker] job {job.id} failed (attempt {job.attempts}): {exc}")
         return True
     finally:
@@ -114,6 +145,19 @@ def _scan_inbox_once() -> None:
     db = SessionLocal()
     try:
         scan_org_inbox(db, org_id=1, admin_id=1)
+    finally:
+        db.close()
+
+
+def _requeue_stale_running_jobs() -> None:
+    from backend.db.session import SessionLocal
+    from backend.services.scvam.persist import requeue_interrupted_jobs
+
+    db = SessionLocal()
+    try:
+        n = requeue_interrupted_jobs(db)
+        if n:
+            print(f"[scvam_worker] requeued {n} interrupted job(s)")
     finally:
         db.close()
 
@@ -137,6 +181,7 @@ def run_scvam_worker_loop(
         f"autostart={app_config.SCVAM_WORKER_AUTOSTART})"
     )
     _sweep_stale_staging(app_config.SCVAM_STAGING_TTL_HOURS)
+    _requeue_stale_running_jobs()
 
     while True:
         if stop_event is not None and stop_event.is_set():

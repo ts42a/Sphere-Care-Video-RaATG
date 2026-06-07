@@ -52,8 +52,45 @@ def parse_scvam_outputs(llm_summary_path: Path, events_path: Path) -> ScvamParse
     )
 
 
+def _summary_mentions_fall(parsed: ScvamParsedResults, summary_text: str) -> bool:
+    blob = " ".join(
+        filter(
+            None,
+            [
+                parsed.summary_heading,
+                parsed.summary_text,
+                summary_text,
+                " ".join(str(x) for x in (parsed.llm_raw.get("llm_event_lines") or [])),
+            ],
+        )
+    ).lower()
+    return any(k in blob for k in ("fall", "fell", "on the ground", "lying on"))
+
+
+def _extract_fall_timestamp_sec(parsed: ScvamParsedResults, summary_text: str) -> float:
+    import re
+
+    for blob in (parsed.summary_heading, parsed.summary_text, summary_text):
+        if not blob:
+            continue
+        m = re.search(r"(?:around|at|~)\s*(\d+(?:\.\d+)?)\s*s", str(blob), re.I)
+        if m:
+            return float(m.group(1))
+    for line in parsed.llm_raw.get("llm_event_lines") or []:
+        if "fall" in str(line).lower():
+            m = re.search(r"(\d+(?:\.\d+)?)\s*s", str(line))
+            if m:
+                return float(m.group(1))
+    for ev in parsed.events:
+        if "fall" in str(ev.get("event_type") or "").lower():
+            return float(ev.get("start_ts_sec") or 0.0)
+    return 0.0
+
+
 def build_flag_candidates(parsed: ScvamParsedResults, *, summary_text: str) -> list[FlagCandidate]:
     out: list[FlagCandidate] = []
+    has_fall_flag = False
+
     for ev in parsed.events:
         event_type = str(ev.get("event_type") or "unknown")
         severity_score = float(ev.get("severity") or 0.0)
@@ -64,6 +101,9 @@ def build_flag_candidates(parsed: ScvamParsedResults, *, summary_text: str) -> l
             sev_label = "High" if et_lower in FALL_LIKE_TYPES or severity_score >= 1.0 else "Medium"
         else:
             continue
+
+        if et_lower in FALL_LIKE_TYPES:
+            has_fall_flag = True
 
         reasons = ev.get("reasons") or []
         reason_txt = "; ".join(str(r) for r in reasons[:3]) if reasons else ""
@@ -84,6 +124,23 @@ def build_flag_candidates(parsed: ScvamParsedResults, *, summary_text: str) -> l
                 ai_confidence=confidence,
             )
         )
+
+    if _summary_mentions_fall(parsed, summary_text) and not has_fall_flag:
+        ts = _extract_fall_timestamp_sec(parsed, summary_text)
+        heading = (parsed.summary_heading or "Possible fall detected").strip()
+        out.insert(
+            0,
+            FlagCandidate(
+                event_type="Fall",
+                description=f"SCVAM LLM: {heading} at {_sec_to_hhmmss(ts)}",
+                severity="High",
+                sev_desc=heading or summary_text[:500],
+                transcript=summary_text,
+                timestamp_sec=ts,
+                ai_confidence=0.92,
+            ),
+        )
+
     return out
 
 

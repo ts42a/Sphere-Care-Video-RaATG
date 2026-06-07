@@ -1,4 +1,6 @@
 """Unit tests for messaging reliability helpers (no DB required)."""
+import json
+
 import pytest
 from fastapi import HTTPException
 
@@ -27,12 +29,16 @@ async def test_flush_outbox_marks_sent_when_broadcast_ok():
     class FakeRow:
         def __init__(self):
             self.id = 1
+            self.message_id = 10
+            self.conversation_id = 20
             self.admin_id = 1
-            self.kind = "new_message"
-            self.payload_json = '{"deliveries": {"user:1": {"type": "new_message", "message": {}}}}'
-            self.status = "pending"
-            self.attempt_count = 0
-            self.last_error = None
+            self.actor_key = "user:1"
+            self.payload = json.dumps({"type": "new_message", "message": {}})
+            self.attempts = 0
+            self.max_attempts = 3
+            self.processed = False
+            self.failed = False
+            self.error = None
             self.processed_at = None
 
     class FakeQuery:
@@ -66,17 +72,19 @@ async def test_flush_outbox_marks_sent_when_broadcast_ok():
 
     calls = []
 
-    async def fake_broadcast_many(deliveries):
-        calls.append(deliveries)
+    async def fake_broadcast_actor(actor_key, data):
+        calls.append((actor_key, data))
 
-    import backend.services.message_reliability as mod
+    import backend.outbox.outbox_processor as outbox_mod
 
-    orig = mod.ws_manager.broadcast_many
-    mod.ws_manager.broadcast_many = fake_broadcast_many
+    orig = outbox_mod.ws_manager.broadcast_actor
+    outbox_mod.ws_manager.broadcast_actor = fake_broadcast_actor
     try:
-        n = await mod.flush_pending_message_outbox(fake_db, limit=10)
+        n = await mr.flush_pending_message_outbox(fake_db, limit=10)
         assert n == 1
-        assert row.status == "sent"
+        assert row.processed is True
+        assert row.processed_at is not None
         assert len(calls) == 1
+        assert calls[0][0] == "user:1"
     finally:
-        mod.ws_manager.broadcast_many = orig
+        outbox_mod.ws_manager.broadcast_actor = orig

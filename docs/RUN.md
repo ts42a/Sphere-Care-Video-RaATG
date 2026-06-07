@@ -1,62 +1,37 @@
-# 1. Install Requirements
+# Run Guide (Native Setup)
 
-You need these installed on your computer before starting:
+For Docker, see [docker/README.md](../docker/README.md). For the mobile app, see [mobile_run.md](mobile_run.md).
 
-- **Python 3.10+** — https://www.python.org/downloads/
-- **Node.js 18+** — https://nodejs.org/
-- **PostgreSQL** — will be installed via terminal in step 2
+## Prerequisites
 
-# 2. Database Setup (PostgreSQL)
-install PostgreSQL:
+- **Python 3.10+** (3.11 recommended for calls/ASR)
+- **Node.js 18+**
+- **PostgreSQL 17+**
+
+## 1. Database
+
+```powershell
 winget install PostgreSQL.PostgreSQL.17 --accept-package-agreements --accept-source-agreements
-$pgPath = "C:\Program Files\PostgreSQL\17\bin"
-[Environment]::SetEnvironmentVariable("Path", $env:Path + ";$pgPath", "User")
-$env:Path += ";$pgPath"
-
-Restart your terminal after this step
-
-During installation, PostgreSQL asks you to set a password. Use `postgres`.
-
-Then run this to create the database:
 psql -U postgres -c "CREATE DATABASE sphere_care;"
+```
 
-> The app connects to `postgresql://postgres:postgres@localhost:5432/sphere_care` by default.
-> You can change this by creating a `.env` file in the project root with:
-> DATABASE_URL=postgresql://postgres:YOUR_PASSWORD@localhost:5432/sphere_care
+Default connection: `postgresql://postgres:postgres@localhost:5432/sphere_care`
 
+Override in a root `.env` file:
 
-# 3. Python Setup
+```env
+DATABASE_URL=postgresql://postgres:YOUR_PASSWORD@localhost:5432/sphere_care
+```
 
-Create a virtual environment (first time only)
+## 2. Python backend
+
+```powershell
 python -m venv .venv
-
-
-Activate the virtual environment
 .venv\Scripts\Activate.ps1
-
-
-Install Python packages
-
 pip install -r requirements.txt
 ```
 
----
-
-# 4. Frontend Setup (first time only)
-
-```powershell
-cd frontend_client
-npm install
-cd ..
-```
-
----
-
-# 5. Start the Servers
-
-### Required backend `.env` for realtime calls (LiveKit)
-
-Create a `.env` file in the project root (same level as `backend/`) and add:
+Copy `backend/.env.example` to `backend/.env` and set secrets. For calls, add LiveKit:
 
 ```env
 LIVEKIT_URL=wss://your-project.livekit.cloud
@@ -64,26 +39,23 @@ LIVEKIT_API_KEY=your_api_key
 LIVEKIT_API_SECRET=your_api_secret
 ```
 
-Without these values, call invite/accept can work but media will not connect.
-
-### Start Backend (Terminal 1)
+Start the API:
 
 ```powershell
-.venv\Scripts\Activate.ps1
 python -m uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-- Staff web app: http://localhost:8000
+- Staff web: http://localhost:8000
 - API docs: http://localhost:8000/docs
 
-### Start Mobile Client (Terminal 2)
+## 3. Mobile client (optional)
 
 ```powershell
 cd frontend_client
-npx expo start --web --port 3000
+npm install
 ```
 
-Before starting Expo, ensure `frontend_client/.env` points to a real host (not placeholders):
+Set `frontend_client/.env`:
 
 ```env
 EXPO_PUBLIC_USE_MOCK_API=false
@@ -91,57 +63,39 @@ EXPO_PUBLIC_API_BASE_URL=http://127.0.0.1:8000
 EXPO_PUBLIC_WS_BASE_URL=ws://127.0.0.1:8000
 ```
 
-- Mobile web app: http://localhost:3000
+```powershell
+npx expo start --web --port 3000
+```
 
----
-
-# 6. Test Accounts
+## Test accounts
 
 All passwords: `Pass1234`
 
-| Role   | Email              |
-|--------|--------------------|
-| Admin  | admin1@test.com    |
-| Staff  | staff1@test.com    |
-| Staff  | staff2@test.com    |
-| Client | client1@test.com   |
-| Client | client2@test.com   |
+| Role   | Email            |
+|--------|------------------|
+| Admin  | admin1@test.com  |
+| Staff  | staff1@test.com  |
+| Staff  | staff2@test.com  |
+| Client | client1@test.com |
+| Client | client2@test.com |
 
-> **Note:** IDs like `CTR-XXXXXXXX`, `ACC-XXXXXXXX`, `STF-XXXXXXXX`, and `RES-XXXXXXXX` are randomly generated. They show up in the terminal when the server starts with a fresh database.
+## Login
 
----
+- **Admin** — Staff web → Register or Login. Center ID prints in the terminal on first start.
+- **Staff** — Staff web → Login with Center ID from admin (e.g. `CTR-83749261`).
+- **Client** — Mobile app → Register or Login.
 
-# 7. How to Log In
+## Link a resident for calls
 
-- **Admin** — Open staff web → Register or Log in. No center ID needed. Your Center ID is printed in the terminal when the server starts.
-- **Staff** — Open staff web → Log in → Enter the Center ID from the admin's terminal (e.g. `CTR-83749261`).
-- **Client** — Open mobile client → Register or Log in. No center ID needed.
+1. Client: **Settings → Account** → copy Account ID.
+2. Admin: **Residents → Add New Resident** → enter Account ID.
+3. Client: **Settings → Account** → accept invitation.
 
----
-
-# 8. How to Add a Resident
-
-1. Client registers on the mobile app → goes to **Settings → Account** → copies their **Account ID** (e.g. `ACC-47291038`)
-2. Admin logs in on staff web → opens **Residents** page → clicks **Add New Resident**
-3. Admin enters the client's Account ID → sends the invitation
-4. Client opens **Settings → Account** on mobile app → sees the invitation under **Center Invitations**
-5. Client clicks **Accept** to join the center. Clicking **Decline** does nothing.
-
----
-
-# 9. Reset the Database
-
-If you want a fresh start, drop and recreate the database:
+## Reset database
 
 ```powershell
 psql -U postgres -c "DROP DATABASE sphere_care;"
 psql -U postgres -c "CREATE DATABASE sphere_care;"
 ```
 
-Then restart the backend server.
-
----
-
-# 10. Stop the Servers
-
-Press `Ctrl+C` in each terminal.
+Restart the backend after reset.

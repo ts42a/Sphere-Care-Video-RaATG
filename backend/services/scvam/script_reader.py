@@ -55,7 +55,7 @@ def read_scvam_script_for_record(record: models.Record) -> dict[str, Any]:
     title = record.category or "Recording"
 
     base = {
-        "record_id": int(record.id),
+        "record_id": int(record.id) if getattr(record, "id", None) is not None else None,
         "scvam_status": status,
         "duration_sec": duration,
         "title": title,

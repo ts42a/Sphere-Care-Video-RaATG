@@ -8,7 +8,7 @@ load_dotenv(_BACKEND_ENV_PATH)
 
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
-    "postgresql://postgres:chingyu1015@localhost:5432/sphere_care",
+    "postgresql://postgres:postgres@localhost:5432/sphere_care",
 )
 ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "*")
 SECRET_KEY = os.getenv("SECRET_KEY", "change-this-secret-key")
@@ -46,11 +46,31 @@ SCVAM_PACKAGE_DIR = Path(os.getenv("SCVAM_PACKAGE_DIR", str(_REPO_ROOT / "ai" / 
 VAULT_STORAGE_ROOT = Path(os.getenv("VAULT_STORAGE_ROOT", "databases"))
 SCVAM_STAGING_TTL_HOURS = int(os.getenv("SCVAM_STAGING_TTL_HOURS", "24"))
 SCVAM_MIN_DURATION_SEC = int(os.getenv("SCVAM_MIN_DURATION_SEC", "1"))
+# Rolling browser-recording segment length (Recording Console → SCVAM staging).
+RECORDING_SEGMENT_SECONDS = int(os.getenv("RECORDING_SEGMENT_SECONDS", "120"))
+# Server-side RTSP/file continuous recorder (backend/services/ai/vision/recorder.py).
+RECORDING_CLIP_SECONDS = float(os.getenv("RECORDING_CLIP_SECONDS", "30"))
+RECORDING_CLIP_FPS = float(os.getenv("RECORDING_CLIP_FPS", "15"))
+RECORDING_CLIP_WIDTH = int(os.getenv("RECORDING_CLIP_WIDTH", "640"))
+RECORDING_CLIP_HEIGHT = int(os.getenv("RECORDING_CLIP_HEIGHT", "480"))
 SCVAM_MAX_ATTEMPTS = int(os.getenv("SCVAM_MAX_ATTEMPTS", "3"))
 SCVAM_WORKER_POLL_SEC = int(os.getenv("SCVAM_WORKER_POLL_SEC", "5"))
-SCVAM_WORKER_AUTOSTART = os.getenv("SCVAM_WORKER_AUTOSTART", "false").lower() in {
+SCVAM_WORKER_AUTOSTART = os.getenv("SCVAM_WORKER_AUTOSTART", "true").lower() in {
     "1",
     "true",
     "yes",
     "on",
 }
+
+# LiveKit
+LIVEKIT_URL        = os.getenv("LIVEKIT_URL", "")
+LIVEKIT_API_KEY    = os.getenv("LIVEKIT_API_KEY", "")
+LIVEKIT_API_SECRET = os.getenv("LIVEKIT_API_SECRET", "")
+
+# LLM for AI summaries (ollama | openai | openai_compatible | none)
+AI_LLM_PROVIDER    = os.getenv("AI_LLM_PROVIDER", "none")
+AI_OLLAMA_BASE_URL = os.getenv("AI_OLLAMA_BASE_URL", "http://localhost:11434")
+AI_OLLAMA_MODEL    = os.getenv("AI_OLLAMA_MODEL", "llama3.1:8b")
+AI_OPENAI_BASE_URL = os.getenv("AI_OPENAI_BASE_URL", "https://api.openai.com/v1")
+AI_OPENAI_API_KEY  = os.getenv("AI_OPENAI_API_KEY", "")
+AI_OPENAI_MODEL    = os.getenv("AI_OPENAI_MODEL", "gpt-4o-mini")

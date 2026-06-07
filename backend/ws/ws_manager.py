@@ -1,5 +1,5 @@
-from typing import Dict, List, Optional, Set, Tuple
 import json
+from typing import Dict, List, Optional, Set, Tuple
 
 from fastapi import WebSocket
 
@@ -28,13 +28,6 @@ class WSManager:
         await websocket.accept()
         admin_id = int(auth_payload.get("admin_id") or 0)
         actor_key = self._actor_key_from_payload(auth_payload)
-
-        # Debug log for connection details
-        print("DEBUG ws connect", {
-            "role": auth_payload.get("role"),
-            "user_id": auth_payload.get("user_id"),
-            "actor_key": actor_key,
-        })
 
         if admin_id not in self.connections:
             self.connections[admin_id] = []
@@ -113,11 +106,6 @@ class WSManager:
 
     async def broadcast_actor(self, actor_key: str, data: dict):
         sockets = self.actor_connections.get(actor_key, [])
-        print("DEBUG broadcast_actor", {
-            "actor_key": actor_key,
-            "socket_count": len(sockets),
-            "type": data.get("type"),
-        })
         if not sockets:
             return
         await self._broadcast_to_sockets(sockets, data)

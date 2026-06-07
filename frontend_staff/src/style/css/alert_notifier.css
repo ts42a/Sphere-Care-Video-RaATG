@@ -1,0 +1,131 @@
+/* Center-screen alert notification modal */
+
+.alert-notifier-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 27, 45, 0.55);
+  backdrop-filter: blur(4px);
+  z-index: 10050;
+  opacity: 0;
+  transition: opacity 0.22s ease;
+}
+
+.alert-notifier-backdrop--visible {
+  opacity: 1;
+}
+
+.alert-notifier-modal {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%) scale(0.94);
+  z-index: 10051;
+  width: min(92vw, 440px);
+  background: #fff;
+  border-radius: 18px;
+  padding: 28px 28px 24px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.22);
+  text-align: center;
+  font-family: 'Inter', 'Manrope', system-ui, sans-serif;
+  opacity: 0;
+  transition: opacity 0.22s ease, transform 0.22s ease;
+}
+
+.alert-notifier-modal--visible {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.alert-notifier-modal.alert-notifier--critical {
+  border-top: 4px solid #ef4444;
+}
+
+.alert-notifier-modal.alert-notifier--high {
+  border-top: 4px solid #f59e0b;
+}
+
+.alert-notifier-modal.alert-notifier--medium {
+  border-top: 4px solid #3b82f6;
+}
+
+.alert-notifier-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 14px;
+  border-radius: 50%;
+  background: #f8fafc;
+}
+
+.alert-notifier-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #64748b;
+  margin-bottom: 8px;
+}
+
+.alert-notifier-title {
+  margin: 0 0 10px;
+  font-size: 20px;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1.3;
+}
+
+.alert-notifier-message {
+  margin: 0 0 22px;
+  font-size: 14px;
+  line-height: 1.55;
+  color: #475569;
+}
+
+.alert-notifier-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.alert-notifier-btn {
+  border: none;
+  border-radius: 10px;
+  padding: 11px 20px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+}
+
+.alert-notifier-btn:active {
+  transform: scale(0.98);
+}
+
+.alert-notifier-btn-primary {
+  background: #0f172a;
+  color: #fff;
+}
+
+.alert-notifier-btn-primary:hover {
+  background: #1e293b;
+}
+
+.alert-notifier-btn-secondary {
+  background: #f1f5f9;
+  color: #334155;
+}
+
+.alert-notifier-btn-secondary:hover {
+  background: #e2e8f0;
+}
+
+.alert-notifier--critical .alert-notifier-btn-primary {
+  background: #ef4444;
+}
+
+.alert-notifier--critical .alert-notifier-btn-primary:hover {
+  background: #dc2626;
+}

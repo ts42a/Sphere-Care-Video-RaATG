@@ -1,0 +1,21 @@
+# Dev overrides — use with:
+#   docker compose -f docker/docker-compose.yml -f docker/docker-compose.dev.yml up --build
+
+services:
+  api:
+    command:
+      [
+        "python",
+        "-m",
+        "uvicorn",
+        "backend.main:app",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "8000",
+        "--reload",
+      ]
+    volumes:
+      - ../backend:/app/backend:ro
+      - ../frontend_staff:/app/frontend_staff:ro
+      - vault_data:/app/databases

@@ -171,6 +171,53 @@ def _load_step1_detections(run_dir: Path) -> dict[str, Any] | None:
         return None
 
 
+def _extend_person_frames_for_fall(
+    person_frames: list[dict[str, Any]],
+    all_frames: list[dict[str, Any]],
+    active: set[str] | None,
+    *,
+    max_carry_sec: float = 2.5,
+) -> list[dict[str, Any]]:
+    """Include active anchors where YOLO lost ``person`` during a fall.
+
+    Uses the last seen person bbox as a crop hint so pose still runs on
+    frames like frame_000030.png when the body is on the floor.
+    """
+    if not active:
+        return person_frames
+
+    have = {str(f.get("frame", "")) for f in person_frames}
+    ordered = sorted(all_frames, key=lambda r: float(r.get("ts_sec") or 0.0))
+    last_person: dict[str, Any] | None = None
+    extras: list[dict[str, Any]] = []
+
+    for fmeta in ordered:
+        name = str(fmeta.get("frame", ""))
+        labels = {str(x).lower() for x in (fmeta.get("labels") or [])}
+        if "person" in labels:
+            last_person = fmeta
+            continue
+        if name not in active or name in have or last_person is None:
+            continue
+        gap = float(fmeta.get("ts_sec") or 0.0) - float(
+            last_person.get("ts_sec") or 0.0
+        )
+        if gap > max_carry_sec:
+            continue
+        pseudo = dict(fmeta)
+        pseudo["detections"] = list(last_person.get("detections") or [])
+        pseudo["labels"] = ["person"]
+        pseudo["pose_bbox_source"] = str(last_person.get("frame") or "")
+        extras.append(pseudo)
+        have.add(name)
+
+    if not extras:
+        return person_frames
+    combined = list(person_frames) + extras
+    combined.sort(key=lambda r: float(r.get("ts_sec") or 0.0))
+    return combined
+
+
 def _load_active_frames(run_dir: Path) -> set[str] | None:
     """Return the set of sample_frame names produced by reducer.py, or None
     if the reducer hasn't been run / its output is missing."""
@@ -791,15 +838,6 @@ def _build_evidence_index(evidence: dict[str, Any] | None) -> dict[int, dict[str
         except Exception:
             continue
         out[fi] = row
-        # WebM time seeking can shift the decoded start by ~1 frame; this
-        # fallback enables approximate matching when `fi` doesn't exist.
-        try:
-            ts_sec = float(row.get("source_ts_sec") or 0.0)
-        except Exception:
-            ts_sec = 0.0
-        if ts_sec > 0.0:
-            ts_key = int(round(ts_sec * 1000.0))  # ms rounding
-            out[ts_key] = row
     return out
 
 
@@ -1125,142 +1163,6 @@ def _gather_window_pose(
     return rows
 
 
-def _gather_window_pose_webm_time_based(
-    cap,
-    pose_model,
-    *,
-    anchor_ts_sec: float,
-    window_sec: float,
-    src_fps_for_fi: float,
-    crop_box: tuple[float, float, float, float] | None,
-    person_conf: float,
-    kp_conf: float,
-):
-    """WebM-safe candidate gathering for pose.
-
-    We seek by time and assign deterministic `fi` indices based on
-    `src_fps_for_fi` so Step-3 evidence lookup keys match Step-2 evidence."""
-    start_ts = max(0.0, float(anchor_ts_sec) - float(window_sec))
-    end_ts = float(anchor_ts_sec) + float(window_sec)
-    start_fi = int(round(start_ts * src_fps_for_fi))
-    max_frames = int(max(1, round((window_sec * 2.0) * src_fps_for_fi * 1.2)))
-
-    cap.set(cv2.CAP_PROP_POS_MSEC, start_ts * 1000.0)
-    rows: list[dict[str, Any]] = []
-    local_i = 0
-
-    while True:
-        ok, frame = cap.read()
-        if not ok or frame is None:
-            break
-
-        fi = start_fi + local_i
-        local_i += 1
-
-        pos_msec = float(cap.get(cv2.CAP_PROP_POS_MSEC) or 0.0)
-        cur_ts = pos_msec / 1000.0 if pos_msec > 0 else (fi / src_fps_for_fi)
-        if cur_ts > end_ts + 0.05:
-            break
-        if local_i >= max_frames:
-            break
-
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        sharpness = _laplacian_var(gray)
-        kpts, det_box, p_conf = _extract_keypoints(
-            pose_model,
-            frame,
-            crop_box,
-            person_conf=person_conf,
-            kp_conf=kp_conf,
-        )
-        feat = _compute_features(
-            kpts,
-            det_box,
-            frame.shape[0],
-            frame.shape[1],
-        )
-        rows.append(
-            {
-                "fi": fi,
-                "sharpness": sharpness,
-                "frame": frame,
-                "kpts": kpts,
-                "det_box": det_box,
-                "person_conf": p_conf,
-                "features": feat,
-            }
-        )
-
-    rows.sort(key=lambda r: (r["features"]["valid_joints"], r["sharpness"]), reverse=True)
-    return rows
-
-
-def _gather_window_pose_from_cache(
-    frames_by_idx: dict[int, Any],
-    pose_model,
-    anchor_idx: int,
-    half_window: int,
-    crop_box: tuple[float, float, float, float] | None,
-    *,
-    person_conf: float,
-    kp_conf: float,
-):
-    """WebM: gather pose candidates from a pre-decoded frame cache (no seek)."""
-    lo = max(0, anchor_idx - half_window)
-    hi = anchor_idx + half_window
-    rows: list[dict[str, Any]] = []
-    for fi in range(lo, hi + 1):
-        frame = frames_by_idx.get(fi)
-        if frame is None:
-            continue
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        sharpness = _laplacian_var(gray)
-        kpts, det_box, p_conf = _extract_keypoints(
-            pose_model,
-            frame,
-            crop_box,
-            person_conf=person_conf,
-            kp_conf=kp_conf,
-        )
-        feat = _compute_features(
-            kpts,
-            det_box,
-            frame.shape[0],
-            frame.shape[1],
-        )
-        rows.append(
-            {
-                "fi": fi,
-                "sharpness": sharpness,
-                "frame": frame,
-                "kpts": kpts,
-                "det_box": det_box,
-                "person_conf": p_conf,
-                "features": feat,
-            }
-        )
-    rows.sort(key=lambda r: (r["features"]["valid_joints"], r["sharpness"]), reverse=True)
-    return rows
-
-
-def _infer_src_fps_for_fi_from_step1(step1: dict[str, Any] | None) -> float:
-    if not step1:
-        return 30.0
-    src_fps_candidates: list[float] = []
-    for f in step1.get("frames") or []:
-        try:
-            fi = int(f.get("src_index"))
-            ts = float(f.get("ts_sec") or 0.0)
-        except Exception:
-            continue
-        if fi > 0 and ts > 0.0:
-            src_fps_candidates.append(fi / ts)
-    if not src_fps_candidates:
-        return 30.0
-    src_fps_candidates.sort()
-    return float(src_fps_candidates[len(src_fps_candidates) // 2])
-
-
 # =============================================================================
 #  main
 # =============================================================================
@@ -1294,11 +1196,15 @@ def analyze(
         print("Run first: python ai/models/SCVAM2.1/dectator.py")
         return 1
 
-    person_frames = [f for f in step1["frames"] if "person" in (f.get("labels") or [])]
+    all_step1_frames = list(step1["frames"])
+    person_frames = [
+        f for f in all_step1_frames if "person" in (f.get("labels") or [])
+    ]
     if not person_frames:
         print("[INFO] No 'person' frames in Step 1 - nothing to analyze.")
         return 0
 
+    active: set[str] | None = None
     if use_reducer:
         active = _load_active_frames(run_dir)
         if active is not None:
@@ -1311,6 +1217,15 @@ def analyze(
                 f"[REDUCER] active_frames.json found: {before} -> {after} "
                 f"person samples after reducer filter."
             )
+            carried_before = len(person_frames)
+            person_frames = _extend_person_frames_for_fall(
+                person_frames, all_step1_frames, active
+            )
+            if len(person_frames) > carried_before:
+                print(
+                    f"[FALL] +{len(person_frames) - carried_before} active sample(s) "
+                    "without Step-1 person label (carried bbox for pose)."
+                )
             if not person_frames:
                 print(
                     "[REDUCER] All person samples were dropped by the reducer; "
@@ -1339,24 +1254,7 @@ def analyze(
     if not cap.isOpened():
         print(f"[ERROR] could not open video: {video_path}")
         return 1
-
-    video_is_webm = video_path.suffix.lower() == ".webm"
-    # For WebM, use the same src_fps mapping as Step 2 so `source_frame_index`
-    # keys match for hand-near lookup (OpenCV CAP_PROP_FPS is often bogus).
-    if video_is_webm:
-        ev_src_fps = 0.0
-        if isinstance(evidence, dict):
-            try:
-                ev_src_fps = float(evidence.get("src_fps") or 0.0)
-            except Exception:
-                ev_src_fps = 0.0
-        src_fps = (
-            ev_src_fps
-            if ev_src_fps > 0.0
-            else _infer_src_fps_for_fi_from_step1(step1)
-        )
-    else:
-        src_fps = float(cap.get(cv2.CAP_PROP_FPS) or 0.0) or 30.0
+    src_fps = float(cap.get(cv2.CAP_PROP_FPS) or 0.0) or 30.0
     half_window = max(1, int(round(window_sec * src_fps)))
 
     out_dir = run_dir / "pose_analysis"
@@ -1383,44 +1281,6 @@ def analyze(
         f"  out_dir:         {out_dir}"
     )
 
-    frames_by_idx: dict[int, Any] | None = None
-    frame_w: int | None = None
-    frame_h: int | None = None
-
-    if video_is_webm:
-        half_window_frames = int(half_window)
-        needed: set[int] = set()
-        for fmeta in person_frames:
-            sample_ts = float(fmeta.get("ts_sec", 0.0))
-            aidx = int(fmeta.get("src_index") or int(round(sample_ts * src_fps)))
-            lo = max(0, aidx - half_window_frames)
-            hi = aidx + half_window_frames
-            for fi in range(lo, hi + 1):
-                needed.add(fi)
-
-        max_needed = max(needed) if needed else 0
-        frames_by_idx = {}
-        src_idx = 0
-        while src_idx <= max_needed:
-            ok, frame = cap.read()
-            if not ok or frame is None:
-                break
-            if src_idx in needed:
-                frames_by_idx[src_idx] = frame
-                if frame_w is None or frame_h is None:
-                    frame_h, frame_w = frame.shape[:2]
-                if len(frames_by_idx) >= len(needed):
-                    break
-            src_idx += 1
-        cap.release()
-        if frame_w is None or frame_h is None:
-            print("[INFO] WebM pre-decode failed; no pose samples emitted.")
-            return 0
-        print(
-            f"[WEBM] Pre-decoded {len(frames_by_idx)}/{len(needed)} frames "
-            f"for pose windows (no seek)."
-        )
-
     summary: list[dict[str, Any]] = []
     posture_counts: dict[str, int] = {}
     fall_count = 0
@@ -1438,37 +1298,21 @@ def analyze(
         person_box_raw = _person_bbox_from_dets(fmeta.get("detections") or [])
         crop_box: tuple[float, float, float, float] | None = None
         if person_box_raw is not None:
-            if video_is_webm:
-                assert frame_w is not None and frame_h is not None
-                crop_box = _expand_bbox(person_box_raw, frame_w, frame_h, pad=person_pad)
-            else:
-                cap.set(cv2.CAP_PROP_POS_FRAMES, anchor_idx)
-                ok, probe = cap.read()
-                if ok and probe is not None:
-                    ph, pw = probe.shape[:2]
-                    crop_box = _expand_bbox(person_box_raw, pw, ph, pad=person_pad)
+            cap.set(cv2.CAP_PROP_POS_FRAMES, anchor_idx)
+            ok, probe = cap.read()
+            if ok and probe is not None:
+                ph, pw = probe.shape[:2]
+                crop_box = _expand_bbox(person_box_raw, pw, ph, pad=person_pad)
 
-        if video_is_webm:
-            assert frames_by_idx is not None
-            candidates = _gather_window_pose_from_cache(
-                frames_by_idx,
-                pose_model,
-                anchor_idx,
-                int(half_window),
-                crop_box,
-                person_conf=person_conf,
-                kp_conf=kp_conf,
-            )
-        else:
-            candidates = _gather_window_pose(
-                cap,
-                pose_model,
-                anchor_idx,
-                half_window,
-                crop_box,
-                person_conf=person_conf,
-                kp_conf=kp_conf,
-            )
+        candidates = _gather_window_pose(
+            cap,
+            pose_model,
+            anchor_idx,
+            half_window,
+            crop_box,
+            person_conf=person_conf,
+            kp_conf=kp_conf,
+        )
         if not candidates:
             continue
 
@@ -1546,8 +1390,7 @@ def analyze(
 
             hand_near = _hand_near_object(
                 kpts,
-                evidence_index.get(fi)
-                or evidence_index.get(int(round((float(fi) / float(src_fps)) * 1000.0))),
+                evidence_index.get(fi),
                 thresh_px=near_thresh,
             )
 
@@ -1671,8 +1514,7 @@ def analyze(
 
     if show:
         cv2.destroyAllWindows()
-    if not video_is_webm:
-        cap.release()
+    cap.release()
 
     out_json = out_dir / "pose_analysis.json"
     out_json.write_text(

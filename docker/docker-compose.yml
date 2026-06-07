@@ -1,0 +1,51 @@
+# Run from repository root:
+#   cp docker/.env.example docker/.env
+#   cp docker/.dockerignore .dockerignore
+#   docker compose -f docker/docker-compose.yml up --build
+#
+# Dev (bind-mount backend for hot reload):
+#   docker compose -f docker/docker-compose.yml -f docker/docker-compose.dev.yml up --build
+
+name: sphere-care
+
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-sphere_care}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-sphere_care}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:postgres@db:5432/sphere_care}
+    ports:
+      - "${API_PORT:-8000}:8000"
+    volumes:
+      - vault_data:/app/databases
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  vault_data:

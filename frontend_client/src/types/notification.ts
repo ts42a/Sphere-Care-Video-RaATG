@@ -60,9 +60,28 @@ export type AlertRealtimePayload = {
   type: "ai_alert";
   alert: {
     id: number;
+    flag_id?: number;
     title?: string;
     description?: string;
     alert_type?: string;
+    severity?: string;
+    resident_id?: number | null;
+    resident_name?: string | null;
+    event_type?: string;
+    related_entity_type?: string;
+    related_entity_id?: number;
+  };
+  flag?: {
+    id: number;
+    resident_id?: number | null;
+    resident_name?: string | null;
+    event_type?: string;
+    description?: string;
+    severity?: string;
+    status?: string;
+    source?: string;
+    ai_confidence?: number | null;
+    created_at?: string | null;
   };
 };
 

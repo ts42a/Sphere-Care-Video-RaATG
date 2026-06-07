@@ -169,8 +169,11 @@ function filterResidents(){
 // ════ PROFILE MODAL — uses data from list response only ════
 const sevMap={high:{cls:'fd-high',icon:'🔴'},medium:{cls:'fd-med',icon:'🟡'},low:{cls:'fd-low',icon:'🟢'}};
 
+var _profileResidentId = null;
+
 function openProfile(id){
   const r=residents.find(x=>x.id===id);if(!r)return;
+  _profileResidentId = r.id;
 
   // Header
   const pav=document.getElementById('p-av');
@@ -186,6 +189,9 @@ function openProfile(id){
   document.getElementById('p-room').textContent='Room '+r.room;
   document.getElementById('p-age').textContent=r.age+' years';
   document.getElementById('p-ai').textContent=r.ai;
+  // Reset generate button
+  var genBtn=document.getElementById('p-ai-gen-btn');
+  if(genBtn){genBtn.textContent='✨ Generate AI Summary';genBtn.disabled=false;}
   document.getElementById('p-bp').textContent='—';
   document.getElementById('p-hr').textContent='—';
   document.getElementById('p-wt').textContent='—';
@@ -382,3 +388,32 @@ document.addEventListener('DOMContentLoaded', function() {
 
   loadResidents();
 });
+
+async function generateResidentAiSummary() {
+  if (!_profileResidentId) return;
+  const btn = document.getElementById('p-ai-gen-btn');
+  const box = document.getElementById('p-ai');
+  if (btn) { btn.disabled = true; btn.textContent = 'Generating…'; }
+  if (box) box.textContent = 'Generating AI summary…';
+  try {
+    const t = sessionStorage.getItem('access_token') || '';
+    const res = await fetch(API_BASE + '/residents/' + _profileResidentId + '/ai-summary', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + t, 'Content-Type': 'application/json' },
+    });
+    const data = await res.json();
+    if (res.ok && data.ai_summary) {
+      if (box) box.textContent = data.ai_summary;
+      // Update cached resident
+      const r = residents.find(x => x.id === _profileResidentId);
+      if (r) r.ai = data.ai_summary;
+      if (btn) { btn.textContent = '✨ Regenerate'; btn.disabled = false; }
+    } else {
+      if (box) box.textContent = data.msg || 'AI provider unavailable.';
+      if (btn) { btn.textContent = '✨ Generate AI Summary'; btn.disabled = false; }
+    }
+  } catch (e) {
+    if (box) box.textContent = 'Failed to generate summary.';
+    if (btn) { btn.textContent = '✨ Generate AI Summary'; btn.disabled = false; }
+  }
+}

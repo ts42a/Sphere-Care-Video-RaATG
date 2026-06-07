@@ -171,6 +171,53 @@ def _load_step1_detections(run_dir: Path) -> dict[str, Any] | None:
         return None
 
 
+def _extend_person_frames_for_fall(
+    person_frames: list[dict[str, Any]],
+    all_frames: list[dict[str, Any]],
+    active: set[str] | None,
+    *,
+    max_carry_sec: float = 2.5,
+) -> list[dict[str, Any]]:
+    """Include active anchors where YOLO lost ``person`` during a fall.
+
+    Uses the last seen person bbox as a crop hint so pose still runs on
+    frames like frame_000030.png when the body is on the floor.
+    """
+    if not active:
+        return person_frames
+
+    have = {str(f.get("frame", "")) for f in person_frames}
+    ordered = sorted(all_frames, key=lambda r: float(r.get("ts_sec") or 0.0))
+    last_person: dict[str, Any] | None = None
+    extras: list[dict[str, Any]] = []
+
+    for fmeta in ordered:
+        name = str(fmeta.get("frame", ""))
+        labels = {str(x).lower() for x in (fmeta.get("labels") or [])}
+        if "person" in labels:
+            last_person = fmeta
+            continue
+        if name not in active or name in have or last_person is None:
+            continue
+        gap = float(fmeta.get("ts_sec") or 0.0) - float(
+            last_person.get("ts_sec") or 0.0
+        )
+        if gap > max_carry_sec:
+            continue
+        pseudo = dict(fmeta)
+        pseudo["detections"] = list(last_person.get("detections") or [])
+        pseudo["labels"] = ["person"]
+        pseudo["pose_bbox_source"] = str(last_person.get("frame") or "")
+        extras.append(pseudo)
+        have.add(name)
+
+    if not extras:
+        return person_frames
+    combined = list(person_frames) + extras
+    combined.sort(key=lambda r: float(r.get("ts_sec") or 0.0))
+    return combined
+
+
 def _load_active_frames(run_dir: Path) -> set[str] | None:
     """Return the set of sample_frame names produced by reducer.py, or None
     if the reducer hasn't been run / its output is missing."""
@@ -1149,11 +1196,15 @@ def analyze(
         print("Run first: python ai/models/SCVAM2.1/dectator.py")
         return 1
 
-    person_frames = [f for f in step1["frames"] if "person" in (f.get("labels") or [])]
+    all_step1_frames = list(step1["frames"])
+    person_frames = [
+        f for f in all_step1_frames if "person" in (f.get("labels") or [])
+    ]
     if not person_frames:
         print("[INFO] No 'person' frames in Step 1 - nothing to analyze.")
         return 0
 
+    active: set[str] | None = None
     if use_reducer:
         active = _load_active_frames(run_dir)
         if active is not None:
@@ -1166,6 +1217,15 @@ def analyze(
                 f"[REDUCER] active_frames.json found: {before} -> {after} "
                 f"person samples after reducer filter."
             )
+            carried_before = len(person_frames)
+            person_frames = _extend_person_frames_for_fall(
+                person_frames, all_step1_frames, active
+            )
+            if len(person_frames) > carried_before:
+                print(
+                    f"[FALL] +{len(person_frames) - carried_before} active sample(s) "
+                    "without Step-1 person label (carried bbox for pose)."
+                )
             if not person_frames:
                 print(
                     "[REDUCER] All person samples were dropped by the reducer; "

@@ -40,6 +40,23 @@ def purge_record(db: Session, record: models.Record) -> None:
         except (ValueError, OSError):
             pass
 
+    # Staging records: file_name is org_X/scvam_input/jobs/{folder}/{video}.mp4
+    if record.file_name:
+        try:
+            rel = Path(str(record.file_name))
+            parts = rel.parts
+            org_idx = next((i for i, p in enumerate(parts) if p.startswith("org_")), None)
+            if org_idx is not None:
+                org_id = int(parts[org_idx].replace("org_", ""))
+                video_stem = rel.stem
+                from backend.services.scvam.paths import scvam_output_dir
+
+                out_dir = scvam_output_dir(org_id, video_stem)
+                if out_dir.is_dir():
+                    shutil.rmtree(out_dir, ignore_errors=True)
+        except (ValueError, OSError):
+            pass
+
     jobs = db.query(models.ScvamJob).filter(models.ScvamJob.db_record_id == record.id).all()
     for job in jobs:
         if job.staging_path:

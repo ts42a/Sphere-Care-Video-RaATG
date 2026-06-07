@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from backend import models
 from backend.services.ai.llm_client import LLMNarrative, fallback_narrative, generate_narrative
+from backend.services.ai_flag_realtime import broadcast_ai_flag_created_sync
 
 from backend.services.ai.vision.event_schema import RuleHit
 
@@ -67,4 +68,8 @@ def create_flag_and_insight(
     db.commit()
     db.refresh(flag)
     db.refresh(insight)
+    try:
+        broadcast_ai_flag_created_sync(flag, db)
+    except Exception:
+        pass
     return flag, insight

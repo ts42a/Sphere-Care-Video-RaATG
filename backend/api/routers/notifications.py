@@ -5,8 +5,11 @@ from sqlalchemy.orm import Session
 
 from backend.api.deps import get_db, get_current_auth_context
 from backend import models, schemas
+from backend.services.notifications.incoming_alerts import collect_incoming_alerts
+from . import unread_counts
 
 router = APIRouter(tags=["Notifications"])
+router.include_router(unread_counts.router)
 
 
 def _fmt(n: models.Notification) -> schemas.NotificationResponse:
@@ -74,6 +77,19 @@ def get_priority_alerts(
         .all()
     )
     return [_fmt(n) for n in rows]
+
+
+@router.get("/incoming-alerts", response_model=list[schemas.IncomingAlertOut])
+def get_incoming_alerts(
+    limit: int = Query(30, ge=1, le=100),
+    auth=Depends(get_current_auth_context),
+    db: Session = Depends(get_db),
+):
+    """Poll for new dashboard / flag / camera alerts (staff notification modal)."""
+    admin_id = auth.get("admin_id")
+    if not admin_id:
+        return []
+    return collect_incoming_alerts(db, int(admin_id), limit=limit)
 
 
 @router.post("/", response_model=schemas.NotificationResponse, status_code=status.HTTP_201_CREATED)

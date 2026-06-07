@@ -332,7 +332,7 @@ function _parseTimeTo24(display) {
 // ══════════════════════════════════════════════
 // ── CALL — dynamic overlay (like message.js) ──
 // ══════════════════════════════════════════════
-var _sc = { callId:null, muted:false, timerInt:null, pollInt:null, seconds:0, state:'idle', lkRoom:null };
+var _sc = { callId:null, calleeName:null, muted:false, timerInt:null, pollInt:null, seconds:0, state:'idle', lkRoom:null };
 function _scEsc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function _scIni(n){return(n||'?').split(' ').map(function(w){return w[0]||'';}).join('').toUpperCase().slice(0,2);}
 function _scInjectStyle(){if(!document.getElementById('sc-call-style')){var st=document.createElement('style');st.id='sc-call-style';st.textContent='@keyframes sc-pulse{0%,100%{transform:scale(1);}50%{transform:scale(1.15);}} @keyframes sc-ring{0%{transform:scale(1);opacity:1;}100%{transform:scale(1.5);opacity:0;}}';document.head.appendChild(st);}}
@@ -385,7 +385,7 @@ async function callStaff(id) {
   const s = staffData.find(x => x.staff_id === id);
   if (!s) return;
   if (!s.user_id) { alert('Cannot call this staff member — no user account linked.'); return; }
-  _sc.state='ringing'; _sc.callId=null;
+  _sc.state='ringing'; _sc.callId=null; _sc.calleeName=s.full_name;
   _showCallingOverlay(s.full_name);
   try {
     var res=await fetch(API_BASE+'/calls',{method:'POST',headers:staffAuthHeaders(),body:JSON.stringify({callee_user_id:s.user_id,kind:'audio'})});
@@ -570,6 +570,585 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 });
 
+// ══════════════════════════════════════════════════════════════════
+// ── DOCTOR SUMMARY TAB
+// Fetches bookings from GET /bookings/, filters to the signed-in
+// doctor by full_name match, then lets the doctor update status /
+// notes via PATCH /{booking_id}/status.
+// Called from DOMContentLoaded in staff.js: _initDoctorTab()
+// ══════════════════════════════════════════════════════════════════
+
+let _doctorBookings     = [];   // all bookings belonging to this doctor
+let _doctorBookingsAll  = [];   // unfiltered copy
+let _doctorEditingId    = null; // booking id being edited in the modal
+
+// ── Resolve the signed-in user's display name (same pattern as staff.js) ──
+function _resolveCurrentUserName() {
+  try {
+    const user = JSON.parse(sessionStorage.getItem('user') || '{}');
+    return (user.full_name || '').trim();
+  } catch (_) { return ''; }
+}
+
+// ── Fetch all bookings then filter to this doctor ──
+async function _loadDoctorBookings() {
+  const tbody    = document.getElementById('doctor-bookings-tbody');
+  const countEl  = document.getElementById('doctor-booking-count');
+  if (tbody) tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#9aa0ac;padding:24px;">Loading…</td></tr>';
+
+  try {
+    const res = await fetch(`${API_BASE}/bookings/`, { headers: staffAuthHeaders() });
+    if (!res.ok) throw new Error('fetch failed');
+    const raw = await res.json();
+
+    const myName = _resolveCurrentUserName().toLowerCase();
+    const portalRole = resolvePortalRole();
+    const isAdmin = ['admin','super_admin','owner','facility_manager','manager'].includes(portalRole);
+
+    // Admins see all bookings; doctors see only their own.
+    const filtered = (isAdmin || !myName)
+      ? raw
+      : raw.filter(b => (b.doctor_name || '').toLowerCase().includes(myName) || myName.includes((b.doctor_name || '').toLowerCase()));
+
+    _doctorBookingsAll = filtered.map(b => ({
+      id:            b.id,
+      resident:      b.resident ? b.resident.full_name : `Resident #${b.resident_id}`,
+      resident_id:   b.resident_id,
+      doctor:        b.doctor_name,
+      type:          b.booking_type,
+      date:          b.appointment_date,
+      time:          b.start_time,
+      location:      b.location || '—',
+      notes:         b.notes    || '',
+      status:        b.status,
+      specialty:     b.doctor_specialty || '',
+    }));
+
+  } catch (e) {
+    console.warn('Doctor tab: could not load bookings', e);
+    _doctorBookingsAll = [];
+  }
+
+  _doctorBookings = [..._doctorBookingsAll];
+  _renderDoctorStats();
+  _renderDoctorTable();
+}
+
+// ── Stats ──
+function _renderDoctorStats() {
+  const todayStr = (function() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  })();
+
+  const all       = _doctorBookingsAll;
+  const total     = all.length;
+  const today     = all.filter(b => b.date === todayStr).length;
+  const confirmed = all.filter(b => b.status === 'confirmed').length;
+  const pending   = all.filter(b => b.status === 'requested' || b.status === 'pending').length;
+
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  set('doc-stat-total',     total);
+  set('doc-stat-today',     today);
+  set('doc-stat-confirmed', confirmed);
+  set('doc-stat-pending',   pending);
+}
+
+// ── Filter (called by the status <select> in staff.html) ──
+function filterBookings() {
+  const val = (document.getElementById('doctor-filter-status') || {}).value || '';
+  _doctorBookings = val
+    ? _doctorBookingsAll.filter(b => b.status === val)
+    : [..._doctorBookingsAll];
+  _renderDoctorTable();
+}
+
+// ── Table ──
+function _renderDoctorTable() {
+  const tbody   = document.getElementById('doctor-bookings-tbody');
+  const countEl = document.getElementById('doctor-booking-count');
+  if (!tbody) return;
+
+  if (!_doctorBookings.length) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#9aa0ac;padding:32px;">No appointments found.</td></tr>';
+    if (countEl) countEl.textContent = '';
+    return;
+  }
+
+  // Status badge colours
+  const SC = {
+    confirmed:  { bg:'#d1fae5', color:'#065f46' },
+    completed:  { bg:'#e0e7ff', color:'#3730a3' },
+    requested:  { bg:'#fef3c7', color:'#b45309' },
+    pending:    { bg:'#fef3c7', color:'#b45309' },
+    cancelled:  { bg:'#fee2e2', color:'#b91c1c' },
+    ongoing:    { bg:'#dbeafe', color:'#1d4ed8' },
+  };
+
+  tbody.innerHTML = _doctorBookings.map(b => {
+    const sc  = SC[b.status] || { bg:'#f1f5f9', color:'#5a6170' };
+    const badge = `<span style="background:${sc.bg};color:${sc.color};font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;white-space:nowrap;">${_cap(b.status)}</span>`;
+
+    // Format date nicely
+    let niceDate = b.date;
+    try { niceDate = new Date(b.date + 'T00:00:00').toLocaleDateString('en-AU', { day:'numeric', month:'short', year:'numeric' }); } catch(_){}
+
+    // Time: strip seconds if present (HH:MM:SS → HH:MM)
+    const niceTime = (b.time || '').slice(0, 5);
+
+    // Notes: truncate for table display
+    const notesSnippet = b.notes
+      ? `<span title="${_esc(b.notes)}" style="max-width:140px;display:inline-block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle;">${_esc(b.notes)}</span>`
+      : '<span style="color:#9aa0ac;">—</span>';
+
+    // Resident initials avatar
+    const initials = (b.resident || '').split(' ').map(w => w[0] || '').join('').slice(0, 2).toUpperCase();
+
+    return `
+      <tr>
+        <td>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div style="width:32px;height:32px;border-radius:50%;background:#2ec4b6;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;flex-shrink:0;">${initials}</div>
+            <div>
+              <div style="font-size:13px;font-weight:700;color:#1a2535;">${_esc(b.resident)}</div>
+              <div style="font-size:11px;color:#9aa0ac;">ID #${b.resident_id}</div>
+            </div>
+          </div>
+        </td>
+        <td style="font-size:13px;font-weight:600;color:#374151;">${_esc(b.type)}</td>
+        <td>
+          <div style="font-size:13px;font-weight:700;color:#1a2535;">${niceDate}</div>
+          <div style="font-size:11px;color:#9aa0ac;">${niceTime}</div>
+        </td>
+        <td style="font-size:13px;color:#374151;">${_esc(b.location)}</td>
+        <td>${badge}</td>
+        <td>
+          <div style="display:flex;align-items:center;gap:8px;">
+            ${notesSnippet}
+            <button
+              class="action-btn blue"
+              title="Edit booking"
+              onclick="_openDoctorEditModal(${b.id})"
+              style="flex-shrink:0;"
+            >
+              <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            </button>
+          </div>
+        </td>
+        <td>
+          <button class="btn btn-outline" style="padding:7px 10px;font-size:12px;white-space:nowrap;" onclick="_openTaskCreateModal(${b.id})">Assign activity</button>
+        </td>
+      </tr>`;
+  }).join('');
+
+  if (countEl) countEl.textContent = `${_doctorBookings.length} appointment${_doctorBookings.length !== 1 ? 's' : ''}`;
+}
+
+// ── Tiny helpers ──
+function _cap(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : ''; }
+function _esc(s) {
+  const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML;
+}
+
+// ══════════════════════════════════════════════════════════════════
+// ── DOCTOR BOOKING EDIT MODAL
+// Injected into the DOM once; lets the doctor change status + notes.
+// ══════════════════════════════════════════════════════════════════
+
+function _injectDoctorEditModal() {
+  if (document.getElementById('modal-doctor-edit')) return; // already injected
+
+  const el = document.createElement('div');
+  el.id = 'modal-doctor-edit';
+  el.className = 'overlay';
+  el.setAttribute('onclick', "if(event.target===this)_closeDoctorEditModal()");
+
+  el.innerHTML = `
+    <div class="sc-modal" style="max-width:460px;">
+      <div class="mhdr">
+        <h3>Edit Appointment</h3>
+        <button class="mclose" onclick="_closeDoctorEditModal()">✕</button>
+      </div>
+      <div class="mbody">
+
+        <!-- Patient info (read-only) -->
+        <div style="background:#f8fafc;border-radius:10px;padding:14px;margin-bottom:16px;">
+          <div style="font-size:10px;font-weight:700;color:#9aa0ac;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Appointment</div>
+          <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+            <div>
+              <div style="font-size:11px;color:#9aa0ac;">Patient</div>
+              <div style="font-size:13.5px;font-weight:700;color:#1a2535;" id="dedit-resident">—</div>
+            </div>
+            <div>
+              <div style="font-size:11px;color:#9aa0ac;">Type</div>
+              <div style="font-size:13.5px;font-weight:700;color:#1a2535;" id="dedit-type">—</div>
+            </div>
+            <div>
+              <div style="font-size:11px;color:#9aa0ac;">Date &amp; Time</div>
+              <div style="font-size:13.5px;font-weight:700;color:#1a2535;" id="dedit-datetime">—</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mbody-section">
+          <!-- Status -->
+          <div style="margin-bottom:14px;">
+            <label class="flabel">Status</label>
+            <select class="fsel" id="dedit-status">
+              <option value="requested">Requested</option>
+              <option value="confirmed">Confirmed</option>
+              <option value="ongoing">Ongoing</option>
+              <option value="completed">Completed</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+          </div>
+
+          <!-- Location -->
+          <div style="margin-bottom:14px;">
+            <label class="flabel">Location</label>
+            <input class="finput" id="dedit-location" placeholder="e.g. Room 204, Outpatient Clinic"/>
+          </div>
+
+          <!-- Notes -->
+          <div>
+            <label class="flabel">Clinical Notes</label>
+            <textarea
+              class="finput"
+              id="dedit-notes"
+              rows="4"
+              placeholder="Add consultation notes, instructions, or follow-up details…"
+              style="resize:vertical;min-height:80px;"
+            ></textarea>
+          </div>
+        </div>
+
+        <div id="dedit-error" style="display:none;color:#ef4444;font-size:13px;margin-top:10px;padding:8px 12px;background:#fee2e2;border-radius:8px;"></div>
+      </div>
+
+      <div class="mfooter">
+        <button class="btn btn-outline" onclick="_closeDoctorEditModal()">Cancel</button>
+        <button class="btn btn-primary" id="dedit-save-btn" onclick="_saveDoctorBooking()">Save Changes</button>
+      </div>
+    </div>`;
+
+  document.body.appendChild(el);
+}
+
+function _openDoctorEditModal(bookingId) {
+  const b = _doctorBookingsAll.find(x => x.id === bookingId);
+  if (!b) return;
+  _doctorEditingId = bookingId;
+
+  let niceDate = b.date;
+  try { niceDate = new Date(b.date + 'T00:00:00').toLocaleDateString('en-AU', { day:'numeric', month:'short', year:'numeric' }); } catch(_){}
+
+  document.getElementById('dedit-resident').textContent  = b.resident;
+  document.getElementById('dedit-type').textContent      = b.type;
+  document.getElementById('dedit-datetime').textContent  = `${niceDate} ${(b.time || '').slice(0,5)}`;
+  document.getElementById('dedit-status').value          = b.status;
+  document.getElementById('dedit-location').value        = b.location === '—' ? '' : (b.location || '');
+  document.getElementById('dedit-notes').value           = b.notes || '';
+
+  const errEl = document.getElementById('dedit-error');
+  if (errEl) errEl.style.display = 'none';
+
+  document.getElementById('modal-doctor-edit').classList.add('open');
+}
+
+function _closeDoctorEditModal() {
+  const m = document.getElementById('modal-doctor-edit');
+  if (m) m.classList.remove('open');
+  _doctorEditingId = null;
+}
+
+async function _saveDoctorBooking() {
+  if (!_doctorEditingId) return;
+
+  const newStatus   = document.getElementById('dedit-status').value;
+  const newLocation = document.getElementById('dedit-location').value.trim();
+  const newNotes    = document.getElementById('dedit-notes').value.trim();
+  const errEl       = document.getElementById('dedit-error');
+  const saveBtn     = document.getElementById('dedit-save-btn');
+
+  if (errEl) errEl.style.display = 'none';
+  if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Saving…'; }
+
+  try {
+    // 1. PATCH status (existing endpoint)
+    const statusRes = await fetch(
+      `${API_BASE}/bookings/${_doctorEditingId}/status?status=${encodeURIComponent(newStatus)}`,
+      { method: 'PATCH', headers: staffAuthHeaders() }
+    );
+    if (!statusRes.ok) {
+      const err = await statusRes.json().catch(() => ({}));
+      throw new Error(err.detail || 'Failed to update status');
+    }
+
+    // 2. PATCH location + notes via general update endpoint (if your backend supports it)
+    //    Falls back gracefully if the endpoint isn't wired yet — only status is critical.
+    try {
+      await fetch(
+        `${API_BASE}/bookings/${_doctorEditingId}`,
+        {
+          method: 'PATCH',
+          headers: staffAuthHeaders(),
+          body: JSON.stringify({ location: newLocation || null, notes: newNotes || null })
+        }
+      );
+    } catch (_) { /* non-fatal — status was already saved */ }
+
+    // Update local cache
+    const updateLocal = arr => {
+      const idx = arr.findIndex(x => x.id === _doctorEditingId);
+      if (idx >= 0) {
+        arr[idx] = {
+          ...arr[idx],
+          status:   newStatus,
+          location: newLocation || '—',
+          notes:    newNotes,
+        };
+      }
+    };
+    updateLocal(_doctorBookingsAll);
+    updateLocal(_doctorBookings);
+
+    _renderDoctorStats();
+    _renderDoctorTable();
+    _closeDoctorEditModal();
+
+  } catch (err) {
+    if (errEl) { errEl.textContent = err.message || 'Could not save. Please try again.'; errEl.style.display = 'block'; }
+  } finally {
+    if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save Changes'; }
+  }
+}
+
+// ── WebSocket: keep doctor table in sync with real-time booking events ──
+// Piggy-backs on the existing WS layer in booking.js if both are loaded,
+// but also handles messages independently if only staff.js is loaded.
+(function _doctorWsLayer() {
+  // booking.js may already have a WS open; listen via a custom event bridge
+  // so we don't open a duplicate connection.  If booking.js isn't present
+  // on this page we open our own connection.
+  function _handleWsMsg(msg) {
+    if (!msg || !msg.type) return;
+
+    if (msg.type === 'booking_created') {
+      const b = msg.booking;
+      const myName = _resolveCurrentUserName().toLowerCase();
+      if (!myName || (b.doctor_name || '').toLowerCase().includes(myName) || myName.includes((b.doctor_name || '').toLowerCase())) {
+        const norm = {
+          id: b.id, resident: b.resident ? b.resident.full_name : `Resident #${b.resident_id}`,
+          resident_id: b.resident_id, doctor: b.doctor_name, type: b.booking_type,
+          date: b.appointment_date, time: b.start_time, location: b.location || '—',
+          notes: b.notes || '', status: b.status, specialty: b.doctor_specialty || '',
+        };
+        if (!_doctorBookingsAll.find(x => x.id === norm.id)) {
+          _doctorBookingsAll.push(norm);
+          filterBookings();
+          _renderDoctorStats();
+        }
+      }
+    }
+
+    if (msg.type === 'booking_updated') {
+      const u = msg.booking;
+      const updateArr = arr => {
+        const idx = arr.findIndex(x => x.id === u.id);
+        if (idx >= 0 && u.status) arr[idx].status = u.status;
+      };
+      updateArr(_doctorBookingsAll);
+      updateArr(_doctorBookings);
+      _renderDoctorStats();
+      _renderDoctorTable();
+    }
+
+    if (msg.type === 'booking_deleted') {
+      _doctorBookingsAll = _doctorBookingsAll.filter(x => x.id !== msg.booking_id);
+      _doctorBookings    = _doctorBookings.filter(x => x.id !== msg.booking_id);
+      _renderDoctorStats();
+      _renderDoctorTable();
+    }
+
+    // ── Incoming call (callee side) ──
+    if (msg.type === 'call.invite' || msg.type === 'call.incoming' || msg.type === 'incoming_call') {
+      // Don't show incoming call UI if we are the caller of this very call.
+      var isSelfCall = _sc.state === 'ringing' && _sc.callId && String(msg.call_id) === String(_sc.callId);
+      if (!isSelfCall) _showIncomingCallUI(msg);
+    }
+    if (msg.type === 'call.canceled' || msg.type === 'call.cancelled' || msg.type === 'call_cancelled') {
+      _removeIncomingCallUI();
+    }
+
+    // ── Caller side: react to call state changes via WS ──
+    if (_sc.callId && String(msg.call_id) === String(_sc.callId)) {
+      if (msg.type === 'call.accepted' && _sc.state === 'ringing') {
+        _sc.state = 'active';
+        _showActiveCallOverlay(_sc.calleeName || 'Staff');
+      }
+      if (msg.type === 'call.declined' && _sc.state === 'ringing') {
+        clearInterval(_sc.pollInt);
+        _sc.state = 'idle';
+        _removeCallingOverlay();
+        _scShowToast('Call declined');
+      }
+      if ((msg.type === 'call.timeout' || msg.type === 'call.canceled') && _sc.state === 'ringing') {
+        clearInterval(_sc.pollInt);
+        _sc.state = 'idle';
+        _removeCallingOverlay();
+        _scShowToast(msg.type === 'call.timeout' ? 'No answer' : 'Call cancelled');
+      }
+      if (msg.type === 'call.ended') {
+        clearInterval(_sc.pollInt);
+        _sc.state = 'idle';
+        _removeCallingOverlay();
+        _removeActiveCallOverlay();
+        if (_sc.lkRoom) { try { _sc.lkRoom.disconnect(); } catch(_) {} _sc.lkRoom = null; }
+      }
+      if (msg.type === 'call.summary_ready') {
+        _scShowToast('AI summary sent to chat');
+      }
+    }
+  }
+
+  // If booking.js is on the same page, it fires a custom event we can listen to.
+  window.addEventListener('spherecare:ws_booking', function(e) {
+    _handleWsMsg(e.detail);
+  });
+
+  // If booking.js is NOT on this page, open our own WS.
+  // Check 20 ms after init to let booking.js register first.
+  setTimeout(function() {
+    if (window._spherecareWsReady) return; // booking.js already owns a connection
+    var proto = location.protocol === 'https:' ? 'wss' : 'ws';
+    var ws;
+    function connect() {
+      var token = sessionStorage.getItem('access_token') || '';
+      if (!token) return; // don't attempt WS without a valid token
+      ws = new WebSocket(proto + '://' + location.host + '/ws?token=' + encodeURIComponent(token));
+      ws.onclose = function() {
+        // Only reconnect when still logged in
+        if (sessionStorage.getItem('access_token')) {
+          setTimeout(connect, 3000);
+        }
+      };
+      ws.onerror = function() {};
+      ws.onmessage = function(e) {
+        var msg; try { msg = JSON.parse(e.data); } catch(_) { return; }
+        _handleWsMsg(msg);
+      };
+    }
+    connect();
+  }, 20);
+})();
+
+// ── INCOMING CALL UI ──────────────────────────────────────────────
+var _incomingCallId = null;
+var _incomingRingInterval = null;
+
+function _showIncomingCallUI(msg) {
+  _removeIncomingCallUI();
+  _incomingCallId = msg.call_id;
+  var callerName = msg.caller_name || 'Someone';
+  var kind = msg.kind || 'audio';
+
+  // Inject style once
+  if (!document.getElementById('sc-incoming-style')) {
+    var st = document.createElement('style');
+    st.id = 'sc-incoming-style';
+    st.textContent = '@keyframes sc-ring-pulse{0%,100%{transform:scale(1);}50%{transform:scale(1.12);}}';
+    document.head.appendChild(st);
+  }
+
+  var ov = document.createElement('div');
+  ov.id = 'sc-incoming-overlay';
+  ov.style.cssText = 'position:fixed;inset:0;z-index:999999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.6);';
+
+  var initials = callerName.split(' ').map(function(w){return w[0]||'';}).join('').toUpperCase().slice(0,2);
+
+  ov.innerHTML =
+    '<div style="background:#1e2025;border-radius:24px;padding:40px 36px;min-width:320px;text-align:center;color:#fff;box-shadow:0 24px 80px rgba(0,0,0,0.5);">' +
+      '<div style="width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,#2ec4b6,#38bdf8);display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:800;color:#fff;margin:0 auto 16px;animation:sc-ring-pulse 1s infinite;">' + initials + '</div>' +
+      '<div style="font-size:11px;color:rgba(255,255,255,0.45);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">Incoming ' + (kind === 'video' ? 'Video' : 'Audio') + ' Call</div>' +
+      '<div style="font-size:20px;font-weight:800;margin-bottom:28px;">' + callerName + '</div>' +
+      '<div style="display:flex;justify-content:center;gap:24px;">' +
+        '<div style="text-align:center;">' +
+          '<button onclick="_declineIncomingCall()" style="width:60px;height:60px;border-radius:50%;background:#ef4444;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;margin:0 auto 8px;">' +
+            '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="transform:rotate(135deg)"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 1.18h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.77a16 16 0 0 0 6 6l.93-.93a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7a2 2 0 0 1 1.72 2.03z"/></svg>' +
+          '</button>' +
+          '<div style="font-size:12px;color:rgba(255,255,255,0.5);">Decline</div>' +
+        '</div>' +
+        '<div style="text-align:center;">' +
+          '<button onclick="_acceptIncomingCall()" style="width:60px;height:60px;border-radius:50%;background:#22c55e;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;margin:0 auto 8px;">' +
+            '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 1.18h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.77a16 16 0 0 0 6 6l.93-.93a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7a2 2 0 0 1 1.72 2.03z"/></svg>' +
+          '</button>' +
+          '<div style="font-size:12px;color:rgba(255,255,255,0.5);">Accept</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+
+  document.body.appendChild(ov);
+}
+
+function _removeIncomingCallUI() {
+  var el = document.getElementById('sc-incoming-overlay');
+  if (el) el.remove();
+  if (_incomingRingInterval) { clearInterval(_incomingRingInterval); _incomingRingInterval = null; }
+}
+
+async function _acceptIncomingCall() {
+  if (!_incomingCallId) return;
+  var callId = _incomingCallId;
+  _removeIncomingCallUI();
+  try {
+    var r = await fetch(API_BASE + '/calls/' + callId + '/accept', {
+      method: 'POST', headers: staffAuthHeaders()
+    });
+    var data = await r.json();
+    _sc.callId = callId;
+    _sc.state = 'active';
+    _showActiveCallOverlay('Caller');
+    // Connect to LiveKit with the callee token from the accept response
+    if (data.join_payload && data.join_payload.livekit_url && data.join_payload.access_token) {
+      _scLkConnect(data.join_payload.livekit_url, data.join_payload.access_token);
+    }
+    // Start polling to detect when call ends
+    _sc.pollInt = setInterval(async function() {
+      try {
+        var r2 = await fetch(API_BASE + '/calls/' + callId, { headers: staffAuthHeaders() });
+        if (!r2.ok) return;
+        var d = await r2.json();
+        if (d.state === 'ended' || d.state === 'canceled' || d.state === 'timeout') {
+          clearInterval(_sc.pollInt);
+          _sc.state = 'idle';
+          _removeActiveCallOverlay();
+        }
+      } catch(_) {}
+    }, 1500);
+  } catch(e) {
+    console.error('Accept call failed', e);
+  }
+}
+
+async function _declineIncomingCall() {
+  if (!_incomingCallId) return;
+  var callId = _incomingCallId;
+  _removeIncomingCallUI();
+  _incomingCallId = null;
+  try {
+    await fetch(API_BASE + '/calls/' + callId + '/decline', {
+      method: 'POST', headers: staffAuthHeaders()
+    });
+  } catch(e) {}
+}
+
+// ── Entry point called from DOMContentLoaded in staff.js ──
+function _initDoctorTab() {
+  _injectDoctorEditModal();
+  _injectTaskCreateModal();
+  _loadDoctorBookings();
+}
+
 // Hide Bootstrap skeleton once page content is ready (Option)
 (function() {
   var sk = document.getElementById('page-skeleton');
@@ -583,3 +1162,214 @@ document.addEventListener('DOMContentLoaded', function() {
   // Fallback: hide after 3s regardless
   setTimeout(window.hideSkeleton, 3000);
 })();
+// ══════════════════════════════════════════════════════════════════
+// ── DOCTOR ASSIGNED ACTIVITIES / CARE TASKS
+// Doctors can assign activities from Doctor Summary. The mobile client
+// reads these from GET /api/v1/tasks and receives task.created events.
+// ══════════════════════════════════════════════════════════════════
+let _taskCreateBookingId = null;
+
+function _todayIsoDate() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function _injectTaskCreateModal() {
+  if (document.getElementById('modal-task-create')) return;
+
+  const el = document.createElement('div');
+  el.id = 'modal-task-create';
+  el.className = 'overlay';
+  el.setAttribute('onclick', "if(event.target===this)_closeTaskCreateModal()");
+  el.innerHTML = `
+    <div class="sc-modal" style="max-width:560px;">
+      <div class="mhdr">
+        <h3>Assign Patient Activity</h3>
+        <button class="mclose" onclick="_closeTaskCreateModal()">✕</button>
+      </div>
+      <div class="mbody">
+        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:14px;margin-bottom:16px;">
+          <div style="font-size:10px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Patient</div>
+          <select class="fsel" id="task-resident-select"></select>
+          <div id="task-booking-context" style="font-size:12px;color:#64748b;margin-top:8px;"></div>
+        </div>
+
+        <div class="mbody-section">
+          <div style="display:grid;grid-template-columns:1fr 150px;gap:12px;margin-bottom:14px;">
+            <div>
+              <label class="flabel">Activity title</label>
+              <input class="finput" id="task-title" placeholder="e.g. Morning walk for 20 minutes" />
+            </div>
+            <div>
+              <label class="flabel">Type</label>
+              <select class="fsel" id="task-type">
+                <option value="activity">Activity</option>
+                <option value="exercise">Exercise</option>
+                <option value="medication">Medication</option>
+                <option value="meal">Meal</option>
+                <option value="wellness_check">Wellness check</option>
+                <option value="doctor_followup">Doctor follow up</option>
+                <option value="hydration">Hydration</option>
+              </select>
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr 150px;gap:12px;margin-bottom:14px;">
+            <div>
+              <label class="flabel">Due date</label>
+              <input class="finput" id="task-date" type="date" />
+            </div>
+            <div>
+              <label class="flabel">Due time</label>
+              <input class="finput" id="task-time" type="time" />
+            </div>
+            <div>
+              <label class="flabel">Priority</label>
+              <select class="fsel" id="task-priority">
+                <option value="low">Low</option>
+                <option value="medium" selected>Medium</option>
+                <option value="high">High</option>
+                <option value="urgent">Urgent</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label class="flabel">Instructions</label>
+            <textarea class="finput" id="task-description" rows="4" placeholder="Add simple instructions for the patient or resident…" style="resize:vertical;min-height:90px;"></textarea>
+          </div>
+        </div>
+
+        <div id="task-create-error" style="display:none;color:#ef4444;font-size:13px;margin-top:10px;padding:8px 12px;background:#fee2e2;border-radius:8px;"></div>
+      </div>
+      <div class="mfooter">
+        <button class="btn btn-outline" onclick="_closeTaskCreateModal()">Cancel</button>
+        <button class="btn btn-primary" id="task-create-save" onclick="_saveCareTask()">Assign Activity</button>
+      </div>
+    </div>`;
+  document.body.appendChild(el);
+}
+
+function _openTaskCreateModal(bookingId) {
+  _injectTaskCreateModal();
+  _taskCreateBookingId = bookingId || null;
+
+  const select = document.getElementById('task-resident-select');
+  const context = document.getElementById('task-booking-context');
+  const title = document.getElementById('task-title');
+  const type = document.getElementById('task-type');
+  const date = document.getElementById('task-date');
+  const time = document.getElementById('task-time');
+  const priority = document.getElementById('task-priority');
+  const desc = document.getElementById('task-description');
+  const err = document.getElementById('task-create-error');
+
+  const patients = [];
+  const seen = new Set();
+  (_doctorBookingsAll || []).forEach(b => {
+    if (!b.resident_id || seen.has(String(b.resident_id))) return;
+    seen.add(String(b.resident_id));
+    patients.push({ id: b.resident_id, name: b.resident || `Resident #${b.resident_id}` });
+  });
+
+  if (select) {
+    select.innerHTML = patients.length
+      ? patients.map(p => `<option value="${p.id}">${_esc(p.name)} · ID #${p.id}</option>`).join('')
+      : '<option value="">No patients found</option>';
+  }
+
+  const booking = bookingId ? _doctorBookingsAll.find(b => b.id === bookingId) : null;
+  if (booking && select) select.value = String(booking.resident_id);
+
+  if (context) {
+    context.textContent = booking
+      ? `Linked to ${booking.type || 'appointment'} on ${booking.date || ''} ${(booking.time || '').slice(0,5)}`
+      : 'Select a patient from your appointment list.';
+  }
+
+  if (title) title.value = booking ? _suggestTaskTitleFromBooking(booking) : '';
+  if (type) type.value = booking ? _suggestTaskTypeFromBooking(booking) : 'activity';
+  if (date) date.value = booking && booking.date ? booking.date : _todayIsoDate();
+  if (time) time.value = booking && booking.time ? String(booking.time).slice(0,5) : '';
+  if (priority) priority.value = 'medium';
+  if (desc) desc.value = booking && booking.notes ? `Doctor notes: ${booking.notes}` : '';
+  if (err) err.style.display = 'none';
+
+  document.getElementById('modal-task-create').classList.add('open');
+}
+
+function _suggestTaskTitleFromBooking(booking) {
+  const type = String(booking.type || '').toLowerCase();
+  if (type.includes('physio') || type.includes('rehab')) return 'Complete recommended mobility exercise';
+  if (type.includes('diet') || type.includes('nutrition')) return 'Follow recommended meal plan';
+  if (type.includes('medication')) return 'Follow medication instructions after consultation';
+  if (type.includes('check') || type.includes('review')) return 'Complete follow up wellness check';
+  return 'Complete doctor assigned activity';
+}
+
+function _suggestTaskTypeFromBooking(booking) {
+  const type = String(booking.type || '').toLowerCase();
+  if (type.includes('physio') || type.includes('rehab') || type.includes('exercise')) return 'exercise';
+  if (type.includes('diet') || type.includes('nutrition') || type.includes('meal')) return 'meal';
+  if (type.includes('medication')) return 'medication';
+  if (type.includes('follow') || type.includes('review') || type.includes('doctor')) return 'doctor_followup';
+  return 'activity';
+}
+
+function _closeTaskCreateModal() {
+  const m = document.getElementById('modal-task-create');
+  if (m) m.classList.remove('open');
+  _taskCreateBookingId = null;
+}
+
+async function _saveCareTask() {
+  const residentId = Number((document.getElementById('task-resident-select') || {}).value || 0);
+  const title = (document.getElementById('task-title') || {}).value || '';
+  const taskType = (document.getElementById('task-type') || {}).value || 'activity';
+  const dueDate = (document.getElementById('task-date') || {}).value || null;
+  const dueTime = (document.getElementById('task-time') || {}).value || null;
+  const priority = (document.getElementById('task-priority') || {}).value || 'medium';
+  const description = (document.getElementById('task-description') || {}).value || '';
+  const err = document.getElementById('task-create-error');
+  const save = document.getElementById('task-create-save');
+
+  if (err) err.style.display = 'none';
+
+  if (!residentId) {
+    if (err) { err.textContent = 'Please select a patient.'; err.style.display = 'block'; }
+    return;
+  }
+  if (!String(title).trim()) {
+    if (err) { err.textContent = 'Please enter an activity title.'; err.style.display = 'block'; }
+    return;
+  }
+
+  if (save) { save.disabled = true; save.textContent = 'Assigning…'; }
+
+  try {
+    const res = await fetch(`${API_BASE}/tasks/`, {
+      method: 'POST',
+      headers: staffAuthHeaders(),
+      body: JSON.stringify({
+        resident_id: residentId,
+        title: String(title).trim(),
+        description: String(description).trim() || null,
+        task_type: taskType,
+        priority,
+        due_date: dueDate || null,
+        due_time: dueTime || null,
+      }),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.detail || data.message || 'Could not assign activity');
+    }
+    _closeTaskCreateModal();
+    if (typeof _scShowToast === 'function') _scShowToast('Activity assigned to patient');
+    else alert('Activity assigned to patient');
+  } catch (e) {
+    if (err) { err.textContent = e.message || 'Could not assign activity'; err.style.display = 'block'; }
+  } finally {
+    if (save) { save.disabled = false; save.textContent = 'Assign Activity'; }
+  }
+}

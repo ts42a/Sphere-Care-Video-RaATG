@@ -228,6 +228,14 @@ def run_runtime_migrations(engine: Engine) -> None:
         ON scvam_jobs (status, created_at)
     """)
 
+    # ── AI summary columns on calls ───────────────────────────────────────────
+    statements.append("""
+        ALTER TABLE calls ADD COLUMN IF NOT EXISTS transcript TEXT NULL
+    """)
+    statements.append("""
+        ALTER TABLE calls ADD COLUMN IF NOT EXISTS ai_summary TEXT NULL
+    """)
+
     with engine.begin() as conn:
         for statement in statements:
             conn.execute(text(statement))

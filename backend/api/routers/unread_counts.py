@@ -60,11 +60,13 @@ def get_unread_counts(
         .scalar()
     ) or 0
 
-    # ── Flags: active (new or escalated) — need attention ─────────
+    # ── Flags: pending review / open / escalated ───────────────────
     flag_result = (
         db.query(func.count(models.Flag.id))
         .filter(
-            models.Flag.status.in_(["new", "escalated"]),
+            models.Flag.admin_id == admin_id,
+            models.Flag.is_deleted == False,  # noqa: E712
+            models.Flag.status.in_(["Pending Review", "Open", "Escalated"]),
         )
         .scalar()
     ) or 0

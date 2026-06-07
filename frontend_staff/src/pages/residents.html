@@ -211,7 +211,10 @@
         <div class="iitem"><div class="ilabel">Room</div><div class="ival" id="p-room">—</div></div>
         <div class="iitem"><div class="ilabel">Age</div><div class="ival" id="p-age">—</div></div>
       </div>
-      <div style="font-size:13px;font-weight:700;margin-bottom:8px;">AI Summary (Last 72h)</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <div style="font-size:13px;font-weight:700;">AI Summary (Last 72h)</div>
+        <button id="p-ai-gen-btn" onclick="generateResidentAiSummary()" style="font-size:11px;padding:4px 10px;border-radius:8px;border:1px solid #6366f1;background:transparent;color:#6366f1;cursor:pointer;font-weight:600;">✨ Generate AI Summary</button>
+      </div>
       <div class="ai-box" id="p-ai">—</div>
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;"><div style="font-size:13px;font-weight:700;">Quick Vitals Summary</div><div style="font-size:11px;color:var(--text3);">Last updated: 2h ago</div></div>
       <div class="vitals-grid">

@@ -310,7 +310,8 @@
     );
   }
 
-  async function vaultSaveRecording(meta) {
+  async function vaultSaveRecording(meta, options = {}) {
+    const syncServer = options.syncServer !== false;
     console.log("[vaultSave] saving id:", meta.id, "ivB64 len:", meta.ivB64 ? meta.ivB64.length : 0, "cipherB64 len:", meta.cipherB64 ? meta.cipherB64.length : 0);
     const db = await openDb();
     await new Promise((resolve, reject) => {
@@ -319,26 +320,28 @@
       tx.oncomplete = () => { console.log("[vaultSave] IndexedDB save OK"); resolve(); };
       tx.onerror = () => { console.error("[vaultSave] IndexedDB save FAILED:", tx.error); reject(tx.error); };
     });
-    try {
-      await apiFetch("/records/vault/upload", {
-        method: "POST",
-        body: JSON.stringify({
-          record_id: meta.id,
-          resident_name: "This device",
-          category: meta.cameraLabel || "Local camera recording",
-          record_type: "video",
-          mime_type: meta.mimeType || "video/webm",
-          duration: meta.durationMs ? Math.max(1, Math.round(Number(meta.durationMs) / 1000)) : null,
-          started_at: meta.startedAt || null,
-          ended_at: meta.endedAt || null,
-          iv_b64: meta.ivB64,
-          cipher_b64: meta.cipherB64,
-          notes: "Encrypted local vault recording",
-          file_url: `localvault://${meta.id}`,
-        }),
-      });
-    } catch (_) {
-      // best effort mirror to server vault; local encrypted save is authoritative
+    if (syncServer) {
+      try {
+        await apiFetch("/records/vault/upload", {
+          method: "POST",
+          body: JSON.stringify({
+            record_id: meta.id,
+            resident_name: "This device",
+            category: meta.cameraLabel || "Local camera recording",
+            record_type: "video",
+            mime_type: meta.mimeType || "video/webm",
+            duration: meta.durationMs ? Math.max(1, Math.round(Number(meta.durationMs) / 1000)) : null,
+            started_at: meta.startedAt || null,
+            ended_at: meta.endedAt || null,
+            iv_b64: meta.ivB64,
+            cipher_b64: meta.cipherB64,
+            notes: "Encrypted local vault recording",
+            file_url: `localvault://${meta.id}`,
+          }),
+        });
+      } catch (_) {
+        // best effort mirror to server vault; local encrypted save is authoritative
+      }
     }
     await applyRetentionPolicy();
     return meta.id;

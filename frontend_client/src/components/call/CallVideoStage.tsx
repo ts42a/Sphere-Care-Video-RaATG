@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   View,
   Text,
@@ -10,8 +10,6 @@ import * as LiveKit from "@livekit/react-native";
 import { Track } from "livekit-client";
 
 import TranscriptPanel from "./TranscriptPanel";
-import AslVisionCameraCapture from "./AslVisionCameraCapture";
-import { useAslBroadcast } from "../../hooks/useAslBroadcast";
 import { colors } from "../../theme/colors";
 import type { CallContact, CallSession, TranscriptItem } from "../../types/call";
 
@@ -75,14 +73,9 @@ export default function CallVideoStage({
     () => new Set()
   );
   const [manualAslSpaces, setManualAslSpaces] = useState(0);
-
-  const aslCaptureActive = Boolean(
+  const aslWorkerActive = Boolean(
     session.callState === "active" && transcriptMode === "asl"
   );
-
-  const { sendFrame, lastSegment } = useAslBroadcast(session.callId, {
-    enabled: aslCaptureActive,
-  });
 
   const remoteParticipants = useMemo(
     () => Array.from(room?.remoteParticipants?.values?.() ?? []),
@@ -158,18 +151,20 @@ export default function CallVideoStage({
 
   const hasRemoteParticipant = remoteParticipants.length > 0;
   const hasRemoteVideo = !!remoteTrackRef;
-  const hasLocalVideo = !!localPreviewTrackRef && cameraEnabled;
+  // Do not depend on the async cameraEnabled state for rendering the preview.
+  // LiveKit may already have a usable local camera publication while this state is still false.
+  const hasLocalVideo = !!localPreviewTrackRef;
 
-  const handleAslFrame = useCallback(
-    (imageB64: string) => {
-      sendFrame(imageB64, aslMode);
-    },
-    [aslMode, sendFrame]
-  );
-
-  const handleAslCameraError = useCallback((message: string, error?: unknown) => {
-    console.warn(`[ASL] ${message}`, error);
-  }, []);
+  const localTrackRenderKey = useMemo(() => {
+    const publication = (localPreviewTrackRef as any)?.publication;
+    const track = (localPreviewTrackRef as any)?.track;
+    return String(
+      publication?.trackSid ||
+      publication?.sid ||
+      track?.sid ||
+      cameraFacing
+    );
+  }, [cameraFacing, localPreviewTrackRef]);
 
   const visibleTranscriptItems = useMemo(() => {
     const activeItems = transcriptItems.filter((item) => {
@@ -191,6 +186,22 @@ export default function CallVideoStage({
     const last = visibleTranscriptItems[visibleTranscriptItems.length - 1];
     return `${last.speaker}: ${last.content}`;
   }, [transcribing, transcriptMode, visibleTranscriptItems]);
+
+  const latestAslSegment = useMemo(() => {
+    const aslItems = visibleTranscriptItems.filter(
+      (item) => item.source === "asl" || item.content.startsWith("[ASL]")
+    );
+    const last = aslItems[aslItems.length - 1];
+    if (!last) return null;
+
+    const letter = last.content.replace(/^\[ASL\]\s*/i, "").trim();
+    if (!letter) return null;
+
+    return {
+      letter,
+      confidence: typeof last.confidence === "number" ? last.confidence : undefined,
+    };
+  }, [visibleTranscriptItems]);
 
   async function openAslMode() {
     const willEnableAsl = transcriptMode !== "asl";
@@ -277,21 +288,23 @@ export default function CallVideoStage({
         )}
       </View>
 
-      {/* Local preview. ASL mode uses VisionCamera native capture instead of WebRTC view screenshots. */}
+      {/* Local preview. Mirror front camera preview so it feels like a selfie mirror. */}
       <View style={styles.topRightOverlay}>
         <View style={styles.localPreviewShell}>
-          {aslCaptureActive ? (
-            <AslVisionCameraCapture
-              active={aslCaptureActive}
-              facing={cameraFacing}
-              onFrame={handleAslFrame}
-              onError={handleAslCameraError}
-            />
-          ) : hasLocalVideo ? (
-            <VideoTrackComponent
-              trackRef={localPreviewTrackRef as any}
-              style={styles.localVideo}
-            />
+          {hasLocalVideo ? (
+            <View
+              style={[
+                styles.localVideoMirrorWrap,
+                cameraFacing === "front" && styles.mirroredVideo,
+              ]}
+              pointerEvents="none"
+            >
+              <VideoTrackComponent
+                key={localTrackRenderKey}
+                trackRef={localPreviewTrackRef as any}
+                style={styles.localVideo}
+              />
+            </View>
           ) : (
             <VideoPlaceholder
               title="You"
@@ -302,10 +315,11 @@ export default function CallVideoStage({
             />
           )}
         </View>
+
         {/* ASL live indicator on local preview */}
-        {aslCaptureActive && lastSegment?.letter && (
+        {aslWorkerActive && latestAslSegment?.letter && (
           <View style={styles.aslLocalBadge}>
-            <Text style={styles.aslLocalLetter}>{lastSegment.letter}</Text>
+            <Text style={styles.aslLocalLetter}>{latestAslSegment.letter}</Text>
           </View>
         )}
       </View>
@@ -319,12 +333,12 @@ export default function CallVideoStage({
       </View>
 
       {/* ASL remote overlay — shown to BOTH sides when ASL is active */}
-      {aslCaptureActive && (
+      {aslWorkerActive && (
         <View style={styles.aslRemoteOverlay}>
           <MaterialIcons name="sign-language" size={13} color="rgba(255,255,255,0.7)" />
           <Text style={styles.aslRemoteText}>
-            {lastSegment?.letter
-              ? `ASL: ${lastSegment.letter} (${Math.round((lastSegment.confidence ?? 0) * 100)}%)`
+            {latestAslSegment?.letter
+              ? `ASL: ${latestAslSegment.letter} (${Math.round((latestAslSegment.confidence ?? 0) * 100)}%)`
               : "ASL detection active"}
           </Text>
         </View>
@@ -347,8 +361,8 @@ export default function CallVideoStage({
             onToggleAslMode={toggleAslMode}
             onClearAsl={clearAslTranscript}
             onSpaceAsl={addAslSpace}
-            aslLiveLetter={lastSegment?.letter}
-            aslConfidence={lastSegment?.confidence}
+            aslLiveLetter={latestAslSegment?.letter}
+            aslConfidence={latestAslSegment?.confidence}
           />
         </View>
       ) : (
@@ -520,6 +534,9 @@ const styles = StyleSheet.create({
   remoteVideo: {
     flex: 1,
   },
+  mirroredVideo: {
+    transform: [{ scaleX: -1 }],
+  },
   // Local preview
   localPreviewShell: {
     width: 120,
@@ -530,8 +547,15 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: "rgba(255,255,255,0.15)",
   },
+  localVideoMirrorWrap: {
+    flex: 1,
+    width: "100%",
+    height: "100%",
+  },
   localVideo: {
     flex: 1,
+    width: "100%",
+    height: "100%",
   },
   topRightOverlay: {
     position: "absolute",
@@ -631,9 +655,12 @@ const styles = StyleSheet.create({
     left: 14,
     right: 14,
     bottom: 118,
-    maxHeight: 280,
+    height: "50%",
+    zIndex: 20,
+    elevation: 20,
   },
   transcriptExpandedPanel: {
+    flex: 1,
     backgroundColor: "rgba(10, 24, 48, 0.97)",
     borderColor: "rgba(255,255,255,0.10)",
     borderRadius: 20,

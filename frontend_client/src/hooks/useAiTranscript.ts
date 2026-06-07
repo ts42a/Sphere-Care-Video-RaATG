@@ -32,20 +32,39 @@ function sortTranscript(items: LiveTranscriptItem[]) {
   });
 }
 
+const MAX_TRANSCRIPT_ITEMS = 80;
+
+function trimTranscriptItems(items: LiveTranscriptItem[]) {
+  const sorted = sortTranscript(items);
+  return sorted.length > MAX_TRANSCRIPT_ITEMS
+    ? sorted.slice(sorted.length - MAX_TRANSCRIPT_ITEMS)
+    : sorted;
+}
+
 function upsertTranscriptItem(items: LiveTranscriptItem[], next: LiveTranscriptItem) {
   const existing = next.segmentId
     ? items.find((item) => item.segmentId === next.segmentId)
     : items.find((item) => item.id === next.id);
 
   if (existing) {
-    return sortTranscript(
+    return trimTranscriptItems(
       items.map((item) =>
         item.segmentId === next.segmentId || item.id === next.id ? { ...item, ...next } : item
       )
     );
   }
 
-  return sortTranscript([...items, next]);
+  return trimTranscriptItems([...items, next]);
+}
+
+function mergeTranscriptItems(
+  current: LiveTranscriptItem[],
+  loaded: LiveTranscriptItem[]
+) {
+  return loaded.reduce(
+    (acc, item) => upsertTranscriptItem(acc, item),
+    current
+  );
 }
 
 let _rtId = -1;
@@ -82,7 +101,13 @@ export function useAiTranscript(callId?: number, enabled = true) {
       setError("");
       setLoading(true);
       const data = await callService.getTranscript(callId);
-      setItems(sortTranscript(data.map(normaliseLoadedItem)));
+      const loadedItems = sortTranscript(data.map(normaliseLoadedItem));
+
+      // Do not replace live captions with the persisted transcript response.
+      // During an active call the backend may not have saved the current
+      // call.caption segments yet, so replacing here makes the panel look like
+      // it resets every polling cycle. Merge instead.
+      setItems((prev) => mergeTranscriptItems(prev, loadedItems));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to load transcript");
     } finally {
@@ -127,13 +152,16 @@ export function useAiTranscript(callId?: number, enabled = true) {
       const p = msg?.payload ?? msg;
       if (!p || String(p.call_id) !== String(callId) || !p.text) return;
 
+      const isAsl = String(p.modality ?? "speech").toLowerCase() === "asl";
+      const text = String(p.text ?? "").trim();
+
       const item: LiveTranscriptItem = {
         id: nextRtId(),
         segmentId: p.segment_id,
-        source: "asr",
-        speaker: p.speaker_name ?? p.speaker ?? "Unknown speaker",
-        role: roleFromPayload(p.participant_role),
-        content: p.text,
+        source: isAsl ? "asl" : "asr",
+        speaker: p.speaker_name ?? p.speaker ?? (isAsl ? "ASL" : "Unknown speaker"),
+        role: isAsl ? "ai" : roleFromPayload(p.participant_role),
+        content: isAsl ? `[ASL] ${text}` : text,
         created_at: toIso(p.ts),
         isFinal: p.is_final ?? true,
         confidence: p.confidence,
@@ -153,19 +181,23 @@ export function useAiTranscript(callId?: number, enabled = true) {
       const p = msg?.payload ?? msg;
       if (!p || String(p.call_id) !== String(callId) || !p.letter) return;
 
+      const value = String(p.word || p.letter || "").trim();
+      if (!value) return;
+
       const item: LiveTranscriptItem = {
         id: nextRtId(),
         segmentId: p.segment_id,
         source: "asl",
-        speaker: p.speaker ?? "ASL",
+        speaker: p.speaker_name ?? p.speaker ?? "ASL",
         role: "ai",
-        content: p.word ? `[ASL] ${p.word}` : `[ASL] ${p.letter}`,
+        content: `[ASL] ${value}`,
         created_at: toIso(p.ts),
         isFinal: true,
         confidence: p.confidence,
       };
 
       setItems((prev) => upsertTranscriptItem(prev, item));
+      console.log("[mobile transcript] call.asl.result received", msg);
     });
 
     return unsubscribe;

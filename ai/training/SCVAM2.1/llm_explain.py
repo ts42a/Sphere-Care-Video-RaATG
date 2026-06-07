@@ -73,7 +73,11 @@ def _event_phrase(ev: dict[str, Any]) -> str:
 
     if et == "sharp_object_in_hand":
         if grade == "confirmed":
+            if label_raw in {"knife", "scissors", "fork"}:
+                return f"{label_raw} in hand"
             return "sharp object in hand"
+        if label_raw in {"knife", "scissors", "fork"}:
+            return f"possible {label_raw} in hand"
         return "possible sharp object in hand"
     if et == "obj_in_hand":
         if grade == "possible":
@@ -91,6 +95,11 @@ def _event_phrase(ev: dict[str, Any]) -> str:
 
 # Drop very low-signal channels from prose (kept in raw json).
 _LOW_SIGNAL_TYPES: set[str] = {"hand_visible"}
+
+# Mid-priority: must appear in the explainer even when another event leads the heading.
+_MID_PRIORITY_TYPES: set[str] = {
+    "sharp_object_in_hand",
+}
 
 # Event types that we treat as "concerning" in the high-level lead sentence.
 _CONCERN_TYPES: set[str] = {
@@ -300,10 +309,28 @@ def _is_collapse_pattern(timeline: list[dict[str, Any]]) -> bool:
 
 def _lead_event(events: list[dict[str, Any]]) -> dict[str, Any] | None:
     """Pick the single most concerning event after applying _LEAD_PRIORITY
-    on top of severity. Used to synthesise a one-line heading."""
+    on top of severity. Used to synthesise a one-line heading.
+
+    Events tagged ``priority=mid`` are excluded from the heading when any
+    other concern-type event exists (they still appear in the mid-priority
+    explainer section).
+    """
+    pool = list(events or [])
+    has_non_mid = any(
+        (ev.get("priority") or "").lower() != "mid"
+        and str(ev.get("event_type") or "") in _CONCERN_TYPES
+        for ev in pool
+    )
+    if has_non_mid:
+        pool = [
+            ev
+            for ev in pool
+            if (ev.get("priority") or "").lower() != "mid"
+        ]
+
     best: dict[str, Any] | None = None
     best_score = -1.0
-    for ev in events or []:
+    for ev in pool:
         et = str(ev.get("event_type") or "")
         if et in _LOW_SIGNAL_TYPES:
             continue
@@ -394,6 +421,49 @@ def _drop_conflicting(events_sorted: list[dict[str, Any]]) -> list[dict[str, Any
     return [ev for ev in events_sorted if str(ev.get("event_type") or "") not in drop_keys]
 
 
+def _format_event_bullet(ev: dict[str, Any], *, show_severity: bool) -> str | None:
+    """One bullet for an event; None if the event should be skipped."""
+    et = str(ev.get("event_type") or "")
+    if et in _LOW_SIGNAL_TYPES:
+        return None
+    try:
+        sev = float(ev.get("severity") or 0.0)
+    except Exception:
+        sev = 0.0
+    is_mid = (
+        et in _MID_PRIORITY_TYPES
+        or (ev.get("priority") or "").lower() == "mid"
+    )
+    is_possible_object = (
+        et in {"obj_in_hand", "sharp_object_in_hand"}
+        and (ev.get("confidence_grade") or "").lower() == "possible"
+    )
+    if (
+        sev < 0.4
+        and et not in _CONCERN_TYPES
+        and not is_possible_object
+        and not is_mid
+    ):
+        return None
+    label = _event_phrase(ev)
+    rng = _fmt_range(ev.get("start_ts_sec"), ev.get("end_ts_sec"))
+    try:
+        n_det = int(ev.get("detection_count") or 0)
+    except Exception:
+        n_det = 0
+    if n_det > 1:
+        times = ev.get("detection_times_sec") or []
+        time_bits = ", ".join(_fmt_ts(t) for t in times[:6])
+        label = f"{label} ({n_det} detections: {time_bits})"
+    if show_severity:
+        grade = ev.get("confidence_grade")
+        grade_tag = f" [{grade}]" if grade else ""
+        pri = ev.get("priority")
+        pri_tag = f" priority={pri}" if pri else ""
+        return f"- {label}, {rng} (severity {sev:.2f}){grade_tag}{pri_tag}"
+    return f"- {label}, {rng}"
+
+
 def _human_event_lines(
     events_block: dict[str, Any] | None,
     *,
@@ -417,29 +487,9 @@ def _human_event_lines(
 
     lines: list[str] = []
     for ev in evs_sorted:
-        et = str(ev.get("event_type") or "")
-        if et in _LOW_SIGNAL_TYPES:
-            continue
-        try:
-            sev = float(ev.get("severity") or 0.0)
-        except Exception:
-            sev = 0.0
-        # Held-object 'possible' hits often have low severity; surface them
-        # anyway so the LLM can mention them.
-        is_possible_object = (
-            et in {"obj_in_hand", "sharp_object_in_hand"}
-            and (ev.get("confidence_grade") or "").lower() == "possible"
-        )
-        if sev < 0.4 and et not in _CONCERN_TYPES and not is_possible_object:
-            continue
-        label = _event_phrase(ev)
-        rng = _fmt_range(ev.get("start_ts_sec"), ev.get("end_ts_sec"))
-        if show_severity:
-            grade = ev.get("confidence_grade")
-            grade_tag = f" [{grade}]" if grade else ""
-            lines.append(f"- {label}, {rng} (severity {sev:.2f}){grade_tag}")
-        else:
-            lines.append(f"- {label}, {rng}")
+        bullet = _format_event_bullet(ev, show_severity=show_severity)
+        if bullet:
+            lines.append(bullet)
 
     fall_times = _fall_evidence_times(evs)
     if fall_times and not any("possible fall" in l for l in lines):
@@ -510,6 +560,26 @@ def _compact_context(
             "verification often clears false positives):"
         )
         llm_lines.extend(sharp_audit)
+
+    mid_priority = [
+        ev
+        for ev in (events or {}).get("events") or []
+        if str(ev.get("event_type") or "") in _MID_PRIORITY_TYPES
+        or (ev.get("priority") or "").lower() == "mid"
+    ]
+    if mid_priority:
+        llm_lines.append(
+            "mid priority (MUST mention in explainer even if heading is about "
+            "something else; keep confirmed wording when bullets omit 'possible'):"
+        )
+        for ev in sorted(
+            mid_priority,
+            key=lambda e: float(e.get("severity") or 0.0),
+            reverse=True,
+        ):
+            bullet = _format_event_bullet(ev, show_severity=False)
+            if bullet:
+                llm_lines.append(bullet)
 
     if posture_lines:
         llm_lines.append("posture timeline (oldest first):")
@@ -768,11 +838,20 @@ def _fallback_body(
             joined = ", then ".join(timeline_parts)
             sentences.append(f"The person was {joined}.")
 
+    knife_lines = [
+        l.lstrip("- ").rstrip(".")
+        for l in llm_events
+        if "knife" in l.lower() or "sharp object" in l.lower()
+    ]
     other_events = [
         l.lstrip("- ").rstrip(".")
         for l in llm_events
-        if "possible fall" not in l.lower()
+        if "possible fall" not in l.lower() and l not in knife_lines
     ]
+    if knife_lines:
+        sentences.append(
+            f"Verified analysis flagged {knife_lines[0]} during this clip."
+        )
     if other_events:
         ev_phrase = ", and ".join(other_events[:2])
         sentences.append(
@@ -833,6 +912,12 @@ def explain(run_dir: Path) -> int:
         "posture', 'unknown', or 'standing still'.\n"
         "- Mention each timeline segment with its approximate time, e.g. "
         "'standing around 1s, then possibly walking from 2s to 5s'.\n\n"
+        "If the structured context includes a 'mid priority' section, you MUST "
+        "include at least one sentence in the explainer about those items "
+        "(e.g. knife in hand repeated at the listed times). Use the exact "
+        "wording from the bullets (confirmed vs possible). If multiple "
+        "detections are listed, say the item was seen more than once with "
+        "the approximate times.\n\n"
         "If the structured context includes a 'held-object audit' section, "
         "you MUST include one sentence in the explainer stating that an "
         "earlier automated pass flagged a possible knife, scissors, or fork "

@@ -150,7 +150,7 @@
       var data = await res.json();
 
       if (!data.length) {
-        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:24px;color:var(--text3);">No flags recorded yet.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--text3);">No flags recorded yet.</td></tr>';
         return;
       }
 
@@ -163,10 +163,11 @@
           + '<td>' + esc(f.event_type) + '</td>'
           + '<td><span class="' + sevCls + '">' + esc(f.severity) + '</span></td>'
           + '<td><span class="' + stCls + '">' + esc(f.status) + '</span></td>'
+          + '<td><a href="/pages/flags.html?flag=' + encodeURIComponent(f.id) + '" style="font-size:12px;font-weight:700;color:var(--accent);text-decoration:none;">Review</a></td>'
           + '</tr>';
       }).join('');
     } catch(e) {
-      tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:24px;color:var(--text3);">Could not load flags.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--text3);">Could not load flags.</td></tr>';
     }
   }
 

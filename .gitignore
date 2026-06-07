@@ -2,12 +2,22 @@ docs/Untitled-1.uxf
 
 # Python
 __pycache__/
+**/__pycache__/
 *.py[cod]
 *.pyo
 *.pyd
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+
+# ML / media artifacts (download or generate locally)
+*.mp4
+*.pt
+*.pth
+*.task
+ai/**/output/
+ai/models/**/frames/
+ai/models/**/detections/*.png
 
 # Virtual environments
 .venv/
@@ -20,6 +30,7 @@ env/
 !.env.example
 backend/.env
 frontend_client/.env
+docker/.env
 
 # Node
 node_modules/

@@ -179,8 +179,25 @@ async def notify_alert_created(alert, admin_id: int):
     })
 
 
-async def notify_new_message(message, admin_id: int, deliveries: Optional[dict[str, dict]] = None):
+async def notify_new_message(
+    message,
+    admin_id: int,
+    deliveries: Optional[dict[str, dict]] = None,
+    db: Optional[Session] = None,
+):
     if deliveries:
+        if db is not None:
+            from backend.services.message_reliability import enqueue_message_deliveries
+
+            enqueue_message_deliveries(
+                db,
+                message_id=int(message.id),
+                conversation_id=int(message.conversation_id),
+                admin_id=int(admin_id),
+                deliveries=deliveries,
+            )
+            db.commit()
+            return
         await ws_manager.broadcast_many(deliveries)
         return
 

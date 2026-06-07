@@ -180,6 +180,57 @@ def _classify(
     return state, reasons, info
 
 
+def _apply_fall_precursor_keep(
+    decisions: list[dict[str, Any]],
+    *,
+    lookback_sec: float,
+    forward_sec: float,
+) -> int:
+    """When Step-1 loses ``person`` (common during falls), force-keep recent
+    person anchors and a short forward window so pose_detection still runs."""
+    n_added = 0
+    for idx in range(1, len(decisions)):
+        prev_labels = {str(x).lower() for x in (decisions[idx - 1].get("labels") or [])}
+        cur_labels = {str(x).lower() for x in (decisions[idx].get("labels") or [])}
+        if "person" not in prev_labels or "person" in cur_labels:
+            continue
+        loss_ts = float(decisions[idx]["ts_sec"])
+        cutoff = loss_ts - lookback_sec
+        for j in range(idx):
+            dj = decisions[j]
+            if "person" not in {str(x).lower() for x in (dj.get("labels") or [])}:
+                continue
+            if float(dj["ts_sec"]) < cutoff:
+                continue
+            if not dj["kept"]:
+                dj["kept"] = True
+                dj["reasons"].append(f"fall_precursor_lookback={lookback_sec:.1f}s")
+                n_added += 1
+        for j in range(idx, len(decisions)):
+            dj = decisions[j]
+            if float(dj["ts_sec"]) - loss_ts > forward_sec:
+                break
+            if not dj["kept"]:
+                dj["kept"] = True
+                dj["reasons"].append(f"fall_precursor_forward={forward_sec:.1f}s")
+                n_added += 1
+    return n_added
+
+
+def _rebuild_active_list(decisions: list[dict[str, Any]]) -> list[str]:
+    active_list: list[str] = []
+    seen: set[str] = set()
+    for d in decisions:
+        if not d.get("kept"):
+            continue
+        name = str(d.get("sample_frame") or "")
+        if not name or name in seen:
+            continue
+        seen.add(name)
+        active_list.append(name)
+    return active_list
+
+
 # =============================================================================
 #  main
 # =============================================================================
@@ -190,6 +241,8 @@ def reduce_run(
     tracked_classes: list[str],
     motion_threshold: float,
     keepalive_sec: float,
+    fall_lookback_sec: float = 3.0,
+    fall_forward_sec: float = 2.0,
     out_dir_name: str = "reduced",
 ) -> int:
     step1 = _load_json(run_dir / "detections" / "detections.json")
@@ -386,15 +439,12 @@ def reduce_run(
         _flush_idle_end(idle_pending_end_idx)
         _record_interval(idle_run_start_idx, idle_pending_end_idx)
 
-    # Dedupe active_list while preserving order (idle_start/end of a 1-frame
-    # run can otherwise append the same sample twice).
-    _seen: set[str] = set()
-    active: list[str] = []
-    for name in active_list:
-        if name in _seen:
-            continue
-        _seen.add(name)
-        active.append(name)
+    n_fall_precursor = _apply_fall_precursor_keep(
+        decisions,
+        lookback_sec=fall_lookback_sec,
+        forward_sec=fall_forward_sec,
+    )
+    active = _rebuild_active_list(decisions)
 
     n_kept = sum(1 for d in decisions if d["kept"])
     n_dropped = n_total - n_kept
@@ -414,6 +464,9 @@ def reduce_run(
         "tracked_classes": sorted(tracked),
         "motion_threshold": motion_threshold,
         "keepalive_sec": keepalive_sec,
+        "fall_lookback_sec": fall_lookback_sec,
+        "fall_forward_sec": fall_forward_sec,
+        "n_fall_precursor_added": n_fall_precursor,
         "n_total": n_total,
         "n_kept": n_kept,
         "n_dropped": n_dropped,
@@ -470,6 +523,11 @@ def reduce_run(
             print(f"     ...and {len(idle_intervals) - 3} more")
     if by_reason:
         print(f"  kept-by-reason: {by_reason}")
+    if n_fall_precursor:
+        print(
+            f"  fall-precursor: +{n_fall_precursor} frame(s) around person loss "
+            f"(lookback={fall_lookback_sec}s forward={fall_forward_sec}s)"
+        )
     print(f"Wrote: {out_dir / 'active_frames.json'}")
     print(f"Wrote: {out_dir / 'reduction_summary.json'}")
     return 0
@@ -510,6 +568,16 @@ def main() -> int:
         "--out-dir", default="reduced",
         help="Output subfolder name inside the run dir (default 'reduced').",
     )
+    parser.add_argument(
+        "--fall-lookback-sec", type=float, default=3.0,
+        help="When person disappears, also keep person-labeled anchors this many "
+        "seconds before the loss (default 3.0).",
+    )
+    parser.add_argument(
+        "--fall-forward-sec", type=float, default=2.0,
+        help="After person disappears, keep anchors this many seconds forward "
+        "for pose on the ground (default 2.0).",
+    )
     args = parser.parse_args()
 
     if args.run:
@@ -530,6 +598,8 @@ def main() -> int:
         tracked_classes=_parse_classes(args.tracked_classes),
         motion_threshold=max(0.0, args.motion_threshold),
         keepalive_sec=max(0.05, args.keepalive_sec),
+        fall_lookback_sec=max(0.0, args.fall_lookback_sec),
+        fall_forward_sec=max(0.0, args.fall_forward_sec),
         out_dir_name=args.out_dir,
     )
 

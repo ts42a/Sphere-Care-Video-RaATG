@@ -31,17 +31,71 @@ setting `is_final=false`, then send one final update with `is_final=true`.
 from __future__ import annotations
 
 import logging
+import re
 import time
 import uuid
+from difflib import SequenceMatcher
 from typing import Optional
 
 from backend.ws.ws_manager import ws_manager
 
 logger = logging.getLogger(__name__)
 
+# In-memory caption accumulator keyed by call_id (str).
+# Populated by broadcast_caption; consumed once by get_and_clear_transcript.
+_call_captions: dict[str, list[str]] = {}
+# Recent normalized captions keyed by call_id. Used to suppress overlap duplicates.
+_recent_captions: dict[str, list[tuple[str, str]]] = {}
+
 
 def _sid() -> str:
     return str(uuid.uuid4())
+
+
+def _clean_caption_text(text: str) -> str:
+    text = " ".join(str(text or "").replace("\n", " ").split())
+    text = re.sub(r"\[\s*\d+\s*\]", "", text).strip()
+    return text
+
+
+def _normalise_caption(text: str) -> str:
+    text = _clean_caption_text(text).lower()
+    text = re.sub(r"[^a-z0-9\s]", "", text)
+    return " ".join(text.split())
+
+
+def _safe_speaker_label(speaker_name: Optional[str], speaker: str) -> str:
+    label = str(speaker_name or speaker or "").strip()
+    # LiveKit identities in this project are often numeric IDs. Do not store
+    # them in the transcript used for AI summary because they pollute the model.
+    if not label or re.fullmatch(r"\d+", label):
+        return ""
+    if label.lower().startswith(("usr_", "client_", "staff_", "asr_agent_")):
+        return ""
+    return label
+
+
+def _is_duplicate_caption(call_id: str, speaker_key: str, text: str) -> bool:
+    norm = _normalise_caption(text)
+    if not norm:
+        return True
+    recent = _recent_captions.setdefault(str(call_id), [])
+    for prev_speaker, prev_norm in reversed(recent[-6:]):
+        if prev_speaker != speaker_key or not prev_norm:
+            continue
+        if norm == prev_norm:
+            return True
+        # Overlap chunks often repeat almost the same phrase.
+        score = SequenceMatcher(None, norm, prev_norm).ratio()
+        if score >= 0.92:
+            return True
+        shorter, longer = sorted((norm, prev_norm), key=len)
+        if len(shorter) >= 12 and shorter in longer and len(shorter) / max(len(longer), 1) >= 0.65:
+            return True
+    recent.append((speaker_key, norm))
+    if len(recent) > 20:
+        del recent[:-20]
+    return False
 
 
 async def broadcast_caption(
@@ -57,10 +111,30 @@ async def broadcast_caption(
     speaker_id: Optional[str] = None,
     speaker_name: Optional[str] = None,
     participant_role: Optional[str] = None,
+    modality: str = "speech",
 ) -> None:
-    """Broadcast one ASR transcript segment to all participants in the call."""
+    """Broadcast one ASR/ASL transcript segment to all participants in the call.
+
+    ``modality`` distinguishes the caption source on the frontend:
+      - ``"speech"``  — Whisper ASR (default, backwards-compatible)
+      - ``"asl"``     — ASL detection via livekit_asl_service
+    """
+    text = _clean_caption_text(text)
     if not text:
         return
+
+    # Suppress duplicate captions created by the ASR overlap window.
+    key = str(call_id)
+    speaker_key = str(speaker_id or speaker or "unknown")
+    if _is_duplicate_caption(key, speaker_key, text):
+        logger.debug("[transcript] duplicate caption skipped call=%s speaker=%s text=%s", call_id, speaker_key, text[:60])
+        return
+
+    # Accumulate for post-call AI summary. Avoid raw numeric labels like [5].
+    if key not in _call_captions:
+        _call_captions[key] = []
+    label = _safe_speaker_label(speaker_name, speaker)
+    _call_captions[key].append(f"[{label}] {text}".strip() if label else text)
 
     payload = {
         "type": "call.caption",
@@ -76,6 +150,7 @@ async def broadcast_caption(
             "confidence": round(confidence, 3),
             "ts": ts or time.time(),
             "is_final": is_final,
+            "modality": modality,
         },
     }
 
@@ -118,3 +193,8 @@ async def broadcast_asl_result(
 
     await ws_manager.broadcast_call(str(call_id), payload)
     logger.debug("[transcript] call.asl.result → %s: %s", call_id, letter)
+
+
+def get_and_clear_transcript(call_id: "str | int") -> str:
+    """Return accumulated caption text for a call and remove it from memory."""
+    return "\n".join(_call_captions.pop(str(call_id), []))

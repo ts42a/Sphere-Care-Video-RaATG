@@ -100,5 +100,27 @@
         el.style.display = role === 'admin' ? '' : 'none';
       });
     } catch (_) {}
+
+    // Global alert notifier — sound + center modal when a new alert arrives
+    (function loadAlertNotifier() {
+      if (window.location.pathname.includes('register-login')) return;
+      const token = sessionStorage.getItem('access_token') || sessionStorage.getItem('spherecare_token');
+      if (!token) return;
+
+      if (!document.querySelector('link[data-alert-notifier-css]')) {
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = '/style/css/alert_notifier.css';
+        link.setAttribute('data-alert-notifier-css', '1');
+        document.head.appendChild(link);
+      }
+
+      if (document.querySelector('script[data-alert-notifier-js]')) return;
+      const script = document.createElement('script');
+      script.src = '/style/js/alert_notifier.js';
+      script.defer = true;
+      script.setAttribute('data-alert-notifier-js', '1');
+      document.body.appendChild(script);
+    })();
   });
 })();

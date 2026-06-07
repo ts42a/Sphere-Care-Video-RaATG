@@ -697,7 +697,7 @@ def change_password(
 
     # 7. Save new password + clear OTP
     try:
-        user.password_hash = hash_password(payload.new_password)
+        user.password_hash = get_password_hash(payload.new_password)
         db.commit()
         _otp_store.pop(user.id, None)
     except Exception as e:

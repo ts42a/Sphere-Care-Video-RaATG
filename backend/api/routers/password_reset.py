@@ -18,7 +18,7 @@ from pydantic import BaseModel, EmailStr
 from backend.api.deps import get_db
 from backend import models
 from backend.core.config import SECRET_KEY
-import bcrypt
+from backend.core.security import get_password_hash
 
 router = APIRouter(tags=["Password Reset"])
 
@@ -126,9 +126,7 @@ def reset_password(req: ResetPasswordRequest, db: Session = Depends(get_db)):
     if not user:
         raise HTTPException(status_code=404, detail="User not found.")
 
-    user.password_hash = bcrypt.hashpw(
-        req.new_password.encode(), bcrypt.gensalt()
-    ).decode()
+    user.password_hash = get_password_hash(req.new_password)
     db.commit()
 
     del _reset_tokens[req.token]

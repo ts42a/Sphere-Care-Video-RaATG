@@ -8,6 +8,7 @@ import { activeCallService } from "../../services/activeCallService";
 import { miniCallService } from "../../services/miniCallService";
 import { incomingCallService } from "../../services/call/incomingCallService";
 import { rtcEngine } from "../../services/rtc/rtcEngineInstance";
+import { callSummaryState } from "../../services/callSummaryState";
 import type { CallMode, CallSession } from "../../types/call";
 
 function resolvePayloadCallId(payload: any) {
@@ -108,7 +109,11 @@ export default function CallLifecycleBridge() {
         currentPath.startsWith("/call/video");
 
       if (onCallScreen && !cancelled) {
-        router.replace("/call");
+        setTimeout(() => {
+          if (!cancelled && !callSummaryState.getSummaryVisible()) {
+            router.replace("/call");
+          }
+        }, 350);
       }
     }
 

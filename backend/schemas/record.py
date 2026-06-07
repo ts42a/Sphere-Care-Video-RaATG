@@ -100,6 +100,25 @@ class ScvamScriptOut(BaseModel):
     video_name: Optional[str] = None
 
 
+class ScvamStagingItemOut(BaseModel):
+    folder_name: str
+    video_name: str
+    label: str
+    size_bytes: int
+    duration_sec: Optional[int] = None
+    scvam_status: str = "none"
+    job_status: Optional[str] = None
+    job_id: Optional[int] = None
+    source: str = "scvam_staging"
+
+
+class ScvamStagingAnalyzeOut(BaseModel):
+    folder_name: str
+    scvam_status: str
+    job_id: Optional[int] = None
+    job_status: Optional[str] = None
+
+
 class AiInsightCreate(BaseModel):
     resident_name: str
     resident_id: Optional[int] = None

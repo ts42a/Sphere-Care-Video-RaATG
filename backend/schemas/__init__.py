@@ -14,3 +14,4 @@ from .analytics import *
 from .center_membership import *
 from .vault import *
 from .ai_explainer import *
+from .care_task import *

@@ -14,7 +14,6 @@ import { callService } from "../../../src/services/callService";
 import { miniCallService } from "../../../src/services/miniCallService";
 import { useCallSession } from "../../../src/hooks/useCallSession";
 import { useAiTranscript } from "../../../src/hooks/useAiTranscript";
-import { useAslBroadcast } from "../../../src/hooks/useAslBroadcast";
 import { useRtcEngine } from "../../../src/hooks/useRtcEngine";
 import { rtcEngine } from "../../../src/services/rtc/rtcEngineInstance";
 import { callSignalingService } from "../../../src/services/call/callSignalingService";
@@ -113,9 +112,6 @@ export default function AudioCallScreen() {
     Boolean(session?.transcribing)
   );
 
-  const { sendFrame: sendAslFrame } = useAslBroadcast(session?.callId, {
-    enabled: Boolean(session?.callState === "active" && transcribing),
-  });
 
   const rtcOptions =
     session && contact && session.callState === "active"
@@ -159,12 +155,17 @@ export default function AudioCallScreen() {
 
   useEffect(() => {
     if (!session || !contact || session.mode !== "video" || switchingToVideo) return;
+
     setSwitchingToVideo(true);
+
     router.replace({
       pathname: "/call/video/[contactId]",
-      params: { contactId: contact.id, callId: String(session.callId) },
+      params: {
+        contactId: contact.id,
+        callId: String(session.callId),
+      },
     });
-  }, [session?.mode, contact?.id, session?.callId, switchingToVideo]);
+  }, [session, contact, switchingToVideo, router]);
 
   // On call end: show summary, then navigate away when user closes it
   useEffect(() => {
@@ -278,10 +279,10 @@ export default function AudioCallScreen() {
       onPress: async () => {
         setFinalTranscriptItems([...transcriptItems]);
         setFinalDuration(formattedDuration);
-        await endCurrentCall();
-        await rtc.leaveCall();
         callSummaryState.setSummaryVisible(true);
         setShowSummary(true);
+        await endCurrentCall();
+        await rtc.leaveCall();
       },
     },
     {

@@ -247,6 +247,7 @@
 
         <div class="playback-layout">
           <div class="playback-left">
+            <div class="playback-pick-hint" id="playback-pick-hint">Choose a video from the dropdown to play it here.</div>
             <div class="playback-watch" id="playback-watch" style="display:none;">
               <div class="pw-video-wrap">
                 <video id="pw-video" class="pw-video" playsinline preload="metadata"></video>
@@ -290,11 +291,19 @@
           <div class="playback-right">
             <div class="playback-right-head">
               <div class="playback-right-title">SCVAM script (minute by minute)</div>
-              <select class="playback-script-select" id="playback-script-select" title="Recording"></select>
+              <button type="button" class="pw-btn playback-ai-btn" id="playback-ai-btn" title="Run SCVAM on selected staging file">Perform AI</button>
               <button type="button" class="pw-btn playback-delete-btn" id="playback-delete-btn" title="Delete selected recording">Delete</button>
             </div>
+            <div class="playback-script-list-wrap">
+              <label class="playback-script-list-head" for="playback-script-select">Videos · scvam_input/jobs</label>
+              <div class="playback-script-select-wrap">
+                <select class="playback-script-select fsel" id="playback-script-select" disabled>
+                  <option value="">Loading…</option>
+                </select>
+              </div>
+            </div>
             <div class="playback-script-panel" id="playback-script-panel">
-              <div class="playback-script-empty">Select a recording on the left, or choose one above, to view the AI script.</div>
+              <div class="playback-script-empty">Select a video from the dropdown to view the AI script.</div>
             </div>
           </div>
         </div>
@@ -603,6 +612,29 @@
         <button class="rc-btn rc-btn-primary" onclick="submitVaultUnlockModal()" id="vault-unlock-submit">
           Unlock Vault
         </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- DELETE STAGING VIDEO + SCVAM OUTPUT -->
+<div class="rc-modal-overlay" id="staging-delete-modal">
+  <div class="rc-modal">
+    <div class="rc-modal-head">
+      <div>
+        <h3 class="rc-modal-title">Clear SCVAM analysis</h3>
+        <div class="rc-modal-sub" id="staging-delete-sub">Remove AI output for this staging video.</div>
+      </div>
+      <button class="rc-modal-close" onclick="closeRcModal('staging-delete-modal')">✕</button>
+    </div>
+    <div class="rc-modal-body">
+      <div class="rc-warning">
+        <b>Warning:</b> this deletes all SCVAM output for this file. The video file stays in <b>scvam_input/jobs</b> and will show as <b>SCVAM unable</b> until you run Perform AI again.
+      </div>
+      <div class="rc-status" id="staging-delete-status"></div>
+      <div class="rc-actions">
+        <button class="rc-btn rc-btn-secondary" onclick="closeRcModal('staging-delete-modal')">Cancel</button>
+        <button class="rc-btn rc-btn-danger" id="staging-delete-submit" onclick="submitStagingDeleteModal()">Clear SCVAM</button>
       </div>
     </div>
   </div>
@@ -991,7 +1023,7 @@
 
 <script src="../style/js/script.js"></script>
 <script src="../style/js/recording_vault.js"></script>
-<script src="../style/js/recording.js"></script>
+<script src="../style/js/recording.js?v=20260604n"></script>
 <script src="/components/sidebar.js"></script>
 
 </body>

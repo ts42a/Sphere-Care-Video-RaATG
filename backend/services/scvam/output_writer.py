@@ -41,6 +41,8 @@ def write_scvam_output_folder(
         "video_name": video_name,
         "original_filename": job_meta.get("original_filename") or video_name,
         "vault_record_id": job_meta.get("vault_record_id"),
+        "staging_folder": job_meta.get("staging_folder"),
+        "staging_path": job_meta.get("staging_path"),
         "db_record_id": job_meta.get("db_record_id"),
         "duration_sec": round(duration_sec, 2) if duration_sec is not None else None,
         "duration_hhmmss": _fmt_duration(duration_sec),

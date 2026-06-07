@@ -106,55 +106,52 @@ def build_per_recipient_ws_events(
     return deliveries
 
 
-def enqueue_message_fanout(db: Session, admin_id: int, deliveries: dict[str, dict[str, Any]]) -> models.MessageOutbox:
-    row = models.MessageOutbox(
+def enqueue_message_deliveries(
+    db: Session,
+    *,
+    message_id: int,
+    conversation_id: int,
+    admin_id: int,
+    deliveries: dict[str, dict[str, Any]],
+) -> list[models.MessageOutbox]:
+    """Persist one outbox row per recipient actor for the background processor."""
+    rows: list[models.MessageOutbox] = []
+    for actor_key, payload in deliveries.items():
+        row = models.MessageOutbox(
+            message_id=message_id,
+            conversation_id=conversation_id,
+            admin_id=admin_id,
+            actor_key=actor_key,
+            payload=json.dumps(payload),
+        )
+        db.add(row)
+        rows.append(row)
+    return rows
+
+
+# Backwards-compatible alias
+def enqueue_message_fanout(
+    db: Session,
+    admin_id: int,
+    deliveries: dict[str, dict[str, Any]],
+    *,
+    message_id: int = 0,
+    conversation_id: int = 0,
+) -> list[models.MessageOutbox]:
+    return enqueue_message_deliveries(
+        db,
+        message_id=message_id,
+        conversation_id=conversation_id,
         admin_id=admin_id,
-        kind="new_message",
-        payload_json=json.dumps({"deliveries": deliveries}),
-        status="pending",
-        attempt_count=0,
+        deliveries=deliveries,
     )
-    db.add(row)
-    return row
 
 
 async def flush_pending_message_outbox(db: Session, *, limit: int = 50) -> int:
     """Process pending outbox rows; returns number of rows completed."""
-    rows = (
-        db.query(models.MessageOutbox)
-        .filter(models.MessageOutbox.status == "pending")
-        .order_by(models.MessageOutbox.id.asc())
-        .limit(limit)
-        .all()
-    )
-    processed = 0
-    now = datetime.now(timezone.utc)
-    for row in rows:
-        try:
-            data = json.loads(row.payload_json)
-            deliveries = data.get("deliveries") or {}
-            if deliveries:
-                await ws_manager.broadcast_many(deliveries)
-            row.status = "sent"
-            row.processed_at = now
-            row.last_error = None
-            processed += 1
-            logger.info(
-                "message_outbox_flushed",
-                extra={"outbox_id": row.id, "admin_id": row.admin_id, "kind": row.kind},
-            )
-        except Exception as exc:  # noqa: BLE001
-            row.attempt_count = int(row.attempt_count or 0) + 1
-            row.last_error = str(exc)[:2000]
-            logger.warning(
-                "message_outbox_failed",
-                extra={"outbox_id": row.id, "attempt": row.attempt_count, "error": row.last_error},
-            )
-            if row.attempt_count >= 8:
-                row.status = "failed"
-                row.processed_at = now
-    db.commit()
-    return processed
+    from backend.outbox.outbox_processor import process_outbox_once
+
+    return await process_outbox_once(db)
 
 
 def create_delivery_receipts_for_message(
@@ -177,7 +174,8 @@ def create_delivery_receipts_for_message(
             db.query(models.MessageDeliveryReceipt)
             .filter(
                 models.MessageDeliveryReceipt.message_id == message.id,
-                models.MessageDeliveryReceipt.participant_id == p.id,
+                models.MessageDeliveryReceipt.recipient_user_id == uid,
+                models.MessageDeliveryReceipt.participant_type == pt,
             )
             .first()
         )
@@ -186,7 +184,10 @@ def create_delivery_receipts_for_message(
         db.add(
             models.MessageDeliveryReceipt(
                 message_id=message.id,
-                participant_id=p.id,
+                conversation_id=message.conversation_id,
+                recipient_user_id=uid,
+                participant_type=pt,
+                display_name=p.display_name or "",
             )
         )
 
@@ -220,14 +221,6 @@ def apply_receipt_from_ws(
     if not conv:
         return False
 
-    participant = None
-    for p in conv.participants or []:
-        if (p.participant_type or "user") == actor_type and int(p.user_id or 0) == actor_id:
-            participant = p
-            break
-    if not participant:
-        return False
-
     msg = (
         db.query(models.Message)
         .filter(
@@ -243,14 +236,18 @@ def apply_receipt_from_ws(
         db.query(models.MessageDeliveryReceipt)
         .filter(
             models.MessageDeliveryReceipt.message_id == message_id,
-            models.MessageDeliveryReceipt.participant_id == participant.id,
+            models.MessageDeliveryReceipt.recipient_user_id == actor_id,
+            models.MessageDeliveryReceipt.participant_type == actor_type,
         )
         .first()
     )
     if not rec:
         rec = models.MessageDeliveryReceipt(
             message_id=message_id,
-            participant_id=participant.id,
+            conversation_id=conversation_id,
+            recipient_user_id=actor_id,
+            participant_type=actor_type,
+            display_name="",
         )
         db.add(rec)
 

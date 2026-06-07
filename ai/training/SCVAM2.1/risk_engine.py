@@ -300,6 +300,179 @@ def _interval_object_grade(
     return None, best_label, best_category
 
 
+def _collect_sharp_in_hand_hits(
+    frames: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Frames where zoom step-2 verified a sharp object in hand (knife, etc.).
+    Used when temporal hysteresis misses brief single-frame spikes."""
+    hits: list[dict[str, Any]] = []
+    for i, fr in enumerate(frames):
+        ms = fr.get("merged_signals") or {}
+        if not ms.get("obj_in_hand"):
+            continue
+        label = (
+            ms.get("obj_in_hand_label")
+            or ms.get("obj_in_hand_raw_label")
+            or ""
+        ).strip().lower()
+        cat = (ms.get("obj_in_hand_category") or "").strip().lower()
+        if label not in _DANGEROUS_LABELS and cat != "sharp_object":
+            continue
+        try:
+            conf = float(ms.get("obj_in_hand_max_conf") or 0.0)
+        except Exception:
+            conf = 0.0
+        hits.append(
+            {
+                "frame_index": i,
+                "sample_frame": fr.get("sample_frame"),
+                "sample_ts_sec": float(fr.get("sample_ts_sec") or 0.0),
+                "label": label or "sharp object",
+                "category": cat or "sharp_object",
+                "grade": (ms.get("obj_in_hand_max_conf_grade") or "confirmed").lower(),
+                "confidence": conf,
+            }
+        )
+    return hits
+
+
+def _synthesize_sharp_object_events(
+    hits: list[dict[str, Any]],
+    frames: list[dict[str, Any]],
+    tframes: list[dict[str, Any]],
+    *,
+    evidence_top_k: int,
+) -> list[dict[str, Any]]:
+    """Build one sharp_object_in_hand event from verified detections (may repeat)."""
+    if not hits:
+        return []
+
+    hits_sorted = sorted(hits, key=lambda h: h["sample_ts_sec"])
+    dominant_label = max(
+        {h["label"] for h in hits},
+        key=lambda lab: sum(1 for h in hits if h["label"] == lab),
+    )
+    grades = {h["grade"] for h in hits}
+    grade = "confirmed" if "confirmed" in grades else "possible"
+
+    s_idx = hits_sorted[0]["frame_index"]
+    e_idx = hits_sorted[-1]["frame_index"]
+    label_display = (
+        dominant_label
+        if dominant_label in _DANGEROUS_LABELS
+        else "sharp object"
+    )
+
+    reasons: list[str] = [
+        f"repeated_{label_display.replace(' ', '_')}_in_hand={len(hits)}",
+    ]
+    for h in hits_sorted:
+        reasons.append(
+            f"{label_display} in hand at {h['sample_ts_sec']:.1f}s "
+            f"conf={h['confidence']:.2f} grade={h['grade']}"
+        )
+
+    ranked = sorted(
+        hits_sorted,
+        key=lambda h: h["confidence"],
+        reverse=True,
+    )[:evidence_top_k]
+    ranked.sort(key=lambda h: h["sample_ts_sec"])
+
+    evidence: list[dict[str, Any]] = []
+    for h in ranked:
+        i = h["frame_index"]
+        fr = frames[i]
+        tf = tframes[i] if i < len(tframes) else {}
+        ms = fr.get("merged_signals") or {}
+        evidence.append(
+            {
+                "sample_frame": fr.get("sample_frame"),
+                "sample_ts_sec": h["sample_ts_sec"],
+                "event_prob": round(h["confidence"], 3),
+                "anomaly_score": round(
+                    float(tf.get("anomaly_score") or 0.0), 3
+                ),
+                "obj_in_hand_label_set": fr.get("obj_in_hand_label_set"),
+                "obj_in_hand_category_set": fr.get("obj_in_hand_category_set"),
+                "posture": ms.get("posture"),
+                "fall_score": ms.get("fall_score"),
+                "gait_instability_score": ms.get("gait_instability_score"),
+                "hands_visible": ms.get("hands_visible"),
+                "obj_in_hand_label": ms.get("obj_in_hand_label"),
+                "obj_in_hand_raw_label": ms.get("obj_in_hand_raw_label"),
+                "obj_in_hand_max_conf": ms.get("obj_in_hand_max_conf"),
+                "obj_in_hand_max_conf_grade": ms.get(
+                    "obj_in_hand_max_conf_grade"
+                ),
+            }
+        )
+
+    max_conf = max(h["confidence"] for h in hits)
+    window_anomaly = max(
+        float(tframes[h["frame_index"]].get("anomaly_score") or 0.0)
+        for h in hits
+        if h["frame_index"] < len(tframes)
+    )
+    severity = round(
+        max_conf * EVENT_SEVERITY_WEIGHT["sharp_object_in_hand"]
+        + 0.3 * window_anomaly,
+        3,
+    )
+    if len(hits) > 1:
+        severity = round(
+            min(1.5, severity * (1.0 + 0.12 * (len(hits) - 1))),
+            3,
+        )
+
+    return [
+        {
+            "event_type": "sharp_object_in_hand",
+            "priority": "mid",
+            "start_ts_sec": hits_sorted[0]["sample_ts_sec"],
+            "end_ts_sec": hits_sorted[-1]["sample_ts_sec"],
+            "duration_sec": round(
+                hits_sorted[-1]["sample_ts_sec"]
+                - hits_sorted[0]["sample_ts_sec"],
+                3,
+            ),
+            "frame_index_span": [int(s_idx), int(e_idx)],
+            "n_frames": int(e_idx - s_idx + 1),
+            "severity": severity,
+            "max_event_prob": round(max_conf, 3),
+            "max_anomaly": round(window_anomaly, 3),
+            "confidence_grade": grade,
+            "object_label": dominant_label,
+            "object_category": "sharp_object",
+            "detection_count": len(hits),
+            "detection_times_sec": [
+                h["sample_ts_sec"] for h in hits_sorted
+            ],
+            "reasons": reasons,
+            "evidence": evidence,
+        }
+    ]
+
+
+def _supplement_sharp_object_events(
+    events: list[dict[str, Any]],
+    frames: list[dict[str, Any]],
+    tframes: list[dict[str, Any]],
+    *,
+    evidence_top_k: int,
+) -> list[dict[str, Any]]:
+    """Add or replace sharp_object_in_hand events from merged detections."""
+    hits = _collect_sharp_in_hand_hits(frames)
+    if not hits:
+        return events
+
+    synth = _synthesize_sharp_object_events(
+        hits, frames, tframes, evidence_top_k=evidence_top_k
+    )
+    without = [e for e in events if e.get("event_type") != "sharp_object_in_hand"]
+    return without + synth
+
+
 def build_events(
     merged: dict[str, Any],
     temporal: dict[str, Any],
@@ -374,6 +547,12 @@ def build_events(
                 event_record["object_category"] = dom_category
             events.append(event_record)
 
+    events = _supplement_sharp_object_events(
+        events,
+        frames,
+        tframes,
+        evidence_top_k=evidence_top_k,
+    )
     events.sort(key=lambda x: (x["start_ts_sec"], -x["severity"]))
     return events
 

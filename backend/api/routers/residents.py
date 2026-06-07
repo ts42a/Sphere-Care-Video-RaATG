@@ -252,3 +252,79 @@ def create_residents_bulk(
     except Exception as exc:
         db.rollback()
         raise HTTPException(status_code=500, detail={"msg": "Failed to create residents", "error": str(exc)})
+
+
+# ── AI Summary ────────────────────────────────────────────────────────────────
+
+@router.post("/{resident_id}/ai-summary")
+async def generate_resident_ai_summary(
+    resident_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(_get_current_user),
+):
+    """Generate and persist an AI summary for a resident using their recent records and alerts."""
+    import asyncio
+    from backend.services.ai.llm_client import summarize_resident_context
+
+    org_id = _organization_id_for_residents(db, current_user)
+    resident = (
+        db.query(models.Resident)
+        .filter(
+            models.Resident.id == resident_id,
+            models.Resident.admin_id == org_id,
+            models.Resident.is_deleted == False,  # noqa: E712
+        )
+        .first()
+    )
+    if not resident:
+        raise HTTPException(status_code=404, detail={"msg": "Resident not found"})
+
+    # Gather context
+    recent_records = (
+        db.query(models.Record)
+        .filter(models.Record.resident_id == resident_id, models.Record.is_deleted == False)  # noqa: E712
+        .order_by(models.Record.created_at.desc())
+        .limit(10)
+        .all()
+    )
+    recent_alerts = (
+        db.query(models.Alert)
+        .filter(models.Alert.resident_id == resident_id)
+        .order_by(models.Alert.created_at.desc())
+        .limit(10)
+        .all()
+    )
+
+    profile = {
+        "status": resident.status,
+        "care_level": resident.care_level,
+        "primary_diagnosis": resident.primary_diagnosis,
+        "mobility_status": resident.mobility_status,
+        "age": resident.age,
+        "room": resident.room,
+    }
+    records_data = [
+        {"category": r.category, "notes": r.notes, "date": str(r.created_at)[:10]}
+        for r in recent_records
+    ]
+    alerts_data = [
+        {"type": getattr(a, "alert_type", ""), "message": getattr(a, "message", ""), "date": str(a.created_at)[:10]}
+        for a in recent_alerts
+    ]
+
+    summary = await asyncio.get_event_loop().run_in_executor(
+        None,
+        summarize_resident_context,
+        resident.full_name,
+        profile,
+        records_data,
+        alerts_data,
+    )
+
+    if not summary:
+        raise HTTPException(status_code=503, detail={"msg": "AI provider not configured or unavailable"})
+
+    resident.ai_summary = summary
+    db.commit()
+
+    return {"resident_id": resident_id, "ai_summary": summary}

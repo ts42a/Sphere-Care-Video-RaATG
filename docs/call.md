@@ -185,3 +185,82 @@ Human audio/video remains on LiveKit. ASL and LLM features are side channels and
 3. Run inference and emit compact `call.asl.*` events rather than raw tensors.
 4. Produce `call.caption` for shared captions and, if allowed, `call.llm.hint` for staff/admin only.
 5. Stop workers, flush buffers, and apply retention rules on call teardown.
+
+## 14. Current Usage (Runnable)
+
+### Prerequisites
+
+Before calling works, a resident must have a linked mobile account (see [User Guide](user-guide.md#linking-a-resident-for-calls)).
+
+### Making a call
+
+1. Open **Messages** on the staff web app.
+2. Open a **Resident Care** conversation for a resident with a linked mobile account.
+3. Click audio or video in the top right.
+4. Resident receives an incoming call on their mobile app.
+5. Resident accepts → both sides connect via LiveKit.
+
+### Call states
+
+```
+ringing → active → ended
+       → declined / canceled / timeout (60s) / failed
+```
+
+### API
+
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/api/v1/calls` | Start a call |
+| POST | `/api/v1/calls/{id}/accept` | Accept (callee only) |
+| POST | `/api/v1/calls/{id}/decline` | Decline (callee only) |
+| POST | `/api/v1/calls/{id}/cancel` | Cancel (caller only, ringing) |
+| POST | `/api/v1/calls/{id}/end` | End (either party, active) |
+| GET | `/api/v1/calls/{id}` | Get call status |
+| GET | `/api/v1/calls/{id}/events` | Audit log |
+
+### WebSocket events
+
+| Event | Description |
+|-------|-------------|
+| `call.invite` | Sent to callee when a call is started |
+| `call.accepted` | Sent to caller when callee accepts |
+| `call.declined` | Sent to caller when callee declines |
+| `call.canceled` | Sent to callee when caller cancels |
+| `call.timeout` | Sent to both when invite expires (60s) |
+| `call.ended` | Sent to both when call ends |
+
+## 15. Live Transcription (ASR)
+
+Call captions flow: both clients join LiveKit → backend ASR worker joins the room → Whisper transcribes audio → `call.caption` events broadcast over WebSocket.
+
+### Requirements
+
+- Python **3.11** (Whisper/torch may fail on 3.13)
+- **ffmpeg** — `winget install Gyan.FFmpeg`
+- Whisper model — set `WHISPER_MODEL_SIZE=tiny` for fast local demos
+
+```powershell
+py -3.11 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+ffmpeg -version
+python -c "import whisper; print('whisper ok')"
+```
+
+### Start with ASR
+
+```powershell
+$env:WHISPER_MODEL_SIZE = "tiny"
+python -m uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+Mobile app must use an **Expo dev build** (not Expo Go). Lock LiveKit package versions in `frontend_client/package.json`.
+
+### Common issues
+
+| Error | Fix |
+|-------|-----|
+| `WinError 2` during ASR | `ffmpeg` not on PATH in the backend terminal |
+| No `call.caption` events | Check backend ASR logs; confirm dev build not Expo Go |
+| Stuck call state | End stuck calls in DB: `UPDATE calls SET state='ended' WHERE state IN ('ringing','active')` |

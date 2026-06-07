@@ -18,6 +18,7 @@ from pydantic import BaseModel
 
 from backend.api.deps import get_db
 from backend.api.rbac import resolve_staff_admin_scope_id
+from backend.core import config as app_config
 from backend.services.ai.vision.recorder import recording_manager
 
 router = APIRouter(prefix="/recording", tags=["Recording"])
@@ -45,6 +46,11 @@ class SessionSummary(BaseModel):
     merged_path: Optional[str]
 
 
+class RecordingConsoleConfig(BaseModel):
+    segment_seconds: int
+    scvam_min_duration_sec: int
+
+
 def _summarise(s) -> SessionSummary:
     return SessionSummary(
         session_id=s.session_id,
@@ -62,6 +68,17 @@ def _summarise(s) -> SessionSummary:
 # ---------------------------------------------------------------------------
 # Endpoints
 # ---------------------------------------------------------------------------
+@router.get("/config", response_model=RecordingConsoleConfig)
+def recording_console_config(
+    admin_id: int = Depends(resolve_staff_admin_scope_id),
+):
+    """Browser recording console: rolling segment interval and SCVAM thresholds."""
+    return RecordingConsoleConfig(
+        segment_seconds=app_config.RECORDING_SEGMENT_SECONDS,
+        scvam_min_duration_sec=app_config.SCVAM_MIN_DURATION_SEC,
+    )
+
+
 @router.post("/start", status_code=status.HTTP_201_CREATED)
 async def start_recording(
     body: StartRecordingRequest,

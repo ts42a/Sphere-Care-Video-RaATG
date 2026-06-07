@@ -9,8 +9,12 @@ from pathlib import Path
 from sqlalchemy.orm import Session
 
 from backend import models
+from backend.services.ai_flag_realtime import broadcast_ai_flag_created_sync
 from backend.services.scvam import crypto as scvam_crypto
 from backend.services.scvam import paths as scvam_paths
+from backend.services.scvam.flag_utils import primary_scvam_flag, scvam_flag_exists
+from backend.services.scvam.inbox import parse_staging_vault_id
+from backend.services.scvam.notifications import create_scvam_notifications, scvam_subject_labels
 from backend.services.scvam.output_writer import write_scvam_output_folder
 from backend.services.scvam.results import ScvamParsedResults, build_flag_candidates
 from backend.services.scvam.runner import ScvamRunResult
@@ -39,22 +43,42 @@ def apply_scvam_results(
     record.ai_summary = summary
     record.scvam_status = "ready"
 
+    staging_dir = scvam_paths.vault_root() / (job.staging_path or "")
+    folder_name, video_stem = parse_staging_vault_id(str(job.vault_record_id or ""))
+    if not folder_name and staging_dir.is_dir():
+        folder_name = staging_dir.name
+    original_filename = (
+        Path(record.file_name).name
+        if record.file_name
+        else (f"{video_stem}.mp4" if video_stem else str(job.vault_record_id))
+    )
+    if source_video and source_video.is_file():
+        original_filename = source_video.name
+
     job_meta: dict = {
         "vault_record_id": job.vault_record_id,
+        "staging_folder": folder_name,
         "db_record_id": int(record.id),
         "duration_sec": job.duration_sec,
-        "original_filename": job.vault_record_id,
-        "video_name": job.vault_record_id,
+        "original_filename": original_filename,
+        "video_name": Path(original_filename).stem,
     }
-    staging_dir = scvam_paths.vault_root() / (job.staging_path or "")
     manifest_path = staging_dir / "manifest.json"
     if manifest_path.is_file():
         try:
             job_meta.update(json.loads(manifest_path.read_text(encoding="utf-8")))
         except Exception:
             pass
+    job_meta.setdefault("original_filename", original_filename)
+    job_meta.setdefault("video_name", Path(original_filename).stem)
+    job_meta.setdefault("staging_folder", folder_name)
+    if staging_dir.is_dir():
+        job_meta.setdefault(
+            "staging_path",
+            staging_dir.relative_to(scvam_paths.vault_root()).as_posix(),
+        )
 
-    video_name = str(job_meta.get("video_name") or job_meta.get("original_filename") or job.vault_record_id)
+    video_name = str(job_meta.get("video_name") or Path(original_filename).stem)
     out_folder = write_scvam_output_folder(
         org_id=int(job.organization_id),
         video_name=Path(str(job_meta.get("original_filename", video_name))).stem,
@@ -82,13 +106,27 @@ def apply_scvam_results(
             pass
 
     now = datetime.now(timezone.utc)
+    resident_label, _room_label = scvam_subject_labels(job, record)
     flag_candidates = build_flag_candidates(parsed, summary_text=summary)
+<<<<<<< HEAD
+=======
     created_flag_ids: list[int] = []
+>>>>>>> df987012d636e73237aef9fada0b1aa17787265f
+    created_flags: list[models.Flag] = []
     for p in flag_candidates:
+        video_ts = _sec_to_hhmmss(p.timestamp_sec)
+        if scvam_flag_exists(
+            db,
+            admin_id=int(job.admin_id),
+            resident_name=resident_label,
+            event_type=p.event_type,
+            video_timestamp=video_ts,
+        ):
+            continue
         f = models.Flag(
             admin_id=int(job.admin_id),
             resident_id=record.resident_id,
-            resident_name=job.resident_name or record.resident_name or "This device",
+            resident_name=resident_label,
             event_type=p.event_type,
             description=p.description,
             severity=p.severity,
@@ -96,31 +134,55 @@ def apply_scvam_results(
             status="Pending Review",
             sev_desc=p.sev_desc,
             transcript=p.transcript,
-            video_timestamp=_sec_to_hhmmss(p.timestamp_sec),
+            video_timestamp=video_ts,
             ai_confidence=Decimal(str(round(p.ai_confidence * 100.0, 2))),
             flagged_at=now,
             created_by=int(job.admin_id),
         )
         db.add(f)
         db.flush()
+<<<<<<< HEAD
+=======
         created_flag_ids.append(int(f.id))
+>>>>>>> df987012d636e73237aef9fada0b1aa17787265f
+        created_flags.append(f)
 
-    priority = "high" if flag_candidates and any(c.severity == "High" for c in flag_candidates) else "mid"
-    db.add(
-        models.AiInsight(
-            admin_id=int(job.admin_id),
-            resident_id=record.resident_id,
-            resident_name=job.resident_name or record.resident_name or "This device",
-            related_record_id=int(record.id),
-            related_flag_id=created_flag_ids[0] if created_flag_ids else None,
-            title=f"SCVAM Summary ({job.camera_id or 'camera'})",
-            body=summary,
-            category="cctv_visual",
-            priority=priority,
-            is_new=True,
-            generated_by_model="scvam2.1",
+    if created_flags:
+        create_scvam_notifications(
+            db,
+            job=job,
+            record=record,
+            flags=created_flags,
+            summary=summary,
         )
-    )
+
+    created_flag_ids = [int(f.id) for f in created_flags]
+    primary_flag = primary_scvam_flag(created_flags)
+    priority = "high" if flag_candidates and any(c.severity == "High" for c in flag_candidates) else "mid"
+    if created_flags or not (
+        db.query(models.AiInsight.id)
+        .filter(
+            models.AiInsight.admin_id == int(job.admin_id),
+            models.AiInsight.related_record_id == int(record.id),
+            models.AiInsight.generated_by_model == "scvam2.1",
+        )
+        .first()
+    ):
+        db.add(
+            models.AiInsight(
+                admin_id=int(job.admin_id),
+                resident_id=record.resident_id,
+                resident_name=resident_label,
+                related_record_id=int(record.id),
+                related_flag_id=int(primary_flag.id) if primary_flag else None,
+                title=f"SCVAM Summary ({job.camera_id or 'camera'})",
+                body=summary,
+                category="cctv_visual",
+                priority=priority,
+                is_new=True,
+                generated_by_model="scvam2.1",
+            )
+        )
 
     db.add(
         models.AuditLog(
@@ -158,6 +220,12 @@ def apply_scvam_results(
     job.error_message = None
     db.commit()
 
+    for f in created_flags:
+        try:
+            broadcast_ai_flag_created_sync(f, db)
+        except Exception:
+            pass
+
 
 def mark_job_failed(
     db: Session,
@@ -167,12 +235,14 @@ def mark_job_failed(
     requeue: bool,
 ) -> None:
     job.error_message = error_message[:4000]
+    record = db.query(models.Record).filter(models.Record.id == job.db_record_id).first()
     if requeue:
         job.status = "pending"
+        if record:
+            record.scvam_status = "pending"
     else:
         job.status = "failed"
         job.finished_at = datetime.now(timezone.utc)
-        record = db.query(models.Record).filter(models.Record.id == job.db_record_id).first()
         if record:
             record.scvam_status = "failed"
             meta_path = scvam_paths.vault_meta_path(record)
@@ -185,6 +255,22 @@ def mark_job_failed(
                 meta["scvam_error"] = error_message[:500]
                 meta_path.write_text(json.dumps(meta, ensure_ascii=True, indent=2), encoding="utf-8")
     db.commit()
+
+
+def requeue_interrupted_jobs(db: Session) -> int:
+    """Reset jobs left in 'running' after a server reload or crash."""
+    rows = db.query(models.ScvamJob).filter(models.ScvamJob.status == "running").all()
+    count = 0
+    for job in rows:
+        job.status = "pending"
+        job.error_message = (job.error_message or "")[:3500] + " [requeued after interrupt]"
+        record = db.query(models.Record).filter(models.Record.id == job.db_record_id).first()
+        if record and record.scvam_status in {"processing", "running"}:
+            record.scvam_status = "pending"
+        count += 1
+    if count:
+        db.commit()
+    return count
 
 
 def cleanup_staging(staging_path: str | None) -> None:

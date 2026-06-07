@@ -93,8 +93,13 @@
       </div>
     </div>
     <div class="asl-translation-panel" id="asl-translation-panel" style="display:none;" onclick="if(event.target===this)closeAslTranslation()">
-      <div class="asl-video-wrap">
-        <video id="asl-translation-video" autoplay playsinline muted></video>
+      <div class="asl-translation-card asl-translation-card--simple" onclick="event.stopPropagation()">
+        <div class="asl-box-top">
+          <span class="asl-box-title" id="asl-panel-title">ASL Translation</span>
+          <button type="button" class="asl-close-btn" onclick="closeAslTranslation()">Close</button>
+        </div>
+        <p class="asl-panel-status" id="asl-panel-status">Starting…</p>
+        <p class="asl-output-hint">Use the Python window (camera + translation). Q or ESC there to quit, or Close here.</p>
       </div>
     </div>
   </div>
@@ -159,11 +164,11 @@
     <div class="mbody asl-mode-body">
       <button class="asl-mode-choice" onclick="selectAslMode('static')">
         <span class="asl-mode-choice-title">Static</span>
-        <span class="asl-mode-choice-sub">Letters/poses with Python camera.</span>
+        <span class="asl-mode-choice-sub">Runs run_static.py (Python window).</span>
       </button>
       <button class="asl-mode-choice" onclick="selectAslMode('motion')">
         <span class="asl-mode-choice-title">Motion</span>
-        <span class="asl-mode-choice-sub">Dynamic signs with Python camera.</span>
+        <span class="asl-mode-choice-sub">Runs run_motion.py (Python window).</span>
       </button>
     </div>
   </div>

@@ -1,0 +1,94 @@
+{
+  "total_sec": 96.76,
+  "total_human": "1m 36.8s",
+  "steps": [
+    {
+      "step": 1,
+      "label": "1a \u2014 preprocess (frames @ FPS)",
+      "script": "preprocess.py",
+      "elapsed_sec": 2.047,
+      "elapsed_human": "2.05s",
+      "exit_code": 0
+    },
+    {
+      "step": 2,
+      "label": "1b \u2014 dectator (object scan)",
+      "script": "dectator.py",
+      "elapsed_sec": 11.273,
+      "elapsed_human": "11.27s",
+      "exit_code": 0
+    },
+    {
+      "step": 3,
+      "label": "1c \u2014 reducer (anchor pruning)",
+      "script": "reducer.py",
+      "elapsed_sec": 0.902,
+      "elapsed_human": "0.90s",
+      "exit_code": 0
+    },
+    {
+      "step": 4,
+      "label": "2a \u2014 zoom_evidence (hand crops)",
+      "script": "zoom_evidence.py",
+      "elapsed_sec": 17.434,
+      "elapsed_human": "17.43s",
+      "exit_code": 0
+    },
+    {
+      "step": 5,
+      "label": "2b \u2014 zoom_evidence_dectator (YOLO on crops)",
+      "script": "zoom_evidence_dectator.py",
+      "elapsed_sec": 8.785,
+      "elapsed_human": "8.78s",
+      "exit_code": 0
+    },
+    {
+      "step": 6,
+      "label": "2c \u2014 zoom_evidence_verify (enhance + refine YOLO)",
+      "script": "zoom_evidence_verify.py",
+      "elapsed_sec": 9.105,
+      "elapsed_human": "9.10s",
+      "exit_code": 0
+    },
+    {
+      "step": 7,
+      "label": "3 \u2014 pose_detection",
+      "script": "pose_detection.py",
+      "elapsed_sec": 15.207,
+      "elapsed_human": "15.21s",
+      "exit_code": 0
+    },
+    {
+      "step": 8,
+      "label": "4 \u2014 merge_frames",
+      "script": "merge_frames.py",
+      "elapsed_sec": 0.46,
+      "elapsed_human": "0.46s",
+      "exit_code": 0
+    },
+    {
+      "step": 9,
+      "label": "5 \u2014 temporal_grn",
+      "script": "temporal_grn.py",
+      "elapsed_sec": 3.582,
+      "elapsed_human": "3.58s",
+      "exit_code": 0
+    },
+    {
+      "step": 10,
+      "label": "6 \u2014 risk_engine",
+      "script": "risk_engine.py",
+      "elapsed_sec": 0.238,
+      "elapsed_human": "0.24s",
+      "exit_code": 0
+    },
+    {
+      "step": 11,
+      "label": "7 \u2014 llm_explain (short text summary, no photos)",
+      "script": "llm_explain.py",
+      "elapsed_sec": 27.722,
+      "elapsed_human": "27.72s",
+      "exit_code": 0
+    }
+  ]
+}

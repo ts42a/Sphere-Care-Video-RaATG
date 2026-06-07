@@ -24,10 +24,11 @@ from sqlalchemy.orm import Session, selectinload
 from backend.api.deps import get_db
 from backend.api.rbac import resolve_staff_admin_scope_id
 from backend import models, schemas
+from backend.services.ai_flag_realtime import broadcast_ai_flag_created
 
 router = APIRouter(tags=["Flags & Reviews"])
 
-VALID_STATUSES = ("Open", "Pending Review", "Resolved", "Escalated")
+VALID_STATUSES = ("Open", "Pending Review", "Resolved", "Escalated", "False Alarm")
 
 
 # ---------- helpers ----------
@@ -47,6 +48,9 @@ def _parse_flagged_at(value: Optional[str]) -> datetime:
     """
     if not value:
         return datetime.utcnow()
+
+    if isinstance(value, datetime):
+        return value
 
     cleaned = value.strip()
 
@@ -84,6 +88,7 @@ def _fmt(flag: models.Flag) -> schemas.FlagResponse:
         id=flag.id,
         resident_name=flag.resident_name,
         resident_id=flag.resident_id,
+        camera_id=flag.camera_id,
         event_type=flag.event_type,
         description=flag.description,
         severity=flag.severity,
@@ -241,7 +246,7 @@ def get_flag(
 
 
 @router.post("/", response_model=schemas.FlagResponse, status_code=status.HTTP_201_CREATED)
-def create_flag(
+async def create_flag(
     flag_in: schemas.FlagCreate,
     admin_id: int = Depends(resolve_staff_admin_scope_id),
     db: Session = Depends(get_db),
@@ -257,6 +262,7 @@ def create_flag(
         created_by=admin_id,
         resident_name=flag_in.resident_name,
         resident_id=flag_in.resident_id,
+        camera_id=flag_in.camera_id,
         event_type=flag_in.event_type,
         description=flag_in.description,
         severity=flag_in.severity,
@@ -274,6 +280,8 @@ def create_flag(
         db.commit()
         db.refresh(flag)
         flag = _get_flag_or_404(db, flag.id)
+        if str(flag.source or "").strip().upper() == "AI":
+            await broadcast_ai_flag_created(flag, db)
         return _fmt(flag)
     except SQLAlchemyError:
         db.rollback()
@@ -369,8 +377,10 @@ def add_comment(
         raise HTTPException(status_code=404, detail="Flag not found.")
 
     comment = models.FlagComment(
+        admin_id=int(admin_id),
         flag_id=flag_id,
         author_name=body.author_name,
+        author_user_id=body.author_user_id,
         body=body.body,
     )
 

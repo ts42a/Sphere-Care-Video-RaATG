@@ -1,0 +1,43 @@
+# Copy to repo root before build:  cp docker/.dockerignore .dockerignore
+# (Docker only reads .dockerignore from the build context directory.)
+
+.git
+.github
+.venv
+venv
+env
+node_modules
+frontend_client/node_modules
+frontend_staff/node_modules
+
+# Local secrets and data
+.env
+.env.*
+backend/.env
+frontend_client/.env
+databases/
+
+# Python / test caches
+__pycache__
+**/__pycache__
+*.py[cod]
+.pytest_cache
+.mypy_cache
+.ruff_cache
+htmlcov
+coverage
+
+# Large generated / sample artifacts (mount volumes at runtime instead)
+*.mp4
+*.pt
+*.pth
+ai/**/output/
+ai/models/**/frames/
+ai/models/**/detections/*.png
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+.vscode
+*.log
+uploads/

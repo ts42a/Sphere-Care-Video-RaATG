@@ -35,7 +35,7 @@
         <h2>Flags &amp; Event Insights</h2>
         <p>View, verify, and manage all automatically or manually flagged moments from resident recordings.</p>
       </div>
-      <button class="btn btn-primary" onclick="alert('Export coming soon')">
+      <button type="button" class="btn btn-primary" id="flags-export-all-btn">
         <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
         Export Report
       </button>
@@ -60,6 +60,9 @@
         <option value="Agitation">Agitation</option>
         <option value="Crying">Crying</option>
         <option value="Fall Risk">Fall Risk</option>
+        <option value="Fall">Fall</option>
+        <option value="Prolonged Immobility">Prolonged Immobility</option>
+        <option value="Unstable Gait">Unstable Gait</option>
         <option value="Medication">Medication</option>
         <option value="Wandering">Wandering</option>
       </select>
@@ -75,6 +78,7 @@
         <option value="Open">Open</option>
         <option value="Resolved">Resolved</option>
         <option value="Escalated">Escalated</option>
+        <option value="False Alarm">False Alarm</option>
       </select>
     </div>
 
@@ -201,16 +205,17 @@
 </div>
 </div>
 
-<!-- ══════ FLAG DETAIL MODAL (Image 3) ══════ -->
+<!-- ══════ FLAG REVIEW MODAL ══════ -->
 <div class="overlay" id="modal-flag">
-  <div class="modal">
+  <div class="flag-dialog flag-review-modal">
     <div class="mhdr">
       <div>
         <h3 id="fm-name">—</h3>
         <span class="ai-badge" id="fm-source">🤖 AI Detected</span>
-        <div style="font-size:12.5px;color:var(--text2);margin-top:4px;" id="fm-etype">—</div>
+        <div class="flag-modal-meta" id="fm-etype">—</div>
+        <div class="flag-modal-meta" id="fm-description">—</div>
       </div>
-      <button class="mclose" onclick="closeModal('modal-flag')">✕</button>
+      <button type="button" class="mclose" id="fm-close-btn" aria-label="Close">✕</button>
     </div>
     <div class="mbody">
       <div class="flag-sev-box flag-sev-medium" id="fm-sev-box">
@@ -221,29 +226,37 @@
         </div>
       </div>
 
-      <div style="font-size:13.5px;font-weight:800;margin-bottom:8px;">Video Snapshot</div>
-      <div class="video-snap" onclick="alert('Video playback coming soon')">
-        <div class="video-snap-bg"></div>
-        <div style="position:absolute;inset:0;background:linear-gradient(135deg,#0f2030 0%,#1a3a50 50%,#0a1520 100%);display:flex;align-items:center;justify-content:center;">
-          <!-- CCTV sim -->
-          <div style="font-size:40px;opacity:.4;">🧑‍⚕️</div>
-        </div>
-        <div class="video-play-btn">
-          <svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-        </div>
-        <div class="video-jump">⏱ Jump to <span id="fm-timestamp">00:02:18</span></div>
+      <div class="flag-review-grid">
+        <div><span class="flag-review-label">Status</span><div id="fm-status-label" class="flag-review-val">—</div></div>
+        <div><span class="flag-review-label">Video timestamp</span><div id="fm-timestamp" class="flag-review-val">—</div></div>
+        <div><span class="flag-review-label">AI confidence</span><div id="fm-confidence" class="flag-review-val">—</div></div>
       </div>
-      <div class="video-ctx">10 seconds context before and after flagged moment</div>
 
-      <div style="font-size:13.5px;font-weight:800;margin-bottom:8px;">Transcript Segment</div>
+      <div class="flag-section-title">SCVAM / transcript context</div>
       <div class="transcript-box" id="fm-transcript">—</div>
+
+      <div class="flag-section-title">Staff comments</div>
+      <div class="flag-comments-list" id="fm-comments-list">
+        <div class="flag-comments-empty">No comments yet.</div>
+      </div>
+      <label class="flag-comment-label" for="fm-comment-input">Add review comment</label>
+      <textarea id="fm-comment-input" class="flag-comment-input" rows="3" placeholder="Document your review, actions taken, or follow-up notes…"></textarea>
+      <div class="flag-comment-hint" id="fm-action-msg"></div>
+    </div>
+    <div class="mfoot flag-modal-actions">
+      <button type="button" class="flag-act-btn flag-act-export" id="fm-btn-export">Export Report</button>
+      <div class="flag-modal-btns">
+        <button type="button" class="flag-act-btn flag-act-false" id="fm-btn-false">Mark False Alert</button>
+        <button type="button" class="flag-act-btn flag-act-escalate" id="fm-btn-escalate">Escalate</button>
+        <button type="button" class="flag-act-btn flag-act-confirm" id="fm-btn-confirm">Confirm</button>
+      </div>
     </div>
   </div>
 </div>
 
 <!-- ══════ RESIDENT PROFILE MODAL (Image 4) ══════ -->
 <div class="overlay" id="modal-profile">
-  <div class="modal profile-modal">
+  <div class="flag-dialog profile-modal">
     <div class="phdr">
       <div class="p-av" id="p-av"></div>
       <div class="p-meta">
@@ -300,9 +313,7 @@ window.hideSkeleton = function() {
   if (el) el.style.display = 'none';
 };
 setTimeout(window.hideSkeleton, 5000);
-if (typeof API_BASE === 'undefined') {
-  window.API_BASE = '';
-}
+window.API_BASE = window.API_BASE || '/api/v1';
 </script>
 <script src="../style/js/flags.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>

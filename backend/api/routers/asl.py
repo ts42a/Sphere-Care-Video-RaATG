@@ -290,6 +290,7 @@ def asl_status(token: str = Depends(oauth2_scheme)):
 
 @router.post("/statictranslator/start", response_model=StaticTranslatorControlResponse)
 def statictranslator_start():
+    motiontranslator_manager.stop()
     r = statictranslator_manager.start()
     if r.get("started"):
         return StaticTranslatorControlResponse(running=True, detail="Static translator started.")
@@ -337,6 +338,17 @@ def statictranslator_status():
     )
 
 
+@router.get("/motiontranslator/status", response_model=StaticTranslatorStatusResponse)
+def motiontranslator_status():
+    s = motiontranslator_manager.status()
+    return StaticTranslatorStatusResponse(
+        running=bool(s.get("running")),
+        latest_event=s.get("latest_event") or {"type": "idle"},
+        event_seq=int(s.get("event_seq") or 0),
+        last_error=s.get("last_error"),
+    )
+
+
 @router.websocket("/statictranslator/ws")
 async def statictranslator_ws(websocket: WebSocket):
     await websocket.accept()
@@ -358,6 +370,30 @@ async def statictranslator_ws(websocket: WebSocket):
             )
     except WebSocketDisconnect:
         return
+
+
+@router.websocket("/motiontranslator/ws")
+async def motiontranslator_ws(websocket: WebSocket):
+    await websocket.accept()
+    last_seq = -1
+    try:
+        while True:
+            data = await asyncio.to_thread(motiontranslator_manager.wait_for_event, last_seq, 1.0)
+            seq = int(data.get("event_seq") or 0)
+            if seq == last_seq:
+                continue
+            last_seq = seq
+            await websocket.send_json(
+                {
+                    "running": bool(data.get("running")),
+                    "last_error": data.get("last_error"),
+                    "event": data.get("latest_event") or {"type": "idle"},
+                    "event_seq": seq,
+                }
+            )
+    except WebSocketDisconnect:
+        return
+
 
 @router.post("/detect", response_model=ASLDetectResponse)
 async def detect_asl(body: ASLDetectRequest, token: str = Depends(oauth2_scheme)):

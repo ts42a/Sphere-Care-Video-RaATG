@@ -2,6 +2,9 @@
 let facilityCameras = [];
 let cameras = [];
 let recordings = [];
+/** All videos under scvam_input/jobs — used for the SCVAM script dropdown. */
+let stagingJobVideos = [];
+let _stagingFetchSeq = 0;
 let alertsData = [];
 
 let alertFilterOn = false;
@@ -13,20 +16,138 @@ let modalPlaybackIndex = -1;
 const MODAL_SKIP_SECONDS = 10;
 let activeInlinePlaybackId = null;
 let inlinePlaybackRequestToken = 0;
+let _playbackScriptRequestSeq = 0;
+let _stagingDeleteTarget = null;
 let pendingPlaybackFromUrl = null;
 
 const localCamStreams = new Map();
 const LOCAL_RECORDING_INDEX_KEY = "spherecare_local_recordings_index_v1";
 const _activeRecorders = new Map();
 /** Minimum clip length to send for SCVAM when AI is on (seconds). */
-const SCVA_MIN_AI_SECONDS = 1;
+let SCVA_MIN_AI_SECONDS = 1;
 const DELETE_CONFIRM_WORD = "Confirm";
 let _playbackDeleteTargetId = null;
 let _scvamPollTimer = null;
 let _scvamPollRecordId = null;
-const SCVA_ANALYSIS_CHUNK_SECONDS = 300;
+/** Rolling segment flush interval while recording (default 2 min; overridable via API). */
+let SCVA_ANALYSIS_CHUNK_SECONDS = 120;
 const CAMERA_AI_STORAGE_KEY = "spherecare_camera_ai_v1";
 const cameraAiState = new Map();
+
+function isStagingPlaybackId(id) {
+  return String(id || "").startsWith("staging:");
+}
+
+function stagingKeyFromId(id) {
+  const raw = String(id || "");
+  if (raw.startsWith("staging:job:")) {
+    const jobId = raw.slice("staging:job:".length);
+    const item = stagingJobVideos.find((r) => String(r.jobId || "") === jobId);
+    if (item) {
+      return { folder: item.stagingFolder || "", video: item.stagingVideo || null };
+    }
+  }
+  const rest = raw.slice("staging:".length);
+  const pipe = rest.indexOf("|");
+  if (pipe !== -1) {
+    const folder = rest.slice(0, pipe);
+    const tag = rest.slice(pipe + 1);
+    const video = tag.startsWith("@") ? "" : tag;
+    return { folder, video: video || null };
+  }
+  const colon = rest.indexOf(":");
+  if (colon === -1) return { folder: rest, video: null };
+  return { folder: rest.slice(0, colon), video: rest.slice(colon + 1) || null };
+}
+
+function stagingPlaybackIdFromRow(s) {
+  const folder = String(s?.folder_name || "");
+  const video = String(s?.video_name || "").trim();
+  if (s?.job_id != null && s.job_id !== "") {
+    return `staging:job:${s.job_id}`;
+  }
+  if (video) return `staging:${folder}|${video}`;
+  const label = String(s?.label || folder).trim();
+  return `staging:${folder}|@${label}`;
+}
+
+function stagingPlaybackId(folderName, videoName, label) {
+  return stagingPlaybackIdFromRow({
+    folder_name: folderName,
+    video_name: videoName,
+    label: label || folderName,
+  });
+}
+
+function findPlaybackItem(id) {
+  const key = String(id || "");
+  return (
+    stagingJobVideos.find((r) => String(r.id) === key) ||
+    recordings.find((r) => String(r.id) === key) ||
+    null
+  );
+}
+
+function beginPlaybackScriptRequest(id) {
+  const seq = ++_playbackScriptRequestSeq;
+  return { seq, id: String(id || "") };
+}
+
+function currentPlaybackScriptRequest(id) {
+  return { seq: _playbackScriptRequestSeq, id: String(id || "") };
+}
+
+function isPlaybackScriptRequestCurrent(req) {
+  return (
+    !!req &&
+    req.seq === _playbackScriptRequestSeq &&
+    String(activeInlinePlaybackId) === req.id
+  );
+}
+
+function isActivePlaybackId(id) {
+  return String(activeInlinePlaybackId) === String(id || "");
+}
+
+function stagingVideoForPlayback(id) {
+  const rec = findPlaybackItem(id);
+  const parsed = stagingKeyFromId(id);
+  return parsed.video || rec?.stagingVideo || null;
+}
+
+function stagingFolderForPlayback(id) {
+  const rec = findPlaybackItem(id);
+  const parsed = stagingKeyFromId(id);
+  return parsed.folder || rec?.stagingFolder || "";
+}
+
+function stagingVideoFromId(id) {
+  return stagingKeyFromId(id).video;
+}
+
+function stagingVideoQuery(videoName) {
+  return videoName ? `?video_name=${encodeURIComponent(videoName)}` : "";
+}
+
+function stagingVideoApiUrl(folderName, videoName) {
+  return `${API_BASE}/records/scvam-staging/${encodeURIComponent(folderName)}/video${stagingVideoQuery(videoName)}`;
+}
+
+function stagingScriptApiUrl(folderName, videoName) {
+  return `${API_BASE}/records/scvam-staging/${encodeURIComponent(folderName)}/script${stagingVideoQuery(videoName)}`;
+}
+
+function stagingAnalyzeApiUrl(folderName, videoName) {
+  return `${API_BASE}/records/scvam-staging/${encodeURIComponent(folderName)}/analyze${stagingVideoQuery(videoName)}`;
+}
+
+function stagingDeleteApiUrl(folderName, videoName, outputOnly = true) {
+  const params = new URLSearchParams();
+  if (videoName) params.set("video_name", videoName);
+  if (outputOnly) params.set("output_only", "true");
+  const qs = params.toString();
+  return `${API_BASE}/records/scvam-staging/${encodeURIComponent(folderName)}${qs ? `?${qs}` : ""}`;
+}
 
 // AUTH
 function getAccessToken() {
@@ -454,7 +575,114 @@ async function loadStats() {
 }
 
 // API — PLAYBACK
+function isScvamStagingDbRecord(r) {
+  const cat = String(r?.category || r?.title || "");
+  const url = String(r?.file_url || r?.fileUrl || "");
+  return cat.startsWith("SCVAM staging:") || url.startsWith("localvault://staging_");
+}
+
+let _loadPlaybackToken = 0;
+
+function shouldSkipStagingDropdownRow(s) {
+  if (!s?.folder_name || !s?.video_name) return false;
+  return isPipelineStagingVideo(s.video_name) && !String(s.folder_name).startsWith("rec_");
+}
+
+function stagingItemFromApiRow(s) {
+  const videoName = String(s.video_name || "").trim();
+  const id = stagingPlaybackIdFromRow(s);
+  return {
+    id,
+    jobId: s.job_id != null ? String(s.job_id) : null,
+    title: s.label || videoStem(videoName) || s.folder_name,
+    resident: "Test video",
+    date: "—",
+    duration: s.duration_sec ? `${s.duration_sec}s` : "—",
+    flag: "none",
+    type: "Staging job",
+    fileUrl: videoName
+      ? `staging://${s.folder_name}/${videoName}`
+      : `staging://${s.folder_name}`,
+    vaultLocalId: null,
+    scvamStatus: s.scvam_status || "none",
+    aiSummary: "",
+    source: "staging",
+    stagingFolder: s.folder_name,
+    stagingVideo: videoName || null,
+    stagingMime: videoName?.toLowerCase().endsWith(".webm") ? "video/webm" : "video/mp4",
+  };
+}
+
+async function refreshStagingJobVideos() {
+  const seq = ++_stagingFetchSeq;
+  try {
+    const res = await fetch(`${API_BASE}/records/scvam-staging?_=${Date.now()}`, {
+      headers: authHeaders(),
+      cache: "no-store",
+    });
+    if (handleUnauthorizedResponse(res)) return stagingJobVideos;
+    if (!res.ok) {
+      console.warn("SCVAM staging list failed:", res.status, await res.text());
+      return stagingJobVideos;
+    }
+    const stagingPayload = await res.json();
+    const stagingRows = Array.isArray(stagingPayload) ? stagingPayload : [];
+    const items = [];
+    const seenIds = new Set();
+    stagingRows.forEach((s) => {
+      if (shouldSkipStagingDropdownRow(s)) return;
+      const item = stagingItemFromApiRow(s);
+      if (seenIds.has(item.id)) return;
+      seenIds.add(item.id);
+      items.push(item);
+    });
+    if (seq !== _stagingFetchSeq) return stagingJobVideos;
+    stagingJobVideos = items.sort(stagingDropdownSort);
+    console.info("[SCVAM staging] loaded", stagingJobVideos.length, "videos");
+    renderPlaybackScriptList(activeInlinePlaybackId || defaultStagingScriptId());
+    return stagingRows;
+  } catch (e) {
+    console.warn("SCVAM staging list unavailable:", e);
+    return stagingJobVideos;
+  }
+}
+
+function defaultStagingScriptId() {
+  const preferred = stagingJobVideos.filter((r) =>
+    ["testing", "test"].includes(String(r.stagingFolder || "")),
+  );
+  return preferred[0]?.id || stagingJobVideos[0]?.id || "";
+}
+
+function stagingScriptItemSub(rec) {
+  if (!rec) return "—";
+  const folder = rec.stagingFolder || "";
+  if (folder && !["testing", "test"].includes(folder)) return folder;
+  return `${rec.duration || "—"} · ${formatScvamStatusLabel(rec.scvamStatus)}`;
+}
+
+function stagingScriptOptionLabel(rec) {
+  return `${playbackItemTitle(rec)} — ${stagingScriptItemSub(rec)}`;
+}
+
+function isPipelineStagingVideo(name) {
+  const stem = videoStem(name).toLowerCase();
+  return stem === "input" || stem.startsWith("input.");
+}
+
+function isSegmentStagingFolder(name) {
+  return String(name || "").startsWith("rec_");
+}
+
+function isSegmentPlaybackItem(r) {
+  const text = `${r?.title || ""} ${r?.type || ""} ${r?.category || ""}`.toLowerCase();
+  if (text.includes("segment")) return true;
+  const id = String(r?.vaultLocalId || r?.id || r?.fileUrl || "");
+  return /_s\d+$/i.test(id) || /\(segment\s*\d+\)/i.test(text);
+}
+
 async function loadPlayback() {
+  const loadToken = ++_loadPlaybackToken;
   const mergedPlayback = [];
   const seenIds = new Set();
   const serverByVaultId = new Map();
@@ -469,6 +697,9 @@ async function loadPlayback() {
     if (res.ok) {
       const data = await res.json();
       data.forEach((r) => {
+        // Staging folder videos are listed via /scvam-staging — skip duplicate DB rows.
+        if (isScvamStagingDbRecord(r)) return;
+        if (isSegmentPlaybackItem({ title: r.category, type: r.category, fileUrl: r.file_url })) return;
         const id = String(r.id);
         if (seenIds.has(id)) return;
         seenIds.add(id);
@@ -493,12 +724,19 @@ async function loadPlayback() {
     console.warn("Records API unavailable:", e);
   }
 
+  try {
+    await refreshStagingJobVideos();
+  } catch (e) {
+    console.warn("SCVAM staging list unavailable:", e);
+  }
+
   if (window.recordingVault?.vaultListRecordings) {
     try {
       const vaultRows = await window.recordingVault.vaultListRecordings();
       vaultRows.forEach((row) => {
         const id = String(row.id || "");
         if (!id || seenIds.has(id) || serverByVaultId.has(id)) return;
+        if (isSegmentPlaybackItem({ title: row.cameraLabel, vaultLocalId: id })) return;
         seenIds.add(id);
         mergedPlayback.push({
           id,
@@ -518,6 +756,8 @@ async function loadPlayback() {
       });
     } catch (_) {}
   }
+
+  if (loadToken !== _loadPlaybackToken) return;
 
   recordings = mergedPlayback.sort((a, b) => {
     const aTs = Date.parse(a.date || 0) || 0;
@@ -553,25 +793,51 @@ async function loadPlayback() {
 
 // API — ALERTS
 async function loadAlerts() {
+  const merged = [];
   try {
-    const res = await fetch(`${API_BASE}/cameras/alerts/?limit=50`, {
-      headers: authHeaders(),
-    });
+    const [camRes, flagRes] = await Promise.all([
+      fetch(`${API_BASE}/cameras/alerts/?limit=50`, { headers: authHeaders() }),
+      fetch(`${API_BASE}/flags/?status=Pending Review&limit=30`, { headers: authHeaders() }),
+    ]);
 
-    if (!res.ok) throw new Error(res.status);
+    if (camRes.ok) {
+      const data = await camRes.json();
+      data.forEach((a) => {
+        merged.push({
+          id: a.id,
+          source: "camera",
+          type: (a.alert_type || "alert").toLowerCase().replace(/\s+/g, "-"),
+          icon: a.icon || (String(a.alert_type || "").toLowerCase().includes("fall") ? "fall" : "person"),
+          title: a.title,
+          desc: a.description,
+          time: a.created_at,
+          cam: a.camera_title || "—",
+          resolved: a.resolved,
+        });
+      });
+    }
 
-    const data = await res.json();
+    if (flagRes.ok) {
+      const flags = await flagRes.json();
+      flags.forEach((f) => {
+        const et = String(f.event_type || "alert");
+        merged.push({
+          id: `flag-${f.id}`,
+          flagId: f.id,
+          source: "flag",
+          type: et.toLowerCase().replace(/\s+/g, "-"),
+          icon: et.toLowerCase().includes("fall") ? "fall" : "person",
+          title: `${et} — ${f.resident_name || "Resident"}`,
+          desc: f.description || f.sev_desc || "SCVAM AI flag",
+          time: f.flagged_at || f.created_at || "—",
+          cam: f.resident_name || "SCVAM",
+          resolved: f.status === "Resolved",
+        });
+      });
+    }
 
-    alertsData = data.map((a) => ({
-      id: a.id,
-      type: a.alert_type,
-      icon: a.icon || "fall",
-      title: a.title,
-      desc: a.description,
-      time: a.created_at,
-      cam: a.camera_title || "—",
-      resolved: a.resolved,
-    }));
+    merged.sort((a, b) => Date.parse(b.time || 0) - Date.parse(a.time || 0));
+    alertsData = merged;
   } catch (e) {
     alertsData = [];
     showGridError("alerts-list", "alerts");
@@ -596,10 +862,18 @@ async function resolveAlert(id) {
   if (badge) badge.textContent = active;
 
   try {
-    await fetch(`${API_BASE}/cameras/alerts/${id}/resolve`, {
-      method: "PATCH",
-      headers: authHeaders(),
-    });
+    if (a?.source === "flag" && a.flagId) {
+      await fetch(`${API_BASE}/flags/${a.flagId}/status`, {
+        method: "PATCH",
+        headers: authHeaders(),
+        body: JSON.stringify({ status: "Resolved" }),
+      });
+    } else {
+      await fetch(`${API_BASE}/cameras/alerts/${id}/resolve`, {
+        method: "PATCH",
+        headers: authHeaders(),
+      });
+    }
 
     loadStats();
   } catch (e) {
@@ -938,57 +1212,310 @@ function scvamStatusBadge(status) {
   return "";
 }
 
-// PLAYBACK — right panel: SCVAM minute-by-minute script (no video card list)
-function renderPlayback() {
-  const select = document.getElementById("playback-script-select");
-  if (!select) return;
+function formatScvamStatusLabel(status) {
+  const st = String(status || "none").toLowerCase();
+  if (st === "ready" || st === "done") return "SCVAM done";
+  if (st === "pending") return "Queued";
+  if (st === "processing" || st === "running") return "Processing";
+  if (st === "failed") return "Failed";
+  if (st === "unable") return "SCVAM unable";
+  return "Not analyzed";
+}
 
-  if (!recordings.length) {
-    select.innerHTML = '<option value="">No recordings</option>';
-    renderPlaybackScriptPanel(null);
+function scvamStatusBadgeClass(status) {
+  const st = String(status || "none").toLowerCase();
+  if (st === "ready" || st === "done") return "done";
+  if (st === "pending") return "pending";
+  if (st === "processing" || st === "running") return "processing";
+  if (st === "failed" || st === "unable") return "failed";
+  return "none";
+}
+
+function stagingShortName(rec) {
+  if (!rec) return "Recording";
+  if (rec.source === "staging") {
+    if (rec.title) return rec.title;
+    const v = rec.stagingVideo || "";
+    return String(v).replace(/\.(mp4|webm|mov|mkv)$/i, "") || rec.stagingFolder || "test";
+  }
+  return rec.title || "Recording";
+}
+
+function videoStem(name) {
+  return String(name || "").replace(/\.(mp4|webm|mov|mkv)$/i, "");
+}
+
+function playbackItemTitle(rec) {
+  return stagingShortName(rec);
+}
+
+function selectPlaybackItem(id) {
+  if (!id) return;
+  const nextId = String(id);
+  if (String(activeInlinePlaybackId) !== nextId) {
+    stopScvamStatusPoll();
+    _playbackScriptRequestSeq++;
+    inlinePlaybackRequestToken++;
+  }
+  activeInlinePlaybackId = nextId;
+  updatePlaybackActionButtons(nextId);
+  renderPlaybackSourceList();
+  renderPlaybackScriptList(nextId);
+  loadPlaybackScript(nextId);
+  const rec = findPlaybackItem(nextId);
+  if (rec?.fileUrl) {
+    openPlayback(nextId, { skipRender: true, skipScript: true });
+  }
+}
+
+function renderPlaybackSourceList() {
+  // Left-side source list removed; staging/recordings are chosen from playback-script-select.
+}
+
+// PLAYBACK — right panel: SCVAM minute-by-minute script (no video card list)
+function updatePlaybackActionButtons(selectedId) {
+  const aiBtn = document.getElementById("playback-ai-btn");
+  const delBtn = document.getElementById("playback-delete-btn");
+  const isStaging = isStagingPlaybackId(selectedId);
+  if (aiBtn) {
+    aiBtn.style.display = isStaging ? "" : "none";
+    aiBtn.disabled = false;
+    aiBtn.textContent = "Perform AI";
+  }
+  if (delBtn) {
+    delBtn.style.display = "";
+    delBtn.disabled = false;
+    delBtn.textContent = isStaging ? "Clear SCVAM" : "Delete";
+    delBtn.title = isStaging
+      ? "Clear SCVAM analysis output (keeps video in jobs)"
+      : "Delete selected recording";
+  }
+}
+
+function stagingDropdownSort(a, b) {
+  const stagingFolders = new Set(["testing", "test"]);
+  const aTesting = stagingFolders.has(String(a?.stagingFolder || ""));
+  const bTesting = stagingFolders.has(String(b?.stagingFolder || ""));
+  if (aTesting && !bTesting) return -1;
+  if (!aTesting && bTesting) return 1;
+  return String(a?.title || "").localeCompare(String(b?.title || ""));
+}
+
+function renderPlaybackScriptList(activeId) {
+  const el = document.getElementById("playback-script-select");
+  if (!el) return;
+
+  const active = String(activeId || activeInlinePlaybackId || "");
+
+  if (!stagingJobVideos.length) {
+    el.innerHTML =
+      '<option value="">No videos in scvam_input/jobs</option>';
+    el.disabled = true;
+    el.value = "";
+    const panel = document.getElementById("playback-script-panel");
+    if (panel) {
+      panel.innerHTML =
+        '<div class="playback-script-empty">No staging videos found. Add files under <b>databases/org_X/scvam_input/jobs/</b> or record with AI enabled.</div>';
+    }
     return;
   }
 
-  let options = `<option value="output:perfect_fall_of_old_women">SCVAM demo · perfect fall of old women</option>`;
-  options += recordings
-    .map((r) => {
-      const label = `${r.title || "Recording"} · ${r.duration || "—"} · ${r.scvamStatus || "no AI"}`;
-      return `<option value="${escapeHtml(String(r.id))}">${escapeHtml(label)}</option>`;
+  el.disabled = false;
+  el.innerHTML = stagingJobVideos
+    .map((rec) => {
+      const id = escapeHtml(String(rec.id));
+      const label = escapeHtml(stagingScriptOptionLabel(rec));
+      const selected = String(rec.id) === active ? " selected" : "";
+      return `<option value="${id}"${selected}>${label}</option>`;
     })
     .join("");
-  select.innerHTML = options;
 
-  if (!select.dataset.bound) {
-    select.dataset.bound = "1";
-    select.addEventListener("change", () => {
-      const id = select.value;
-      if (id) {
-        activeInlinePlaybackId = id;
-        loadPlaybackScript(id);
-      }
+  if (active && stagingJobVideos.some((r) => String(r.id) === active)) {
+    el.value = active;
+  }
+
+  if (!el.dataset.bound) {
+    el.dataset.bound = "1";
+    el.addEventListener("change", () => {
+      const id = el.value;
+      if (!id) return;
+      selectPlaybackItem(id);
     });
   }
+}
 
-  let activeId = activeInlinePlaybackId;
-  if (!activeId || (!String(activeId).startsWith("output:") && !recordings.find((r) => String(r.id) === String(activeId)))) {
-    const withAi = recordings.find((r) => r.scvamStatus === "ready");
-    activeId = withAi ? withAi.id : "output:perfect_fall_of_old_women";
-  }
-  select.value = String(activeId);
-  loadPlaybackScript(activeId);
-
+function bindPlaybackActionButtonsOnce() {
   const delBtn = document.getElementById("playback-delete-btn");
   if (delBtn && !delBtn.dataset.bound) {
     delBtn.dataset.bound = "1";
     delBtn.addEventListener("click", async () => {
-      const id = select.value;
+      const id = activeInlinePlaybackId;
       if (!id || String(id).startsWith("output:")) {
-        _showToast("Select a recording to delete (not the SCVAM demo).");
+        _showToast("Select a video from the dropdown to delete.");
+        return;
+      }
+      if (isStagingPlaybackId(id)) {
+        openStagingDeleteModal(id);
         return;
       }
       if (!(await ensureVaultUnlockedForConsole())) return;
       openPlaybackDeleteModal(id);
     });
+  }
+
+  const aiBtn = document.getElementById("playback-ai-btn");
+  if (aiBtn && !aiBtn.dataset.bound) {
+    aiBtn.dataset.bound = "1";
+    aiBtn.addEventListener("click", async () => {
+      const id = activeInlinePlaybackId;
+      if (!isStagingPlaybackId(id)) {
+        _showToast("Select a staging video to run SCVAM.");
+        return;
+      }
+      aiBtn.disabled = true;
+      aiBtn.textContent = "Queuing…";
+      try {
+        const folder = stagingFolderForPlayback(id);
+        const video = stagingVideoForPlayback(id);
+        await performStagingScvam(folder, video);
+        _showToast("🤖 SCVAM queued for " + (video ? `${folder}/${video}` : folder));
+        await refreshStagingJobVideos();
+        await loadPlayback();
+        selectPlaybackItem(id);
+        startScvamStagingPoll(folder, video);
+      } catch (e) {
+        _showToast(String(e?.message || e || "Could not queue SCVAM"));
+      } finally {
+        aiBtn.disabled = false;
+        aiBtn.textContent = "Perform AI";
+      }
+    });
+  }
+}
+
+function renderPlayback() {
+  bindPlaybackActionButtonsOnce();
+
+  if (!stagingJobVideos.length && !recordings.length) {
+    renderPlaybackScriptList("");
+    renderPlaybackScriptPanel({
+      scvam_status: "none",
+      message:
+        "No videos in scvam_input/jobs yet. Record with AI on, or copy test clips into databases/org_X/scvam_input/jobs/.",
+      timeline: [],
+    });
+    renderPlaybackSourceList();
+    updatePlaybackActionButtons("");
+    const pickHint = document.getElementById("playback-pick-hint");
+    if (pickHint) pickHint.classList.remove("is-hidden");
+    return;
+  }
+
+  let activeId = activeInlinePlaybackId;
+  const idStillValid =
+    activeId &&
+    (isStagingPlaybackId(activeId) ||
+      stagingJobVideos.some((r) => String(r.id) === String(activeId)) ||
+      recordings.some((r) => String(r.id) === String(activeId)));
+
+  if (!idStillValid) {
+    activeId = defaultStagingScriptId();
+  }
+  activeInlinePlaybackId = activeId;
+  if (!activeId) {
+    updatePlaybackActionButtons("");
+    renderPlaybackSourceList();
+    renderPlaybackScriptList("");
+    renderPlaybackScriptPanel(null);
+    return;
+  }
+  renderPlaybackScriptList(activeId);
+  updatePlaybackActionButtons(activeId);
+  renderPlaybackSourceList();
+  loadPlaybackScript(activeId);
+  const rec = findPlaybackItem(activeId);
+  if (rec?.fileUrl) {
+    openPlayback(activeId, { skipRender: true, skipScript: true });
+  } else {
+    const pickHint = document.getElementById("playback-pick-hint");
+    if (pickHint) pickHint.classList.remove("is-hidden");
+  }
+
+  bindPlaybackActionButtonsOnce();
+}
+
+async function performStagingScvam(folderName, videoName) {
+  const res = await fetch(stagingAnalyzeApiUrl(folderName, videoName), {
+    method: "POST",
+    headers: authHeaders(),
+  });
+  if (handleUnauthorizedResponse(res)) throw new Error("Session expired.");
+  if (!res.ok) throw new Error(await apiErrorDetail(res));
+  return res.json();
+}
+
+function openStagingDeleteModal(id) {
+  const rec = findPlaybackItem(id);
+  if (!rec) {
+    _showToast("Select a video from the dropdown to delete.");
+    return;
+  }
+  const folder = stagingFolderForPlayback(id);
+  const video = stagingVideoForPlayback(id);
+  const name = playbackItemTitle(rec);
+  _stagingDeleteTarget = { folder, video, id: String(id) };
+  const sub = document.getElementById("staging-delete-sub");
+  if (sub) {
+    sub.textContent = video
+      ? `Clear SCVAM analysis for "${name}" (${folder}/${video}). The video stays in scvam_input/jobs.`
+      : `Clear SCVAM analysis for folder "${folder}". Staging videos stay in scvam_input/jobs.`;
+  }
+  setRcStatus("staging-delete-status", "", "");
+  const submitBtn = document.getElementById("staging-delete-submit");
+  if (submitBtn) submitBtn.disabled = false;
+  openRcModal("staging-delete-modal");
+}
+
+async function submitStagingDeleteModal() {
+  const target = _stagingDeleteTarget;
+  if (!target) return;
+  const submitBtn = document.getElementById("staging-delete-submit");
+  if (submitBtn) submitBtn.disabled = true;
+  setRcStatus("staging-delete-status", "Clearing SCVAM output…", "ok");
+  try {
+    await deleteStagingJob(target.folder, target.video);
+    _stagingDeleteTarget = null;
+    closeRcModal("staging-delete-modal");
+  } catch (e) {
+    setRcStatus("staging-delete-status", e?.message || "Delete failed", "err");
+    if (submitBtn) submitBtn.disabled = false;
+  }
+}
+
+async function deleteStagingJob(folderName, videoName) {
+  const keepId = activeInlinePlaybackId || _stagingDeleteTarget?.id || null;
+  const res = await fetch(stagingDeleteApiUrl(folderName, videoName, true), {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
+  if (handleUnauthorizedResponse(res)) throw new Error("Session expired.");
+  if (!res.ok && res.status !== 204) {
+    throw new Error(await apiErrorDetail(res));
+  }
+  _showToast(
+    videoName
+      ? "SCVAM output cleared — video kept in jobs list"
+      : "SCVAM output cleared for staging folder"
+  );
+  stopScvamStatusPoll();
+  _stagingDeleteTarget = null;
+  await loadPlayback();
+  if (keepId && stagingJobVideos.some((r) => String(r.id) === String(keepId))) {
+    const item = stagingJobVideos.find((r) => String(r.id) === String(keepId));
+    if (item) item.scvamStatus = "unable";
+    selectPlaybackItem(keepId);
+  } else {
+    renderPlayback();
   }
 }
 
@@ -1093,7 +1620,8 @@ async function retryScvamRecording(recordId, rec) {
   return res.json();
 }
 
-function renderPlaybackScriptPanel(data) {
+function renderPlaybackScriptPanel(data, req) {
+  if (req && !isPlaybackScriptRequestCurrent(req)) return;
   const panel = document.getElementById("playback-script-panel");
   if (!panel) return;
 
@@ -1104,10 +1632,15 @@ function renderPlaybackScriptPanel(data) {
   }
 
   const status = String(data.scvam_status || "none");
+  const statusLabel = formatScvamStatusLabel(status);
   const duration = data.duration_sec != null ? `${data.duration_sec}s` : "—";
   let html = "";
 
-  if (data.message && status !== "ready") {
+  if (status === "ready" || status === "done") {
+    html += `<div class="playback-script-status" style="background:#f0fdf4;border-color:#bbf7d0;color:#15803d;">SCVAM analysis complete — minute-by-minute script below.</div>`;
+  } else if (status === "unable") {
+    html += `<div class="playback-script-status" style="background:#fef2f2;border-color:#fecaca;color:#b91c1c;">SCVAM analysis was removed. Click <b>Perform AI</b> to analyze again.</div>`;
+  } else if (data.message) {
     html += `<div class="playback-script-status">${escapeHtml(data.message)}</div>`;
   }
   if (status === "failed" && data.record_id && /^\d+$/.test(String(data.record_id))) {
@@ -1118,7 +1651,7 @@ function renderPlaybackScriptPanel(data) {
     html += `<div class="playback-script-heading">${escapeHtml(data.heading)}</div>`;
   }
 
-  html += `<div class="playback-script-meta">Status: ${escapeHtml(status)} · Duration: ${escapeHtml(duration)}${data.video_name ? ` · ${escapeHtml(data.video_name)}` : ""}</div>`;
+  html += `<div class="playback-script-meta">Status: ${escapeHtml(statusLabel)} · Duration: ${escapeHtml(duration)}${data.video_name ? ` · ${escapeHtml(data.video_name)}` : ""}</div>`;
 
   const timeline = Array.isArray(data.timeline) ? data.timeline : [];
   if (timeline.length) {
@@ -1178,36 +1711,95 @@ function stopScvamStatusPoll() {
 }
 
 function startScvamStatusPoll(recordId) {
+  if (!recordId) return;
+  if (isStagingPlaybackId(recordId)) {
+    startScvamStagingPoll(
+      stagingFolderForPlayback(recordId),
+      stagingVideoForPlayback(recordId)
+    );
+    return;
+  }
+  if (!/^\d+$/.test(String(recordId))) return;
+  if (_scvamPollRecordId === String(recordId) && _scvamPollTimer) return;
+
   stopScvamStatusPoll();
-  if (!recordId || !/^\d+$/.test(String(recordId))) return;
   _scvamPollRecordId = String(recordId);
 
   const tick = async () => {
-    if (_scvamPollRecordId !== String(recordId)) return;
+    if (_scvamPollRecordId !== String(recordId) || !isActivePlaybackId(recordId)) return;
     try {
       const res = await fetch(`${API_BASE}/records/${recordId}/scvam-status`, {
         headers: authHeaders(),
       });
       if (!res.ok) return;
+      if (!isActivePlaybackId(recordId)) return;
       const st = await res.json();
       const status = String(st.scvam_status || "none");
-      const rec = recordings.find((r) => String(r.id) === String(recordId));
+      const rec = findPlaybackItem(recordId);
       if (rec) rec.scvamStatus = status;
-
-      const select = document.getElementById("playback-script-select");
-      if (select && select.value === String(recordId)) {
-        const label = `${rec?.title || "Recording"} · ${rec?.duration || "—"} · ${status}`;
-        const opt = select.querySelector(`option[value="${recordId}"]`);
-        if (opt) opt.textContent = label;
+      if (isActivePlaybackId(recordId)) {
+        renderPlaybackScriptList(recordId);
       }
 
       if (status === "ready" || status === "failed" || status === "none" || status === "skipped") {
         stopScvamStatusPoll();
-        loadPlaybackScript(recordId);
+        if (isActivePlaybackId(recordId)) loadPlaybackScript(recordId);
         return;
       }
 
-      loadPlaybackScript(recordId);
+      const panel = document.getElementById("playback-script-panel");
+      if (panel && isActivePlaybackId(recordId) && !panel.querySelector(".playback-script-status")) {
+        panel.innerHTML =
+          '<div class="playback-script-empty">AI analysis in progress…</div>';
+      }
+    } catch (_) {}
+  };
+
+  _scvamPollTimer = setInterval(tick, 4000);
+  tick();
+}
+
+function startScvamStagingPoll(folderName, videoName) {
+  if (!folderName) return;
+  const pollId = stagingPlaybackId(folderName, videoName);
+  if (_scvamPollRecordId === pollId && _scvamPollTimer) return;
+
+  stopScvamStatusPoll();
+  _scvamPollRecordId = pollId;
+
+  const tick = async () => {
+    if (_scvamPollRecordId !== pollId || !isActivePlaybackId(pollId)) return;
+    try {
+      const res = await fetch(stagingScriptApiUrl(folderName, videoName), {
+        headers: authHeaders(),
+      });
+      if (!res.ok) return;
+      if (!isActivePlaybackId(pollId)) return;
+      const data = await res.json();
+      const status = String(data.scvam_status || "none");
+      const rec = findPlaybackItem(pollId);
+      if (rec) rec.scvamStatus = status;
+      if (isActivePlaybackId(pollId)) {
+        renderPlaybackSourceList();
+        renderPlaybackScriptList(pollId);
+      }
+
+      if (status === "ready" || status === "failed" || status === "skipped") {
+        stopScvamStatusPoll();
+        if (!isActivePlaybackId(pollId)) return;
+        const req = currentPlaybackScriptRequest(pollId);
+        const expected = videoStem(videoName || stagingVideoForPlayback(pollId));
+        const got = videoStem(data.video_name || "");
+        if (expected && got && expected !== got && status === "ready") return;
+        renderPlaybackScriptPanel(data, req);
+        return;
+      }
+
+      const panel = document.getElementById("playback-script-panel");
+      if (panel && isActivePlaybackId(pollId)) {
+        panel.innerHTML =
+          '<div class="playback-script-empty">AI analysis in progress for staging file…</div>';
+      }
     } catch (_) {}
   };
 
@@ -1218,6 +1810,7 @@ function startScvamStatusPoll(recordId) {
 async function loadPlaybackScript(id) {
   const panel = document.getElementById("playback-script-panel");
   if (!panel) return;
+  const req = beginPlaybackScriptRequest(id);
 
   if (String(id).startsWith("output:")) {
     stopScvamStatusPoll();
@@ -1229,21 +1822,86 @@ async function loadPlaybackScript(id) {
         { headers: authHeaders() }
       );
       if (handleUnauthorizedResponse(res)) return;
+      if (!isPlaybackScriptRequestCurrent(req)) return;
       if (!res.ok) throw new Error(await res.text());
-      renderPlaybackScriptPanel(await res.json());
+      renderPlaybackScriptPanel(await res.json(), req);
     } catch (e) {
-      renderPlaybackScriptPanel({
-        scvam_status: "failed",
-        message: "Could not load SCVAM output folder.",
-        timeline: [],
+      if (!isPlaybackScriptRequestCurrent(req)) return;
+      renderPlaybackScriptPanel(
+        {
+          scvam_status: "failed",
+          message: "Could not load SCVAM output folder.",
+          timeline: [],
+        },
+        req
+      );
+    }
+    return;
+  }
+
+  if (isStagingPlaybackId(id)) {
+    const folder = stagingFolderForPlayback(id);
+    const video = stagingVideoForPlayback(id);
+    const rec = findPlaybackItem(id);
+    updatePlaybackActionButtons(id);
+    panel.innerHTML = '<div class="playback-script-empty">Loading SCVAM script…</div>';
+    try {
+      const res = await fetch(stagingScriptApiUrl(folder, video), {
+        headers: authHeaders(),
       });
+      if (handleUnauthorizedResponse(res)) return;
+      if (!isPlaybackScriptRequestCurrent(req)) return;
+      if (!res.ok) throw new Error(await res.text());
+      const data = await res.json();
+      if (!isPlaybackScriptRequestCurrent(req)) return;
+      const expected = videoStem(video || stagingVideoForPlayback(id));
+      const got = videoStem(data.video_name || "");
+      if (expected && got && expected !== got && String(data.scvam_status || "").toLowerCase() === "ready") {
+        renderPlaybackScriptPanel(
+          {
+            scvam_status: "none",
+            duration_sec: parseInt(String(rec?.duration || "").replace(/\D/g, ""), 10) || null,
+            video_name: expected,
+            message: `No SCVAM output for ${expected} yet. Click Perform AI to analyze this file.`,
+            timeline: [],
+          },
+          req
+        );
+        stopScvamStatusPoll();
+        return;
+      }
+      if (rec) {
+        rec.scvamStatus = data.scvam_status || rec.scvamStatus;
+        renderPlaybackSourceList();
+        renderPlaybackScriptList(id);
+      }
+      renderPlaybackScriptPanel(data, req);
+      const st = String(data.scvam_status || "none");
+      if (!isPlaybackScriptRequestCurrent(req)) return;
+      if (st === "pending" || st === "processing" || st === "running") {
+        startScvamStagingPoll(folder, video);
+      } else {
+        stopScvamStatusPoll();
+      }
+    } catch (e) {
+      stopScvamStatusPoll();
+      if (!isPlaybackScriptRequestCurrent(req)) return;
+      renderPlaybackScriptPanel(
+        {
+          scvam_status: "none",
+          message: "Could not load staging SCVAM script.",
+          video_name: video || folder,
+          timeline: [],
+        },
+        req
+      );
     }
     return;
   }
 
   const rec = resolveServerRecording(id);
   if (!rec) {
-    renderPlaybackScriptPanel(null);
+    if (isPlaybackScriptRequestCurrent(req)) renderPlaybackScriptPanel(null);
     return;
   }
 
@@ -1251,18 +1909,21 @@ async function loadPlaybackScript(id) {
   if (!scriptRecordId) {
     const dur = parseInt(String(rec.duration).replace(/\D/g, ""), 10) || 0;
     const hasToken = !!getAccessToken();
-    renderPlaybackScriptPanel({
-      scvam_status: "none",
-      duration_sec: dur || null,
-      message: hasToken
-        ? "Saved on this device only — server upload did not complete. Record again with AI on while logged in, or check the terminal for upload errors."
-        : "Not signed in — log in at Staff Login, then record again with AI on so the clip uploads and SCVAM can run.",
-      summary_text: rec.aiSummary || "",
-      timeline: rec.aiSummary
-        ? [{ minute: 0, label: "00:00–01:00", lines: [rec.aiSummary] }]
-        : [],
-      video_name: rec.title,
-    });
+    renderPlaybackScriptPanel(
+      {
+        scvam_status: "none",
+        duration_sec: dur || null,
+        message: hasToken
+          ? "Saved on this device only — server upload did not complete. Record again with AI on while logged in, or check the terminal for upload errors."
+          : "Not signed in — log in at Staff Login, then record again with AI on so the clip uploads and SCVAM can run.",
+        summary_text: rec.aiSummary || "",
+        timeline: rec.aiSummary
+          ? [{ minute: 0, label: "00:00–01:00", lines: [rec.aiSummary] }]
+          : [],
+        video_name: rec.title,
+      },
+      req
+    );
     return;
   }
 
@@ -1273,27 +1934,36 @@ async function loadPlaybackScript(id) {
       headers: authHeaders(),
     });
     if (handleUnauthorizedResponse(res)) return;
+    if (!isPlaybackScriptRequestCurrent(req)) return;
     if (!res.ok) throw new Error(await res.text());
     const data = await res.json();
+    if (!isPlaybackScriptRequestCurrent(req)) return;
     data.record_id = data.record_id || scriptRecordId;
-    renderPlaybackScriptPanel(data);
+    renderPlaybackScriptPanel(data, req);
     const st = String(data.scvam_status || "none");
+    if (!isPlaybackScriptRequestCurrent(req)) return;
     if (st === "pending" || st === "processing" || st === "running") {
-      startScvamStatusPoll(scriptRecordId);
+      if (_scvamPollRecordId !== String(scriptRecordId) || !_scvamPollTimer) {
+        startScvamStatusPoll(scriptRecordId);
+      }
     } else {
       stopScvamStatusPoll();
     }
   } catch (e) {
     stopScvamStatusPoll();
-    renderPlaybackScriptPanel({
-      record_id: scriptRecordId,
-      scvam_status: rec.scvamStatus || "none",
-      duration_sec: parseInt(rec.duration, 10) || null,
-      message: rec.aiSummary || "Could not load SCVAM script.",
-      summary_text: rec.aiSummary || "",
-      timeline: [],
-      title: rec.title,
-    });
+    if (!isPlaybackScriptRequestCurrent(req)) return;
+    renderPlaybackScriptPanel(
+      {
+        record_id: scriptRecordId,
+        scvam_status: rec.scvamStatus || "none",
+        duration_sec: parseInt(rec.duration, 10) || null,
+        message: rec.aiSummary || "Could not load SCVAM script.",
+        summary_text: rec.aiSummary || "",
+        timeline: [],
+        title: rec.title,
+      },
+      req
+    );
   }
 }
 
@@ -1502,6 +2172,14 @@ function switchTab(tab, el) {
 
   if (el) {
     el.classList.add("active");
+  }
+
+  if (tab === "playback") {
+    bindPlaybackActionButtonsOnce();
+    loadPlayback().catch((e) => {
+      console.warn("Playback refresh failed:", e);
+      _showToast("Could not refresh playback list. Check login and try again.");
+    });
   }
 }
 
@@ -1714,6 +2392,7 @@ function turnOffLocalCamera(encodedDeviceId) {
 
   if (activeRecording) {
     try {
+      _clearSegmentTimer(activeRecording);
       activeRecording.recorder.stop();
       _activeRecorders.delete(deviceId);
     } catch (e) {
@@ -1740,14 +2419,18 @@ async function turnOnLocalCamerasAgain() {
 }
 
 // OPEN PLAYBACK
-function openPlayback(id) {
-  const rec = recordings.find((r) => String(r.id) === String(id));
+function openPlayback(id, options = {}) {
+  const { skipRender = false, skipScript = false } = options;
+  const rec = findPlaybackItem(id);
 
   if (!rec) return;
 
   activeInlinePlaybackId = rec.id;
-  renderPlayback();
-  loadPlaybackScript(rec.id);
+  if (!skipRender) {
+    renderPlayback();
+  } else if (!skipScript) {
+    loadPlaybackScript(rec.id);
+  }
   modalPlaybackIndex = recordings.findIndex((r) => String(r.id) === String(id));
   const watch = document.getElementById("playback-watch");
   const video = document.getElementById("pw-video");
@@ -1757,12 +2440,46 @@ function openPlayback(id) {
   const downloadBtn = document.getElementById("pw-download-btn");
 
   if (!watch || !video || !empty || !titleEl || !subEl || !downloadBtn) return;
+  const playbackId = String(rec.id);
   const requestToken = ++inlinePlaybackRequestToken;
 
   watch.style.display = "block";
+  const pickHint = document.getElementById("playback-pick-hint");
+  if (pickHint) pickHint.classList.add("is-hidden");
   titleEl.textContent = rec.title || "Playback";
   const aiLine = rec.aiSummary ? ` · ${rec.aiSummary.slice(0, 120)}${rec.aiSummary.length > 120 ? "…" : ""}` : "";
   subEl.textContent = `${rec.resident || "Unknown"} · ${rec.date || "Unknown date"} · ${rec.type || "Recording"}${aiLine}`;
+
+  // AI Summary button
+  var existingAiBtn = document.getElementById("pw-ai-summary-btn");
+  if (existingAiBtn) existingAiBtn.remove();
+  if (rec.id && !rec.vaultLocalId) {
+    var aiBtn = document.createElement("button");
+    aiBtn.id = "pw-ai-summary-btn";
+    aiBtn.textContent = rec.aiSummary ? "✨ Regenerate AI Summary" : "✨ Generate AI Summary";
+    aiBtn.style.cssText = "margin-top:8px;font-size:12px;padding:5px 12px;border-radius:8px;border:1px solid #6366f1;background:transparent;color:#6366f1;cursor:pointer;font-weight:600;display:block;";
+    aiBtn.onclick = async function() {
+      aiBtn.disabled = true; aiBtn.textContent = "Generating…";
+      try {
+        const t = sessionStorage.getItem("access_token") || "";
+        const res = await fetch(API_BASE + "/records/" + rec.id + "/ai-summary", {
+          method: "POST",
+          headers: { "Authorization": "Bearer " + t, "Content-Type": "application/json" },
+        });
+        const data = await res.json();
+        if (res.ok && data.ai_summary) {
+          rec.aiSummary = data.ai_summary;
+          const aiLine2 = ` · ${data.ai_summary.slice(0, 120)}${data.ai_summary.length > 120 ? "…" : ""}`;
+          subEl.textContent = `${rec.resident || "Unknown"} · ${rec.date || "Unknown date"} · ${rec.type || "Recording"}${aiLine2}`;
+          aiBtn.textContent = "✨ Regenerate AI Summary";
+        } else {
+          aiBtn.textContent = data.detail || "Unavailable";
+        }
+      } catch(e) { aiBtn.textContent = "Failed"; }
+      aiBtn.disabled = false;
+    };
+    subEl.parentNode.insertBefore(aiBtn, subEl.nextSibling);
+  }
 
   if (window._inlineBlobUrl) {
     URL.revokeObjectURL(window._inlineBlobUrl);
@@ -1832,6 +2549,7 @@ function openPlayback(id) {
 
   const attachSrc = (src) => {
     if (requestToken !== inlinePlaybackRequestToken) return;
+    if (!isActivePlaybackId(playbackId)) return;
     video.src = src;
     downloadBtn.href = src;
     video.play().catch(() => {});
@@ -1869,15 +2587,49 @@ function openPlayback(id) {
         const blob = new Blob([plain], { type: mime });
         const blobUrl = URL.createObjectURL(blob);
         window._inlineBlobUrl = blobUrl;
-        if (requestToken !== inlinePlaybackRequestToken) {
+        if (requestToken !== inlinePlaybackRequestToken || !isActivePlaybackId(playbackId)) {
           URL.revokeObjectURL(blobUrl);
           return;
         }
         empty.style.display = "none";
         attachSrc(blobUrl);
       } catch (err) {
+        if (!isActivePlaybackId(playbackId)) return;
         console.error("Inline vault playback failed:", err);
         setUnavailable("Failed to decrypt this recording.");
+      }
+    })();
+
+    return;
+  }
+
+  if (String(rec.fileUrl).startsWith("staging://")) {
+    const stagingPath = rec.fileUrl.replace("staging://", "");
+    const slash = stagingPath.indexOf("/");
+    const folder = slash === -1 ? stagingPath : stagingPath.slice(0, slash);
+    const video = rec.stagingVideo || (slash === -1 ? null : stagingPath.slice(slash + 1));
+    empty.textContent = "Loading staging video…";
+    empty.style.display = "flex";
+
+    (async () => {
+      try {
+        const res = await fetch(stagingVideoApiUrl(folder, video), { headers: authHeaders() });
+        if (handleUnauthorizedResponse(res)) return;
+        if (!res.ok) throw new Error(await res.text());
+        const mime = rec.stagingMime || res.headers.get("content-type") || "video/mp4";
+        const blob = new Blob([await res.arrayBuffer()], { type: mime });
+        const blobUrl = URL.createObjectURL(blob);
+        window._inlineBlobUrl = blobUrl;
+        if (requestToken !== inlinePlaybackRequestToken || !isActivePlaybackId(playbackId)) {
+          URL.revokeObjectURL(blobUrl);
+          return;
+        }
+        empty.style.display = "none";
+        attachSrc(blobUrl);
+      } catch (err) {
+        if (!isActivePlaybackId(playbackId)) return;
+        console.error("Staging playback failed:", err);
+        setUnavailable("Failed to load staging video.");
       }
     })();
 
@@ -2226,7 +2978,6 @@ if (inlineCloseBtn) {
   inlineCloseBtn.addEventListener("click", () => {
     const watch = document.getElementById("playback-watch");
     const video = document.getElementById("pw-video");
-    const empty = document.getElementById("pw-empty");
     if (video) {
       video.pause();
       video.removeAttribute("src");
@@ -2236,14 +2987,10 @@ if (inlineCloseBtn) {
       URL.revokeObjectURL(window._inlineBlobUrl);
       window._inlineBlobUrl = null;
     }
-    if (empty) {
-      empty.textContent = "Select a recording to start playback.";
-      empty.style.display = "flex";
-    }
-    if (watch) watch.style.display = "none";
-    activeInlinePlaybackId = null;
     inlinePlaybackRequestToken += 1;
-    renderPlayback();
+    if (watch) watch.style.display = "none";
+    const pickHint = document.getElementById("playback-pick-hint");
+    if (pickHint) pickHint.classList.remove("is-hidden");
   });
 }
 
@@ -2473,6 +3220,12 @@ function closeRcModal(id) {
   if (!modal) return;
 
   modal.classList.remove("show");
+  if (id === "staging-delete-modal") {
+    _stagingDeleteTarget = null;
+    setRcStatus("staging-delete-status", "", "");
+    const submitBtn = document.getElementById("staging-delete-submit");
+    if (submitBtn) submitBtn.disabled = false;
+  }
 }
 
 function setRcStatus(id, message, type) {
@@ -2915,23 +3668,10 @@ function startRecording(deviceId, cam) {
   }
 
   const chunks = [];
-  let segmentFlushing = false;
 
   recorder.ondataavailable = (e) => {
     if (e.data.size > 0) {
       chunks.push(e.data);
-      const active = _activeRecorders.get(deviceId);
-      if (!active) return;
-      const nowMs = Date.now();
-      const segMs = nowMs - active.segmentStartMs;
-      if (!segmentFlushing && segMs >= SCVA_ANALYSIS_CHUNK_SECONDS * 1000) {
-        segmentFlushing = true;
-        _queueSegmentUpload(deviceId, cam, { isFinal: false })
-          .catch((err) => console.warn("Rolling segment upload failed:", err))
-          .finally(() => {
-            segmentFlushing = false;
-          });
-      }
     }
   };
 
@@ -2940,24 +3680,53 @@ function startRecording(deviceId, cam) {
     _showToast("⚠ Recording error.");
   };
 
-  recorder.start(1000);
-
-  _activeRecorders.set(deviceId, {
+  const recState = {
     recorder,
     chunks,
+    cam,
+    deviceId,
     startTime: new Date().toISOString(),
     startMs: Date.now(),
     segmentStartMs: Date.now(),
     segmentStartIso: new Date().toISOString(),
     segmentIndex: 0,
+    segmentCutting: false,
     uploadQueue: Promise.resolve(),
     uploadedSegments: 0,
     camId: cam.id,
     camTitle: cam.title,
-  });
+    segmentTimer: null,
+  };
+
+  _activeRecorders.set(deviceId, recState);
+  recorder.start(1000);
+
+  recState.segmentTimer = setInterval(() => {
+    const active = _activeRecorders.get(deviceId);
+    if (!active || active.recorder?.state !== "recording") return;
+    const elapsed = Date.now() - active.segmentStartMs;
+    if (elapsed >= SCVA_ANALYSIS_CHUNK_SECONDS * 1000) {
+      _flushRecordingSegment(deviceId, { isFinal: false }).catch((err) =>
+        console.warn("Rolling segment flush failed:", err)
+      );
+    }
+  }, 1000);
 
   _updateRecordBtn(deviceId, true);
-  _showToast("🔴 Recording started — " + cam.title);
+  _showToast(
+    "🔴 Recording started — " +
+      cam.title +
+      " (" +
+      SCVA_ANALYSIS_CHUNK_SECONDS +
+      "s segments)"
+  );
+}
+
+function _clearSegmentTimer(rec) {
+  if (rec?.segmentTimer) {
+    clearInterval(rec.segmentTimer);
+    rec.segmentTimer = null;
+  }
 }
 
 async function stopRecording(deviceId, cam) {
@@ -2967,11 +3736,13 @@ async function stopRecording(deviceId, cam) {
 
   if (!rec) return;
 
+  _clearSegmentTimer(rec);
+
   return new Promise((resolve) => {
     rec.recorder.onstop = async () => {
       _showToast("⏹ Recording stopped — processing…");
       try {
-        await _queueSegmentUpload(deviceId, cam, { isFinal: true });
+        await _flushRecordingSegment(deviceId, { isFinal: true });
         await rec.uploadQueue;
       } catch (err) {
         console.warn("Final segment flush failed:", err);
@@ -2985,9 +3756,15 @@ async function stopRecording(deviceId, cam) {
     };
 
     try {
+      if (rec.recorder.state === "recording") {
+        try {
+          rec.recorder.requestData();
+        } catch (_) {}
+      }
       rec.recorder.stop();
     } catch (e) {
       console.error("Recorder stop failed:", e);
+      _clearSegmentTimer(rec);
       _activeRecorders.delete(deviceId);
       _updateRecordBtn(deviceId, false);
       resolve();
@@ -2995,36 +3772,60 @@ async function stopRecording(deviceId, cam) {
   });
 }
 
-async function _queueSegmentUpload(deviceId, cam, { isFinal = false } = {}) {
+async function _flushRecordingSegment(deviceId, { isFinal = false } = {}) {
   const rec = _activeRecorders.get(deviceId);
   if (!rec) return;
-  const endedAtIso = new Date().toISOString();
-  const segmentChunks = rec.chunks.splice(0, rec.chunks.length);
-  if (!segmentChunks.length) return;
+  if (rec.segmentCutting) return;
 
-  const blob = new Blob(segmentChunks, {
-    type: rec.recorder.mimeType || "video/webm",
-  });
-  const startedAtIso = rec.segmentStartIso || rec.startTime;
-  const durationMs = Math.max(1, new Date(endedAtIso) - new Date(startedAtIso));
-  const segmentNo = rec.segmentIndex + 1;
-  rec.segmentIndex = segmentNo;
-  rec.segmentStartMs = Date.now();
-  rec.segmentStartIso = endedAtIso;
+  rec.segmentCutting = true;
+  try {
+    if (rec.recorder?.state === "recording" && !isFinal) {
+      try {
+        rec.recorder.requestData();
+      } catch (_) {}
+      await new Promise((resolve) => setTimeout(resolve, 150));
+    }
 
-  rec.uploadQueue = rec.uploadQueue.then(async () => {
-    await _uploadRecordingSegment({
-      blob,
-      rec,
-      cam,
-      startedAt: startedAtIso,
-      endedAt: endedAtIso,
-      durationMs,
-      segmentNo,
-      isFinal,
+    const endedAtIso = new Date().toISOString();
+    const segmentChunks = rec.chunks.splice(0, rec.chunks.length);
+    if (!segmentChunks.length) return;
+
+    const startedAtIso = rec.segmentStartIso || rec.startTime;
+    const durationMs = Math.max(1, new Date(endedAtIso) - new Date(startedAtIso));
+    const segmentNo = rec.segmentIndex + 1;
+    rec.segmentIndex = segmentNo;
+    rec.segmentStartMs = Date.now();
+    rec.segmentStartIso = endedAtIso;
+
+    const blob = new Blob(segmentChunks, {
+      type: rec.recorder.mimeType || "video/webm",
     });
-    rec.uploadedSegments += 1;
-  });
+
+    const cam = rec.cam;
+    if (!cam) return;
+
+    const durationSec = Math.max(1, Math.round(durationMs / 1000));
+    if (!isFinal) {
+      _showToast(`📤 Segment ${segmentNo} (${durationSec}s) uploading…`);
+    }
+
+    rec.uploadQueue = rec.uploadQueue.then(async () => {
+      await _uploadRecordingSegment({
+        blob,
+        rec,
+        cam,
+        startedAt: startedAtIso,
+        endedAt: endedAtIso,
+        durationMs,
+        segmentNo,
+        isFinal,
+      });
+      rec.uploadedSegments += 1;
+    });
+  } finally {
+    rec.segmentCutting = false;
+  }
+
   return rec.uploadQueue;
 }
 
@@ -3058,17 +3859,20 @@ async function _uploadRecordingSegment({
       const encrypted = await vault.vaultEncryptArrayBuffer(arrBuf.slice(0));
       ivB64 = encrypted.ivB64;
       cipherB64 = encrypted.cipherB64;
-      await vault.vaultSaveRecording({
-        id: recordId,
-        ivB64,
-        cipherB64,
-        mimeType: blob.type || "video/webm",
-        cameraLabel: `${cam.title} (segment ${segmentNo})`,
-        startedAt,
-        endedAt,
-        durationMs,
-        sizePlain: blob.size,
-      });
+      await vault.vaultSaveRecording(
+        {
+          id: recordId,
+          ivB64,
+          cipherB64,
+          mimeType: blob.type || "video/webm",
+          cameraLabel: `${cam.title} (segment ${segmentNo})`,
+          startedAt,
+          endedAt,
+          durationMs,
+          sizePlain: blob.size,
+        },
+        { syncServer: false }
+      );
     }
   } catch (e) {
     console.warn("Vault save failed:", e);
@@ -3368,19 +4172,43 @@ function _showPipelineComplete(camTitle, durationSec, transcript) {
 window.submitPlaybackDeleteModal = submitPlaybackDeleteModal;
 window.deleteSinglePlayback = deleteSinglePlayback;
 
+async function loadRecordingConsoleConfig() {
+  try {
+    const res = await fetch(`${API_BASE}/recording/config`, {
+      headers: authHeaders(),
+    });
+    if (!res.ok) return;
+    const cfg = await res.json();
+    const seg = Number(cfg.segment_seconds);
+    const minAi = Number(cfg.scvam_min_duration_sec);
+    if (Number.isFinite(seg) && seg >= 30) {
+      SCVA_ANALYSIS_CHUNK_SECONDS = Math.round(seg);
+    }
+    if (Number.isFinite(minAi) && minAi >= 1) {
+      SCVA_MIN_AI_SECONDS = Math.round(minAi);
+    }
+  } catch (e) {
+    console.warn("Recording config unavailable, using defaults:", e);
+  }
+}
+
 async function initRecordingConsole() {
   loadCameraAiState();
   applyPlaybackRouteFromUrl();
   updateStatsFromFrontend();
+  bindPlaybackActionButtonsOnce();
 
+  await loadRecordingConsoleConfig();
   await loadLocalCameras();
   await loadFacilityCameras();
   await loadStats();
-
-  loadPlayback();
+  await loadPlayback();
   loadAlerts();
 
   setInterval(loadStats, 30000);
 }
+
+window.switchTab = switchTab;
+window.submitStagingDeleteModal = submitStagingDeleteModal;
 
 initRecordingConsole();

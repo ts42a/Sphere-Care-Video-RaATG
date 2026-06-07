@@ -24,6 +24,11 @@ from . import center_membership
 from . import asl
 from . import vault
 from . import ai_explainer
+<<<<<<< HEAD
+from . import recording
+=======
+>>>>>>> df987012d636e73237aef9fada0b1aa17787265f
+from . import care_tasks
 
 api_router = APIRouter()
 
@@ -51,3 +56,9 @@ api_router.include_router(center_membership.router)
 api_router.include_router(asl.router, prefix="/asl", tags=["ASL"])
 api_router.include_router(vault.router)
 api_router.include_router(ai_explainer.router)
+<<<<<<< HEAD
+api_router.include_router(recording.router)
+api_router.include_router(care_tasks.router)
+=======
+api_router.include_router(care_tasks.router)
+>>>>>>> df987012d636e73237aef9fada0b1aa17787265f

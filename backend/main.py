@@ -7,6 +7,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from backend.api.routers import api_router
+from backend.core.config import ALLOWED_ORIGINS
 from backend.api.routers.call import router as calls_router, expire_timed_out_calls
 from backend.api.routers.ws import router as ws_router  # ── NEW ──
 from backend.db.base import Base
@@ -46,6 +47,18 @@ def _start_scvam_worker_thread() -> None:
 
 def _stop_scvam_worker_thread() -> None:
     global _scvam_worker_thread
+    from backend.db.session import SessionLocal
+    from backend.services.scvam.persist import requeue_interrupted_jobs
+
+    try:
+        db = SessionLocal()
+        try:
+            requeue_interrupted_jobs(db)
+        finally:
+            db.close()
+    except Exception:
+        pass
+
     _scvam_stop_event.set()
     if _scvam_worker_thread is not None and _scvam_worker_thread.is_alive():
         _scvam_worker_thread.join(timeout=60)
@@ -104,10 +117,15 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+_cors_origins = (
+    ["*"]
+    if ALLOWED_ORIGINS.strip() == "*"
+    else [o.strip() for o in ALLOWED_ORIGINS.split(",") if o.strip()]
+)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=_cors_origins,
+    allow_credentials=ALLOWED_ORIGINS.strip() != "*",
     allow_methods=["*"],
     allow_headers=["*"],
 )

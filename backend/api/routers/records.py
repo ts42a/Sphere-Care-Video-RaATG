@@ -253,6 +253,188 @@ def delete_all_records(
     return {"ok": True, "deleted": count}
 
 
+# SCVAM staging / output — must be registered before /{record_id} routes
+@router.get("/scvam-staging", response_model=list[schemas.ScvamStagingItemOut])
+def list_scvam_staging_jobs(
+    admin_id: int = Depends(resolve_staff_admin_scope_id),
+    db: Session = Depends(get_db),
+):
+    """Job folders under databases/org_X/scvam_input/jobs/ (e.g. testing/test1.mp4)."""
+    from backend.services.scvam.staging_jobs import list_staging_jobs
+
+    admin = db.query(models.Admin).filter(models.Admin.id == admin_id).first()
+    if not admin:
+        raise HTTPException(status_code=404, detail="Admin not found.")
+    return list_staging_jobs(db, org_id=int(admin.organization_id))
+
+
+@router.get("/scvam-staging/{folder_name}/script", response_model=schemas.ScvamScriptOut)
+def get_scvam_staging_script(
+    folder_name: str,
+    video_name: Optional[str] = Query(None, description="Video file inside the staging folder"),
+    admin_id: int = Depends(resolve_staff_admin_scope_id),
+    db: Session = Depends(get_db),
+):
+    from backend.services.scvam.staging_jobs import read_staging_script
+
+    admin = db.query(models.Admin).filter(models.Admin.id == admin_id).first()
+    if not admin:
+        raise HTTPException(status_code=404, detail="Admin not found.")
+    try:
+        return schemas.ScvamScriptOut(
+            **read_staging_script(
+                db,
+                org_id=int(admin.organization_id),
+                folder_name=folder_name,
+                video_name=video_name,
+            )
+        )
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.post("/scvam-staging/{folder_name}/analyze", response_model=schemas.ScvamStagingAnalyzeOut)
+def analyze_scvam_staging(
+    folder_name: str,
+    video_name: Optional[str] = Query(None, description="Video file inside the staging folder"),
+    admin_id: int = Depends(resolve_staff_admin_scope_id),
+    db: Session = Depends(get_db),
+):
+    """Queue SCVAM pipeline for a staging job folder."""
+    from backend.services.scvam.staging_jobs import enqueue_staging_job, job_scvam_status
+
+    admin = db.query(models.Admin).filter(models.Admin.id == admin_id).first()
+    if not admin:
+        raise HTTPException(status_code=404, detail="Admin not found.")
+    try:
+        job = enqueue_staging_job(
+            db,
+            org_id=int(admin.organization_id),
+            admin_id=admin_id,
+            folder_name=folder_name,
+            video_name=video_name,
+        )
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail="Staging folder or video not found.") from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    return schemas.ScvamStagingAnalyzeOut(
+        folder_name=folder_name,
+        scvam_status=job_scvam_status(job),
+        job_id=int(job.id),
+        job_status=job.status,
+    )
+
+
+@router.get("/scvam-staging/{folder_name}/video")
+def stream_scvam_staging_video(
+    folder_name: str,
+    video_name: Optional[str] = Query(None, description="Video file inside the staging folder"),
+    admin_id: int = Depends(resolve_staff_admin_scope_id),
+    db: Session = Depends(get_db),
+):
+    """Stream the input video from a SCVAM staging job folder."""
+    from backend.services.scvam.staging_jobs import resolve_staging_video
+
+    admin = db.query(models.Admin).filter(models.Admin.id == admin_id).first()
+    if not admin:
+        raise HTTPException(status_code=404, detail="Admin not found.")
+    try:
+        video_path = resolve_staging_video(int(admin.organization_id), folder_name, video_name=video_name)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail="Staging video not found.") from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    mime = {
+        ".mp4": "video/mp4",
+        ".webm": "video/webm",
+        ".mkv": "video/x-matroska",
+        ".mov": "video/quicktime",
+    }.get(video_path.suffix.lower(), "application/octet-stream")
+    return FileResponse(
+        path=str(video_path),
+        media_type=mime,
+        filename=video_path.name,
+    )
+
+
+@router.delete("/scvam-staging/{folder_name}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_scvam_staging(
+    folder_name: str,
+    video_name: Optional[str] = Query(None, description="Delete one video; omit to remove entire folder"),
+    output_only: bool = Query(
+        False,
+        description="When true, delete SCVAM output only and keep the input video in scvam_input/jobs",
+    ),
+    admin_id: int = Depends(resolve_staff_admin_scope_id),
+    db: Session = Depends(get_db),
+):
+    """Remove SCVAM output (default via UI) or the full staging folder/video."""
+    from backend.services.scvam.staging_jobs import delete_staging_job, delete_staging_scvam_output
+
+    admin = db.query(models.Admin).filter(models.Admin.id == admin_id).first()
+    if not admin:
+        raise HTTPException(status_code=404, detail="Admin not found.")
+    try:
+        if output_only:
+            delete_staging_scvam_output(
+                db,
+                org_id=int(admin.organization_id),
+                folder_name=folder_name,
+                video_name=video_name,
+            )
+        else:
+            delete_staging_job(
+                db,
+                org_id=int(admin.organization_id),
+                folder_name=folder_name,
+                video_name=video_name,
+            )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return None
+
+
+@router.get("/scvam-output/{folder_name}/script", response_model=schemas.ScvamScriptOut)
+def get_scvam_output_script(
+    folder_name: str,
+    admin_id: int = Depends(resolve_staff_admin_scope_id),
+):
+    """Load minute-by-minute script from databases/org_X/scvam_output/{folder_name}/."""
+    from backend.services.scvam.paths import scvam_output_dir, vault_root
+    from backend.services.scvam.script_reader import read_scvam_script_for_record
+
+    safe = "".join(ch for ch in folder_name if ch.isalnum() or ch in {"_", "-"})
+    out_dir = scvam_output_dir(1, safe)
+    if not out_dir.is_dir():
+        raise HTTPException(status_code=404, detail="SCVAM output folder not found")
+
+    class _Tmp:
+        id = 0
+        category = safe.replace("_", " ")
+        duration = None
+        ai_summary = None
+        scvam_status = "ready"
+        scvam_output_path = out_dir.relative_to(vault_root()).as_posix()
+
+    meta = out_dir / "metadata.json"
+    if meta.is_file():
+        import json as _json
+
+        try:
+            m = _json.loads(meta.read_text(encoding="utf-8"))
+            _Tmp.duration = int(m.get("duration_sec") or 0) or None
+            _Tmp.ai_summary = (out_dir / "summary.txt").read_text(encoding="utf-8") if (out_dir / "summary.txt").is_file() else None
+        except Exception:
+            pass
+
+    return schemas.ScvamScriptOut(**read_scvam_script_for_record(_Tmp()))
+
+
 @router.delete("/{record_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_record(record_id: int, admin_id: int = Depends(resolve_staff_admin_scope_id), db: Session = Depends(get_db)):
     """Delete a record by ID and remove encrypted vault / SCVAM files."""
@@ -347,42 +529,6 @@ def get_record(
     if not r:
         raise HTTPException(status_code=404, detail="Record not found.")
     return _fmt_record(r)
-
-
-@router.get("/scvam-output/{folder_name}/script", response_model=schemas.ScvamScriptOut)
-def get_scvam_output_script(
-    folder_name: str,
-    admin_id: int = Depends(resolve_staff_admin_scope_id),
-):
-    """Load minute-by-minute script from databases/org_X/scvam_output/{folder_name}/."""
-    from backend.services.scvam.paths import scvam_output_dir, vault_root
-    from backend.services.scvam.script_reader import read_scvam_script_for_record
-
-    safe = "".join(ch for ch in folder_name if ch.isalnum() or ch in {"_", "-"})
-    out_dir = scvam_output_dir(1, safe)
-    if not out_dir.is_dir():
-        raise HTTPException(status_code=404, detail="SCVAM output folder not found")
-
-    class _Tmp:
-        id = 0
-        category = safe.replace("_", " ")
-        duration = None
-        ai_summary = None
-        scvam_status = "ready"
-        scvam_output_path = out_dir.relative_to(vault_root()).as_posix()
-
-    meta = out_dir / "metadata.json"
-    if meta.is_file():
-        import json as _json
-
-        try:
-            m = _json.loads(meta.read_text(encoding="utf-8"))
-            _Tmp.duration = int(m.get("duration_sec") or 0) or None
-            _Tmp.ai_summary = (out_dir / "summary.txt").read_text(encoding="utf-8") if (out_dir / "summary.txt").is_file() else None
-        except Exception:
-            pass
-
-    return schemas.ScvamScriptOut(**read_scvam_script_for_record(_Tmp()))
 
 
 @router.get("/{record_id}/scvam-script", response_model=schemas.ScvamScriptOut)
@@ -576,3 +722,41 @@ def get_encrypted_record_meta(
         "file_name": record.file_name,
         "meta": payload,
     }
+
+
+# ── AI Summary ────────────────────────────────────────────────────────────────
+
+@router.post("/{record_id}/ai-summary")
+async def generate_record_ai_summary(
+    record_id: int,
+    db: Session = Depends(get_db),
+    auth=Depends(resolve_staff_admin_scope_id),
+):
+    """Generate an AI summary for a recording using its transcript or notes."""
+    import asyncio
+    from backend.services.ai.llm_client import summarize_recording_transcript
+
+    record = db.query(models.Record).filter(
+        models.Record.id == record_id,
+        models.Record.is_deleted == False,  # noqa: E712
+    ).first()
+    if not record:
+        raise HTTPException(status_code=404, detail="Record not found")
+
+    source_text = record.transcript_text or record.notes or ""
+    if not source_text.strip():
+        raise HTTPException(status_code=422, detail="No transcript or notes available to summarise")
+
+    summary = await asyncio.get_event_loop().run_in_executor(
+        None,
+        summarize_recording_transcript,
+        source_text,
+        record.resident_name or "",
+    )
+    if not summary:
+        raise HTTPException(status_code=503, detail="AI provider not configured or unavailable")
+
+    record.ai_summary = summary
+    db.commit()
+
+    return {"record_id": record_id, "ai_summary": summary}

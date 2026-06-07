@@ -1,4 +1,5 @@
 const COLORS = ['#7c3aed','#db2777','#0369a1','#059669','#d97706','#dc2626','#2563eb','#9333ea'];
+const FLAGS_API = () => window.API_BASE || '/api/v1';
 
 // ── CLOCK ──
 function tick(){
@@ -71,13 +72,14 @@ function resColor(resId){
 
 let allFlags = [];
 let filteredFlags = [];
+let _activeFlagId = null;
 
 // ════════════════════════
 // API CALLS
 
 async function loadStats(){
   try {
-    const res = await fetch(`${API_BASE}/flags/stats`, {headers: authHeaders()});
+    const res = await fetch(`${FLAGS_API()}/flags/stats`, {headers: authHeaders()});
     if(!res.ok) throw new Error();
     const s = await res.json();
     document.getElementById('st-ai').textContent      = s.ai_flags_today;
@@ -102,7 +104,7 @@ async function loadFlags(){
   if(st)     params.set('status', st);
 
   try {
-    const res = await fetch(`${API_BASE}/flags/?${params}`, {headers: authHeaders()});
+    const res = await fetch(`${FLAGS_API()}/flags/?${params}`, {headers: authHeaders()});
     if(!res.ok) throw new Error();
     const data = await res.json();
     // if API returns data use it
@@ -132,7 +134,30 @@ function normaliseFlag(f){
     sev_desc:       f.sev_desc,
     transcript:     f.transcript,
     video_timestamp:f.video_timestamp,
+    comments:       Array.isArray(f.comments) ? f.comments : [],
   };
+}
+
+function findFlagById(id) {
+  const n = Number(id);
+  return allFlags.find((x) => Number(x.id) === n);
+}
+
+function escapeHtml(str) {
+  return String(str ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function staffDisplayName() {
+  try {
+    const u = JSON.parse(sessionStorage.getItem('user') || '{}');
+    return u.full_name || u.name || sessionStorage.getItem('spherecare_user_name') || 'Staff';
+  } catch (_) {
+    return 'Staff';
+  }
 }
 
 // parse "Oct 23, 2024 02:40 PM" → { date, time }
@@ -165,7 +190,7 @@ function renderFlags(){
     const color   = resColor(resId || resName);
     const sevClass= sev==='High'?'sv-high':sev==='Medium'?'sv-medium':'sv-low';
     const etKey   = etype.toLowerCase().replace(/\s+/g,'-');
-    const stClass = f.status==='Resolved'?'st-resolved':f.status==='Open'?'st-open':f.status==='Escalated'?'st-escalated':'st-pending';
+    const stClass = f.status==='Resolved'?'st-resolved':f.status==='Open'?'st-open':f.status==='Escalated'?'st-escalated':f.status==='False Alarm'?'st-false':'st-pending';
     const aiTag   = f.source==='AI' && f.ai_confidence
       ? `<div style="font-size:10.5px;color:var(--text3);margin-top:3px;">AI ${f.ai_confidence}%</div>`
       : f.source==='AI' ? `<div style="font-size:10.5px;color:var(--text3);margin-top:3px;">AI Detected</div>` : '';
@@ -185,7 +210,14 @@ function renderFlags(){
       <td><span class="sev-pill ${sevClass}"><span class="sev-dot"></span>${sev}</span></td>
       <td><div style="font-size:13px;font-weight:600;">${dt.date}</div><div style="font-size:12px;color:var(--text3);">${dt.time}</div></td>
       <td><span class="status-pill ${stClass}">${f.status}</span>${aiTag}</td>
-      <td><button class="view-btn" onclick="event.stopPropagation();openFlagModal(${f.id})"><svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>View</button></td>
+      <td class="flag-actions">
+        <button type="button" class="view-btn" onclick="event.stopPropagation();openFlagModal(${f.id})"><svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>View</button>
+        ${
+          f.status !== 'Resolved' && f.status !== 'False Alarm'
+            ? `<button type="button" class="flag-act-inline flag-act-resolve" onclick="event.stopPropagation();openFlagModal(${f.id})">Review</button>`
+            : ''
+        }
+      </td>
     </tr>`;
   }).join('');
 }
@@ -219,32 +251,235 @@ function switchMainTab(tab, btn){
 }
 
 
-// FLAG DETAIL MODAL
+// FLAG REVIEW MODAL
 
-function openFlagModal(id){
-  const f = allFlags.find(x=>x.id===id);
-  if(!f) return;
+function setFlagActionMsg(text, kind) {
+  const el = document.getElementById('fm-action-msg');
+  if (!el) return;
+  el.textContent = text || '';
+  el.className = 'flag-comment-hint' + (kind ? ` flag-comment-hint-${kind}` : '');
+}
 
-  document.getElementById('fm-name').textContent   = f.resident_name || '—';
-  document.getElementById('fm-source').textContent = f.source==='AI' ? '🤖 AI Detected' : '👤 Staff Flagged';
-  document.getElementById('fm-etype').textContent  = f.event_type || '—';
+function renderFlagComments(comments) {
+  const list = document.getElementById('fm-comments-list');
+  if (!list) return;
+  if (!comments || !comments.length) {
+    list.innerHTML = '<div class="flag-comments-empty">No comments yet.</div>';
+    return;
+  }
+  list.innerHTML = comments
+    .map(
+      (c) => `
+      <div class="flag-comment-item">
+        <div class="flag-comment-head">
+          <strong>${escapeHtml(c.author_name || 'Staff')}</strong>
+          <span>${escapeHtml(c.created_at || '')}</span>
+        </div>
+        <div class="flag-comment-body">${escapeHtml(c.body || '')}</div>
+      </div>`
+    )
+    .join('');
+}
+
+function populateFlagModal(f) {
+  if (!f) return;
+  _activeFlagId = Number(f.id);
+
+  document.getElementById('fm-name').textContent = f.resident_name || '—';
+  document.getElementById('fm-source').textContent = f.source === 'AI' ? '🤖 AI Detected' : '👤 Staff Flagged';
+  document.getElementById('fm-etype').textContent = f.event_type || '—';
+  document.getElementById('fm-description').textContent = f.description || '—';
+  document.getElementById('fm-status-label').textContent = f.status || 'Pending Review';
   document.getElementById('fm-timestamp').textContent = f.video_timestamp || '—';
+  document.getElementById('fm-confidence').textContent =
+    f.ai_confidence != null ? `${f.ai_confidence}%` : '—';
 
-  // transcript — convert plain text \n to HTML
-  const rawTrans = f.transcript || 'No transcript available.';
-  document.getElementById('fm-transcript').innerHTML = rawTrans
-    .replace(/\[([^\]]+)\]/g, "<span class='transcript-highlight'>$1</span>")
-    .replace(/\n/g, '<br>');
+  const rawTrans = f.transcript || f.sev_desc || 'No transcript available.';
+  document.getElementById('fm-transcript').innerHTML = escapeHtml(rawTrans).replace(/\n/g, '<br>');
 
-  // severity box
   const sev = f.severity || 'Low';
   const box = document.getElementById('fm-sev-box');
-  box.className = 'flag-sev-box flag-sev-'+(sev==='High'?'high':sev==='Medium'?'medium':'low');
-  document.getElementById('fm-sev-icon').textContent = sev==='High'?'🔴':sev==='Medium'?'⚠️':'🟢';
-  document.getElementById('fm-sev-text').textContent = sev+' Severity';
-  document.getElementById('fm-sev-desc').textContent = f.sev_desc || '—';
+  box.className = 'flag-sev-box flag-sev-' + (sev === 'High' ? 'high' : sev === 'Medium' ? 'medium' : 'low');
+  document.getElementById('fm-sev-icon').textContent = sev === 'High' ? '🔴' : sev === 'Medium' ? '⚠️' : '🟢';
+  document.getElementById('fm-sev-text').textContent = sev + ' Severity';
+  document.getElementById('fm-sev-desc').textContent = f.sev_desc || f.description || '—';
+
+  renderFlagComments(f.comments || []);
+  const commentInput = document.getElementById('fm-comment-input');
+  if (commentInput) commentInput.value = '';
+  setFlagActionMsg('');
+
+  const closed = f.status === 'Resolved' || f.status === 'False Alarm';
+  ['fm-btn-confirm', 'fm-btn-false', 'fm-btn-escalate'].forEach((id) => {
+    const btn = document.getElementById(id);
+    if (btn) btn.disabled = closed;
+  });
+}
+
+async function openFlagModal(id) {
+  const local = findFlagById(id);
+  if (!local) {
+    alert('Flag not found. Refresh the page and try again.');
+    return;
+  }
 
   openModal('modal-flag');
+  populateFlagModal(local);
+  setFlagActionMsg('Loading full flag details…', 'info');
+
+  try {
+    const res = await fetch(`${FLAGS_API()}/flags/${Number(id)}`, { headers: authHeaders() });
+    if (!res.ok) throw new Error(await res.text());
+    const full = normaliseFlag(await res.json());
+    const idx = allFlags.findIndex((x) => Number(x.id) === Number(full.id));
+    if (idx >= 0) allFlags[idx] = full;
+    filteredFlags = filteredFlags.map((x) => (Number(x.id) === Number(full.id) ? full : x));
+    populateFlagModal(full);
+    setFlagActionMsg('');
+  } catch (e) {
+    setFlagActionMsg('Could not refresh flag details. Showing cached data.', 'err');
+  }
+}
+
+async function submitFlagComment() {
+  const id = _activeFlagId;
+  const body = document.getElementById('fm-comment-input')?.value?.trim();
+  if (!id) return null;
+  if (!body) return null;
+
+  const res = await fetch(`${FLAGS_API()}/flags/${id}/comments`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify({ author_name: staffDisplayName(), body }),
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+async function performFlagAction(status) {
+  const id = _activeFlagId;
+  if (!id) return;
+
+  const comment = document.getElementById('fm-comment-input')?.value?.trim();
+  setFlagActionMsg('Saving…', 'info');
+
+  try {
+    if (comment) await submitFlagComment();
+    await updateFlagStatus(id, status, { silent: true });
+    setFlagActionMsg(`Flag marked as ${status}.`, 'ok');
+    const input = document.getElementById('fm-comment-input');
+    if (input) input.value = '';
+    await openFlagModal(id);
+    await loadStats();
+  } catch (e) {
+    setFlagActionMsg(String(e.message || e || 'Action failed'), 'err');
+  }
+}
+
+async function updateFlagStatus(flagId, status, options = {}) {
+  const id = Number(flagId || _activeFlagId);
+  if (!id) return;
+  try {
+    const res = await fetch(`${FLAGS_API()}/flags/${id}/status`, {
+      method: 'PATCH',
+      headers: authHeaders(),
+      body: JSON.stringify({ status }),
+    });
+    if (!res.ok) throw new Error(await res.text());
+    const updated = normaliseFlag(await res.json());
+    allFlags = allFlags.map((f) => (Number(f.id) === Number(updated.id) ? updated : f));
+    filteredFlags = filteredFlags.map((f) => (Number(f.id) === Number(updated.id) ? updated : f));
+    renderFlags();
+    if (!options.silent) await loadStats();
+    if (_activeFlagId === updated.id && !options.silent) populateFlagModal(updated);
+    return updated;
+  } catch (e) {
+    if (!options.silent) alert('Could not update flag: ' + (e.message || e));
+    throw e;
+  }
+}
+
+function exportFlagReport() {
+  const f = findFlagById(_activeFlagId);
+  if (!f) return;
+
+  const lines = [
+    'Sphere Care — Flag Review Report',
+    '================================',
+    `Generated: ${new Date().toLocaleString()}`,
+    '',
+    `Flag ID: ${f.id}`,
+    `Resident: ${f.resident_name || '—'}`,
+    `Event type: ${f.event_type || '—'}`,
+    `Severity: ${f.severity || '—'}`,
+    `Status: ${f.status || '—'}`,
+    `Source: ${f.source || '—'}`,
+    `Flagged at: ${f.flagged_at || '—'}`,
+    `Video timestamp: ${f.video_timestamp || '—'}`,
+    `AI confidence: ${f.ai_confidence != null ? f.ai_confidence + '%' : '—'}`,
+    '',
+    'Description',
+    '-----------',
+    f.description || '—',
+    '',
+    'Severity detail',
+    '---------------',
+    f.sev_desc || '—',
+    '',
+    'Transcript / SCVAM context',
+    '--------------------------',
+    f.transcript || '—',
+    '',
+    'Comments',
+    '--------',
+  ];
+
+  if (f.comments && f.comments.length) {
+    f.comments.forEach((c) => {
+      lines.push(`[${c.created_at || ''}] ${c.author_name || 'Staff'}: ${c.body || ''}`);
+    });
+  } else {
+    lines.push('(none)');
+  }
+
+  const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `flag-${f.id}-${(f.event_type || 'report').replace(/\s+/g, '-').toLowerCase()}.txt`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+  setFlagActionMsg('Report downloaded.', 'ok');
+}
+
+window.openFlagModal = openFlagModal;
+window.updateFlagStatus = updateFlagStatus;
+window.exportFlagReport = exportFlagReport;
+
+function exportAllFlagsReport() {
+  if (!filteredFlags.length) {
+    alert('No flags to export.');
+    return;
+  }
+  const lines = ['Sphere Care — Flags Export', `Generated: ${new Date().toLocaleString()}`, ''];
+  filteredFlags.forEach((f) => {
+    lines.push(
+      `#${f.id} | ${f.resident_name} | ${f.event_type} | ${f.severity} | ${f.status} | ${f.flagged_at}`,
+      f.description || '',
+      '---'
+    );
+  });
+  const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `flags-export-${Date.now()}.txt`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
 }
 
 
@@ -258,7 +493,7 @@ async function openResidentModal(resId, resName){
       // extract numeric ID from "RES005" → 5
       const numId = parseInt(resId.replace(/\D/g,''));
       if(numId){
-        const res = await fetch(`${API_BASE}/residents/${numId}`, {headers: authHeaders()});
+        const res = await fetch(`${FLAGS_API()}/residents/${numId}`, {headers: authHeaders()});
         if(res.ok) r = await res.json();
       }
     } catch(e){}
@@ -343,8 +578,17 @@ function openModal(id){document.getElementById(id).classList.add('open');documen
 function closeModal(id){document.getElementById(id).classList.remove('open');document.body.style.overflow='';}
 document.addEventListener('DOMContentLoaded', function() {
   document.querySelectorAll('.overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)closeModal(o.id);}));
+  document.getElementById('fm-close-btn')?.addEventListener('click', () => closeModal('modal-flag'));
+  document.getElementById('fm-btn-confirm')?.addEventListener('click', () => performFlagAction('Resolved'));
+  document.getElementById('fm-btn-false')?.addEventListener('click', () => performFlagAction('False Alarm'));
+  document.getElementById('fm-btn-escalate')?.addEventListener('click', () => performFlagAction('Escalated'));
+  document.getElementById('fm-btn-export')?.addEventListener('click', exportFlagReport);
+  document.getElementById('flags-export-all-btn')?.addEventListener('click', exportAllFlagsReport);
   loadStats();
-  loadFlags();
+  loadFlags().then(() => {
+    const openId = new URLSearchParams(window.location.search).get('flag');
+    if (openId) openFlagModal(Number(openId));
+  });
 });
 
 function showApiStatus(connected){
@@ -356,3 +600,44 @@ function showApiStatus(connected){
   el.style.opacity='1';
   setTimeout(()=>el.style.opacity='0',3000);
 }
+// ── AI flag real-time updates ────────────────────────────────────────────────
+(function setupAiFlagRealtime(){
+  var ws = null;
+  var retryTimer = null;
+
+  function connect(){
+    var token = sessionStorage.getItem('access_token') || '';
+    if(!token) return;
+    if(ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) return;
+
+    var proto = location.protocol === 'https:' ? 'wss' : 'ws';
+    ws = new WebSocket(proto + '://' + location.host + '/ws?token=' + encodeURIComponent(token));
+
+    ws.onmessage = function(e){
+      var msg;
+      try { msg = JSON.parse(e.data); } catch(err) { return; }
+
+      if(msg.type !== 'ai_alert') return;
+
+      if(msg.flag){
+        var incoming = normaliseFlag(msg.flag);
+        allFlags = [incoming].concat(allFlags.filter(function(f){ return String(f.id) !== String(incoming.id); }));
+        filterFlags();
+      } else {
+        loadFlags();
+      }
+
+      loadStats();
+      showApiStatus(true);
+    };
+
+    ws.onclose = function(){
+      clearTimeout(retryTimer);
+      retryTimer = setTimeout(connect, 3000);
+    };
+
+    ws.onerror = function(){};
+  }
+
+  document.addEventListener('DOMContentLoaded', connect);
+})();

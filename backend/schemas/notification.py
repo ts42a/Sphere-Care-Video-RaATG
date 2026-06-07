@@ -24,3 +24,14 @@ class NotificationResponse(BaseModel):
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class IncomingAlertOut(BaseModel):
+    key: str
+    alert_type: str
+    title: str
+    message: str
+    severity: str
+    action_url: Optional[str] = None
+    created_at: str
+    entity_id: Optional[int] = None
