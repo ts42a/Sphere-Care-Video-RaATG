@@ -5,7 +5,7 @@
 | Doc | What it covers |
 |-----|----------------|
 | [User Guide](user-guide.md) | Staff/family quick start and troubleshooting |
-| [Run Guide](RUN.md) | Native setup — PostgreSQL, backend, test accounts |
+| [Run Guide](RUN.md) | **Start here** — native setup, `backend/.env`, test accounts |
 | [Mobile Setup](mobile_run.md) | Expo family app — env vars, dev build, device testing |
 | [Docker Setup](../docker/README.md) | Containerized stack |
 | [Architecture](architecture.md) | System design, roles, data model, workflows |

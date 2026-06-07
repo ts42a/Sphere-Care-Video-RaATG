@@ -10,7 +10,9 @@ Run these from the **repo root** with the backend venv active (`pip install -r r
 
 ## SCVAM 2.1 — video safety analysis
 
-Place a test video (`.mp4`, `.mov`, etc.) in `ai/models/SCVAM2.1/`, then:
+Test videos are **not in git** (`.mp4` is gitignored). Copy any short care-room or CCTV clip into `ai/models/SCVAM2.1/` — for example a 30–60 s `.mp4` you record locally, or export a clip from your demo footage.
+
+Then run:
 
 ```powershell
 python ai/models/SCVAM2.1/test.py

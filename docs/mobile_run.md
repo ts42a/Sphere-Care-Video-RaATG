@@ -17,7 +17,11 @@ npm install
 
 ## Environment
 
-Create `frontend_client/.env`:
+```powershell
+Copy-Item .env.example .env
+```
+
+Or create `frontend_client/.env` manually:
 
 ```env
 EXPO_PUBLIC_USE_MOCK_API=false

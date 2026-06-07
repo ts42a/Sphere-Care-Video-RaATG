@@ -67,10 +67,12 @@ Reboot, start **Docker Desktop**, confirm `(Get-CimInstance Win32_Processor).Vir
 ## Quick start
 
 ```powershell
-# From repo root
-cp docker/.env.example docker/.env
+# From repo root (PowerShell)
+Copy-Item docker\.env.example docker\.env
 docker compose -f docker/docker-compose.yml up --build
 ```
+
+> **Note:** Default `docker/.env` has `SCVAM_ENABLED=false` and `AI_PIPELINE_ENABLED=false` for a lighter container. Set both to `true` for the full AI demo. Also copy `backend/.env` is **not** used inside Docker — all config goes in `docker/.env`.
 
 A root `.dockerignore` is already provided (kept in sync with `docker/.dockerignore`).
 

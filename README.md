@@ -64,29 +64,63 @@ Australian aged care providers face growing documentation burden, limited overni
 | Calls | LiveKit WebRTC |
 | AI / vision | SCVAM 2.1, ASLLM, SRM, OpenCV, MediaPipe, PyTorch, YOLOv8, Whisper |
 
-## Quick start (Docker)
+## First run (recommended — native)
+
+Best for the **full demo** (SCVAM, ASL, Whisper enabled by default). Needs PostgreSQL + Python 3.11 + ~5 GB for dependencies.
 
 ```powershell
-cp docker/.env.example docker/.env
+# 1. Database (once)
+psql -U postgres -c "CREATE DATABASE sphere_care;"
+
+# 2. Backend env — app reads backend/.env only
+Copy-Item backend\.env.example backend\.env
+# Edit DATABASE_URL if your Postgres password is not "postgres"
+
+# 3. Python (first install may take 15–30 min)
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+python -m uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+Open **http://localhost:8000** → login `admin1@test.com` / `Pass1234`
+
+| Works immediately | Needs extra config |
+|-------------------|-------------------|
+| Staff web, dashboard, residents, messages, bookings | Video/audio **calls** → LiveKit keys in `backend/.env` |
+| Seeded test accounts | Live **transcripts** → LiveKit + Python 3.11 + ffmpeg |
+| SCVAM worker (background) | **AI summaries** → Ollama or OpenAI in `backend/.env` |
+
+Full guide: [docs/RUN.md](docs/RUN.md) · Mobile: [docs/mobile_run.md](docs/mobile_run.md)
+
+**Staff login tip:** staff accounts need the **Center ID** printed in the backend terminal on first start.
+
+## Docker (lighter default)
+
+Good if you don't want to install PostgreSQL/Python locally. **SCVAM and AI are disabled by default** in `docker/.env` — enable them for the full pipeline.
+
+```powershell
+Copy-Item docker\.env.example docker\.env
 docker compose -f docker/docker-compose.yml up --build
 ```
 
 - **Staff web + API:** http://localhost:8000
 - **API docs:** http://localhost:8000/docs
 
-See [docker/README.md](docker/README.md) for Windows setup, dev mode, and SCVAM/AI pipeline options.
+See [docker/README.md](docker/README.md) for dev mode and enabling SCVAM/AI.
 
-## Native setup
-
-- [docs/RUN.md](docs/RUN.md) — PostgreSQL, Python venv, backend, test accounts
-- [docs/mobile_run.md](docs/mobile_run.md) — Expo mobile app and device testing
+## Mobile client (optional)
 
 ```powershell
 cd frontend_client
+Copy-Item .env.example .env
+npm install
 npx expo start --web --port 3000
 ```
 
-**Test accounts** (all passwords `Pass1234`): `admin1@test.com`, `staff1@test.com`, `client1@test.com` — see [docs/RUN.md](docs/RUN.md).
+Web preview works for UI; **calls require an Expo dev build + LiveKit** — see [docs/mobile_run.md](docs/mobile_run.md).
+
+**Test accounts** (all passwords `Pass1234`): `admin1@test.com`, `staff1@test.com`, `client1@test.com`
 
 ## Project structure
 
@@ -139,4 +173,4 @@ npx expo start --web --port 3000
 
 ## License
 
-Academic capstone project — University of Wollongong. Not licensed for commercial use without author permission.
+Academic capstone project — University of Wollongong. Free for educational and research use; commercial use requires author permission. See [LICENSE](LICENSE).
