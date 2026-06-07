@@ -108,10 +108,6 @@ def apply_scvam_results(
     now = datetime.now(timezone.utc)
     resident_label, _room_label = scvam_subject_labels(job, record)
     flag_candidates = build_flag_candidates(parsed, summary_text=summary)
-<<<<<<< HEAD
-=======
-    created_flag_ids: list[int] = []
->>>>>>> df987012d636e73237aef9fada0b1aa17787265f
     created_flags: list[models.Flag] = []
     for p in flag_candidates:
         video_ts = _sec_to_hhmmss(p.timestamp_sec)
@@ -141,10 +137,6 @@ def apply_scvam_results(
         )
         db.add(f)
         db.flush()
-<<<<<<< HEAD
-=======
-        created_flag_ids.append(int(f.id))
->>>>>>> df987012d636e73237aef9fada0b1aa17787265f
         created_flags.append(f)
 
     if created_flags:

@@ -724,13 +724,9 @@ async def _send_call_summary_to_chat(
     db.refresh(conversation)
 
     deliveries = _delivery_payload_for_ai_summary_message(message, conversation)
-<<<<<<< HEAD
     await notification_service.notify_new_message(
         message, conversation.admin_id, deliveries=deliveries, db=db
     )
-=======
-    await notification_service.notify_new_message(message, conversation.admin_id, deliveries=deliveries)
->>>>>>> df987012d636e73237aef9fada0b1aa17787265f
     if deliveries:
         await notification_service.notify_conversation_changed(conversation.admin_id, deliveries=deliveries)
     return int(conversation.id), int(message.id)

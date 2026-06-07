@@ -24,14 +24,10 @@ import io
 import logging
 import os
 import wave
-<<<<<<< HEAD
 try:
     import audioop
 except ModuleNotFoundError:
     import audioop_lts as audioop  # Python 3.13+ removed stdlib audioop
-=======
-import audioop
->>>>>>> df987012d636e73237aef9fada0b1aa17787265f
 import re
 from dataclasses import dataclass, field
 from datetime import timedelta
