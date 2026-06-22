@@ -4,7 +4,7 @@
 
 Sphere Care is a secure, role-based platform that helps care staff record interactions, generate searchable transcripts and summaries, translate ASL sign language in real time, review AI safety flags, communicate with families, and maintain audit-ready records — all from one web and mobile ecosystem. AI supports staff; every transcript, summary, and flag is reviewed by a person before action is taken.
 
-**Watch the marketing video:** [Sphere Care — Product Overview](https://youtu.be/YOUR_VIDEO_ID)
+**Watch the marketing video:** [Sphere Care — Product Overview](https://drive.google.com/file/d/1HpjeubGFwyd8zx1Gviv8f9mp_A-mW8tB/view?usp=sharing)
 
 > CSIT321 Software Engineering Capstone · University of Wollongong · Academic Year 2025–2026
 
